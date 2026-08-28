@@ -177,6 +177,68 @@
         }
         .price-highlight .sub { font-size: 0.85rem; color: var(--gray-500); }
 
+        /* Map statique (mock) */
+        .map-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        .map-card-title {
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+        }
+        .map-card-title i { color: var(--blue); margin-right: 6px; }
+        .map-frame {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+        }
+        .map-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .map-fallback {
+            background:
+                linear-gradient(135deg, var(--blue-pale), var(--gray-200));
+        }
+        .map-marker {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -100%);
+            color: #22c55e;
+            font-size: 2rem;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+            pointer-events: none;
+        }
+        .map-caption {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 999px;
+            padding: 6px 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
         /* Cancel */
         .cancel-section {
             background: var(--white);
@@ -274,6 +336,8 @@
         @media (max-width: 600px) {
             .info-grid { grid-template-columns: 1fr; }
             .step-label { font-size: 0.7rem; }
+            .map-frame { height: 200px; }
+            .map-caption { white-space: normal; text-align: center; }
         }
     </style>
 </head>
@@ -370,6 +434,25 @@
                     <div class="info-row"><span class="label">Nom</span><span class="value" id="techNom">—</span></div>
                     <div class="info-row"><span class="label">Spécialité</span><span class="value" id="techSpec">—</span></div>
                     <div class="info-row"><span class="label">Tarif horaire</span><span class="value" id="techTarif">—</span></div>
+                </div>
+            </div>
+
+            <div class="map-card">
+                <h3 class="map-card-title"><i class="fa-solid fa-map-location-dot"></i> Localisation du technicien</h3>
+                <div class="map-frame">
+                    <img
+                        src="https://staticmap.openstreetmap.de/staticmap.php?center=14.7167,-17.4677&zoom=13&size=600x400&markers=14.7167,-17.4677,blue"
+                        alt="Carte statique : localisation du technicien"
+                        class="map-img"
+                        loading="lazy"
+                        onerror="this.closest('.map-frame').classList.add('map-fallback'); this.style.display='none';"
+                    >
+                    <div class="map-marker" aria-hidden="true">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div class="map-caption">
+                        <i class="fa-solid fa-road"></i> Technicien en route vers votre adresse (mock)
+                    </div>
                 </div>
             </div>
 
