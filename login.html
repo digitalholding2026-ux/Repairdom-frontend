@@ -127,13 +127,7 @@
                 <span class="logo-text">RepairDom</span>
             </a>
             <button class="menu-toggle" aria-label="Menu">&#9776;</button>
-            <nav class="nav">
-                <a href="index.html" class="nav-link">Accueil</a>
-                <a href="client-depot.html" class="nav-link">Déposer une panne</a>
-                <a href="tech-liste.html" class="nav-link">Techniciens</a>
-                <a href="suivi-mission.html" class="nav-link">Mes missions</a>
-                <a href="register.html" class="nav-link">S'inscrire</a>
-            </nav>
+            <nav class="nav" id="mainNav"></nav>
         </div>
     </header>
 
@@ -185,7 +179,7 @@
 
     <script src="./app.js"></script>
     <script src="./auth.js"></script>
-    <script src="./session-menu.js"></script>
+    <script src="./nav.js"></script>
     <script>
         function showToast(msg, type) {
             var c = document.getElementById('toastContainer');
@@ -196,19 +190,6 @@
             setTimeout(function () { t.classList.add('removing'); }, 4000);
             setTimeout(function () { t.remove(); }, 4400);
         }
-
-        var toggle = document.querySelector('.menu-toggle');
-        var nav = document.querySelector('.nav');
-        toggle.addEventListener('click', function () {
-            nav.classList.toggle('open');
-            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
-        });
-        nav.querySelectorAll('.nav-link').forEach(function (link) {
-            link.addEventListener('click', function () {
-                nav.classList.remove('open');
-                toggle.textContent = '\u2630';
-            });
-        });
 
         var fields = ['email', 'motdepasse'];
 
