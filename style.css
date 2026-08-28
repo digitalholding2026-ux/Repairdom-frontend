@@ -376,8 +376,10 @@ a {
 
 .testimonial-stars {
     color: #F59F00;
-    font-size: 1.1rem;
-    letter-spacing: 2px;
+    font-size: 1.05rem;
+    display: flex;
+    justify-content: center;
+    gap: 3px;
     margin: 6px 0 12px;
 }
 

@@ -200,7 +200,11 @@
             const full = Math.floor(rating);
             const half = rating % 1 >= 0.5 ? 1 : 0;
             const empty = 5 - full - half;
-            return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+            let out = '';
+            for (let i = 0; i < full; i++) out += '<i class="fa-solid fa-star"></i>';
+            if (half) out += '<i class="fa-solid fa-star-half-stroke"></i>';
+            for (let i = 0; i < empty; i++) out += '<i class="fa-regular fa-star"></i>';
+            return out;
         }
 
         function renderTechniciens() {
