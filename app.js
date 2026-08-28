@@ -12,7 +12,7 @@
 //   3. DEFAULT_API_URL         → repli sur l'URL publique du backend
 
 const BUILT_API_URL = '__API_URL__';
-const DEFAULT_API_URL = 'https://repairdom-backend.up.railway.app';
+const DEFAULT_API_URL = 'https://repairdom-backend-production.up.railway.app';
 
 const API_URL = (
   window.API_URL
