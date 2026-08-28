@@ -52,6 +52,19 @@
         </div>
     </section>
 
+    <section class="search-section">
+        <div class="container">
+            <form class="search-bar" id="searchForm" role="search">
+                <input type="text" id="searchInput" class="search-input"
+                       placeholder="Que voulez-vous réparer ? (ex: téléphone, ordinateur)"
+                       aria-label="Rechercher un type de réparation">
+                <button type="submit" class="search-btn" aria-label="Rechercher">
+                    <i class="fa-solid fa-magnifying-glass"></i> Rechercher
+                </button>
+            </form>
+        </div>
+    </section>
+
     <section class="features">
         <div class="container features-grid">
             <div class="feature-card">
@@ -218,6 +231,19 @@
                     goTo(index);
                     restart();
                 }
+            });
+        })();
+
+        // Barre de recherche : redirection vers la page des techniciens.
+        (function () {
+            var form = document.getElementById('searchForm');
+            var input = document.getElementById('searchInput');
+            if (!form || !input) return;
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var q = input.value.trim();
+                if (!q) return;
+                window.location.href = 'tech-liste.html?q=' + encodeURIComponent(q);
             });
         })();
     </script>
