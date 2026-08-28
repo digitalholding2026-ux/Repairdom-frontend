@@ -184,6 +184,8 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="./app.js"></script>
+    <script src="./auth.js"></script>
+    <script src="./session-menu.js"></script>
     <script>
         function showToast(msg, type) {
             var c = document.getElementById('toastContainer');
@@ -288,6 +290,11 @@
                 }
                 document.getElementById('serverError').hidden = true;
                 showToast(data.message || 'Connexion réussie !', 'success');
+                window.RepairAuth.saveSession({
+                    token: data.token || 'local-session',
+                    userName: data.user && data.user.nom,
+                    userRole: data.role
+                });
                 setTimeout(function () {
                     var target = data.role === 'technicien' ? 'dashboard-technicien.html' : 'client-depot.html';
                     window.location.href = target;
