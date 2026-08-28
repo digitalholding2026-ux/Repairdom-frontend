@@ -23,11 +23,28 @@
     <section class="hero" style="background-image: url('/assets/images/hero.webp');">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1>La réparation à domicile, simple et fiable.</h1>
-            <p>Un technicien qualifié se déplace chez vous pour réparer votre téléphone ou ordinateur.</p>
+            <h1>La réparation à domicile, simple et fiable</h1>
+            <p class="hero-subtitle">Plus de 150 techniciens certifiés au Cameroun</p>
             <div class="hero-buttons">
-                <a href="client-depot.html" class="btn-primary">Je suis client</a>
-                <a href="register.html" class="btn-outline">Je suis technicien</a>
+                <a href="client-depot.html" class="btn-hero btn-hero-primary">Je suis client</a>
+                <a href="register.html" class="btn-hero btn-hero-secondary">Je suis technicien</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="trust">
+        <div class="container trust-grid">
+            <div class="trust-item">
+                <span class="trust-number" data-count="150">150</span>
+                <span class="trust-label">Techniciens certifiés</span>
+            </div>
+            <div class="trust-item">
+                <span class="trust-number" data-count="1200" data-suffix="+">1200+</span>
+                <span class="trust-label">Réparations effectuées</span>
+            </div>
+            <div class="trust-item">
+                <span class="trust-number" data-count="4.8" data-decimals="1" data-suffix="/5">4.8/5</span>
+                <span class="trust-label">Note moyenne</span>
             </div>
         </div>
     </section>
@@ -61,6 +78,48 @@
     <script src="./app.js"></script>
     <script src="./auth.js"></script>
     <script src="./nav.js"></script>
+    <script>
+        // Animation simple des compteurs de la zone de confiance.
+        (function () {
+            var items = document.querySelectorAll('.trust-number');
+            if (!items.length) return;
+
+            function animate(el) {
+                var target = parseFloat(el.getAttribute('data-count'));
+                if (isNaN(target)) return;
+                var decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
+                var suffix = el.getAttribute('data-suffix') || '';
+                var duration = 1200;
+                var start = null;
+
+                function step(ts) {
+                    if (!start) start = ts;
+                    var progress = Math.min((ts - start) / duration, 1);
+                    var val = target * progress;
+                    var text = decimals > 0
+                        ? val.toFixed(decimals).replace('.', ',')
+                        : Math.round(val).toString();
+                    el.textContent = text + suffix;
+                    if (progress < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+            }
+
+            if ('IntersectionObserver' in window) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            animate(entry.target);
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.4 });
+                items.forEach(function (el) { observer.observe(el); });
+            } else {
+                items.forEach(animate);
+            }
+        })();
+    </script>
 
 </body>
 </html>
