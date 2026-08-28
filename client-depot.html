@@ -216,18 +216,8 @@
     <script src="./app.js"></script>
     <script src="./auth.js"></script>
     <script src="./nav.js"></script>
+    <script src="./toast.js"></script>
     <script>
-        /* --- Toast --- */
-        function showToast(msg, type) {
-            var c = document.getElementById('toastContainer');
-            var t = document.createElement('div');
-            t.className = 'toast ' + (type || 'info');
-            t.textContent = msg;
-            c.appendChild(t);
-            setTimeout(function () { t.classList.add('removing'); }, 4000);
-            setTimeout(function () { t.remove(); }, 4400);
-        }
-
         /* --- Load catalogue into panne select --- */
         let catalogue = [];
 
@@ -383,7 +373,7 @@
                 });
                 const mission = await res.json();
                 if (!res.ok) throw new Error(mission.error || 'Erreur serveur');
-                showToast('Demande créée avec succès !', 'success');
+                showToast('Mission créée !', 'success');
                 setTimeout(function () {
                     window.location.href = 'tech-liste.html?id=' + mission.id;
                 }, 800);

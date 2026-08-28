@@ -338,18 +338,8 @@
     <script src="./app.js"></script>
     <script src="./auth.js"></script>
     <script src="./nav.js"></script>
+    <script src="./toast.js"></script>
     <script>
-        /* --- Toast --- */
-        function showToast(msg, type) {
-            var c = document.getElementById('toastContainer');
-            var t = document.createElement('div');
-            t.className = 'toast ' + (type || 'info');
-            t.textContent = msg;
-            c.appendChild(t);
-            setTimeout(function () { t.classList.add('removing'); }, 4000);
-            setTimeout(function () { t.remove(); }, 4400);
-        }
-
         /* --- Params --- */
         const params = new URLSearchParams(window.location.search);
         const techId = params.get('tech') || 'tech-001';

@@ -137,6 +137,12 @@ a {
     font-size: 0.8rem;
     font-weight: 700;
     flex-shrink: 0;
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.nav-avatar:hover {
+    transform: scale(1.12);
+    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.45);
 }
 
 .nav-user-name {
@@ -144,6 +150,11 @@ a {
     font-weight: 500;
     font-size: 0.95rem;
     white-space: nowrap;
+    transition: color var(--transition);
+}
+
+.nav-user-name:hover {
+    color: var(--blue);
 }
 
 .nav-badge {
