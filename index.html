@@ -72,6 +72,44 @@
         </div>
     </section>
 
+    <section class="testimonials">
+        <div class="container">
+            <h2 class="testimonials-title">Ils nous font confiance</h2>
+            <div class="testimonial-carousel">
+                <div class="testimonial-track" id="testimonialTrack">
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <div class="testimonial-name">Amina Sow</div>
+                            <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                            <p class="testimonial-text">"Mon téléphone réparé en une heure, impeccable !"</p>
+                            <span class="testimonial-verified"><i class="fa-solid fa-circle-check"></i> Client vérifié</span>
+                        </div>
+                    </div>
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <div class="testimonial-name">Jean-Paul Ndjoume</div>
+                            <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                            <p class="testimonial-text">"Technicien ponctuel et prix vraiment transparent."</p>
+                            <span class="testimonial-verified"><i class="fa-solid fa-circle-check"></i> Client vérifié</span>
+                        </div>
+                    </div>
+                    <div class="testimonial-slide">
+                        <div class="testimonial-card">
+                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <div class="testimonial-name">Christelle Mbarga</div>
+                            <div class="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9734;</div>
+                            <p class="testimonial-text">"Service rapide et de très bon conseil, je recommande."</p>
+                            <span class="testimonial-verified"><i class="fa-solid fa-circle-check"></i> Client vérifié</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-dots" id="testimonialDots"></div>
+            </div>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="container footer-inner">
             <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
@@ -122,6 +160,65 @@
             } else {
                 items.forEach(animate);
             }
+        })();
+
+        // Carrousel de témoignages (auto-défilement 4s + points de navigation).
+        (function () {
+            var track = document.getElementById('testimonialTrack');
+            if (!track) return;
+            var slides = track.children;
+            var total = slides.length;
+            if (total < 2) return;
+            var dotsWrap = document.getElementById('testimonialDots');
+            var index = 0;
+            var timer = null;
+
+            var dots = [];
+            for (var i = 0; i < total; i++) {
+                var d = document.createElement('button');
+                d.className = 'testimonial-dot';
+                d.setAttribute('aria-label', 'Avis ' + (i + 1));
+                d.addEventListener('click', function (idx) {
+                    return function () { goTo(idx); restart(); };
+                }(i));
+                dotsWrap.appendChild(d);
+                dots.push(d);
+            }
+
+            function isMobile() {
+                return window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
+            }
+
+            function goTo(i) {
+                index = (i + total) % total;
+                if (isMobile()) return; // sur mobile, les cartes s'affichent en colonne.
+                var offset = -index * 100;
+                track.style.transform = 'translateX(' + offset + '%)';
+                dots.forEach(function (d, k) {
+                    d.classList.toggle('active', k === index);
+                });
+            }
+
+            function next() { goTo(index + 1); }
+
+            function restart() {
+                if (timer) clearInterval(timer);
+                if (isMobile()) return;
+                timer = setInterval(next, 4000);
+            }
+
+            goTo(0);
+            restart();
+            window.addEventListener('resize', function () {
+                if (isMobile()) {
+                    if (timer) clearInterval(timer);
+                    track.style.transform = '';
+                    dots.forEach(function (d) { d.classList.remove('active'); });
+                } else {
+                    goTo(index);
+                    restart();
+                }
+            });
         })();
     </script>
 

@@ -318,6 +318,112 @@ a {
     color: var(--gray-500);
 }
 
+/* ===== Témoignages ===== */
+.testimonials {
+    background: #F5F7FA;
+    padding: 64px 0;
+}
+
+.testimonials-title {
+    text-align: center;
+    font-size: 1.6rem;
+    color: var(--gray-800);
+    margin-bottom: 36px;
+}
+
+.testimonial-carousel {
+    max-width: 620px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.testimonial-track {
+    display: flex;
+    transition: transform 0.6s ease;
+}
+
+.testimonial-slide {
+    flex: 0 0 100%;
+    padding: 0 8px;
+}
+
+.testimonial-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    text-align: center;
+}
+
+.testimonial-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--blue-pale);
+    color: var(--blue);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 14px;
+}
+
+.testimonial-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.testimonial-stars {
+    color: #F59F00;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    margin: 6px 0 12px;
+}
+
+.testimonial-text {
+    font-size: 0.95rem;
+    color: var(--gray-500);
+    font-style: italic;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+.testimonial-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #2F9E44;
+    background: #E6F4EA;
+    padding: 4px 12px;
+    border-radius: 999px;
+}
+
+.testimonial-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.testimonial-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-200);
+    cursor: pointer;
+    transition: background var(--transition), transform var(--transition);
+    padding: 0;
+}
+
+.testimonial-dot.active {
+    background: var(--blue);
+    transform: scale(1.25);
+}
+
 /* ===== Buttons ===== */
 .btn {
     display: inline-block;
@@ -619,5 +725,27 @@ a {
     .features-grid {
         grid-template-columns: 1fr;
         gap: 20px;
+    }
+
+    .testimonials {
+        padding: 48px 0;
+    }
+
+    .testimonial-carousel {
+        overflow: visible;
+    }
+
+    .testimonial-track {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .testimonial-slide {
+        flex: 0 0 auto;
+        padding: 0;
+    }
+
+    .testimonial-dots {
+        display: none;
     }
 }
