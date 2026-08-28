@@ -50,16 +50,36 @@
       if (role === 'technician') {
         html += link('dashboard-technicien.html', 'Tableau de bord');
       }
-      html +=
-        '<span style="color:var(--gray-500); margin-left:1rem;">Bonjour, ' +
-        (localStorage.getItem('userName') || '') +
-        '</span>' +
-        '<button onclick="handleLogout()" class="btn btn-outline btn-sm">Déconnexion</button>';
+      html += userChip();
     } else {
       html += link('register.html', "S'inscrire") + link('login.html', 'Se connecter');
     }
 
     nav.innerHTML = html;
+  }
+
+  function initials(name) {
+    if (!name) return '?';
+    return name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(function (w) { return w.charAt(0).toUpperCase(); })
+      .join('');
+  }
+
+  function userChip() {
+    var name = localStorage.getItem('userName') || 'Utilisateur';
+    var role = getUserRole();
+    var roleLabel = role === 'technician' ? 'Technicien' : 'Client';
+    return (
+      '<div class="nav-user">' +
+        '<span class="nav-avatar">' + initials(name) + '</span>' +
+        '<span class="nav-user-name">' + name + '</span>' +
+        '<span class="nav-badge">' + roleLabel + '</span>' +
+      '</div>' +
+      '<button onclick="handleLogout()" class="btn btn-outline btn-sm">Déconnexion</button>'
+    );
   }
 
   function link(href, text) {
