@@ -252,6 +252,25 @@
         }
         .cancelled-banner.show { display: block; }
 
+        .not-found {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 48px 24px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .not-found i {
+            font-size: 2.5rem;
+            color: var(--gray-500);
+            margin-bottom: 12px;
+        }
+        .not-found p {
+            font-size: 1.1rem;
+            color: var(--gray-800);
+            font-weight: 600;
+        }
+
         @media (max-width: 600px) {
             .info-grid { grid-template-columns: 1fr; }
             .step-label { font-size: 0.7rem; }
@@ -296,6 +315,11 @@
 
             <div id="loadingState" class="loading-overlay"><span class="spinner dark"></span> Chargement de la mission...</div>
 
+            <div id="notFound" class="not-found" style="display:none;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <p>Mission introuvable</p>
+            </div>
+
             <div class="mission-id">
                 Demande <strong id="missionIdDisplay">—</strong>
             </div>
@@ -303,7 +327,7 @@
             <div class="progress-card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                     <h2 style="margin-bottom:0;">Progression</h2>
-                    <button onclick="pollMission()" style="background:none;border:1px solid var(--gray-200);border-radius:var(--radius);padding:6px 14px;font-size:0.85rem;cursor:pointer;color:var(--gray-500);">↻ Rafraîchir</button>
+                    <button onclick="loadMission()" style="background:none;border:1px solid var(--gray-200);border-radius:var(--radius);padding:6px 14px;font-size:0.85rem;cursor:pointer;color:var(--gray-500);">↻ Rafraîchir</button>
                 </div>
                 <div class="progress-bar">
                     <div class="fill" id="progressFill" style="width: 0%"></div>
@@ -329,6 +353,7 @@
             <div class="price-highlight" id="priceBlock">
                 <div class="sub">Tarif convenu</div>
                 <div class="amount" id="priceDisplay">— FCFA</div>
+                <div class="sub" style="margin-top:10px;"><i class="fa-solid fa-calendar"></i> Rendez-vous : <span id="dateRDV" style="color:var(--gray-800);font-weight:600;">—</span></div>
             </div>
 
             <div class="info-grid">
@@ -342,7 +367,7 @@
                     <h3><i class="fa-solid fa-wrench"></i> Technicien</h3>
                     <div class="info-row"><span class="label">Nom</span><span class="value" id="techNom">—</span></div>
                     <div class="info-row"><span class="label">Spécialité</span><span class="value" id="techSpec">—</span></div>
-                    <div class="info-row"><span class="label">Rendez-vous</span><span class="value" id="dateRDV">—</span></div>
+                    <div class="info-row"><span class="label">Tarif horaire</span><span class="value" id="techTarif">—</span></div>
                 </div>
             </div>
 
@@ -394,62 +419,99 @@
 
         const statusLabels = {
             pending: 'En attente',
-            accepted: 'Acceptée',
+            on_the_way: 'En route',
+            accepted: 'En route',
+            in_progress: 'En cours',
             'in-progress': 'En cours',
             completed: 'Terminée',
             cancelled: 'Annulée'
         };
         const statusNotifications = {
             pending: "Votre demande a bien été enregistrée.",
+            on_the_way: "Le technicien est en route vers vous.",
             accepted: "Un technicien a accepté votre demande.",
+            in_progress: "Le technicien a commencé la réparation.",
             'in-progress': "Le technicien a commencé la réparation.",
             completed: "Réparation terminée. Merci pour votre confiance !",
             cancelled: "Mission annulée."
         };
+
+        function stepForStatus(status) {
+            const map = { pending: 0, on_the_way: 1, accepted: 1, in_progress: 2, 'in-progress': 2, completed: 3 };
+            return map[status] !== undefined ? map[status] : 0;
+        }
+
+        function renderMission(data) {
+            document.getElementById('clientNom').textContent = data.clientName || '—';
+            document.getElementById('clientTel').textContent = data.clientPhone || '—';
+            document.getElementById('clientAddr').textContent = data.address || '—';
+            document.getElementById('techNom').textContent = data.technicianName || '—';
+            document.getElementById('techSpec').textContent = data.techSpecialty || data.device || '—';
+            document.getElementById('techTarif').textContent = data.techRate
+                ? data.techRate.toLocaleString() + ' FCFA/h'
+                : '—';
+            document.getElementById('priceDisplay').textContent = (data.price || 0).toLocaleString() + ' FCFA';
+            document.getElementById('dateRDV').textContent = data.dateSouhaitee
+                ? new Date(data.dateSouhaitee).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '—';
+
+            if (data.status === 'cancelled') { showCancelled(); return; }
+            if (data.status === 'completed') {
+                document.getElementById('cancelSection').style.display = 'none';
+            }
+            updateProgress(stepForStatus(data.status));
+        }
+
+        async function loadTechnician(mission) {
+            if (!mission || !mission.technicianId) return;
+            try {
+                const res = await fetch(API_URL + '/api/technicians/' + mission.technicianId);
+                if (!res.ok) return;
+                const t = await res.json();
+                mission.techSpecialty = t.specialty || t.specialite || null;
+                mission.techRate = (t.rate != null) ? t.rate : (t.tarif != null ? t.tarif : null);
+            } catch (_) {}
+        }
 
         async function loadMission() {
             document.getElementById('missionIdDisplay').textContent = demandeId || '—';
 
             if (!demandeId) {
                 document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('notFound').style.display = 'block';
                 document.getElementById('cancelSection').style.display = 'none';
                 return;
             }
 
+            let notFound = false;
             try {
                 const res = await fetch(API_URL + '/api/missions/' + demandeId);
-                if (res.ok) missionData = await res.json();
-            } catch {}
+                if (res.ok) {
+                    missionData = await res.json();
+                } else if (res.status === 404) {
+                    notFound = true;
+                }
+            } catch { notFound = false; }
 
             document.getElementById('loadingState').style.display = 'none';
 
-            if (!missionData) {
+            if (notFound || !missionData) {
+                document.getElementById('missionId').style.display = 'none';
+                document.querySelector('.progress-card').style.display = 'none';
+                document.getElementById('priceBlock').style.display = 'none';
                 document.getElementById('cancelSection').style.display = 'none';
+                document.getElementById('notFound').style.display = 'block';
                 return;
             }
 
-            document.getElementById('clientNom').textContent = missionData.clientName || '—';
-            document.getElementById('clientTel').textContent = missionData.clientPhone || '—';
-            document.getElementById('clientAddr').textContent = missionData.address || '—';
-            document.getElementById('dateRDV').textContent = missionData.dateSouhaitee
-                ? new Date(missionData.dateSouhaitee).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                : '—';
-            document.getElementById('techNom').textContent = missionData.technicianName || '—';
-            document.getElementById('techSpec').textContent = missionData.device || '—';
-            document.getElementById('priceDisplay').textContent = (missionData.price || 0).toLocaleString() + ' FCFA';
+            document.getElementById('notFound').style.display = 'none';
+            document.getElementById('missionId').style.display = '';
+            document.querySelector('.progress-card').style.display = '';
+            document.getElementById('priceBlock').style.display = '';
+            document.getElementById('cancelSection').style.display = '';
 
-            if (missionData.status === 'cancelled') {
-                showCancelled(); return;
-            }
-            if (missionData.status === 'completed') {
-                document.getElementById('cancelSection').style.display = 'none';
-            }
-
-            const stepMap = { pending: 0, accepted: 1, 'in-progress': 2, completed: 3 };
-            const newStep = stepMap[missionData.status] ?? 0;
-            if (newStep !== currentStep) {
-                updateProgress(newStep);
-            }
+            await loadTechnician(missionData);
+            renderMission(missionData);
         }
 
         function updateProgress(step) {
@@ -471,30 +533,24 @@
             setTimeout(() => bar.classList.remove('show'), 4000);
         }
 
-        function pollMission() {
+        async function pollMission() {
             if (!demandeId) return;
             const prevStatus = missionData ? missionData.status : null;
-            fetch(API_URL + '/api/missions/' + demandeId)
-                .then(r => r.json())
-                .then(data => {
-                    missionData = data;
-                    if (data.status !== prevStatus && data.status in statusNotifications) {
-                        showNotif(statusNotifications[data.status]);
-                    }
-                    if (data.status === 'cancelled') { showCancelled(); return; }
-                    if (data.status === 'completed') {
-                        document.getElementById('cancelSection').style.display = 'none';
-                    }
-                    const stepMap = { pending: 0, accepted: 1, 'in-progress': 2, completed: 3 };
-                    updateProgress(stepMap[data.status] ?? 0);
-                    document.getElementById('clientNom').textContent = data.clientName || '—';
-                    document.getElementById('clientTel').textContent = data.clientPhone || '—';
-                    document.getElementById('clientAddr').textContent = data.address || '—';
-                    document.getElementById('techNom').textContent = data.technicianName || '—';
-                    document.getElementById('techSpec').textContent = data.device || '—';
-                    document.getElementById('priceDisplay').textContent = (data.price || 0).toLocaleString() + ' FCFA';
-                })
-                .catch(() => {});
+            try {
+                const res = await fetch(API_URL + '/api/missions/' + demandeId);
+                if (!res.ok) return;
+                const data = await res.json();
+                missionData = data;
+                if (data.status !== prevStatus && data.status in statusNotifications) {
+                    showNotif(statusNotifications[data.status]);
+                }
+                if (data.status === 'cancelled') { showCancelled(); return; }
+                if (data.status === 'completed') {
+                    document.getElementById('cancelSection').style.display = 'none';
+                }
+                await loadTechnician(data);
+                renderMission(data);
+            } catch (_) {}
         }
 
         /* --- Cancel --- */
