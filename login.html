@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairDom - Connexion</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .login-page { padding: 48px 0 80px; }
+
+        .login-card {
+            max-width: 440px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 36px 32px;
+        }
+        .login-card h2 {
+            font-size: 1.5rem;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .login-subtitle {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--gray-800);
+        }
+        .input-icon { position: relative; display: flex; align-items: center; }
+        .input-icon > i {
+            position: absolute;
+            left: 14px;
+            color: var(--gray-500);
+            pointer-events: none;
+            z-index: 1;
+            transition: color var(--transition);
+        }
+        .input-icon:focus-within > i { color: var(--blue); }
+        .form-group input {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: var(--gray-50);
+            transition: border var(--transition);
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--blue);
+            background: var(--white);
+        }
+        .required::after { content: " *"; color: #E03131; }
+
+        .error-msg { font-size: 0.8rem; color: #E03131; margin-top: 4px; display: none; }
+        .error-msg.visible { display: block; }
+        .form-group.invalid input {
+            border-color: #E03131;
+            background: #FFF5F5;
+        }
+
+        .btn-submit { width: 100%; margin-top: 10px; }
+
+        .alt-link {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-top: 22px;
+        }
+        .alt-link a { color: var(--blue); font-weight: 600; }
+        .alt-link a:hover { text-decoration: underline; }
+
+        /* ===== Bloc d'erreur serveur (debug visuel) ===== */
+        .server-error {
+            margin-top: 18px;
+            border: 1px dashed #E03131;
+            background: #FFF5F5;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            color: #C92A2A;
+        }
+        .server-error[hidden] { display: none; }
+        .server-error-title { font-weight: 700; margin-bottom: 6px; }
+        .server-error-title i { margin-right: 6px; }
+        .server-error-msg { line-height: 1.4; }
+        .server-error-details {
+            margin: 8px 0 0;
+            padding: 8px 10px;
+            background: #FFFFFF;
+            border: 1px solid #FFC9C9;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #E03131;
+            max-height: 160px;
+            overflow: auto;
+        }
+
+        @media (max-width: 540px) {
+            .login-card { padding: 26px 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <span class="logo-text">RepairDom</span>
+            </a>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Accueil</a>
+                <a href="client-depot.html" class="nav-link">Déposer une panne</a>
+                <a href="tech-liste.html" class="nav-link">Techniciens</a>
+                <a href="suivi-mission.html" class="nav-link">Mes missions</a>
+                <a href="register.html" class="nav-link">S'inscrire</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="login-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="index.html">Accueil</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <span class="current">Connexion</span>
+            </nav>
+
+            <div class="login-card">
+                <h2>Connexion</h2>
+                <p class="login-subtitle">Heureux de vous revoir sur RepairDom.</p>
+
+                <form id="loginForm" novalidate>
+                    <div class="form-group">
+                        <label for="email" class="required">Email</label>
+                        <div class="input-icon"><i class="fa-solid fa-envelope"></i><input type="email" id="email" name="email" placeholder="Ex : amadou@email.com" required></div>
+                        <div class="error-msg" id="email-error">Adresse email invalide.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motdepasse" class="required">Mot de passe</label>
+                        <div class="input-icon"><i class="fa-solid fa-lock"></i><input type="password" id="motdepasse" name="motdepasse" placeholder="Votre mot de passe" required></div>
+                        <div class="error-msg" id="motdepasse-error">Veuillez entrer votre mot de passe.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">Se connecter</button>
+                </form>
+
+                <div class="server-error" id="serverError" hidden>
+                    <div class="server-error-title"><i class="fa-solid fa-circle-exclamation"></i>Erreur serveur</div>
+                    <div class="server-error-msg" id="serverErrorMsg"></div>
+                    <pre class="server-error-details" id="serverErrorDetails" hidden></pre>
+                </div>
+
+                <p class="alt-link">Pas encore de compte ? <a href="register.html">S'inscrire</a></p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
+        </div>
+    </footer>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./app.js"></script>
+    <script>
+        function showToast(msg, type) {
+            var c = document.getElementById('toastContainer');
+            var t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(function () { t.classList.add('removing'); }, 4000);
+            setTimeout(function () { t.remove(); }, 4400);
+        }
+
+        var toggle = document.querySelector('.menu-toggle');
+        var nav = document.querySelector('.nav');
+        toggle.addEventListener('click', function () {
+            nav.classList.toggle('open');
+            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+        });
+        nav.querySelectorAll('.nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                toggle.textContent = '\u2630';
+            });
+        });
+
+        var fields = ['email', 'motdepasse'];
+
+        function validate() {
+            var valid = true;
+            fields.forEach(function (id) {
+                var el = document.getElementById(id);
+                var err = document.getElementById(id + '-error');
+                var group = el.closest('.form-group');
+                var ok = true;
+                var raw = el.value.trim();
+
+                if (id === 'email') {
+                    ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+                    err.textContent = ok ? '' : 'Adresse email invalide.';
+                } else if (id === 'motdepasse') {
+                    ok = raw.length > 0;
+                    err.textContent = ok ? '' : 'Veuillez entrer votre mot de passe.';
+                }
+
+                if (!ok) {
+                    err.classList.add('visible');
+                    if (group) group.classList.add('invalid');
+                    valid = false;
+                } else {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+            return valid;
+        }
+
+        fields.forEach(function (id) {
+            document.getElementById(id).addEventListener('input', function () {
+                var err = document.getElementById(id + '-error');
+                var group = this.closest('.form-group');
+                if (err.classList.contains('visible') && this.value.trim().length > 0) {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!validate()) return;
+
+            var submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Connexion...';
+
+            function showServerError(msg, details) {
+                var box = document.getElementById('serverError');
+                document.getElementById('serverErrorMsg').textContent = msg || 'Erreur serveur.';
+                var pre = document.getElementById('serverErrorDetails');
+                if (details) {
+                    pre.textContent = details;
+                    pre.hidden = false;
+                } else {
+                    pre.textContent = '';
+                    pre.hidden = true;
+                }
+                box.hidden = false;
+            }
+
+            try {
+                const res = await fetch(API_URL + '/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value.trim(),
+                        motDePasse: document.getElementById('motdepasse').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showServerError(data.error || 'Erreur serveur', data.details || '');
+                    throw new Error(data.error || 'Erreur serveur');
+                }
+                document.getElementById('serverError').hidden = true;
+                showToast(data.message || 'Connexion réussie !', 'success');
+                setTimeout(function () {
+                    var target = data.role === 'technicien' ? 'dashboard-technicien.html' : 'client-depot.html';
+                    window.location.href = target;
+                }, 800);
+            } catch (err) {
+                if (typeof err === 'object' && err && err.name && err.name === 'TypeError') {
+                    showServerError('Aucune réponse du serveur (réseau).', String(err.message));
+                }
+                showToast(err.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Se connecter';
+            }
+        });
+    </script>
+
+</body>
+</html>

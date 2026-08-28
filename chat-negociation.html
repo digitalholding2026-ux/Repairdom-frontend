@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairDom - Négociation</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .page { padding: 32px 0 80px; }
+        .page-inner {
+            max-width: 780px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+        }
+
+        /* Chat */
+        .chat-panel {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .chat-header .avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: var(--blue-pale);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--blue);
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #2F9E44;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        .msg {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+        .msg-tech {
+            align-self: flex-start;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            border-bottom-left-radius: 4px;
+        }
+        .msg-client {
+            align-self: flex-end;
+            background: var(--blue);
+            color: var(--white);
+            border-bottom-right-radius: 4px;
+        }
+        .msg-system {
+            align-self: center;
+            background: var(--blue-pale);
+            color: var(--blue);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 6px 16px;
+        }
+        .msg-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 12px 16px;
+            border-top: 1px solid var(--gray-200);
+            gap: 8px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .chat-input input:focus { outline: none; border-color: var(--blue); }
+        .chat-input button {
+            padding: 10px 20px;
+            background: var(--blue);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .chat-input button:hover { background: var(--blue-light); }
+
+        /* Facture panel */
+        .facture-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .facture-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+        .facture-card h3 {
+            font-size: 0.95rem;
+            color: var(--gray-900);
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .facture-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 6px 0;
+            color: var(--gray-500);
+        }
+        .facture-line.total {
+            border-top: 2px solid var(--gray-200);
+            margin-top: 8px;
+            padding-top: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--gray-900);
+        }
+        .facture-line .price { font-weight: 600; color: var(--gray-800); }
+
+        .badge-statut {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: #FFF3BF;
+            color: #E67700;
+        }
+        .badge-statut.accepted {
+            background: #D3F9D8;
+            color: #2B8A3E;
+        }
+
+        .negoc-group { display: flex; flex-direction: column; gap: 8px; }
+        .negoc-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+        }
+        .negoc-group input:focus { outline: none; border-color: var(--blue); }
+
+        .btn-negoc {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--blue);
+            background: var(--white);
+            color: var(--blue);
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-negoc:hover { background: var(--blue); color: var(--white); }
+
+        .btn-accept {
+            width: 100%;
+            padding: 12px;
+            background: #2F9E44;
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .btn-accept:hover { background: #37B24D; }
+        .btn-accept:disabled {
+            background: var(--gray-200);
+            color: var(--gray-500);
+            cursor: not-allowed;
+        }
+
+        .accepted-banner {
+            background: #D3F9D8;
+            color: #2B8A3E;
+            text-align: center;
+            padding: 14px;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .accepted-banner.show { display: block; }
+
+        .mission-recap { border: 2px solid var(--blue-pale); }
+        .recap-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 0.88rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        .recap-row:last-child { border-bottom: none; }
+        .recap-label { color: var(--gray-500); }
+        .recap-value { font-weight: 600; color: var(--gray-900); }
+
+        @media (max-width: 720px) {
+            .page-inner {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <span class="logo-text">RepairDom</span>
+            </a>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Accueil</a>
+                <a href="client-depot.html" class="nav-link">Déposer une panne</a>
+                <a href="tech-liste.html" class="nav-link">Techniciens</a>
+                <a href="suivi-mission.html" class="nav-link active">Mes missions</a>
+                <a href="register.html" class="nav-link">S'inscrire</a>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="index.html">Accueil</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <a href="client-depot.html">Déposer une panne</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <a href="tech-liste.html">Choisir un technicien</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <span class="current">Négociation</span>
+            </nav>
+            <a href="tech-liste.html" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Retour aux techniciens</a>
+        </div>
+        <div class="container page-inner">
+
+            <!-- Chat -->
+            <div class="chat-panel">
+                <div class="chat-header">
+                    <div class="avatar" id="techAvatar"></div>
+                    <div>
+                        <div id="techName">Technicien</div>
+                        <div style="font-size:0.78rem;color:var(--gray-500);font-weight:400;">
+                            <span class="status-dot"></span> En ligne
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" id="msgInput" placeholder="Écrire un message..." autocomplete="off">
+                    <button id="sendBtn">Envoyer</button>
+                </div>
+            </div>
+
+            <!-- Facture & actions -->
+            <div class="facture-panel">
+                <div class="facture-card">
+                    <h3><i class="fa-solid fa-file-invoice"></i> Facture</h3>
+                    <div class="badge-statut" id="badgeStatut">En attente</div>
+                    <div style="margin-top:12px;">
+                        <div class="facture-line"><span>Panne</span><span class="price" id="fPanne">—</span></div>
+                        <div class="facture-line"><span>Main d'œuvre</span><span class="price" id="fMainOeuvre">—</span></div>
+                        <div class="facture-line"><span>Pièces</span><span class="price" id="fPieces">—</span></div>
+                        <div class="facture-line total"><span>Total</span><span class="price" id="fTotal">—</span></div>
+                    </div>
+                </div>
+
+                <div class="facture-card">
+                    <h3><i class="fa-solid fa-coins"></i> Négocier le prix</h3>
+                    <div class="negoc-group">
+                        <input type="number" id="newPrice" placeholder="Nouveau montant (FCFA)">
+                        <button class="btn-negoc" id="proposeBtn">Proposer un nouveau prix</button>
+                    </div>
+                </div>
+
+                <div class="accepted-banner" id="acceptedBanner">Mission acceptée !</div>
+
+                <div class="facture-card mission-recap" id="missionRecap">
+                    <h3><i class="fa-solid fa-clipboard-check"></i> Résumé de la mission</h3>
+                    <div class="recap-row"><span class="recap-label">Panne</span><span class="recap-value" id="recapPanne">—</span></div>
+                    <div class="recap-row"><span class="recap-label">Technicien</span><span class="recap-value" id="recapTech">—</span></div>
+                    <div class="recap-row"><span class="recap-label">Tarif convenu</span><span class="recap-value" id="recapPrix">—</span></div>
+                </div>
+
+                <button class="btn-accept" id="acceptBtn" disabled>Accepter la mission</button>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
+        </div>
+    </footer>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./app.js"></script>
+    <script>
+        /* --- Toast --- */
+        function showToast(msg, type) {
+            var c = document.getElementById('toastContainer');
+            var t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(function () { t.classList.add('removing'); }, 4000);
+            setTimeout(function () { t.remove(); }, 4400);
+        }
+        /* --- Menu --- */
+        var toggle = document.querySelector('.menu-toggle');
+        var nav = document.querySelector('.nav');
+        toggle.addEventListener('click', function () {
+            nav.classList.toggle('open');
+            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+        });
+        nav.querySelectorAll('.nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                toggle.textContent = '\u2630';
+            });
+        });
+
+        /* --- Params --- */
+        const params = new URLSearchParams(window.location.search);
+        const techId = params.get('tech') || 'tech-001';
+        const demandeId = params.get('demande') || '';
+
+        /* --- Loading overlay --- */
+        (function () {
+            var ov = document.createElement('div');
+            ov.className = 'loading-overlay';
+            ov.id = 'chatLoading';
+            ov.innerHTML = '<span class="spinner dark"></span> Chargement...';
+            document.querySelector('.page-inner').prepend(ov);
+        })();
+
+        /* --- Techniciens (from API) --- */
+        let tech = { name: 'Technicien', avatar: '??', location: '' };
+
+        async function loadTech() {
+            try {
+                const res = await fetch(API_URL + '/api/technicians/' + techId);
+                if (res.ok) tech = await res.json();
+            } catch {}
+            document.getElementById('techAvatar').textContent = tech.avatar;
+            document.getElementById('techName').textContent = tech.name;
+        }
+        loadTech();
+
+        /* --- Catalogue & Facture --- */
+        let catalogue = [];
+        let panne = null;
+        let currentPrice = 0;
+
+        async function loadCatalogue() {
+            try {
+                const res = await fetch(API_URL + '/api/catalogue');
+                catalogue = await res.json();
+            } catch { catalogue = []; }
+            if (demandeId) {
+                try {
+                    const res = await fetch(API_URL + '/api/missions/' + demandeId);
+                    if (res.ok) {
+                        const mission = await res.json();
+                        if (mission.price) currentPrice = mission.price;
+                        const deviceType = mission.device || '';
+                        const matching = catalogue.filter(p => p.type.toLowerCase() === deviceType.toLowerCase());
+                        panne = matching.length ? matching[0] : catalogue[0] || null;
+                    }
+                } catch {}
+            }
+            if (!panne && catalogue.length) {
+                panne = catalogue[0];
+            }
+            buildFacture();
+        }
+
+        function buildFacture() {
+            if (panne) {
+                const mainOeuvre = Math.round((panne.prix_min + panne.prix_max) / 2);
+                const pieces = Math.round(panne.prix_min * 0.4);
+                if (!currentPrice) currentPrice = mainOeuvre + pieces;
+                document.getElementById('fPanne').textContent = panne.nom;
+                document.getElementById('fMainOeuvre').textContent = mainOeuvre.toLocaleString() + ' FCFA';
+                document.getElementById('fPieces').textContent = pieces.toLocaleString() + ' FCFA';
+                document.getElementById('fTotal').textContent = currentPrice.toLocaleString() + ' FCFA';
+                document.getElementById('newPrice').placeholder = `Actuel : ${currentPrice.toLocaleString()} FCFA`;
+                document.getElementById('recapPanne').textContent = panne.nom;
+                document.getElementById('recapTech').textContent = tech.name;
+                document.getElementById('recapPrix').textContent = currentPrice.toLocaleString() + ' FCFA';
+            }
+            var ov = document.getElementById('chatLoading');
+            if (ov) ov.remove();
+        }
+        loadCatalogue();
+
+        /* --- Chat --- */
+        const chatMessages = document.getElementById('chatMessages');
+
+        function addMessage(text, type, time) {
+            const div = document.createElement('div');
+            div.className = `msg msg-${type}`;
+            div.innerHTML = `${text}<div class="msg-time">${time || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function now() { return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+
+        function initChat() {
+            if (!demandeId) {
+                addMessage('Bonjour ! Comment puis-je vous aider ?', 'tech', '09:00');
+                return;
+            }
+            fetch(API_URL + '/api/messages/' + demandeId)
+                .then(r => r.json())
+                .then(msgs => {
+                    if (msgs.length) {
+                        msgs.forEach(m => addMessage(m.content, m.senderRole, new Date(m.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })));
+                    } else {
+                        addMessage('Bonjour ! Je suis ' + tech.name + '. Comment puis-je vous aider ?', 'tech', '09:00');
+                        addMessage('J\'ai bien reçu votre demande de réparation. Décrivez-moi le problème.', 'tech', '09:01');
+                    }
+                })
+                .catch(() => {
+                    addMessage('Bonjour ! Comment puis-je vous aider ?', 'tech', '09:00');
+                });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if (!text) return;
+            addMessage(text, 'client');
+            input.value = '';
+
+            if (demandeId) {
+                fetch(API_URL + '/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ missionId: demandeId, content: text, senderRole: 'client', senderName: 'Client' })
+                }).catch(() => {});
+            }
+
+            setTimeout(() => {
+                const responses = [
+                    "Compris, je vérifie ça.",
+                    "C'est noté, je peux intervenir rapidement.",
+                    "D'accord, je prépare les pièces nécessaires.",
+                    "Merci pour ces précisions, je serai là à l'heure convenue.",
+                    "Je confirme ma disponibilité pour cette intervention."
+                ];
+                const reply = responses[Math.floor(Math.random() * responses.length)];
+                addMessage(reply, 'tech');
+                if (demandeId) {
+                    fetch(API_URL + '/api/messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ missionId: demandeId, content: reply, senderRole: 'technician', senderName: tech.name })
+                    }).catch(() => {});
+                }
+            }, 1200);
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('msgInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        /* --- Négociation --- */
+        document.getElementById('proposeBtn').addEventListener('click', function () {
+            const val = Number(document.getElementById('newPrice').value);
+            if (!val || val < 1000) return showToast('Montant invalide (minimum 1 000 FCFA).', 'error');
+            currentPrice = val;
+            document.getElementById('fTotal').textContent = currentPrice.toLocaleString() + ' FCFA';
+            document.getElementById('recapPrix').textContent = currentPrice.toLocaleString() + ' FCFA';
+            document.getElementById('newPrice').value = '';
+
+            addMessage(`J'ai proposé un nouveau tarif : ${currentPrice.toLocaleString()} FCFA`, 'client');
+            addMessage('Tarif mis à jour sur la facture.', 'system');
+            showToast('Nouveau tarif proposé : ' + currentPrice.toLocaleString() + ' FCFA', 'info');
+
+            if (demandeId) {
+                fetch(API_URL + '/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ missionId: demandeId, content: `Nouveau tarif proposé : ${currentPrice.toLocaleString()} FCFA`, senderRole: 'client', senderName: 'Client' })
+                }).catch(() => {});
+            }
+
+            setTimeout(() => {
+                addMessage(`OK, ${currentPrice.toLocaleString()} FCFA me convient. On valide ?`, 'tech');
+                if (demandeId) {
+                    fetch(API_URL + '/api/messages', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ missionId: demandeId, content: `Tarif accepté : ${currentPrice.toLocaleString()} FCFA`, senderRole: 'technician', senderName: tech.name })
+                    }).catch(() => {});
+                }
+                document.getElementById('acceptBtn').disabled = false;
+            }, 1500);
+        });
+
+        /* --- Accepter --- */
+        document.getElementById('acceptBtn').addEventListener('click', function () {
+            document.getElementById('badgeStatut').textContent = 'Acceptée';
+            document.getElementById('badgeStatut').classList.add('accepted');
+            document.getElementById('acceptedBanner').classList.add('show');
+            document.getElementById('acceptBtn').disabled = true;
+
+            addMessage(`Mission acceptée à ${currentPrice.toLocaleString()} FCFA. Merci !`, 'client');
+            addMessage('Parfait, à bientôt !', 'tech');
+            showToast('Mission acceptée ! Redirection...', 'success');
+
+            if (demandeId) {
+                fetch(API_URL + '/api/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ missionId: demandeId, content: `Mission acceptée à ${currentPrice.toLocaleString()} FCFA.`, senderRole: 'client', senderName: 'Client' })
+                }).catch(() => {});
+                fetch(API_URL + '/api/missions/' + demandeId, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'accepted', price: currentPrice, technicianId: techId, technicianName: tech.name })
+                }).catch(() => {});
+            }
+
+            setTimeout(() => {
+                window.location.href = 'suivi-mission.html?id=' + demandeId;
+            }, 1500);
+        });
+
+        initChat();
+    </script>
+
+</body>
+</html>

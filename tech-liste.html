@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairDom - Choisir un technicien</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .page { padding: 40px 0 80px; }
+        .page-title { font-size: 1.5rem; color: var(--gray-900); margin-bottom: 24px; }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .filters input, .filters select {
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            background: var(--white);
+            min-width: 200px;
+        }
+        .filters input:focus, .filters select:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .tech-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: transform var(--transition);
+        }
+        .tech-card:hover { transform: translateY(-3px); }
+
+        .tech-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .tech-avatar {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: var(--blue-pale);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--blue);
+            flex-shrink: 0;
+        }
+        .tech-name { font-weight: 700; color: var(--gray-900); }
+        .tech-specialty { font-size: 0.85rem; color: var(--gray-500); }
+
+        .stars { color: #F59F00; font-size: 0.95rem; letter-spacing: 2px; }
+        .stars-count { font-size: 0.8rem; color: var(--gray-500); margin-left: 4px; }
+
+        .tech-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            color: var(--gray-500);
+        }
+        .tech-meta strong { color: var(--gray-800); }
+
+        .btn-contact {
+            margin-top: auto;
+            padding: 10px;
+            background: var(--blue);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background var(--transition);
+        }
+        .btn-contact:hover { background: var(--blue-light); }
+
+        .results-count {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+        .results-count strong { color: var(--gray-800); }
+
+        .empty-msg {
+            text-align: center;
+            color: var(--gray-500);
+            padding: 40px 0;
+            grid-column: 1 / -1;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            color: var(--blue);
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <span class="logo-text">RepairDom</span>
+            </a>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Accueil</a>
+                <a href="client-depot.html" class="nav-link">Déposer une panne</a>
+                <a href="tech-liste.html" class="nav-link">Techniciens</a>
+                <a href="suivi-mission.html" class="nav-link">Mes missions</a>
+                <a href="register.html" class="nav-link">S'inscrire</a>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="index.html">Accueil</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <a href="client-depot.html">Déposer une panne</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <span class="current">Choisir un technicien</span>
+            </nav>
+            <h1 class="page-title">Techniciens disponibles</h1>
+
+            <div class="filters">
+                <input type="text" id="filterSearch" placeholder="Rechercher un technicien..." style="min-width:240px;">
+                <input type="text" id="filterLocation" placeholder="Filtrer par localisation...">
+                <select id="filterType">
+                    <option value="">Toutes spécialités</option>
+                    <option value="smartphone">Smartphones</option>
+                    <option value="laptop">Laptops & PC</option>
+                    <option value="multi">Multi-appareils</option>
+                </select>
+                <select id="filterRating">
+                    <option value="">Toutes notes</option>
+                    <option value="4.5">4.5+ étoiles</option>
+                    <option value="4">4+ étoiles</option>
+                    <option value="3">3+ étoiles</option>
+                </select>
+                <select id="filterPrice">
+                    <option value="">Tous les tarifs</option>
+                    <option value="5000">Moins de 5 000 FCFA</option>
+                    <option value="7000">Moins de 7 000 FCFA</option>
+                    <option value="10000">Moins de 10 000 FCFA</option>
+                </select>
+            </div>
+
+            <div class="results-count" id="resultsCount"></div>
+
+            <div class="tech-grid" id="techGrid">
+                <div class="loading-overlay"><span class="spinner dark"></span> Chargement des techniciens...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
+        </div>
+    </footer>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./app.js"></script>
+    <script>
+        /* --- Toast --- */
+        function showToast(msg, type) {
+            var c = document.getElementById('toastContainer');
+            var t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(function () { t.classList.add('removing'); }, 4000);
+            setTimeout(function () { t.remove(); }, 4400);
+        }
+        var toggle = document.querySelector('.menu-toggle');
+        var nav = document.querySelector('.nav');
+        toggle.addEventListener('click', function () {
+            nav.classList.toggle('open');
+            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+        });
+        nav.querySelectorAll('.nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                toggle.textContent = '\u2630';
+            });
+        });
+
+        const params = new URLSearchParams(window.location.search);
+        const demandeId = params.get('id') || '';
+
+        let techniciens = [];
+
+        async function loadTechniciens() {
+            try {
+                const res = await fetch(API_URL + '/api/technicians');
+                techniciens = await res.json();
+            } catch { techniciens = []; }
+            renderTechniciens();
+        }
+
+        function renderStars(rating) {
+            const full = Math.floor(rating);
+            const half = rating % 1 >= 0.5 ? 1 : 0;
+            const empty = 5 - full - half;
+            return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+        }
+
+        function renderTechniciens() {
+            const grid = document.getElementById('techGrid');
+            const query = document.getElementById('filterSearch').value.toLowerCase();
+            const loc = document.getElementById('filterLocation').value.toLowerCase();
+            const type = document.getElementById('filterType').value;
+            const minRating = parseFloat(document.getElementById('filterRating').value) || 0;
+            const maxPrice = parseFloat(document.getElementById('filterPrice').value) || Infinity;
+
+            const filtered = techniciens.filter(t => {
+                const matchSearch = !query ||
+                    t.name.toLowerCase().includes(query) ||
+                    t.specialty.toLowerCase().includes(query) ||
+                    t.location.toLowerCase().includes(query) ||
+                    (t.bio && t.bio.toLowerCase().includes(query));
+                const matchLoc = !loc || t.location.toLowerCase().includes(loc);
+                const matchType = !type || t.specialty.toLowerCase().includes(type.toLowerCase());
+                const matchRating = t.rating >= minRating;
+                const matchPrice = t.rate < maxPrice;
+                return matchSearch && matchLoc && matchType && matchRating && matchPrice;
+            });
+
+            document.getElementById('resultsCount').innerHTML =
+                '<strong>' + filtered.length + '</strong> technicien' + (filtered.length !== 1 ? 's' : '') + ' trouvé' + (filtered.length !== 1 ? 's' : '');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p class="empty-msg">Aucun technicien trouvé pour ces filtres.</p>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(t => `
+                <div class="tech-card">
+                    <div class="tech-header">
+                        <div class="tech-avatar">${t.avatar}</div>
+                        <div>
+                            <div class="tech-name">${t.name}</div>
+                            <div class="tech-specialty">${t.specialty}</div>
+                        </div>
+                    </div>
+                    <div class="stars">${renderStars(t.rating)} <span class="stars-count">${t.rating} (${t.reviews} avis)</span></div>
+                    <div class="tech-meta">
+                        <span><strong>${t.rate} FCFA</strong> / intervention</span>
+                        <span>${t.available ? '<i class="fa-solid fa-circle-check" style="color:#2F9E44"></i> Disponible' : '<i class="fa-solid fa-circle-xmark" style="color:#E03131"></i> Indisponible'}</span>
+                    </div>
+                    <div class="tech-meta">
+                        <span><i class="fa-solid fa-location-dot"></i> ${t.location}</span>
+                    </div>
+                    <a class="btn-contact" href="chat-negociation.html?tech=${t.id}&demande=${demandeId}">Contacter</a>
+                </div>
+            `).join('');
+        }
+
+        loadTechniciens();
+
+        ['filterSearch', 'filterLocation', 'filterType', 'filterRating', 'filterPrice'].forEach(function (id) {
+            document.getElementById(id).addEventListener('input', renderTechniciens);
+            document.getElementById(id).addEventListener('change', renderTechniciens);
+        });
+    </script>
+
+</body>
+</html>

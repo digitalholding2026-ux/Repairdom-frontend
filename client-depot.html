@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairDom - Déposer une panne</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .form-page { padding: 48px 0 80px; }
+        .form-card {
+            max-width: 640px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 32px;
+        }
+        .form-card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+            color: var(--gray-900);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--gray-800);
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: var(--gray-50);
+            transition: border var(--transition);
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .required::after { content: " *"; color: #E03131; }
+
+        .audio-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-record {
+            background: var(--white);
+            border: 2px solid #E03131;
+            color: #E03131;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-record.recording {
+            background: #E03131;
+            color: var(--white);
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .audio-play { display: none; }
+        .audio-play.show { display: inline-block; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .error-msg {
+            font-size: 0.8rem;
+            color: #E03131;
+            margin-top: 4px;
+            display: none;
+        }
+        .error-msg.visible { display: block; }
+        .form-group.invalid input,
+        .form-group.invalid select,
+        .form-group.invalid textarea {
+            border-color: #E03131;
+            background: #FFF5F5;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .btn-submit { width: 100%; margin-top: 8px; }
+
+        @media (max-width: 540px) {
+            .form-card { padding: 28px 20px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <span class="logo-text">RepairDom</span>
+            </a>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Accueil</a>
+                <a href="client-depot.html" class="nav-link active">Déposer une panne</a>
+                <a href="tech-liste.html" class="nav-link">Techniciens</a>
+                <a href="suivi-mission.html" class="nav-link">Mes missions</a>
+                <a href="register.html" class="nav-link">S'inscrire</a>
+        </div>
+    </header>
+
+    <main class="form-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="index.html">Accueil</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <span class="current">Déposer une panne</span>
+            </nav>
+            <div class="form-card">
+                <h2>Déposer une panne</h2>
+                <form id="depotForm" novalidate>
+                    <div class="form-group">
+                        <label for="nom" class="required">Nom complet</label>
+                        <input type="text" id="nom" name="nom" placeholder="Ex : Amadou Diallo" required>
+                        <div class="error-msg" id="nom-error">Veuillez entrer votre nom.</div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telephone" class="required">Téléphone</label>
+                            <input type="tel" id="telephone" name="telephone" placeholder="+221 77 123 45 67" required>
+                            <div class="error-msg" id="telephone-error">Numéro invalide.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="typeAppareil" class="required">Type d'appareil</label>
+                            <select id="typeAppareil" name="typeAppareil" required>
+                                <option value="">-- Choisir --</option>
+                                <option value="téléphone">Téléphone</option>
+                                <option value="ordinateur">Ordinateur</option>
+                            </select>
+                            <div class="error-msg" id="typeAppareil-error">Sélectionnez un type.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="adresse" class="required">Adresse (localisation approximative)</label>
+                        <input type="text" id="adresse" name="adresse" placeholder="Ex : Quartier Medina, Dakar" required>
+                        <div class="error-msg" id="adresse-error">Veuillez entrer une adresse.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="panne" class="required">Type de panne</label>
+                        <select id="panne" name="panne" required>
+                            <option value="">-- Choisir une panne --</option>
+                        </select>
+                        <div class="error-msg" id="panne-error">Sélectionnez une panne.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description" class="required">Description du problème</label>
+                        <textarea id="description" name="description" placeholder="Décrivez le problème rencontré..." required></textarea>
+                        <div class="error-msg" id="description-error">Veuillez décrire le problème.</div>
+                    </div>
+
+                    <!-- Enregistrement audio désactivé temporairement pour la V1.
+                         La fonctionnalité sera réactivée ultérieurement (versions futures). -->
+                    <div class="form-group" style="display:none;" title="Enregistrement audio désactivé temporairement (V1)">
+                        <label>Message audio (optionnel)</label>
+                        <div class="audio-section">
+                            <button type="button" class="btn-record" id="recordBtn"><i class="fa-solid fa-microphone"></i> Enregistrer</button>
+                            <span id="recordTime" style="font-size:0.85rem;color:var(--gray-500);">00:00</span>
+                            <audio id="audioPlayer" class="audio-play" controls></audio>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateSouhaitee" class="required">Date souhaitée</label>
+                        <input type="datetime-local" id="dateSouhaitee" name="dateSouhaitee" required>
+                        <div class="error-msg" id="dateSouhaitee-error">Choisissez une date.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">Soumettre</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
+        </div>
+    </footer>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./app.js"></script>
+    <script>
+        /* --- Toast --- */
+        function showToast(msg, type) {
+            var c = document.getElementById('toastContainer');
+            var t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(function () { t.classList.add('removing'); }, 4000);
+            setTimeout(function () { t.remove(); }, 4400);
+        }
+        /* --- Menu --- */
+        var toggle = document.querySelector('.menu-toggle');
+        var nav = document.querySelector('.nav');
+        toggle.addEventListener('click', function () {
+            nav.classList.toggle('open');
+            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+        });
+        nav.querySelectorAll('.nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                toggle.textContent = '\u2630';
+            });
+        });
+
+        /* --- Load catalogue into panne select --- */
+        let catalogue = [];
+
+        async function loadCatalogue() {
+            const select = document.getElementById('panne');
+            select.innerHTML = '<option value="">Chargement du catalogue...</option>';
+            select.disabled = true;
+            try {
+                const res = await fetch(API_URL + '/api/catalogue');
+                catalogue = await res.json();
+            } catch {
+                catalogue = [];
+            }
+            select.disabled = false;
+            renderPannes();
+            if (!catalogue.length) {
+                showToast('Impossible de charger le catalogue.', 'error');
+            }
+        }
+
+        function renderPannes() {
+            const select = document.getElementById('panne');
+            const typeFilter = document.getElementById('typeAppareil').value;
+            select.innerHTML = '<option value="">-- Choisir une panne --</option>';
+            if (!typeFilter) {
+                select.disabled = true;
+                return;
+            }
+            const filtered = catalogue.filter(p => p.type === typeFilter);
+            filtered.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.nom} — ${p.prix_min.toLocaleString()} à ${p.prix_max.toLocaleString()} FCFA`;
+                select.appendChild(opt);
+            });
+            select.disabled = false;
+        }
+
+        document.getElementById('typeAppareil').addEventListener('change', renderPannes);
+        loadCatalogue();
+
+        /* --- Audio recording --- */
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let timerInterval = null;
+        let seconds = 0;
+
+        const recordBtn = document.getElementById('recordBtn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const recordTime = document.getElementById('recordTime');
+
+        recordBtn.addEventListener('click', async () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                clearInterval(timerInterval);
+                recordBtn.innerHTML = '<i class="fa-solid fa-microphone"></i> Enregistrer';
+                recordBtn.classList.remove('recording');
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioPlayer.src = URL.createObjectURL(blob);
+                    audioPlayer.classList.add('show');
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                seconds = 0;
+                recordTime.textContent = '00:00';
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+                    const s = String(seconds % 60).padStart(2, '0');
+                    recordTime.textContent = `${m}:${s}`;
+                }, 1000);
+                recordBtn.innerHTML = '<i class="fa-solid fa-stop"></i> Arrêter';
+                recordBtn.classList.add('recording');
+            } catch {
+                showToast('Autorisation micro requise.', 'error');
+            }
+        });
+
+        /* --- Validation & submit --- */
+        const fields = ['nom', 'telephone', 'adresse', 'typeAppareil', 'panne', 'description', 'dateSouhaitee'];
+
+        function validate() {
+            let valid = true;
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                const err = document.getElementById(id + '-error');
+                const group = el.closest('.form-group');
+                let ok = el.value.trim().length > 0;
+                if (ok && id === 'telephone') {
+                    ok = /^[\d\s+\-()]{7,}$/.test(el.value.trim());
+                    if (!ok) err.textContent = 'Numéro de téléphone invalide.';
+                    else err.textContent = '';
+                }
+                if (ok && id === 'dateSouhaitee') {
+                    ok = new Date(el.value) > new Date();
+                    if (!ok) err.textContent = 'La date doit être dans le futur.';
+                    else err.textContent = '';
+                }
+                if (!ok) {
+                    err.classList.add('visible');
+                    if (group) group.classList.add('invalid');
+                    valid = false;
+                } else {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+            return valid;
+        }
+
+        fields.forEach(function (id) {
+            document.getElementById(id).addEventListener('input', function () {
+                const err = document.getElementById(id + '-error');
+                const group = this.closest('.form-group');
+                if (err.classList.contains('visible') && this.value.trim().length > 0) {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+        });
+
+        document.getElementById('depotForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!validate()) return;
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Envoi en cours...';
+            document.querySelector('.form-card').classList.add('loading');
+
+            try {
+                const res = await fetch(API_URL + '/api/missions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientName: document.getElementById('nom').value.trim(),
+                        clientPhone: document.getElementById('telephone').value.trim(),
+                        address: document.getElementById('adresse').value.trim(),
+                        device: document.getElementById('typeAppareil').value,
+                        issue: document.getElementById('description').value.trim(),
+                        panneId: document.getElementById('panne').value || null,
+                        technicianId: null,
+                        dateSouhaitee: document.getElementById('dateSouhaitee').value
+                    })
+                });
+                const mission = await res.json();
+                if (!res.ok) throw new Error(mission.error || 'Erreur serveur');
+                showToast('Demande créée avec succès !', 'success');
+                setTimeout(function () {
+                    window.location.href = 'tech-liste.html?id=' + mission.id;
+                }, 800);
+            } catch (err) {
+                showToast(err.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Soumettre';
+                document.querySelector('.form-card').classList.remove('loading');
+            }
+        });
+    </script>
+
+</body>
+</html>

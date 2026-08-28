@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepairDom - Inscription</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .register-page { padding: 48px 0 80px; }
+
+        .register-card {
+            max-width: 520px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 36px 32px;
+        }
+
+        .register-card h2 {
+            font-size: 1.5rem;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .register-subtitle {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        /* ===== Onglets Client / Technicien ===== */
+        .tabs {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: var(--radius);
+            padding: 4px;
+            margin-bottom: 26px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px 12px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+            border: none;
+            background: transparent;
+            font-family: inherit;
+        }
+        .tab i { margin-right: 6px; }
+        .tab.active {
+            background: var(--white);
+            color: var(--blue);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .tab.tech-tab.active { color: var(--blue); }
+
+        /* ===== Formulaire ===== */
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--gray-800);
+        }
+        .input-icon { position: relative; display: flex; align-items: center; }
+        .input-icon > i {
+            position: absolute;
+            left: 14px;
+            color: var(--gray-500);
+            pointer-events: none;
+            z-index: 1;
+            transition: color var(--transition);
+        }
+        .input-icon:focus-within > i { color: var(--blue); }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 11px 14px 11px 40px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--gray-800);
+            background: var(--gray-50);
+            transition: border var(--transition);
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--blue);
+            background: var(--white);
+        }
+        .required::after { content: " *"; color: #E03131; }
+
+        .fieldset-tech { display: none; }
+        .fieldset-tech.show { display: block; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .password-hint { font-size: 0.78rem; color: var(--gray-500); margin-top: 5px; }
+        .error-msg { font-size: 0.8rem; color: #E03131; margin-top: 4px; display: none; }
+        .error-msg.visible { display: block; }
+        .form-group.invalid input,
+        .form-group.invalid select {
+            border-color: #E03131;
+            background: #FFF5F5;
+        }
+
+        .btn-submit { width: 100%; margin-top: 10px; }
+        .loading { opacity: 0.6; pointer-events: none; }
+
+        .alt-link {
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            margin-top: 22px;
+        }
+        .alt-link a { color: var(--blue); font-weight: 600; }
+        .alt-link a:hover { text-decoration: underline; }
+
+        /* ===== Bloc d'erreur serveur (debug visuel) ===== */
+        .server-error {
+            margin-top: 18px;
+            border: 1px dashed #E03131;
+            background: #FFF5F5;
+            border-radius: var(--radius);
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            color: #C92A2A;
+        }
+        .server-error[hidden] { display: none; }
+        .server-error-title { font-weight: 700; margin-bottom: 6px; }
+        .server-error-title i { margin-right: 6px; }
+        .server-error-msg { line-height: 1.4; }
+        .server-error-details {
+            margin: 8px 0 0;
+            padding: 8px 10px;
+            background: #FFFFFF;
+            border: 1px solid #FFC9C9;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #E03131;
+            max-height: 160px;
+            overflow: auto;
+        }
+
+        @media (max-width: 540px) {
+            .register-card { padding: 26px 18px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container header-inner">
+            <a href="index.html" class="logo">
+                <span class="logo-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
+                <span class="logo-text">RepairDom</span>
+            </a>
+            <button class="menu-toggle" aria-label="Menu">&#9776;</button>
+            <nav class="nav">
+                <a href="index.html" class="nav-link">Accueil</a>
+                <a href="client-depot.html" class="nav-link">Déposer une panne</a>
+                <a href="tech-liste.html" class="nav-link">Techniciens</a>
+                <a href="suivi-mission.html" class="nav-link">Mes missions</a>
+                <a href="register.html" class="nav-link active">S'inscrire</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="register-page">
+        <div class="container">
+            <nav class="breadcrumb">
+                <a href="index.html">Accueil</a>
+                <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
+                <span class="current">Inscription</span>
+            </nav>
+
+            <div class="register-card">
+                <h2>Créer un compte</h2>
+                <p class="register-subtitle">Choisissez votre profil pour continuer.</p>
+
+                <div class="tabs" role="tablist">
+                    <button type="button" class="tab client-tab active" data-tab="client" role="tab" aria-selected="true">
+                        <i class="fa-solid fa-user"></i>Client
+                    </button>
+                    <button type="button" class="tab tech-tab" data-tab="tech" role="tab" aria-selected="false">
+                        <i class="fa-solid fa-user-gear"></i>Technicien
+                    </button>
+                </div>
+
+                <form id="registerForm" novalidate>
+                    <input type="hidden" id="role" name="role" value="client">
+
+                    <div class="form-group">
+                        <label for="nom" class="required">Nom complet</label>
+                        <div class="input-icon"><i class="fa-solid fa-user"></i><input type="text" id="nom" name="nom" placeholder="Ex : Amadou Diallo" required></div>
+                        <div class="error-msg" id="nom-error">Veuillez entrer votre nom complet.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="required">Email</label>
+                        <div class="input-icon"><i class="fa-solid fa-envelope"></i><input type="email" id="email" name="email" placeholder="Ex : amadou@email.com" required></div>
+                        <div class="error-msg" id="email-error">Adresse email invalide.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telephone">Téléphone</label>
+                        <div class="input-icon"><i class="fa-solid fa-phone"></i><input type="tel" id="telephone" name="telephone" placeholder="+221 77 123 45 67"></div>
+                        <div class="error-msg" id="telephone-error">Numéro de téléphone invalide.</div>
+                    </div>
+
+                    <!-- Champs réservés au technicien -->
+                    <div class="fieldset-tech" id="fieldsetTech">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="specialite" class="required">Spécialité</label>
+                                <div class="input-icon"><i class="fa-solid fa-screwdriver-wrench"></i><select id="specialite" name="specialite">
+                                    <option value="">-- Choisir --</option>
+                                    <option value="téléphone">Téléphone</option>
+                                    <option value="ordinateur">Ordinateur</option>
+                                    <option value="les deux">Les deux</option>
+                                </select></div>
+                                <div class="error-msg" id="specialite-error">Sélectionnez une spécialité.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="localisation" class="required">Localisation</label>
+                                <div class="input-icon"><i class="fa-solid fa-location-dot"></i><input type="text" id="localisation" name="localisation" placeholder="Ex : Medina, Dakar"></div>
+                                <div class="error-msg" id="localisation-error">Veuillez entrer votre localisation.</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="tarif" class="required">Tarif horaire (FCFA)</label>
+                            <div class="input-icon"><i class="fa-solid fa-coins"></i><input type="number" id="tarif" name="tarif" placeholder="Ex : 5000" min="0"></div>
+                            <div class="error-msg" id="tarif-error">Saisissez un tarif horaire valide.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motdepasse" class="required">Mot de passe</label>
+                        <div class="input-icon"><i class="fa-solid fa-lock"></i><input type="password" id="motdepasse" name="motdepasse" placeholder="6 caractères minimum" minlength="6" required></div>
+                        <div class="error-msg" id="motdepasse-error">Le mot de passe doit contenir au moins 6 caractères.</div>
+                        <div class="password-hint">6 caractères minimum</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">S'inscrire</button>
+                </form>
+
+                <div class="server-error" id="serverError" hidden>
+                    <div class="server-error-title"><i class="fa-solid fa-circle-exclamation"></i>Erreur serveur</div>
+                    <div class="server-error-msg" id="serverErrorMsg"></div>
+                    <pre class="server-error-details" id="serverErrorDetails" hidden></pre>
+                </div>
+
+                <p class="alt-link">Déjà un compte ? <a href="login.html">Se connecter</a></p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+            <p>&copy; 2026 RepairDom. Tous droits réservés.</p>
+        </div>
+    </footer>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="./app.js"></script>
+    <script>
+        /* --- Toast --- */
+        function showToast(msg, type) {
+            var c = document.getElementById('toastContainer');
+            var t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(function () { t.classList.add('removing'); }, 4000);
+            setTimeout(function () { t.remove(); }, 4400);
+        }
+
+        /* --- Menu --- */
+        var toggle = document.querySelector('.menu-toggle');
+        var nav = document.querySelector('.nav');
+        toggle.addEventListener('click', function () {
+            nav.classList.toggle('open');
+            toggle.textContent = nav.classList.contains('open') ? '\u2715' : '\u2630';
+        });
+        nav.querySelectorAll('.nav-link').forEach(function (link) {
+            link.addEventListener('click', function () {
+                nav.classList.remove('open');
+                toggle.textContent = '\u2630';
+            });
+        });
+
+        /* --- Onglets Client / Technicien --- */
+        function getRole() { return document.getElementById('role').value; }
+
+        function setTab(role) {
+            document.getElementById('role').value = role;
+            var isTech = role === 'tech';
+            document.querySelectorAll('.tab').forEach(function (t) {
+                t.classList.toggle('active', t.dataset.tab === role);
+                t.setAttribute('aria-selected', t.dataset.tab === role ? 'true' : 'false');
+            });
+            var techFields = document.getElementById('fieldsetTech');
+            techFields.classList.toggle('show', isTech);
+            // Validation du champ actif uniquement
+            var fields = isTech
+                ? ['nom', 'email', 'telephone', 'specialite', 'localisation', 'tarif', 'motdepasse']
+                : ['nom', 'email', 'telephone', 'motdepasse'];
+            fields.forEach(function (id) {
+                var el = document.getElementById(id);
+                if (isTech) {
+                    if (['specialite', 'localisation', 'tarif'].indexOf(id) !== -1) el.setAttribute('required', '');
+                    else el.removeAttribute('required');
+                } else {
+                    el.removeAttribute('required');
+                }
+            });
+        }
+
+        document.querySelector('.client-tab').addEventListener('click', function () { setTab('client'); });
+        document.querySelector('.tech-tab').addEventListener('click', function () { setTab('tech'); });
+
+        // Onglet selon la querystring (?role=client|tech)
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('role') === 'tech') setTab('tech');
+
+        /* --- Validation & submit --- */
+        function activeFields() {
+            return getRole() === 'tech'
+                ? ['nom', 'email', 'telephone', 'specialite', 'localisation', 'tarif', 'motdepasse']
+                : ['nom', 'email', 'telephone', 'motdepasse'];
+        }
+
+        function validate() {
+            var valid = true;
+            activeFields().forEach(function (id) {
+                var el = document.getElementById(id);
+                var err = document.getElementById(id + '-error');
+                var group = el.closest('.form-group');
+                var ok = true;
+                var raw = (el.value || '').trim();
+                var isRequired = el.hasAttribute('required');
+
+                if (isRequired && raw.length === 0) {
+                    ok = false;
+                } else if (raw.length > 0) {
+                    if (id === 'email') {
+                        ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
+                        err.textContent = ok ? '' : 'Adresse email invalide.';
+                    } else if (id === 'telephone') {
+                        ok = /^[\d\s+\-()]{7,}$/.test(raw);
+                        err.textContent = ok ? '' : 'Numéro de téléphone invalide.';
+                    } else if (id === 'tarif') {
+                        ok = parseFloat(raw) >= 0;
+                        err.textContent = ok ? '' : 'Saisissez un tarif horaire valide.';
+                    } else if (id === 'motdepasse') {
+                        ok = raw.length >= 6;
+                        err.textContent = ok ? '' : 'Le mot de passe doit contenir au moins 6 caractères.';
+                    }
+                }
+
+                if (!ok) {
+                    err.classList.add('visible');
+                    if (group) group.classList.add('invalid');
+                    valid = false;
+                } else {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+            return valid;
+        }
+
+        activeFields().forEach(function (id) {
+            var el = document.getElementById(id);
+            el.addEventListener('input', function () {
+                var err = document.getElementById(id + '-error');
+                var group = this.closest('.form-group');
+                if (err.classList.contains('visible') && (this.value || '').trim().length > 0) {
+                    err.classList.remove('visible');
+                    if (group) group.classList.remove('invalid');
+                }
+            });
+            el.addEventListener('change', function () {
+                var err = document.getElementById(id + '-error');
+                var group = this.closest('.form-group');
+                err.classList.remove('visible');
+                if (group) group.classList.remove('invalid');
+            });
+        });
+        // Rebranche sur changement d'onglet
+        var inputEls = document.querySelectorAll('#registerForm input, #registerForm select');
+        inputEls.forEach(function (el) {
+            el.addEventListener('input', function () { clearElError(this); });
+            el.addEventListener('change', function () { clearElError(this); });
+        });
+        function clearElError(el) {
+            var err = document.getElementById(el.id + '-error');
+            var group = el.closest('.form-group');
+            if (err) err.classList.remove('visible');
+            if (group) group.classList.remove('invalid');
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            if (!validate()) return;
+
+            var submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span>Inscription...';
+            document.querySelector('.register-card').classList.add('loading');
+
+            var isTech = getRole() === 'tech';
+            var payload = {
+                role: isTech ? 'technicien' : 'client',
+                nom: document.getElementById('nom').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                telephone: document.getElementById('telephone').value.trim(),
+                motDePasse: document.getElementById('motdepasse').value
+            };
+            if (isTech) {
+                payload.specialite = document.getElementById('specialite').value;
+                payload.tarifHoraire = parseFloat(document.getElementById('tarif').value);
+                payload.localisation = document.getElementById('localisation').value.trim();
+            }
+
+            function showServerError(msg, details) {
+                var box = document.getElementById('serverError');
+                document.getElementById('serverErrorMsg').textContent = msg || 'Erreur serveur.';
+                var pre = document.getElementById('serverErrorDetails');
+                if (details) {
+                    pre.textContent = details;
+                    pre.hidden = false;
+                } else {
+                    pre.textContent = '';
+                    pre.hidden = true;
+                }
+                box.hidden = false;
+            }
+
+            try {
+                const res = await fetch(API_URL + '/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showServerError(data.error || 'Erreur serveur', data.details || '');
+                    throw new Error(data.error || 'Erreur serveur');
+                }
+                document.getElementById('serverError').hidden = true;
+                showToast(data.message || 'Inscription réussie !', 'success');
+                var target = isTech ? 'dashboard-technicien.html' : 'client-depot.html';
+                setTimeout(function () { window.location.href = target; }, 800);
+            } catch (err) {
+                if (typeof err === 'object' && err && err.name && err.name === 'TypeError') {
+                    showServerError('Aucune réponse du serveur (réseau).', String(err.message));
+                }
+                showToast(err.message, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'S\'inscrire';
+                document.querySelector('.register-card').classList.remove('loading');
+            }
+        });
+    </script>
+
+</body>
+</html>
