@@ -185,6 +185,12 @@
     </style>
 </head>
 <body>
+    <script>
+        // Page protégée : redirige vers la connexion si non authentifié.
+        if (localStorage.getItem('token') === null) {
+            window.location.href = 'login.html';
+        }
+    </script>
 
     <header class="header">
         <div class="container header-inner">

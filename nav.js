@@ -23,14 +23,15 @@
   }
 
   window.handleLogout = function () {
-    if (window.RepairAuth && window.RepairAuth.logout) {
-      window.RepairAuth.logout();
-      return;
-    }
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userRole');
-    window.location.reload();
+    fetch(API_URL + '/api/logout', { method: 'POST' })
+      .catch(function () {})
+      .finally(function () {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userName');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userId');
+        window.location.href = 'index.html';
+      });
   };
 
   function renderNav() {

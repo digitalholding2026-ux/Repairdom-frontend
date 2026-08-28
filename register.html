@@ -455,7 +455,8 @@
                 window.RepairAuth.saveSession({
                     token: 'local-session',
                     userName: user && user.nom,
-                    userRole: role
+                    userRole: role,
+                    userId: user && user.id
                 });
                 var target = isTech ? 'dashboard-technicien.html' : 'client-depot.html';
                 setTimeout(function () { window.location.href = target; }, 800);

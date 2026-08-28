@@ -274,7 +274,8 @@
                 window.RepairAuth.saveSession({
                     token: data.token || 'local-session',
                     userName: data.user && data.user.nom,
-                    userRole: data.role
+                    userRole: data.role,
+                    userId: data.user && data.user.id
                 });
                 setTimeout(function () {
                     var target = data.role === 'technicien' ? 'dashboard-technicien.html' : 'client-depot.html';
