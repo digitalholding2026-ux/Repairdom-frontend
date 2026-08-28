@@ -324,6 +324,37 @@
         .rating-form textarea:focus { outline: none; border-color: var(--blue); }
         .rating-actions { margin-top: 14px; }
 
+        /* Minuteur de mission */
+        .timer-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-size: 1.05rem;
+            color: var(--gray-800);
+        }
+        .timer-icon { color: var(--blue); font-size: 1.2rem; }
+        .timer-status { font-weight: 600; }
+        .timer-display {
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--blue);
+            background: var(--blue-pale);
+            padding: 4px 12px;
+            border-radius: 999px;
+        }
+        .timer-card.overtime .timer-display,
+        .timer-card.overtime .timer-icon,
+        .timer-card.overtime .timer-status { color: #E03131; }
+        .timer-card.overtime .timer-display { background: rgba(224, 49, 49, 0.12); }
+
         /* Cancel */
         .cancel-section {
             background: var(--white);
@@ -501,6 +532,12 @@
                 </div>
             </div>
 
+            <div class="timer-card hidden" id="timerCard">
+                <i class="fa-solid fa-clock timer-icon"></i>
+                <span id="timerStatus" class="timer-status"></span>
+                <span id="timerDisplay" class="timer-display">00:00</span>
+            </div>
+
             <div class="thankyou-card hidden" id="thankyouCard">
                 <div id="thankyouPrompt" class="thankyou-prompt">
                     <div class="thankyou-icon"><i class="fa-solid fa-heart"></i></div>
@@ -640,6 +677,8 @@
             document.getElementById('dateRDV').textContent = data.dateSouhaitee
                 ? new Date(data.dateSouhaitee).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                 : '—';
+
+            updateTimerCard(data.status);
 
             if (data.status === 'cancelled') { showCancelled(); return; }
             if (data.status === 'completed') {
@@ -844,6 +883,78 @@
             document.getElementById('thankyouCard').classList.add('hidden');
             showToast('Merci pour votre note !', 'success');
         });
+
+        /* --- Minuteur de mission --- */
+        function timerKey() { return 'suivi_timer_start_' + demandeId; }
+        let timerInterval = null;
+
+        function updateTimerCard(status) {
+            const card = document.getElementById('timerCard');
+            const statusEl = document.getElementById('timerStatus');
+            const disp = document.getElementById('timerDisplay');
+
+            if (status === 'cancelled' || !demandeId) {
+                card.classList.add('hidden');
+                stopMissionTimer();
+                return;
+            }
+            card.classList.remove('hidden');
+
+            if (status === 'pending') {
+                stopMissionTimer();
+                statusEl.textContent = 'En attente';
+                disp.textContent = '00:00';
+                return;
+            }
+            if (status === 'completed') {
+                stopMissionTimer();
+                statusEl.textContent = 'Terminée';
+                updateTimerDisplay();
+                return;
+            }
+
+            if (status === 'on_the_way' || status === 'accepted' || status === 'in_progress' || status === 'in-progress') {
+                if (!localStorage.getItem(timerKey())) {
+                    localStorage.setItem(timerKey(), String(Date.now()));
+                }
+                statusEl.textContent = (status === 'on_the_way' || status === 'accepted') ? 'En route' : 'En cours';
+                startTimerInterval();
+            }
+        }
+
+        function startTimerInterval() {
+            if (timerInterval) return;
+            updateTimerDisplay();
+            timerInterval = setInterval(updateTimerDisplay, 1000);
+        }
+
+        function stopMissionTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const card = document.getElementById('timerCard');
+            const statusEl = document.getElementById('timerStatus');
+            const disp = document.getElementById('timerDisplay');
+            const start = parseInt(localStorage.getItem(timerKey()), 10);
+            if (!start) { disp.textContent = '00:00'; return; }
+
+            const totalSec = Math.floor((Date.now() - start) / 1000);
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            const mm = String(m).padStart(2, '0');
+            const ss = String(s).padStart(2, '0');
+            disp.textContent = (h > 0 ? String(h).padStart(2, '0') + ':' : '') + mm + ':' + ss;
+
+            if (totalSec > 7200) {
+                card.classList.add('overtime');
+                statusEl.textContent = 'Délai dépassé';
+            }
+        }
 
         loadMission();
         setInterval(pollMission, 10000);
