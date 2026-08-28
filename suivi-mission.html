@@ -239,6 +239,91 @@
             white-space: nowrap;
         }
 
+        /* Carte de remerciement */
+        .hidden { display: none !important; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .thankyou-card {
+            background: linear-gradient(135deg, #ffffff, #f4faff);
+            border: 1px solid var(--blue-pale);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 24px rgba(74, 144, 217, 0.18);
+            padding: 26px 22px;
+            margin-bottom: 24px;
+            text-align: center;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        .thankyou-icon {
+            width: 56px; height: 56px;
+            margin: 0 auto 12px;
+            border-radius: 50%;
+            background: var(--blue-pale);
+            color: var(--blue);
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .thankyou-card h3 { margin: 0 0 6px; color: var(--gray-900); }
+        .thankyou-card p { margin: 0 0 18px; color: var(--gray-500); font-size: 0.95rem; }
+        .thankyou-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-rate {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-rate:hover { background: var(--blue-light); }
+        .btn-rate:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-rate i { margin-right: 6px; color: #F59F00; }
+        .btn-later {
+            background: transparent;
+            border: 1px solid var(--gray-200);
+            color: var(--gray-500);
+            padding: 10px 24px;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-later:hover { border-color: var(--gray-500); color: var(--gray-800); }
+        .rating-form h4 { margin: 0 0 14px; color: var(--gray-900); }
+        .rating-stars {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 16px;
+            font-size: 2rem;
+        }
+        .rating-stars i { color: var(--gray-200); cursor: pointer; transition: color 0.15s, transform 0.15s; }
+        .rating-stars i:hover { transform: scale(1.15); }
+        .rating-stars i.active { color: #F59F00; }
+        .rating-form textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .rating-form textarea:focus { outline: none; border-color: var(--blue); }
+        .rating-actions { margin-top: 14px; }
+
         /* Cancel */
         .cancel-section {
             background: var(--white);
@@ -416,6 +501,32 @@
                 </div>
             </div>
 
+            <div class="thankyou-card hidden" id="thankyouCard">
+                <div id="thankyouPrompt" class="thankyou-prompt">
+                    <div class="thankyou-icon"><i class="fa-solid fa-heart"></i></div>
+                    <h3>Merci d'avoir choisi RepairDom.</h3>
+                    <p>Souhaitez-vous noter votre technicien ?</p>
+                    <div class="thankyou-actions">
+                        <button class="btn-rate" id="btnRate"><i class="fa-solid fa-star"></i> Noter</button>
+                        <button class="btn-later" id="btnLater">Plus tard</button>
+                    </div>
+                </div>
+                <div id="ratingForm" class="rating-form hidden">
+                    <h4>Notez votre technicien</h4>
+                    <div class="rating-stars" id="ratingStars">
+                        <i class="fa-solid fa-star" data-v="1"></i>
+                        <i class="fa-solid fa-star" data-v="2"></i>
+                        <i class="fa-solid fa-star" data-v="3"></i>
+                        <i class="fa-solid fa-star" data-v="4"></i>
+                        <i class="fa-solid fa-star" data-v="5"></i>
+                    </div>
+                    <textarea id="ratingComment" maxlength="500" placeholder="Votre commentaire (optionnel)"></textarea>
+                    <div class="rating-actions">
+                        <button class="btn-rate" id="btnSubmitRating" disabled>Envoyer la note</button>
+                    </div>
+                </div>
+            </div>
+
             <div class="price-highlight" id="priceBlock">
                 <div class="sub">Tarif convenu</div>
                 <div class="amount" id="priceDisplay">— FCFA</div>
@@ -533,6 +644,7 @@
             if (data.status === 'cancelled') { showCancelled(); return; }
             if (data.status === 'completed') {
                 document.getElementById('cancelSection').style.display = 'none';
+                showThankYou();
             }
             updateProgress(stepForStatus(data.status));
         }
@@ -665,6 +777,73 @@
             document.querySelector('.progress-card').style.opacity = '0.4';
             document.getElementById('priceBlock').style.opacity = '0.4';
         }
+
+        /* --- Remerciement & notation --- */
+        let selectedRating = 0;
+        const ratingStarsNodes = document.querySelectorAll('#ratingStars i');
+
+        function thankyouKey() { return 'suivi_rating_' + demandeId; }
+        function shouldShowThankYou() {
+            return !!demandeId && !localStorage.getItem(thankyouKey());
+        }
+        function rateKey(kind) { localStorage.setItem(thankyouKey(), kind); }
+
+        function highlightStars(n) {
+            ratingStarsNodes.forEach(function (s) {
+                s.classList.toggle('active', parseInt(s.dataset.v, 10) <= n);
+            });
+        }
+
+        function resetRatingForm() {
+            selectedRating = 0;
+            highlightStars(0);
+            document.getElementById('ratingComment').value = '';
+            document.getElementById('btnSubmitRating').disabled = true;
+        }
+
+        function showThankYou() {
+            if (!shouldShowThankYou()) return;
+            document.getElementById('thankyouCard').classList.remove('hidden');
+            document.getElementById('thankyouPrompt').classList.remove('hidden');
+            document.getElementById('ratingForm').classList.add('hidden');
+            resetRatingForm();
+        }
+
+        document.getElementById('btnRate').addEventListener('click', function () {
+            document.getElementById('thankyouPrompt').classList.add('hidden');
+            document.getElementById('ratingForm').classList.remove('hidden');
+        });
+
+        document.getElementById('btnLater').addEventListener('click', function () {
+            rateKey('later');
+            document.getElementById('thankyouCard').classList.add('hidden');
+        });
+
+        ratingStarsNodes.forEach(function (star) {
+            star.addEventListener('click', function () {
+                selectedRating = parseInt(star.dataset.v, 10);
+                highlightStars(selectedRating);
+                document.getElementById('btnSubmitRating').disabled = false;
+            });
+        });
+
+        document.getElementById('btnSubmitRating').addEventListener('click', function () {
+            const comment = document.getElementById('ratingComment').value.trim();
+            const rating = {
+                missionId: demandeId,
+                rating: selectedRating,
+                comment: comment,
+                date: new Date().toISOString()
+            };
+            console.log('Notation soumise :', rating);
+            let list = [];
+            try { list = JSON.parse(localStorage.getItem('tech_ratings') || '[]'); } catch (_) {}
+            list.push(rating);
+            localStorage.setItem('tech_ratings', JSON.stringify(list));
+            rateKey('rated');
+            document.getElementById('thankyouCard').classList.add('hidden');
+            showToast('Merci pour votre note !', 'success');
+        });
 
         loadMission();
         setInterval(pollMission, 10000);
