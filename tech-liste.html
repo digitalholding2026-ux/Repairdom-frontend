@@ -64,7 +64,20 @@
             color: var(--blue);
             flex-shrink: 0;
         }
-        .tech-name { font-weight: 700; color: var(--gray-900); }
+        .tech-name { font-weight: 700; color: var(--gray-900); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+        .tech-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #22c55e;
+            background: rgba(34, 197, 94, 0.12);
+            padding: 2px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .tech-verified i { font-size: 0.8rem; }
         .tech-specialty { font-size: 0.85rem; color: var(--gray-500); }
 
         .stars { color: #F59F00; font-size: 0.95rem; letter-spacing: 2px; }
@@ -241,7 +254,7 @@
                     <div class="tech-header">
                         <div class="tech-avatar">${t.avatar}</div>
                         <div>
-                            <div class="tech-name">${t.name}</div>
+                            <div class="tech-name">${t.name}${t.verified ? '<span class="tech-verified"><i class="fa-solid fa-check-circle"></i> Vérifié</span>' : ''}</div>
                             <div class="tech-specialty">${t.specialty}</div>
                         </div>
                     </div>
