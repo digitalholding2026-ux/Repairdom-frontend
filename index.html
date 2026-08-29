@@ -35,7 +35,7 @@
         </div>
     </section>
 
-    <section class="trust">
+    <section class="trust reveal-fade">
         <div class="container trust-grid">
             <div class="trust-item reveal" style="transition-delay:0.2s">
                 <span class="trust-icon"><i class="fa-solid fa-users"></i></span>
@@ -148,19 +148,20 @@
                 var decimals = parseInt(el.getAttribute('data-decimals') || '0', 10);
                 var suffix = el.getAttribute('data-suffix') || '';
                 var duration = 1200;
-                var start = null;
+                var stepMs = 30;
+                var totalSteps = Math.ceil(duration / stepMs);
+                var current = 0;
 
-                function step(ts) {
-                    if (!start) start = ts;
-                    var progress = Math.min((ts - start) / duration, 1);
+                var timer = setInterval(function () {
+                    current++;
+                    var progress = Math.min(current / totalSteps, 1);
                     var val = target * progress;
                     var text = decimals > 0
                         ? val.toFixed(decimals).replace('.', ',')
                         : Math.round(val).toString();
                     el.textContent = text + suffix;
-                    if (progress < 1) requestAnimationFrame(step);
-                }
-                requestAnimationFrame(step);
+                    if (progress >= 1) clearInterval(timer);
+                }, stepMs);
             }
 
             if ('IntersectionObserver' in window) {
@@ -180,7 +181,7 @@
 
         // Animation d'apparition au scroll (fade-up) avec décalage via transition-delay.
         (function () {
-            var items = document.querySelectorAll('.reveal');
+            var items = document.querySelectorAll('.reveal, .reveal-fade');
             if (!items.length) return;
 
             if ('IntersectionObserver' in window) {
