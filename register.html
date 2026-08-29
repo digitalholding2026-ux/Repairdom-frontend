@@ -23,7 +23,7 @@
         .register-page { padding: 48px 0 80px; }
 
         .register-card {
-            max-width: 520px;
+            max-width: 540px;
             margin: 0 auto;
             background: var(--white);
             border-radius: var(--radius);
@@ -72,11 +72,10 @@
             color: var(--blue);
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        .tab.tech-tab.active { color: var(--blue); }
 
         /* ===== Formulaire ===== */
         .form-group { margin-bottom: 18px; }
-        .form-group label {
+        .form-group > label {
             display: block;
             font-size: 0.9rem;
             font-weight: 600;
@@ -93,7 +92,7 @@
             transition: color var(--transition);
         }
         .input-icon:focus-within > i { color: var(--blue); }
-        .form-group input,
+        .form-group input:not([type="radio"]):not([type="checkbox"]):not([type="range"]),
         .form-group select {
             width: 100%;
             padding: 11px 14px 11px 40px;
@@ -104,6 +103,7 @@
             color: var(--gray-800);
             background: var(--gray-50);
             transition: border var(--transition);
+            box-sizing: border-box;
         }
         .form-group input:focus,
         .form-group select:focus {
@@ -116,13 +116,8 @@
         .fieldset-tech { display: none; }
         .fieldset-tech.show { display: block; }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
         .password-hint { font-size: 0.78rem; color: var(--gray-500); margin-top: 5px; }
+        .field-hint { font-size: 0.78rem; color: var(--gray-500); margin-top: 5px; }
         .error-msg { font-size: 0.8rem; color: #E03131; margin-top: 4px; display: none; }
         .error-msg.visible { display: block; }
         .form-group.invalid input,
@@ -130,6 +125,95 @@
             border-color: #E03131;
             background: #FFF5F5;
         }
+
+        /* Bouton afficher/masquer le mot de passe */
+        .password-wrap input { padding-right: 44px !important; }
+        .password-toggle {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--gray-500);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 2;
+        }
+        .password-toggle:hover { color: var(--blue); }
+
+        /* Boutons radio / cases à cocher */
+        .radio-group, .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .choice-option {
+            position: relative;
+            flex: 1;
+            min-width: 100px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--gray-500);
+            background: var(--gray-50);
+            transition: border var(--transition), color var(--transition), background var(--transition);
+            user-select: none;
+        }
+        .choice-option input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .choice-option i { font-size: 1rem; }
+        .choice-option.selected {
+            border-color: var(--blue);
+            background: var(--blue-pale);
+            color: var(--blue);
+            font-weight: 600;
+        }
+        .checkbox-group .choice-option { min-width: 130px; }
+
+        .note-more-sectors {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .note-more-sectors i { color: var(--blue); }
+
+        .cities-note {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 8px;
+            background: var(--blue-pale);
+            border: 1px solid var(--blue-light);
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .cities-note i { color: var(--blue); }
+        .cities-note strong { color: var(--blue); }
+
+        /* CGU */
+        .terms {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+        .terms input { margin-top: 3px; accent-color: var(--blue); }
+        .terms a { color: var(--blue); font-weight: 600; text-decoration: underline; }
 
         .btn-submit { width: 100%; margin-top: 10px; }
         .loading { opacity: 0.6; pointer-events: none; }
@@ -174,7 +258,7 @@
 
         @media (max-width: 540px) {
             .register-card { padding: 26px 18px; }
-            .form-row { grid-template-columns: 1fr; }
+            .radio-group, .checkbox-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -229,30 +313,86 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="telephone">Téléphone</label>
-                        <div class="input-icon"><i class="fa-solid fa-phone"></i><input type="tel" id="telephone" name="telephone" placeholder="+221 77 123 45 67"></div>
-                        <div class="error-msg" id="telephone-error">Numéro de téléphone invalide.</div>
+                        <label for="telephone" class="required">Téléphone (WhatsApp)</label>
+                        <div class="input-icon">
+                            <i class="fa-brands fa-whatsapp" style="color:#25D366;"></i>
+                            <input type="tel" id="telephone" name="telephone" placeholder="+237 6 12 34 56 78" autocomplete="tel" required>
+                        </div>
+                        <div class="field-hint">Format : +237 suivi de 9 chiffres (ex : +237 691234567)</div>
+                        <div class="error-msg" id="telephone-error">Numéro invalide. Format : +237 puis 9 chiffres.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ville" class="required">Ville</label>
+                        <div class="input-icon"><i class="fa-solid fa-city"></i>
+                            <select id="ville" name="ville" required>
+                                <option value="">-- Choisir votre ville --</option>
+                                <option value="Douala">Douala</option>
+                                <option value="Yaoundé">Yaoundé</option>
+                                <option value="Bafoussam">Bafoussam</option>
+                                <option value="Bamenda">Bamenda</option>
+                                <option value="Buea">Buea</option>
+                                <option value="Garoua">Garoua</option>
+                                <option value="Maroua">Maroua</option>
+                                <option value="Ngaoundéré">Ngaoundéré</option>
+                                <option value="Kribi">Kribi</option>
+                                <option value="Bertoua">Bertoua</option>
+                                <option value="Ebolowa">Ebolowa</option>
+                                <option value="Limbé">Limbé</option>
+                                <option value="Edéa">Edéa</option>
+                                <option value="Dschang">Dschang</option>
+                                <option value="Kumba">Kumba</option>
+                                <option value="Sangmélima">Sangmélima</option>
+                            </select>
+                        </div>
+                        <div class="cities-note" id="citiesNote" hidden>
+                            <i class="fa-solid fa-circle-info"></i> Nous sommes disponibles uniquement à <strong>Douala</strong> pour le moment.
+                        </div>
+                        <div class="error-msg" id="ville-error">Sélectionnez votre ville.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required">Sexe</label>
+                        <div class="radio-group" id="sexeGroup">
+                            <label class="choice-option"><input type="radio" name="sexe" value="homme"> <i class="fa-solid fa-mars"></i> Homme</label>
+                            <label class="choice-option"><input type="radio" name="sexe" value="femme"> <i class="fa-solid fa-venus"></i> Femme</label>
+                        </div>
+                        <div class="error-msg" id="sexe-error">Sélectionnez votre sexe.</div>
                     </div>
 
                     <!-- Champs réservés au technicien -->
                     <div class="fieldset-tech" id="fieldsetTech">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="specialite" class="required">Spécialité</label>
-                                <div class="input-icon"><i class="fa-solid fa-screwdriver-wrench"></i><select id="specialite" name="specialite">
-                                    <option value="">-- Choisir --</option>
-                                    <option value="téléphone">Téléphone</option>
-                                    <option value="ordinateur">Ordinateur</option>
-                                    <option value="les deux">Les deux</option>
-                                </select></div>
-                                <div class="error-msg" id="specialite-error">Sélectionnez une spécialité.</div>
+                        <div class="form-group">
+                            <label class="required">Type de technicien</label>
+                            <div class="checkbox-group" id="techTypeGroup">
+                                <label class="choice-option"><input type="checkbox" name="techType" value="téléphone"> <i class="fa-solid fa-mobile-screen"></i> Téléphone</label>
+                                <label class="choice-option"><input type="checkbox" name="techType" value="ordinateur"> <i class="fa-solid fa-laptop"></i> Ordinateur</label>
+                                <label class="choice-option"><input type="checkbox" name="techType" value="tablette"> <i class="fa-solid fa-tablet-screen-button"></i> Tablette</label>
+                                <label class="choice-option"><input type="checkbox" name="techType" value="télévision"> <i class="fa-solid fa-tv"></i> Télévision</label>
+                                <label class="choice-option"><input type="checkbox" name="techType" value="électroménager"> <i class="fa-solid fa-plug"></i> Électroménager</label>
+                                <label class="choice-option"><input type="checkbox" name="techType" value="autre"> <i class="fa-solid fa-wrench"></i> Autre</label>
                             </div>
-                            <div class="form-group">
-                                <label for="localisation" class="required">Localisation</label>
-                                <div class="input-icon"><i class="fa-solid fa-location-dot"></i><input type="text" id="localisation" name="localisation" placeholder="Ex : Medina, Dakar"></div>
-                                <div class="error-msg" id="localisation-error">Veuillez entrer votre localisation.</div>
+                            <div class="note-more-sectors">
+                                <i class="fa-solid fa-rocket"></i> D'autres secteurs bientôt disponibles
                             </div>
+                            <div class="error-msg" id="techType-error">Sélectionnez au moins un type (maximum 3).</div>
                         </div>
+
+                        <div class="form-group">
+                            <label class="required">Avez-vous une boutique ?</label>
+                            <div class="radio-group" id="boutiqueGroup">
+                                <label class="choice-option"><input type="radio" name="boutique" value="oui"> Oui</label>
+                                <label class="choice-option"><input type="radio" name="boutique" value="non"> Non</label>
+                            </div>
+                            <div class="error-msg" id="boutique-error">Veuillez répondre à cette question.</div>
+                        </div>
+
+                        <div class="form-group" id="boutiqueLocalisationField" hidden>
+                            <label for="localisation" class="required">Localisation de la boutique</label>
+                            <div class="input-icon"><i class="fa-solid fa-location-dot"></i><input type="text" id="localisation" name="localisation" placeholder="Ex : Marché central, Douala"></div>
+                            <div class="error-msg" id="boutiqueLocalisation-error">Veuillez indiquer la localisation de votre boutique.</div>
+                        </div>
+
                         <div class="form-group">
                             <label for="tarif" class="required">Tarif horaire (FCFA)</label>
                             <div class="input-icon"><i class="fa-solid fa-coins"></i><input type="number" id="tarif" name="tarif" placeholder="Ex : 5000" min="0"></div>
@@ -262,9 +402,21 @@
 
                     <div class="form-group">
                         <label for="motdepasse" class="required">Mot de passe</label>
-                        <div class="input-icon"><i class="fa-solid fa-lock"></i><input type="password" id="motdepasse" name="motdepasse" placeholder="6 caractères minimum" minlength="6" required></div>
+                        <div class="input-icon password-wrap">
+                            <i class="fa-solid fa-lock"></i>
+                            <input type="password" id="motdepasse" name="motdepasse" placeholder="6 caractères minimum" minlength="6" autocomplete="new-password" required>
+                            <button type="button" class="password-toggle" id="passwordToggle" aria-label="Afficher le mot de passe" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                        </div>
                         <div class="error-msg" id="motdepasse-error">Le mot de passe doit contenir au moins 6 caractères.</div>
                         <div class="password-hint">6 caractères minimum</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="terms">
+                            <input type="checkbox" id="cgu" name="cgu">
+                            <span>J'accepte les <a href="cgu.html" target="_blank" rel="noopener">Conditions générales d'utilisation</a> *</span>
+                        </label>
+                        <div class="error-msg" id="cgu-error">Veuillez accepter les CGU pour continuer.</div>
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">S'inscrire</button>
@@ -299,7 +451,7 @@
     <script src="./nav.js"></script>
     <script src="./toast.js"></script>
     <script>
-        /* --- Onglets Client / Technicien --- */
+        /* ===== Onglets Client / Technicien ===== */
         function getRole() { return document.getElementById('role').value; }
 
         function setTab(role) {
@@ -309,21 +461,10 @@
                 t.classList.toggle('active', t.dataset.tab === role);
                 t.setAttribute('aria-selected', t.dataset.tab === role ? 'true' : 'false');
             });
-            var techFields = document.getElementById('fieldsetTech');
-            techFields.classList.toggle('show', isTech);
-            // Validation du champ actif uniquement
-            var fields = isTech
-                ? ['nom', 'email', 'telephone', 'specialite', 'localisation', 'tarif', 'motdepasse']
-                : ['nom', 'email', 'telephone', 'motdepasse'];
-            fields.forEach(function (id) {
-                var el = document.getElementById(id);
-                if (isTech) {
-                    if (['specialite', 'localisation', 'tarif'].indexOf(id) !== -1) el.setAttribute('required', '');
-                    else el.removeAttribute('required');
-                } else {
-                    el.removeAttribute('required');
-                }
-            });
+            document.getElementById('fieldsetTech').classList.toggle('show', isTech);
+            // Le champ tarif n'est requis que pour le technicien
+            document.getElementById('tarif').setAttribute('required', isTech ? 'required' : '');
+            if (!isTech) document.getElementById('tarif').removeAttribute('required');
         }
 
         document.querySelector('.client-tab').addEventListener('click', function () { setTab('client'); });
@@ -333,82 +474,186 @@
         var params = new URLSearchParams(window.location.search);
         if (params.get('role') === 'tech') setTab('tech');
 
-        /* --- Validation & submit --- */
-        function activeFields() {
-            return getRole() === 'tech'
-                ? ['nom', 'email', 'telephone', 'specialite', 'localisation', 'tarif', 'motdepasse']
-                : ['nom', 'email', 'telephone', 'motdepasse'];
+        /* ===== Style des radio / checkbox (classe .selected) ===== */
+        function bindChoiceStyling(containerSelector) {
+            document.querySelectorAll(containerSelector + ' .choice-option').forEach(function (label) {
+                var input = label.querySelector('input');
+                function refresh() { label.classList.toggle('selected', input.checked); }
+                input.addEventListener('change', refresh);
+                refresh();
+            });
+        }
+        bindChoiceStyling('#sexeGroup');
+        bindChoiceStyling('#boutiqueGroup');
+        bindChoiceStyling('#techTypeGroup');
+
+        /* ===== Message disponibilité ville ===== */
+        var villeEl = document.getElementById('ville');
+        var citiesNote = document.getElementById('citiesNote');
+        villeEl.addEventListener('change', function () {
+            citiesNote.hidden = (villeEl.value !== 'Douala' && villeEl.value !== '');
+            if (villeEl.value && villeEl.value !== 'Douala' && typeof showToast === 'function') {
+                showToast('Nous sommes disponibles uniquement à Douala pour le moment.', 'info');
+            }
+        });
+
+        /* ===== Bouton afficher / masquer mot de passe ===== */
+        (function () {
+            var pw = document.getElementById('motdepasse');
+            var btn = document.getElementById('passwordToggle');
+            btn.addEventListener('click', function () {
+                var show = pw.type === 'password';
+                pw.type = show ? 'text' : 'password';
+                btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+                btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+            });
+        })();
+
+        /* ===== Type de technicien : max 3 ===== */
+        var MAX_TECH_TYPES = 3;
+        document.querySelectorAll('#techTypeGroup input[name="techType"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                var checked = document.querySelectorAll('#techTypeGroup input[name="techType"]:checked');
+                if (checked.length > MAX_TECH_TYPES) {
+                    cb.checked = false;
+                    cb.closest('.choice-option').classList.remove('selected');
+                    if (typeof showToast === 'function') {
+                        showToast('Maximum ' + MAX_TECH_TYPES + ' types de technicien.', 'info');
+                    }
+                }
+            });
+        });
+
+        /* ===== Boutique : afficher localisation si "oui" ===== */
+        document.querySelectorAll('#boutiqueGroup input[name="boutique"]').forEach(function (r) {
+            r.addEventListener('change', function () {
+                var field = document.getElementById('boutiqueLocalisationField');
+                var loc = document.getElementById('localisation');
+                if (r.value === 'oui' && r.checked) {
+                    field.hidden = false;
+                    loc.setAttribute('required', 'required');
+                } else {
+                    field.hidden = true;
+                    loc.removeAttribute('required');
+                    loc.value = '';
+                }
+            });
+        });
+
+        /* ===== Validation & submit ===== */
+        function mark(el, ok) {
+            var err = document.getElementById(el.id + '-error');
+            var group = el.closest('.form-group') || el.closest('form');
+            if (err) err.classList.toggle('visible', !ok);
+            if (group) group.classList.toggle('invalid', !ok);
+            return ok;
+        }
+
+        function sexeValue() {
+            var s = document.querySelector('input[name="sexe"]:checked');
+            return s ? s.value : '';
+        }
+        function boutiqueValue() {
+            var b = document.querySelector('input[name="boutique"]:checked');
+            return b ? b.value : '';
+        }
+        function selectedTechTypes() {
+            return Array.prototype.map.call(
+                document.querySelectorAll('#techTypeGroup input[name="techType"]:checked'),
+                function (cb) { return cb.value; }
+            );
         }
 
         function validate() {
-            var valid = true;
-            activeFields().forEach(function (id) {
-                var el = document.getElementById(id);
-                var err = document.getElementById(id + '-error');
-                var group = el.closest('.form-group');
-                var ok = true;
-                var raw = (el.value || '').trim();
-                var isRequired = el.hasAttribute('required');
+            var isTech = getRole() === 'tech';
+            var ok = true;
 
-                if (isRequired && raw.length === 0) {
-                    ok = false;
-                } else if (raw.length > 0) {
-                    if (id === 'email') {
-                        ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw);
-                        err.textContent = ok ? '' : 'Adresse email invalide.';
-                    } else if (id === 'telephone') {
-                        ok = /^[\d\s+\-()]{7,}$/.test(raw);
-                        err.textContent = ok ? '' : 'Numéro de téléphone invalide.';
-                    } else if (id === 'tarif') {
-                        ok = parseFloat(raw) >= 0;
-                        err.textContent = ok ? '' : 'Saisissez un tarif horaire valide.';
-                    } else if (id === 'motdepasse') {
-                        ok = raw.length >= 6;
-                        err.textContent = ok ? '' : 'Le mot de passe doit contenir au moins 6 caractères.';
-                    }
+            // Nom
+            var nom = document.getElementById('nom');
+            if (!mark(nom, (nom.value || '').trim().length > 0)) ok = false;
+
+            // Email
+            var email = document.getElementById('email');
+            var emailOk = (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email.value || '').trim()));
+            if (!mark(email, emailOk)) ok = false;
+
+            // Téléphone : +237 + 9 chiffres
+            var phone = document.getElementById('telephone');
+            var phoneRaw = (phone.value || '').replace(/\s+/g, '');
+            var phoneOk = /^\+237\d{9}$/.test(phoneRaw);
+            if (!mark(phone, phoneOk)) ok = false;
+
+            // Ville
+            var ville = document.getElementById('ville');
+            if (!mark(ville, ville.value !== '')) ok = false;
+
+            // Sexe
+            var sexeErr = document.getElementById('sexe-error');
+            var sexeOk = sexeValue() !== '';
+            sexeErr.classList.toggle('visible', !sexeOk);
+            document.getElementById('sexeGroup').classList.toggle('invalid', !sexeOk);
+            if (!sexeOk) ok = false;
+
+            // Mot de passe
+            var mdp = document.getElementById('motdepasse');
+            if (!mark(mdp, (mdp.value || '').length >= 6)) ok = false;
+
+            // CGU
+            var cgu = document.getElementById('cgu');
+            var cguErr = document.getElementById('cgu-error');
+            var cguOk = cgu.checked;
+            cguErr.classList.toggle('visible', !cguOk);
+            if (!cguOk) ok = false;
+
+            if (isTech) {
+                // Type de technicien : au moins 1
+                var types = selectedTechTypes();
+                var techErr = document.getElementById('techType-error');
+                var techOk = types.length >= 1;
+                techErr.classList.toggle('visible', !techOk);
+                document.getElementById('techTypeGroup').classList.toggle('invalid', !techOk);
+                if (!techOk) ok = false;
+
+                // Boutique
+                var bErr = document.getElementById('boutique-error');
+                var bOk = boutiqueValue() !== '';
+                bErr.classList.toggle('visible', !bOk);
+                document.getElementById('boutiqueGroup').classList.toggle('invalid', !bOk);
+                if (!bOk) ok = false;
+
+                // Localisation de la boutique (uniquement si oui)
+                if (boutiqueValue() === 'oui') {
+                    var loc = document.getElementById('localisation');
+                    if (!mark(loc, (loc.value || '').trim().length > 0)) ok = false;
                 }
 
-                if (!ok) {
-                    err.classList.add('visible');
-                    if (group) group.classList.add('invalid');
-                    valid = false;
-                } else {
-                    err.classList.remove('visible');
-                    if (group) group.classList.remove('invalid');
-                }
-            });
-            return valid;
+                // Tarif
+                var tarif = document.getElementById('tarif');
+                if (!mark(tarif, (tarif.value || '') !== '' && parseFloat(tarif.value) >= 0)) ok = false;
+            }
+
+            return ok;
         }
 
-        activeFields().forEach(function (id) {
-            var el = document.getElementById(id);
-            el.addEventListener('input', function () {
-                var err = document.getElementById(id + '-error');
-                var group = this.closest('.form-group');
-                if (err.classList.contains('visible') && (this.value || '').trim().length > 0) {
-                    err.classList.remove('visible');
-                    if (group) group.classList.remove('invalid');
-                }
-            });
-            el.addEventListener('change', function () {
-                var err = document.getElementById(id + '-error');
-                var group = this.closest('.form-group');
-                err.classList.remove('visible');
-                if (group) group.classList.remove('invalid');
-            });
+        // Validation en temps réel du téléphone
+        document.getElementById('telephone').addEventListener('input', function () {
+            var raw = (this.value || '').replace(/\s+/g, '');
+            var phoneOk = /^\+237\d{9}$/.test(raw);
+            var hint = this.closest('.form-group').querySelector('.field-hint');
+            if (raw.length === 0) {
+                mark(this, true); // champ vide : pas d'erreur affichée
+                if (hint) hint.style.color = 'var(--gray-500)';
+            } else {
+                mark(this, phoneOk);
+                if (hint) hint.style.color = phoneOk ? 'var(--gray-500)' : '#E03131';
+            }
         });
-        // Rebranche sur changement d'onglet
-        var inputEls = document.querySelectorAll('#registerForm input, #registerForm select');
-        inputEls.forEach(function (el) {
-            el.addEventListener('input', function () { clearElError(this); });
-            el.addEventListener('change', function () { clearElError(this); });
+        document.querySelectorAll('#registerForm input, #registerForm select').forEach(function (el) {
+            if (el.type === 'checkbox' || el.type === 'radio') return;
+            if (el.id === 'telephone') return; // géré par la validation temps réel
+            el.addEventListener('input', function () { if (this.id) mark(this, true); });
+            el.addEventListener('change', function () { if (this.id) mark(this, true); });
         });
-        function clearElError(el) {
-            var err = document.getElementById(el.id + '-error');
-            var group = el.closest('.form-group');
-            if (err) err.classList.remove('visible');
-            if (group) group.classList.remove('invalid');
-        }
 
         document.getElementById('registerForm').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -420,17 +665,27 @@
             document.querySelector('.register-card').classList.add('loading');
 
             var isTech = getRole() === 'tech';
+            var techTypes = selectedTechTypes();
+            var boutique = boutiqueValue();
+            var locValue = (boutique === 'oui') ? document.getElementById('localisation').value.trim() : '';
+            var villeVal = villeEl.value;
+
             var payload = {
                 role: isTech ? 'technicien' : 'client',
                 nom: document.getElementById('nom').value.trim(),
                 email: document.getElementById('email').value.trim(),
                 telephone: document.getElementById('telephone').value.trim(),
-                motDePasse: document.getElementById('motdepasse').value
+                motDePasse: document.getElementById('motdepasse').value,
+                ville: villeVal,
+                sexe: sexeValue()
             };
             if (isTech) {
-                payload.specialite = document.getElementById('specialite').value;
+                // Le backend attend specialite (string), localisation, tarifHoraire
+                payload.specialite = techTypes.join(', ');
+                payload.techTypes = techTypes;
+                payload.localisation = locValue || villeVal;
+                payload.boutique = boutique;
                 payload.tarifHoraire = parseFloat(document.getElementById('tarif').value);
-                payload.localisation = document.getElementById('localisation').value.trim();
             }
 
             function showServerError(msg, details) {
