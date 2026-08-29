@@ -125,10 +125,21 @@ a {
     font-size: 1.4rem;
     font-weight: 700;
     color: var(--blue);
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.05);
 }
 
 .logo-icon {
+    display: inline-block;
     font-size: 1.6rem;
+    transition: transform 0.3s ease;
+}
+
+.logo:hover .logo-icon {
+    transform: rotate(5deg);
 }
 
 .nav {
