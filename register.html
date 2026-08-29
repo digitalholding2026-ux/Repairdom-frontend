@@ -143,6 +143,25 @@
         }
         .password-toggle:hover { color: var(--blue); }
 
+        /* Indicateur de force du mot de passe */
+        .pw-meter { margin-top: 8px; }
+        .pw-meter-bars { display: flex; gap: 6px; margin-bottom: 4px; }
+        .pw-meter-bars span {
+            flex: 1;
+            height: 6px;
+            border-radius: 999px;
+            background: var(--gray-200);
+            transition: background 0.25s ease;
+        }
+        .pw-meter-bars span.on { background: #E03131; }
+        .pw-meter-label {
+            font-size: 0.78rem;
+            color: var(--gray-500);
+            font-weight: 600;
+        }
+        .pw-meter.mid .pw-meter-bars span.on { background: #F59F00; }
+        .pw-meter.strong .pw-meter-bars span.on { background: #2F9E44; }
+
         /* Boutons radio / cases à cocher */
         .radio-group, .checkbox-group { display: flex; gap: 12px; flex-wrap: wrap; }
         .choice-option {
@@ -303,7 +322,7 @@
                     <div class="form-group">
                         <label for="nom" class="required">Nom complet</label>
                         <div class="input-icon"><i class="fa-solid fa-user"></i><input type="text" id="nom" name="nom" placeholder="Ex : Amadou Diallo" required></div>
-                        <div class="error-msg" id="nom-error">Veuillez entrer votre nom complet.</div>
+                        <div class="error-msg" id="nom-error">Le nom ne doit contenir que des lettres (pas de chiffres ni symboles).</div>
                     </div>
 
                     <div class="form-group">
@@ -400,16 +419,20 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="motdepasse" class="required">Mot de passe</label>
-                        <div class="input-icon password-wrap">
-                            <i class="fa-solid fa-lock"></i>
-                            <input type="password" id="motdepasse" name="motdepasse" placeholder="6 caractères minimum" minlength="6" autocomplete="new-password" required>
-                            <button type="button" class="password-toggle" id="passwordToggle" aria-label="Afficher le mot de passe" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                        <div class="form-group">
+                            <label for="motdepasse" class="required">Mot de passe</label>
+                            <div class="input-icon password-wrap">
+                                <i class="fa-solid fa-lock"></i>
+                                <input type="password" id="motdepasse" name="motdepasse" placeholder="8 caractères, majuscule, minuscule, chiffre et symbole" autocomplete="new-password" required>
+                                <button type="button" class="password-toggle" id="passwordToggle" aria-label="Afficher le mot de passe" tabindex="-1"><i class="fa-solid fa-eye"></i></button>
+                            </div>
+                            <div class="error-msg" id="motdepasse-error">8 caractères min, avec majuscule, minuscule, chiffre et caractère spécial.</div>
+                            <div class="pw-meter" id="pwMeter">
+                                <div class="pw-meter-bars"><span></span><span></span><span></span></div>
+                                <div class="pw-meter-label" id="pwMeterLabel">Force : —</div>
+                            </div>
+                            <div class="password-hint">Minimum 8 caractères : majuscule, minuscule, chiffre et symbole</div>
                         </div>
-                        <div class="error-msg" id="motdepasse-error">Le mot de passe doit contenir au moins 6 caractères.</div>
-                        <div class="password-hint">6 caractères minimum</div>
-                    </div>
 
                     <div class="form-group">
                         <label class="terms">
@@ -465,6 +488,7 @@
             // Le champ tarif n'est requis que pour le technicien
             document.getElementById('tarif').setAttribute('required', isTech ? 'required' : '');
             if (!isTech) document.getElementById('tarif').removeAttribute('required');
+            if (typeof renderValidity === 'function') renderValidity();
         }
 
         document.querySelector('.client-tab').addEventListener('click', function () { setTab('client'); });
@@ -540,14 +564,35 @@
             });
         });
 
-        /* ===== Validation & submit ===== */
-        function mark(el, ok) {
-            var err = document.getElementById(el.id + '-error');
-            var group = el.closest('.form-group') || el.closest('form');
-            if (err) err.classList.toggle('visible', !ok);
-            if (group) group.classList.toggle('invalid', !ok);
-            return ok;
+        /* ===== Règles de validation ===== */
+        function isLettersOnly(str) {
+            return /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(str);
         }
+        function isEmailValid(str) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
+        }
+        function isPhoneValid(str) {
+            return /^\+237\d{9}$/.test((str || '').replace(/\s+/g, ''));
+        }
+        function isPasswordValid(str) {
+            return (str || '').length >= 8
+                && /[A-Z]/.test(str)
+                && /[a-z]/.test(str)
+                && /[0-9]/.test(str)
+                && /[^A-Za-z0-9]/.test(str);
+        }
+        function strengthOf(pw) {
+            var score = 0;
+            if ((pw || '').length >= 8) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[a-z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+            if (score <= 2) return 0;
+            if (score <= 3) return 1;
+            return 2;
+        }
+        var STRENGTH_LABELS = ['Faible', 'Moyen', 'Fort'];
 
         function sexeValue() {
             var s = document.querySelector('input[name="sexe"]:checked');
@@ -564,96 +609,124 @@
             );
         }
 
-        function validate() {
+        /* État de validité de chaque champ visible */
+        function fieldValidity() {
             var isTech = getRole() === 'tech';
-            var ok = true;
-
-            // Nom
-            var nom = document.getElementById('nom');
-            if (!mark(nom, (nom.value || '').trim().length > 0)) ok = false;
-
-            // Email
-            var email = document.getElementById('email');
-            var emailOk = (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email.value || '').trim()));
-            if (!mark(email, emailOk)) ok = false;
-
-            // Téléphone : +237 + 9 chiffres
-            var phone = document.getElementById('telephone');
-            var phoneRaw = (phone.value || '').replace(/\s+/g, '');
-            var phoneOk = /^\+237\d{9}$/.test(phoneRaw);
-            if (!mark(phone, phoneOk)) ok = false;
-
-            // Ville
-            var ville = document.getElementById('ville');
-            if (!mark(ville, ville.value !== '')) ok = false;
-
-            // Sexe
-            var sexeErr = document.getElementById('sexe-error');
-            var sexeOk = sexeValue() !== '';
-            sexeErr.classList.toggle('visible', !sexeOk);
-            document.getElementById('sexeGroup').classList.toggle('invalid', !sexeOk);
-            if (!sexeOk) ok = false;
-
-            // Mot de passe
-            var mdp = document.getElementById('motdepasse');
-            if (!mark(mdp, (mdp.value || '').length >= 6)) ok = false;
-
-            // CGU
-            var cgu = document.getElementById('cgu');
-            var cguErr = document.getElementById('cgu-error');
-            var cguOk = cgu.checked;
-            cguErr.classList.toggle('visible', !cguOk);
-            if (!cguOk) ok = false;
-
+            var v = {
+                nom: (document.getElementById('nom').value || '').trim().length > 0 && isLettersOnly(document.getElementById('nom').value.trim()),
+                email: isEmailValid((document.getElementById('email').value || '').trim()),
+                telephone: isPhoneValid(document.getElementById('telephone').value),
+                ville: !!document.getElementById('ville').value,
+                sexe: !!sexeValue(),
+                motdepasse: isPasswordValid(document.getElementById('motdepasse').value),
+                cgu: document.getElementById('cgu').checked
+            };
             if (isTech) {
-                // Type de technicien : au moins 1
-                var types = selectedTechTypes();
-                var techErr = document.getElementById('techType-error');
-                var techOk = types.length >= 1;
-                techErr.classList.toggle('visible', !techOk);
-                document.getElementById('techTypeGroup').classList.toggle('invalid', !techOk);
-                if (!techOk) ok = false;
-
-                // Boutique
-                var bErr = document.getElementById('boutique-error');
-                var bOk = boutiqueValue() !== '';
-                bErr.classList.toggle('visible', !bOk);
-                document.getElementById('boutiqueGroup').classList.toggle('invalid', !bOk);
-                if (!bOk) ok = false;
-
-                // Localisation de la boutique (uniquement si oui)
-                if (boutiqueValue() === 'oui') {
-                    var loc = document.getElementById('localisation');
-                    if (!mark(loc, (loc.value || '').trim().length > 0)) ok = false;
-                }
-
-                // Tarif
-                var tarif = document.getElementById('tarif');
-                if (!mark(tarif, (tarif.value || '') !== '' && parseFloat(tarif.value) >= 0)) ok = false;
+                v.techType = selectedTechTypes().length >= 1;
+                v.boutique = !!boutiqueValue();
+                v.localisation = boutiqueValue() !== 'oui' || (document.getElementById('localisation').value || '').trim().length > 0;
+                v.tarif = document.getElementById('tarif').value !== '' && parseFloat(document.getElementById('tarif').value) >= 0;
             }
-
-            return ok;
+            return v;
         }
 
-        // Validation en temps réel du téléphone
-        document.getElementById('telephone').addEventListener('input', function () {
-            var raw = (this.value || '').replace(/\s+/g, '');
-            var phoneOk = /^\+237\d{9}$/.test(raw);
-            var hint = this.closest('.form-group').querySelector('.field-hint');
-            if (raw.length === 0) {
-                mark(this, true); // champ vide : pas d'erreur affichée
-                if (hint) hint.style.color = 'var(--gray-500)';
-            } else {
-                mark(this, phoneOk);
-                if (hint) hint.style.color = phoneOk ? 'var(--gray-500)' : '#E03131';
+        var touched = {};
+        function touch(id) { touched[id] = true; }
+
+        function setGroupValid(group, ok) { if (group) group.classList.toggle('invalid', !ok); }
+        function setError(id, ok) {
+            var err = document.getElementById(id + '-error');
+            if (!err) return;
+            err.classList.toggle('visible', touched[id] && !ok);
+        }
+
+        /* Recalcule et affiche la validité ; met à jour le bouton soumettre */
+        function renderValidity() {
+            var isTech = getRole() === 'tech';
+            var v = fieldValidity();
+
+            setError('nom', v.nom);        setGroupValid(document.getElementById('nom').closest('.form-group'), v.nom);
+            setError('email', v.email);    setGroupValid(document.getElementById('email').closest('.form-group'), v.email);
+            setError('telephone', v.telephone); setGroupValid(document.getElementById('telephone').closest('.form-group'), v.telephone);
+            setError('ville', v.ville);    setGroupValid(document.getElementById('ville').closest('.form-group'), v.ville);
+            setError('sexe', v.sexe);      setGroupValid(document.getElementById('sexeGroup'), v.sexe);
+            setError('motdepasse', v.motdepasse); setGroupValid(document.getElementById('motdepasse').closest('.form-group'), v.motdepasse);
+            setError('cgu', v.cgu);
+
+            if (isTech) {
+                setError('techType', v.techType);        setGroupValid(document.getElementById('techTypeGroup'), v.techType);
+                setError('boutique', v.boutique);        setGroupValid(document.getElementById('boutiqueGroup'), v.boutique);
+                setError('boutiqueLocalisation', v.localisation); setGroupValid(document.getElementById('localisation').closest('.form-group'), v.localisation);
+                setError('tarif', v.tarif);              setGroupValid(document.getElementById('tarif').closest('.form-group'), v.tarif);
             }
+
+            var allValid = v.nom && v.email && v.telephone && v.ville && v.sexe && v.motdepasse && v.cgu
+                && (!isTech || (v.techType && v.boutique && v.localisation && v.tarif));
+
+            document.getElementById('submitBtn').disabled = !allValid;
+            return allValid;
+        }
+
+        function validate() {
+            ['nom', 'email', 'telephone', 'ville', 'sexe', 'motdepasse', 'cgu', 'techType', 'boutique', 'localisation', 'tarif'].forEach(touch);
+            return renderValidity();
+        }
+
+        /* ===== Indicateur de force du mot de passe ===== */
+        function updatePasswordStrength() {
+            var val = document.getElementById('motdepasse').value;
+            var level = strengthOf(val);
+            var el = document.getElementById('pwMeter');
+            var label = document.getElementById('pwMeterLabel');
+            var bars = el.querySelectorAll('.pw-meter-bars span');
+            bars.forEach(function (b, i) {
+                b.classList.toggle('on', val.length > 0 && i < (level === 0 ? 1 : level));
+            });
+            el.classList.toggle('mid', level === 1);
+            el.classList.toggle('strong', level === 2);
+            label.textContent = val.length === 0 ? 'Force : —' : ('Force : ' + STRENGTH_LABELS[level]);
+        }
+
+        /* ===== Branchement de la validation en temps réel ===== */
+        var textIds = ['nom', 'email', 'ville'];
+        textIds.forEach(function (id) {
+            var el = document.getElementById(id);
+            el.addEventListener('input', function () { touch(id); renderValidity(); });
+            el.addEventListener('change', function () { touch(id); renderValidity(); });
+            el.addEventListener('blur', function () { touch(id); renderValidity(); });
         });
-        document.querySelectorAll('#registerForm input, #registerForm select').forEach(function (el) {
-            if (el.type === 'checkbox' || el.type === 'radio') return;
-            if (el.id === 'telephone') return; // géré par la validation temps réel
-            el.addEventListener('input', function () { if (this.id) mark(this, true); });
-            el.addEventListener('change', function () { if (this.id) mark(this, true); });
+
+        ['sexe', 'cgu', 'techType', 'boutique'].forEach(function (name) {
+            document.querySelectorAll('#registerForm [name="' + name + '"]').forEach(function (el) {
+                el.addEventListener('change', function () { touch(name); renderValidity(); });
+            });
         });
+
+        var telephone = document.getElementById('telephone');
+        telephone.addEventListener('input', function () {
+            touch('telephone');
+            var hint = this.closest('.form-group').querySelector('.field-hint');
+            if (hint) hint.style.color = ((this.value || '').trim() === '' || isPhoneValid(this.value)) ? 'var(--gray-500)' : '#E03131';
+            renderValidity();
+        });
+        telephone.addEventListener('blur', function () { touch('telephone'); renderValidity(); });
+
+        var mdpEl = document.getElementById('motdepasse');
+        mdpEl.addEventListener('input', function () {
+            touch('motdepasse');
+            updatePasswordStrength();
+            renderValidity();
+        });
+        mdpEl.addEventListener('blur', function () { touch('motdepasse'); renderValidity(); });
+
+        document.getElementById('tarif').addEventListener('input', function () { touch('tarif'); renderValidity(); });
+        document.getElementById('tarif').addEventListener('change', function () { touch('tarif'); renderValidity(); });
+        document.getElementById('localisation').addEventListener('input', function () { touch('localisation'); renderValidity(); });
+        document.getElementById('localisation').addEventListener('change', function () { touch('localisation'); renderValidity(); });
+
+        // État initial : bouton désactivé tant que le formulaire n'est pas valide
+        document.getElementById('submitBtn').disabled = true;
+        renderValidity();
 
         document.getElementById('registerForm').addEventListener('submit', async function (e) {
             e.preventDefault();
