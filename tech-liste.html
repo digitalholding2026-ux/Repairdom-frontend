@@ -202,6 +202,11 @@
         const params = new URLSearchParams(window.location.search);
         const demandeId = params.get('id') || '';
 
+        const prefillSearch = params.get('q');
+        if (prefillSearch) {
+            document.getElementById('filterSearch').value = prefillSearch;
+        }
+
         let techniciens = [];
 
         async function loadTechniciens() {

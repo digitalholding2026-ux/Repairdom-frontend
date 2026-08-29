@@ -58,9 +58,14 @@
     <section class="search-section reveal" style="transition-delay:0.2s">
         <div class="container">
             <form class="search-bar" id="searchForm" role="search">
-                <input type="text" id="searchInput" class="search-input"
-                       placeholder="Que voulez-vous réparer ? (ex: téléphone, ordinateur)"
-                       aria-label="Rechercher un type de réparation">
+                <div class="search-field">
+                    <input type="text" id="searchInput" class="search-input"
+                           placeholder="Que voulez-vous réparer ? (ex: téléphone, ordinateur)"
+                           aria-label="Rechercher un type de réparation"
+                           autocomplete="off" role="combobox" aria-expanded="false"
+                           aria-controls="searchDropdown">
+                    <div class="search-dropdown" id="searchDropdown" role="listbox"></div>
+                </div>
                 <button type="submit" class="search-btn" aria-label="Rechercher">
                     <i class="fa-solid fa-magnifying-glass"></i> Rechercher
                 </button>
@@ -277,16 +282,78 @@
             });
         })();
 
-        // Barre de recherche : redirection vers la page des techniciens.
+        // Barre de recherche : auto-suggestion + redirection vers la page des techniciens.
         (function () {
             var form = document.getElementById('searchForm');
             var input = document.getElementById('searchInput');
             if (!form || !input) return;
+            var dropdown = document.getElementById('searchDropdown');
+
+            var keywords = [
+                'téléphone', 'ordinateur', 'tablette', 'écran', 'batterie',
+                'clavier', 'chargeur', 'vitre cassée', 'réparation smartphone',
+                'réparation ordinateur', 'récupération données'
+            ];
+
+            function normalize(s) {
+                return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+
+            function redirect(q) {
+                window.location.href = 'tech-liste.html?q=' + encodeURIComponent(q.trim());
+            }
+
+            function showSuggestions() {
+                var value = input.value.trim();
+                if (!value) { hideDropdown(); return; }
+                var nvalue = normalize(value);
+                var matches = keywords.filter(function (k) {
+                    return normalize(k).indexOf(nvalue) !== -1;
+                }).slice(0, 6);
+
+                if (!matches.length) { hideDropdown(); return; }
+
+                dropdown.innerHTML = '';
+                matches.forEach(function (k) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'search-suggestion';
+                    btn.setAttribute('role', 'option');
+                    btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i><span></span>';
+                    btn.querySelector('span').textContent = k;
+                    btn.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        redirect(k);
+                    });
+                    dropdown.appendChild(btn);
+                });
+                dropdown.classList.add('show');
+                input.setAttribute('aria-expanded', 'true');
+            }
+
+            function hideDropdown() {
+                dropdown.classList.remove('show');
+                input.setAttribute('aria-expanded', 'false');
+            }
+
+            input.addEventListener('input', showSuggestions);
+            input.addEventListener('focus', showSuggestions);
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') hideDropdown();
+            });
+            input.addEventListener('blur', function () {
+                setTimeout(hideDropdown, 120);
+            });
+
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var q = input.value.trim();
                 if (!q) return;
-                window.location.href = 'tech-liste.html?q=' + encodeURIComponent(q);
+                redirect(q);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!form.contains(e.target)) hideDropdown();
             });
         })();
     </script>
