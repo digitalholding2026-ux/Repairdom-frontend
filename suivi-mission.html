@@ -514,7 +514,7 @@
                 <p>Mission introuvable</p>
             </div>
 
-            <div class="mission-id">
+            <div class="mission-id" id="missionId">
                 Demande <strong id="missionIdDisplay">—</strong>
             </div>
 
@@ -590,6 +590,8 @@
                     <div class="info-row"><span class="label">Nom</span><span class="value" id="clientNom">—</span></div>
                     <div class="info-row"><span class="label">Téléphone</span><span class="value" id="clientTel">—</span></div>
                     <div class="info-row"><span class="label">Adresse</span><span class="value" id="clientAddr">—</span></div>
+                    <div class="info-row"><span class="label">Appareil</span><span class="value" id="missionDevice">—</span></div>
+                    <div class="info-row"><span class="label">Panne</span><span class="value" id="missionIssue">—</span></div>
                 </div>
                 <div class="info-card">
                     <h3><i class="fa-solid fa-wrench"></i> Technicien</h3>
@@ -685,18 +687,23 @@
         }
 
         function renderMission(data) {
-            document.getElementById('clientNom').textContent = data.clientName || '—';
-            document.getElementById('clientTel').textContent = data.clientPhone || '—';
-            document.getElementById('clientAddr').textContent = data.address || '—';
-            document.getElementById('techNom').textContent = data.technicianName || '—';
-            document.getElementById('techSpec').textContent = data.techSpecialty || data.device || '—';
-            document.getElementById('techTarif').textContent = data.techRate
-                ? data.techRate.toLocaleString() + ' FCFA/h'
-                : '—';
-            document.getElementById('priceDisplay').textContent = (data.price || 0).toLocaleString() + ' FCFA';
+            const def = 'Non renseigné';
+            document.getElementById('clientNom').textContent = data.clientName || def;
+            document.getElementById('clientTel').textContent = data.clientPhone || def;
+            document.getElementById('clientAddr').textContent = data.address || def;
+            document.getElementById('missionDevice').textContent = data.device || def;
+            document.getElementById('missionIssue').textContent = data.issue || def;
+            document.getElementById('techNom').textContent = data.technicianName || def;
+            document.getElementById('techSpec').textContent = data.techSpecialty || data.device || def;
+            document.getElementById('techTarif').textContent = data.techRate != null
+                ? Number(data.techRate).toLocaleString() + ' FCFA/h'
+                : def;
+            document.getElementById('priceDisplay').textContent = data.price != null
+                ? Number(data.price).toLocaleString() + ' FCFA'
+                : def;
             document.getElementById('dateRDV').textContent = data.dateSouhaitee
                 ? new Date(data.dateSouhaitee).toLocaleString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                : '—';
+                : 'Non renseigné';
 
             updateTimerCard(data.status);
 
