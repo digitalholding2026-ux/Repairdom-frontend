@@ -92,10 +92,12 @@
         <div class="container">
             <h2 class="testimonials-title reveal" style="transition-delay:0.2s">Ils nous font confiance</h2>
             <div class="testimonial-carousel reveal" style="transition-delay:0.4s">
+                <button class="testimonial-arrow prev" id="testimonialPrev" aria-label="Avis précédent"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="testimonial-arrow next" id="testimonialNext" aria-label="Avis suivant"><i class="fa-solid fa-chevron-right"></i></button>
                 <div class="testimonial-track" id="testimonialTrack">
                     <div class="testimonial-slide">
                         <div class="testimonial-card">
-                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <img class="testimonial-avatar" src="https://randomuser.me/api/portraits/women/65.jpg" alt="Amina Sow" loading="lazy">
                             <div class="testimonial-name">Amina Sow</div>
                             <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
                             <p class="testimonial-text">"Mon téléphone réparé en une heure, impeccable !"</p>
@@ -104,7 +106,7 @@
                     </div>
                     <div class="testimonial-slide">
                         <div class="testimonial-card">
-                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <img class="testimonial-avatar" src="https://randomuser.me/api/portraits/men/32.jpg" alt="Jean-Paul Ndjoume" loading="lazy">
                             <div class="testimonial-name">Jean-Paul Ndjoume</div>
                             <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i></div>
                             <p class="testimonial-text">"Technicien ponctuel et prix vraiment transparent."</p>
@@ -113,7 +115,7 @@
                     </div>
                     <div class="testimonial-slide">
                         <div class="testimonial-card">
-                            <span class="testimonial-avatar"><i class="fa-solid fa-user"></i></span>
+                            <img class="testimonial-avatar" src="https://randomuser.me/api/portraits/women/12.jpg" alt="Christelle Mbarga" loading="lazy">
                             <div class="testimonial-name">Christelle Mbarga</div>
                             <div class="testimonial-stars"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-regular fa-star"></i></div>
                             <p class="testimonial-text">"Service rapide et de très bon conseil, je recommande."</p>
@@ -237,6 +239,7 @@
             }
 
             function next() { goTo(index + 1); }
+            function prev() { goTo(index - 1); }
 
             function restart() {
                 if (timer) clearInterval(timer);
@@ -246,6 +249,22 @@
 
             goTo(0);
             restart();
+
+            // Navigation par flèches.
+            var prevBtn = document.getElementById('testimonialPrev');
+            var nextBtn = document.getElementById('testimonialNext');
+            if (prevBtn) prevBtn.addEventListener('click', function () { prev(); restart(); });
+            if (nextBtn) nextBtn.addEventListener('click', function () { next(); restart(); });
+
+            // Pause au survol (desktop uniquement).
+            var carousel = document.querySelector('.testimonial-carousel');
+            if (carousel) {
+                carousel.addEventListener('mouseenter', function () {
+                    if (timer) clearInterval(timer);
+                });
+                carousel.addEventListener('mouseleave', restart);
+            }
+
             window.addEventListener('resize', function () {
                 if (isMobile()) {
                     if (timer) clearInterval(timer);

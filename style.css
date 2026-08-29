@@ -390,6 +390,7 @@ a {
     max-width: 620px;
     margin: 0 auto;
     overflow: hidden;
+    position: relative;
 }
 
 .testimonial-track {
@@ -416,12 +417,41 @@ a {
     border-radius: 50%;
     background: var(--blue-pale);
     color: var(--blue);
-    display: inline-flex;
+    display: inline-block;
     align-items: center;
     justify-content: center;
     font-size: 1.6rem;
     margin-bottom: 14px;
+    object-fit: cover;
+    border: 3px solid var(--blue-pale);
 }
+
+.testimonial-arrow {
+    position: absolute;
+    top: 36%;
+    z-index: 3;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: var(--white);
+    color: var(--blue);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.testimonial-arrow:hover {
+    background: var(--blue);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.testimonial-arrow.prev { left: -20px; }
+.testimonial-arrow.next { right: -20px; }
 
 .testimonial-name {
     font-size: 1.05rem;
@@ -851,6 +881,10 @@ a {
 
     .testimonial-carousel {
         overflow: visible;
+    }
+
+    .testimonial-arrow {
+        display: none;
     }
 
     .testimonial-track {
