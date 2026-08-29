@@ -37,17 +37,17 @@
 
     <section class="trust">
         <div class="container trust-grid">
-            <div class="trust-item">
+            <div class="trust-item reveal" style="transition-delay:0.2s">
                 <span class="trust-icon"><i class="fa-solid fa-users"></i></span>
                 <span class="trust-number" data-count="150" data-suffix="+">150+</span>
                 <span class="trust-label">Techniciens partenaires</span>
             </div>
-            <div class="trust-item">
+            <div class="trust-item reveal" style="transition-delay:0.4s">
                 <span class="trust-icon"><i class="fa-solid fa-screwdriver-wrench"></i></span>
                 <span class="trust-number" data-count="2400" data-suffix="+">2400+</span>
                 <span class="trust-label">Réparations effectuées</span>
             </div>
-            <div class="trust-item">
+            <div class="trust-item reveal" style="transition-delay:0.6s">
                 <span class="trust-icon"><i class="fa-solid fa-star"></i></span>
                 <span class="trust-number" data-count="4.8" data-decimals="1" data-suffix="/5">4.8/5</span>
                 <span class="trust-label">Note moyenne</span>
@@ -55,7 +55,7 @@
         </div>
     </section>
 
-    <section class="search-section">
+    <section class="search-section reveal" style="transition-delay:0.2s">
         <div class="container">
             <form class="search-bar" id="searchForm" role="search">
                 <input type="text" id="searchInput" class="search-input"
@@ -70,17 +70,17 @@
 
     <section class="features">
         <div class="container features-grid">
-            <div class="feature-card">
+            <div class="feature-card reveal" style="transition-delay:0.2s">
                 <div class="feature-icon"><i class="fa-solid fa-car"></i></div>
                 <h3>À domicile</h3>
                 <p>Nous nous déplaçons chez vous, pas besoin de vous déplacer.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card reveal" style="transition-delay:0.4s">
                 <div class="feature-icon"><i class="fa-solid fa-user-check"></i></div>
                 <h3>Techniciens vérifiés</h3>
                 <p>Tous nos techniciens sont certifiés et notés par la communauté.</p>
             </div>
-            <div class="feature-card">
+            <div class="feature-card reveal" style="transition-delay:0.6s">
                 <div class="feature-icon"><i class="fa-solid fa-coins"></i></div>
                 <h3>Prix transparent</h3>
                 <p>Devis gratuit avant toute intervention. Pas de mauvaises surprises.</p>
@@ -90,8 +90,8 @@
 
     <section class="testimonials">
         <div class="container">
-            <h2 class="testimonials-title">Ils nous font confiance</h2>
-            <div class="testimonial-carousel">
+            <h2 class="testimonials-title reveal" style="transition-delay:0.2s">Ils nous font confiance</h2>
+            <div class="testimonial-carousel reveal" style="transition-delay:0.4s">
                 <div class="testimonial-track" id="testimonialTrack">
                     <div class="testimonial-slide">
                         <div class="testimonial-card">
@@ -175,6 +175,26 @@
                 items.forEach(function (el) { observer.observe(el); });
             } else {
                 items.forEach(animate);
+            }
+        })();
+
+        // Animation d'apparition au scroll (fade-up) avec décalage via transition-delay.
+        (function () {
+            var items = document.querySelectorAll('.reveal');
+            if (!items.length) return;
+
+            if ('IntersectionObserver' in window) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('reveal-visible');
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.12 });
+                items.forEach(function (el) { observer.observe(el); });
+            } else {
+                items.forEach(function (el) { el.classList.add('reveal-visible'); });
             }
         })();
 
