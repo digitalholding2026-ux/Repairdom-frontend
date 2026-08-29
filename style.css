@@ -24,6 +24,55 @@
     --transition: 0.25s ease;
 }
 
+/* ===== Mode sombre ===== */
+@media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+        --blue-pale: #1d3347;
+        --white: #1e2228;
+        --gray-50: #16191d;
+        --gray-100: #1b1f24;
+        --gray-200: #2c323a;
+        --gray-500: #9aa5b1;
+        --gray-800: #e4e7eb;
+        --gray-900: #ffffff;
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    }
+}
+
+:root.dark {
+    --blue-pale: #1d3347;
+    --white: #1e2228;
+    --gray-50: #16191d;
+    --gray-100: #1b1f24;
+    --gray-200: #2c323a;
+    --gray-500: #9aa5b1;
+    --gray-800: #e4e7eb;
+    --gray-900: #ffffff;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-right: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--gray-200);
+    background: var(--gray-100);
+    color: var(--gray-800);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+    background: var(--blue-pale);
+    color: var(--blue);
+    transform: translateY(-2px);
+}
+
 body {
     font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: var(--gray-800);
@@ -375,7 +424,7 @@ a {
 
 /* ===== Témoignages ===== */
 .testimonials {
-    background: #F5F7FA;
+    background: var(--gray-100);
     padding: 64px 0;
 }
 

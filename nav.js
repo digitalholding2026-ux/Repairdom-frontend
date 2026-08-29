@@ -109,6 +109,38 @@
     });
   }
 
+  function initTheme() {
+    var toggle = document.getElementById('themeToggle');
+    if (!toggle) return;
+    var icon = toggle.querySelector('i');
+
+    function effectiveDark() {
+      var t = localStorage.getItem('theme');
+      if (t === 'dark') return true;
+      if (t === 'light') return false;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    function apply(dark) {
+      document.documentElement.classList.toggle('dark', dark);
+      document.documentElement.classList.toggle('light', !dark);
+      if (icon) icon.className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+      toggle.setAttribute('aria-pressed', String(dark));
+    }
+
+    function setDark(dark) {
+      localStorage.setItem('theme', dark ? 'dark' : 'light');
+      apply(dark);
+    }
+
+    toggle.addEventListener('click', function () {
+      setDark(!effectiveDark());
+    });
+
+    apply(effectiveDark());
+  }
+
   renderNav();
   initMenuToggle();
+  initTheme();
 })();
