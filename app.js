@@ -21,10 +21,22 @@ const API_URL = (
 
 async function api(path, options = {}) {
   const url = API_URL + path;
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
-  });
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+  // Ajoute le jeton JWT stocké (si présent) à chaque requête.
+  const token = localStorage.getItem('token');
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+
+  const res = await fetch(url, Object.assign({}, options, { headers }));
+  if (res.status === 401) {
+    // Token absent, expiré ou invalide : on efface la session et on redirige.
+    if (window.RepairAuth && window.RepairAuth.handleAuthFailure) {
+      if (window.showToast) {
+        window.showToast('Session expirée. Veuillez vous reconnecter.', 'error');
+      }
+      window.RepairAuth.handleAuthFailure();
+    }
+    throw new Error('Session expirée. Veuillez vous reconnecter.');
+  }
   if (!res.ok) {
     let msg = 'Erreur réseau.';
     try { const d = await res.json(); msg = d.error || msg; } catch (_) {}

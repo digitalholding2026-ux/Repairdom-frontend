@@ -393,10 +393,21 @@
 </head>
 <body>
     <script>
-        // Page protégée : redirige vers la connexion si non authentifié.
-        if (localStorage.getItem('token') === null) {
-            window.location.href = 'login.html';
-        }
+        // Page protégée : redirige vers la connexion si le token est absent ou expiré.
+        (function () {
+            var token = localStorage.getItem('token');
+            if (token === null) { window.location.href = 'login.html'; return; }
+            // Vérification légère de l'expiration côté client (payload JWT `exp`).
+            try {
+                var parts = token.split('.');
+                if (parts.length === 3) {
+                    var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                    if (payload.exp && payload.exp * 1000 <= Date.now()) {
+                        window.location.href = 'login.html';
+                    }
+                }
+            } catch (_) {}
+        })();
     </script>
 
     <header class="header">
@@ -533,11 +544,19 @@
         let tech = null;
 
         // Appel API avec en-tête d'authentification (JWT Bearer) pour les
-        // routes protégées du dashboard technicien.
+        // routes protégées du dashboard technicien. Un 401 (token expiré ou
+        // invalide) efface la session et redirige vers la connexion.
         async function api(url, opts) {
             const headers = { 'Content-Type': 'application/json' };
             if (storedToken) headers['Authorization'] = 'Bearer ' + storedToken;
             const res = await fetch(API_URL + url, Object.assign({ headers }, opts || {}));
+            if (res.status === 401) {
+                if (window.RepairAuth && window.RepairAuth.handleAuthFailure) {
+                    showToast('Session expirée. Veuillez vous reconnecter.', 'error');
+                    window.RepairAuth.handleAuthFailure();
+                }
+                throw new Error('Session expirée.');
+            }
             if (!res.ok) {
                 let msg = 'Erreur serveur';
                 try { const d = await res.json(); msg = d.error || msg; } catch (_) {}

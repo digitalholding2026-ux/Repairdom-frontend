@@ -13,9 +13,40 @@ const SESSION_KEYS = {
   userId: 'userId'
 };
 
+/** Renvoie le jeton JWT stocké, ou null s'il est absent. */
+function getToken() {
+  return localStorage.getItem(SESSION_KEYS.token);
+}
+
+/**
+ * Vérifie côté client si le JWT stocké est expiré (décode le payload `exp`).
+ * Retourne true si le token est expiré ou malformé (non-JWT).
+ */
+function isTokenExpired() {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return true; // ce n'est pas un vrai JWT → non fiable
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (!payload.exp) return false;
+    return payload.exp * 1000 <= Date.now();
+  } catch (_) {
+    return false;
+  }
+}
+
 /** True si un token de session est présent. */
 function isLoggedIn() {
-  return !!localStorage.getItem(SESSION_KEYS.token);
+  return !!getToken();
+}
+
+/** Supprime toutes les clés de session locale (sans redirection). */
+function clearSession() {
+  localStorage.removeItem(SESSION_KEYS.token);
+  localStorage.removeItem(SESSION_KEYS.userName);
+  localStorage.removeItem(SESSION_KEYS.userRole);
+  localStorage.removeItem(SESSION_KEYS.userId);
 }
 
 /** Retourne le rôle ('client' | 'technician') ou null si absent. */
@@ -33,11 +64,25 @@ function logout() {
   try {
     fetch(API_URL + '/api/logout', { method: 'POST' }).catch(function () {});
   } catch (_) {}
-  localStorage.removeItem(SESSION_KEYS.token);
-  localStorage.removeItem(SESSION_KEYS.userName);
-  localStorage.removeItem(SESSION_KEYS.userRole);
-  localStorage.removeItem(SESSION_KEYS.userId);
+  clearSession();
   window.location.href = 'index.html';
+}
+
+/**
+ * Appelé quand un appel API échoue en 401 (token absent, expiré ou invalide).
+ * Efface la session et redirige vers la page de connexion.
+ */
+function handleAuthFailure() {
+  clearSession();
+  window.location.href = 'login.html';
+}
+
+/** Construit l'en-tête d'authentification Bearer si un token est présent. */
+function authHeaders(extra) {
+  const headers = Object.assign({}, extra || {});
+  const token = getToken();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return headers;
 }
 
 /** Stocke la session locale (connexion / inscription réussies). */
@@ -59,10 +104,15 @@ function getUserId() {
 }
 
 window.RepairAuth = {
+  getToken,
+  isTokenExpired,
   isLoggedIn,
   getUserRole,
   getUserName,
   getUserId,
   saveSession,
-  logout
+  logout,
+  clearSession,
+  handleAuthFailure,
+  authHeaders
 };
