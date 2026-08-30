@@ -378,6 +378,96 @@
         .badge-avail-state.on { background: #D3F9D8; color: #2B8A3E; }
         .badge-avail-state.off { background: #FFE3E3; color: #C92A2A; }
 
+        /* Onglets */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin: 8px 0 28px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color var(--transition), border-color var(--transition);
+        }
+        .tab-btn:hover { color: var(--blue); }
+        .tab-btn.active {
+            color: var(--blue);
+            border-bottom-color: var(--blue);
+        }
+
+        /* Formulaire profil */
+        .profile-form {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            max-width: 640px;
+        }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            transition: border-color var(--transition);
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--blue);
+            background: var(--white);
+        }
+        .form-group input.invalid { border-color: #C92A2A; }
+        .form-error {
+            display: none;
+            font-size: 0.78rem;
+            color: #C92A2A;
+            margin-top: 5px;
+        }
+        .form-group.invalid .form-error { display: block; }
+        .form-hint { font-size: 0.75rem; color: var(--gray-500); margin-top: 4px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .save-btn {
+            padding: 12px 26px;
+            background: var(--blue);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background var(--transition);
+        }
+        .save-btn:hover { background: var(--blue-light); }
+        .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+
         @media (max-width: 700px) {
             .missions-table-wrap { display: none; }
             .missions-cards { display: flex; }
@@ -431,6 +521,12 @@
             </nav>
             <h1 class="page-title">Tableau de bord technicien</h1>
 
+            <div class="tabs" role="tablist">
+                <button class="tab-btn active" id="tabBtnApercu" type="button" role="tab"><i class="fa-solid fa-chart-simple"></i> Aperçu</button>
+                <button class="tab-btn" id="tabBtnProfil" type="button" role="tab"><i class="fa-solid fa-user-gear"></i> Profil</button>
+            </div>
+
+            <div id="tabApercu">
             <div class="overview-section">
                 <div class="section-title"><i class="fa-solid fa-chart-pie" style="color:var(--blue);"></i> Vue d'ensemble</div>
                 <div class="stats-grid">
@@ -499,6 +595,37 @@
                     <div class="loading-overlay"><span class="spinner dark"></span> Chargement des missions...</div>
                 </div>
 
+            </div>
+            </div>
+
+            <div id="tabProfil" style="display:none;">
+                <div class="section-title"><i class="fa-solid fa-user-gear" style="color:var(--blue);"></i> Mon profil</div>
+                <form class="profile-form" id="profileForm" novalidate>
+                    <div class="form-group">
+                        <label for="profileNom">Nom complet</label>
+                        <input type="text" id="profileNom" name="nom" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileTel">Téléphone</label>
+                        <input type="text" id="profileTel" name="telephone" placeholder="+237XXXXXXXXX" required>
+                        <div class="form-error" id="telError">Le téléphone doit être au format +237XXXXXXXXX (9 chiffres).</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="profileSpecialite">Spécialité</label>
+                        <input type="text" id="profileSpecialite" name="specialite" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profileTarif">Tarif horaire (FCFA)</label>
+                            <input type="number" id="profileTarif" name="tarif" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileLocalisation">Localisation</label>
+                            <input type="text" id="profileLocalisation" name="localisation" required>
+                        </div>
+                    </div>
+                    <button class="save-btn" type="submit" id="saveProfileBtn"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
+                </form>
             </div>
         </div>
     </main>
@@ -754,6 +881,88 @@
             }
         }
 
+        /* --- Onglets Aperçu / Profil --- */
+        function initTabs() {
+            const apercuBtn = document.getElementById('tabBtnApercu');
+            const profilBtn = document.getElementById('tabBtnProfil');
+            const apercu = document.getElementById('tabApercu');
+            const profil = document.getElementById('tabProfil');
+            function show(which) {
+                apercu.style.display = (which === 'apercu') ? 'block' : 'none';
+                profil.style.display = (which === 'profil') ? 'block' : 'none';
+                apercuBtn.classList.toggle('active', which === 'apercu');
+                profilBtn.classList.toggle('active', which === 'profil');
+            }
+            apercuBtn.addEventListener('click', function () { show('apercu'); });
+            profilBtn.addEventListener('click', function () { show('profil'); });
+            show('apercu');
+        }
+
+        /* --- Profil : pré-remplissage, validation, enregistrement --- */
+        function fillProfileForm() {
+            if (!tech) return;
+            document.getElementById('profileNom').value = tech.name || '';
+            document.getElementById('profileTel').value = tech.telephone || '';
+            document.getElementById('profileSpecialite').value = tech.specialty || '';
+            document.getElementById('profileTarif').value = (tech.rate != null ? tech.rate : '');
+            document.getElementById('profileLocalisation').value = tech.location || '';
+        }
+
+        const TEL_RE = /^\+237\s?\d{9}$/;
+
+        function validateProfile() {
+            const tel = document.getElementById('profileTel');
+            const telGroup = tel.closest('.form-group');
+            const valid = TEL_RE.test(tel.value.trim());
+            telGroup.classList.toggle('invalid', !valid);
+            return valid;
+        }
+
+        function initProfileForm() {
+            const form = document.getElementById('profileForm');
+            const tel = document.getElementById('profileTel');
+            tel.addEventListener('input', function () {
+                this.closest('.form-group').classList.toggle('invalid', !TEL_RE.test(this.value.trim()));
+            });
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!validateProfile()) {
+                    showToast('Veuillez corriger les champs invalides.', 'error');
+                    return;
+                }
+                if (!techId) { showToast('Aucun technicien connecté.', 'error'); return; }
+                if (!tech) { showToast('Profil non chargé. Réessayez.', 'error'); return; }
+                const btn = document.getElementById('saveProfileBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Enregistrement...';
+                try {
+                    const payload = {
+                        nom: document.getElementById('profileNom').value.trim(),
+                        telephone: tel.value.trim(),
+                        specialite: document.getElementById('profileSpecialite').value.trim(),
+                        tarif: Number(document.getElementById('profileTarif').value),
+                        localisation: document.getElementById('profileLocalisation').value.trim()
+                    };
+                    const res = await api('/api/technician/profile/' + encodeURIComponent(techId), {
+                        method: 'PATCH',
+                        body: JSON.stringify(payload)
+                    });
+                    if (res.technicien) tech = res.technicien;
+                    // Rafraîchit la carte profil (onglet Aperçu) et le formulaire.
+                    document.getElementById('techAvatar').textContent = tech.avatar || tech.name.slice(0, 2).toUpperCase();
+                    document.getElementById('techName').textContent = tech.name;
+                    document.getElementById('techSpecialty').textContent = tech.specialty;
+                    document.getElementById('techLocation').textContent = tech.location;
+                    fillProfileForm();
+                    showToast(res.message || 'Profil mis à jour avec succès.', 'success');
+                } catch (err) {
+                    showToast('Erreur : ' + err.message, 'error');
+                }
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Enregistrer';
+            });
+        }
+
         /* --- Disponibilité (PATCH /api/technician/status/:id) --- */
         function initAvailability(initial) {
             const toggle = document.getElementById('availToggle');
@@ -785,6 +994,8 @@
         }
 
         async function init() {
+            initTabs();
+            initProfileForm();
             loadMyMissions();
             loadStats();
             loadReviews();
@@ -798,6 +1009,7 @@
             try {
                 await loadTech();
                 initAvailability(tech.available);
+                fillProfileForm();
             } catch (err) {
                 showToast('Technicien introuvable.', 'error');
                 document.getElementById('techPanel').style.display = 'none';
