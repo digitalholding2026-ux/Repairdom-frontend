@@ -468,9 +468,73 @@
             .form-row { grid-template-columns: 1fr; }
         }
 
+        /* Paiements */
+        .payments-total {
+            background: var(--blue-pale);
+            border: 1px solid var(--blue-light);
+            border-radius: var(--radius);
+            padding: 18px 22px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+        .pay-total-item { flex: 1; min-width: 130px; }
+        .pay-total-item .label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--gray-500);
+        }
+        .pay-total-item .value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--blue);
+            margin-top: 4px;
+        }
+        .mission-price.neg { color: var(--gray-500); }
+        .badge-paiement {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-paiement.paye { background: #D3F9D8; color: #2B8A3E; }
+        .badge-paiement.attente { background: #FFF3BF; color: #E67700; }
+        .p-cards { display: none; flex-direction: column; gap: 16px; }
+        .p-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 18px;
+        }
+        .p-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .p-card .p-client { font-weight: 700; color: var(--gray-900); }
+        .p-card-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+            padding: 3px 0;
+        }
+        .p-card-row b { color: var(--gray-900); }
+        .p-date { font-size: 0.8rem; color: var(--gray-500); }
+
         @media (max-width: 700px) {
             .missions-table-wrap { display: none; }
             .missions-cards { display: flex; }
+        }
+        @media (max-width: 700px) {
+            .p-cards { display: flex; }
         }
 
         @media (max-width: 600px) {
@@ -523,6 +587,7 @@
 
             <div class="tabs" role="tablist">
                 <button class="tab-btn active" id="tabBtnApercu" type="button" role="tab"><i class="fa-solid fa-chart-simple"></i> Aperçu</button>
+                <button class="tab-btn" id="tabBtnPaiements" type="button" role="tab"><i class="fa-solid fa-money-bill-wave"></i> Paiements</button>
                 <button class="tab-btn" id="tabBtnProfil" type="button" role="tab"><i class="fa-solid fa-user-gear"></i> Profil</button>
             </div>
 
@@ -626,6 +691,12 @@
                     </div>
                     <button class="save-btn" type="submit" id="saveProfileBtn"><i class="fa-solid fa-floppy-disk"></i> Enregistrer</button>
                 </form>
+            </div>
+
+            <div id="tabPaiements" style="display:none;">
+                <div class="section-title"><i class="fa-solid fa-money-bill-wave" style="color:var(--blue);"></i> Historique des paiements</div>
+                <div class="payments-total" id="paymentsTotal"></div>
+                <div id="paymentsContent"></div>
             </div>
         </div>
     </main>
@@ -881,20 +952,115 @@
             }
         }
 
-        /* --- Onglets Aperçu / Profil --- */
-        function initTabs() {
-            const apercuBtn = document.getElementById('tabBtnApercu');
-            const profilBtn = document.getElementById('tabBtnProfil');
-            const apercu = document.getElementById('tabApercu');
-            const profil = document.getElementById('tabProfil');
-            function show(which) {
-                apercu.style.display = (which === 'apercu') ? 'block' : 'none';
-                profil.style.display = (which === 'profil') ? 'block' : 'none';
-                apercuBtn.classList.toggle('active', which === 'apercu');
-                profilBtn.classList.toggle('active', which === 'profil');
+        /* --- Historique des paiements (GET /api/technician/payments/:id) --- */
+        const fmtFCFA = n => (n == null ? '—' : Number(n).toLocaleString('fr-FR') + ' FCFA');
+        const fmtDate = d => {
+            if (!d) return '—';
+            const date = new Date(d);
+            if (isNaN(date)) return '—';
+            return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+        };
+
+        function payBadge(status) {
+            const cls = status === 'Payé' ? 'paye' : 'attente';
+            return `<span class="badge-paiement ${cls}">${status}</span>`;
+        }
+
+        async function loadPayments() {
+            const totalEl = document.getElementById('paymentsTotal');
+            const content = document.getElementById('paymentsContent');
+            totalEl.innerHTML = '';
+            content.innerHTML = '<div class="loading-overlay"><span class="spinner dark"></span> Chargement des paiements...</div>';
+
+            if (!techId) {
+                content.innerHTML = '<div class="empty-msg">Connectez votre profil pour consulter vos paiements.</div>';
+                return;
             }
-            apercuBtn.addEventListener('click', function () { show('apercu'); });
-            profilBtn.addEventListener('click', function () { show('profil'); });
+
+            let data;
+            try {
+                data = await api('/api/technician/payments/' + encodeURIComponent(techId));
+            } catch (err) {
+                content.innerHTML = '<div class="empty-msg">Impossible de charger les paiements : ' + err.message + '</div>';
+                return;
+            }
+
+            const payments = data.payments || [];
+
+            totalEl.innerHTML = `
+                <div class="pay-total-item"><div class="label">Total net perçu</div><div class="value">${fmtFCFA(data.totalNet)}</div></div>
+                <div class="pay-total-item"><div class="label">Total brut</div><div class="value">${fmtFCFA(data.totalGross)}</div></div>
+                <div class="pay-total-item"><div class="label">Commission (${Math.round(data.commissionRate * 100)}%)</div><div class="value">${fmtFCFA(data.totalCommission)}</div></div>
+                <div class="pay-total-item"><div class="label">Paiements payés</div><div class="value">${data.totalPaid || 0}</div></div>`;
+
+            if (!payments.length) {
+                content.innerHTML = '<div class="empty-msg">Aucun paiement enregistré pour le moment.</div>';
+                return;
+            }
+
+            const rows = payments.map(p => `
+                <tr>
+                    <td>${p.clientName}</td>
+                    <td class="p-date">${fmtDate(p.date)}</td>
+                    <td class="mission-price">${fmtFCFA(p.gross)}</td>
+                    <td class="mission-price neg">− ${fmtFCFA(p.commission)}</td>
+                    <td class="mission-price">${fmtFCFA(p.net)}</td>
+                    <td>${payBadge(p.status)}</td>
+                </tr>`).join('');
+
+            const cards = payments.map(p => `
+                <div class="p-card">
+                    <div class="p-card-top">
+                        <span class="p-client">${p.clientName}</span>
+                        ${payBadge(p.status)}
+                    </div>
+                    <div class="p-card-row"><span>Date</span><span class="p-date">${fmtDate(p.date)}</span></div>
+                    <div class="p-card-row"><span>Montant brut</span><b>${fmtFCFA(p.gross)}</b></div>
+                    <div class="p-card-row"><span>Commission</span><b class="mission-price neg">− ${fmtFCFA(p.commission)}</b></div>
+                    <div class="p-card-row"><span>Net perçu</span><b class="mission-price">${fmtFCFA(p.net)}</b></div>
+                </div>`).join('');
+
+            content.innerHTML = `
+                <div class="missions-table-wrap">
+                    <table class="missions-table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Date de paiement</th>
+                                <th>Montant brut</th>
+                                <th>Commission</th>
+                                <th>Net perçu</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <div class="p-cards">${cards}</div>`;
+        }
+
+        /* --- Onglets Aperçu / Paiements / Profil --- */
+        function initTabs() {
+            const tabs = ['apercu', 'paiements', 'profil'];
+            const panels = {
+                apercu: document.getElementById('tabApercu'),
+                paiements: document.getElementById('tabPaiements'),
+                profil: document.getElementById('tabProfil')
+            };
+            const buttons = {
+                apercu: document.getElementById('tabBtnApercu'),
+                paiements: document.getElementById('tabBtnPaiements'),
+                profil: document.getElementById('tabBtnProfil')
+            };
+            function show(which) {
+                tabs.forEach(t => {
+                    panels[t].style.display = (t === which) ? 'block' : 'none';
+                    buttons[t].classList.toggle('active', t === which);
+                });
+            }
+            tabs.forEach(t => {
+                buttons[t].addEventListener('click', function () { show(t); });
+            });
             show('apercu');
         }
 
@@ -999,6 +1165,7 @@
             loadMyMissions();
             loadStats();
             loadReviews();
+            loadPayments();
             if (!techId) {
                 initAvailability();
                 renderPicker();
