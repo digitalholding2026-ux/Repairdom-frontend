@@ -426,22 +426,22 @@
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-wrench"></i></div>
                         <div class="stat-label">Missions en cours</div>
-                        <div class="stat-value">3</div>
+                        <div class="stat-value" id="statEnCours">—</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
                         <div class="stat-label">Missions terminées</div>
-                        <div class="stat-value">12</div>
+                        <div class="stat-value" id="statTerminees">—</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-coins"></i></div>
                         <div class="stat-label">Revenus totaux</div>
-                        <div class="stat-value">45 000 FCFA</div>
+                        <div class="stat-value" id="statRevenus">—</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon"><i class="fa-solid fa-star"></i></div>
                         <div class="stat-label">Note moyenne</div>
-                        <div class="stat-value">4.8/5</div>
+                        <div class="stat-value" id="statNote">—</div>
                     </div>
                 </div>
             </div>
@@ -463,6 +463,11 @@
                         <span class="slider"></span>
                     </label>
                 </div>
+            </div>
+
+            <div id="reviewsSection" style="display:none;">
+                <div class="section-title"><i class="fa-solid fa-star" style="color:var(--blue);"></i> Avis reçus</div>
+                <div id="reviewsList"></div>
             </div>
 
             <div id="pickerCard"></div>
@@ -510,8 +515,15 @@
     <script src="./toast.js"></script>
     <script>
         /* --- Technicien connecté --- */
+        // L'ID est résolu : paramètre d'URL → localStorage 'techId' → 'userId'
+        // (userId est stocké à la connexion/inscription, cf. auth.js).
         const params = new URLSearchParams(window.location.search);
-        let techId = params.get('id') || params.get('tech') || localStorage.getItem('techId') || '';
+        const storedToken = localStorage.getItem('token') || '';
+        let techId = localStorage.getItem('userId')
+            || localStorage.getItem('techId')
+            || params.get('tech')
+            || params.get('id')
+            || '';
 
         const statusLabels = {
             pending: 'En attente',
@@ -524,9 +536,17 @@
 
         let tech = null;
 
+        // Appel API avec en-tête d'authentification (JWT Bearer) pour les
+        // routes protégées du dashboard technicien.
         async function api(url, opts) {
-            const res = await fetch(API_URL + url, opts || {});
-            if (!res.ok) throw new Error((await res.json())?.error || 'Erreur serveur');
+            const headers = { 'Content-Type': 'application/json' };
+            if (storedToken) headers['Authorization'] = 'Bearer ' + storedToken;
+            const res = await fetch(API_URL + url, Object.assign({ headers }, opts || {}));
+            if (!res.ok) {
+                let msg = 'Erreur serveur';
+                try { const d = await res.json(); msg = d.error || msg; } catch (_) {}
+                throw new Error(msg);
+            }
             return res.json();
         }
 
@@ -645,14 +665,23 @@
             }).join('');
         }
 
-        /* --- Mes missions (données fictives mockées via API) --- */
-        async function fetchMockMissions() {
-            await new Promise(r => setTimeout(r, 400));
-            return [
-                { id: 'm1', clientName: 'Marie Ngo', device: 'iPhone 12', status: 'in-progress', price: 25000 },
-                { id: 'm2', clientName: 'Jean Mbarga', device: 'Samsung S21', status: 'pending', price: 18000 },
-                { id: 'm3', clientName: 'Awa Diallo', device: 'Laptop HP', status: 'completed', price: 30000 }
-            ];
+        /* --- Statistiques (Vue d'ensemble) --- */
+        async function loadStats() {
+            if (!techId) return;
+            try {
+                const stats = await api('/api/technician/stats/' + encodeURIComponent(techId));
+                const fmt = n => (n == null ? '—' : Number(n).toLocaleString('fr-FR'));
+                document.getElementById('statEnCours').textContent = fmt(stats.missionsEnCours);
+                document.getElementById('statTerminees').textContent = fmt(stats.missionsTerminees);
+                document.getElementById('statRevenus').textContent = (stats.revenusTotaux == null)
+                    ? '—'
+                    : stats.revenusTotaux.toLocaleString('fr-FR') + ' FCFA';
+                document.getElementById('statNote').textContent = (stats.noteMoyenne == null)
+                    ? '—'
+                    : stats.noteMoyenne + '/5';
+            } catch (err) {
+                showToast('Impossible de charger les statistiques : ' + err.message, 'error');
+            }
         }
 
         function missionBadge(status) {
@@ -660,38 +689,52 @@
             return `<span class="badge-statut ${status}">${label}</span>`;
         }
 
+        /* --- Mes missions (API réelle) --- */
         async function loadMyMissions() {
             const container = document.getElementById('myMissions');
+            container.innerHTML = '<div class="loading-overlay"><span class="spinner dark"></span> Chargement des missions...</div>';
+
+            if (!techId) {
+                container.innerHTML = '<div class="empty-msg">Connectez votre profil pour afficher vos missions.</div>';
+                return;
+            }
+
             let missions = [];
             try {
-                missions = await fetchMockMissions();
-            } catch {}
+                missions = await api('/api/technician/missions/' + encodeURIComponent(techId));
+            } catch (err) {
+                container.innerHTML = '<div class="empty-msg">Impossible de charger les missions : ' + err.message + '</div>';
+                return;
+            }
+
             if (!missions.length) {
                 container.innerHTML = '<div class="empty-msg">Aucune mission pour le moment.</div>';
                 return;
             }
 
+            const fmtPrice = p => (p == null || p === '' ? 'Non fixé' : Number(p).toLocaleString('fr-FR') + ' FCFA');
+
             const rows = missions.map(m => `
                 <tr>
-                    <td>${m.clientName}</td>
-                    <td class="mission-device"><i class="fa-solid fa-mobile-screen"></i>${m.device}</td>
+                    <td>${m.clientName || 'Client'}</td>
+                    <td class="mission-device"><i class="fa-solid fa-mobile-screen"></i>${m.device || '—'}</td>
                     <td>${missionBadge(m.status)}</td>
-                    <td class="mission-price">${m.price.toLocaleString('fr-FR')} FCFA</td>
+                    <td class="mission-price">${fmtPrice(m.price)}</td>
                     <td><a class="btn-view" href="suivi-mission.html?id=${encodeURIComponent(m.id)}"><i class="fa-solid fa-eye"></i> Voir</a></td>
                 </tr>`).join('');
 
             const cards = missions.map(m => `
                 <div class="mission-item">
                     <div class="mission-item-top">
-                        <span class="mission-client">${m.clientName}</span>
+                        <span class="mission-client">${m.clientName || 'Client'}</span>
                         ${missionBadge(m.status)}
                     </div>
                     <div class="mission-item-row">
-                        <span><i class="fa-solid fa-mobile-screen"></i> ${m.device}</span>
+                        <span><i class="fa-solid fa-mobile-screen"></i> ${m.device || '—'}</span>
                     </div>
                     <div class="mission-item-row">
                         <span>Prix</span>
-                        <span class="mission-price">${m.price.toLocaleString('fr-FR')} FCFA</span>
+                        <span class="mission-price">${fmtPrice(m.price)}</span>
                     </div>
                     <div class="mission-item-actions">
                         <a class="btn-view" href="suivi-mission.html?id=${encodeURIComponent(m.id)}"><i class="fa-solid fa-eye"></i> Voir</a>
@@ -716,24 +759,51 @@
                 <div class="missions-cards">${cards}</div>`;
         }
 
-        /* --- Disponibilité (toggle non persistant) --- */
+        /* --- Avis reçus (section à venir) --- */
+        async function loadReviews() {
+            if (!techId) return;
+            try {
+                await api('/api/technician/reviews/' + encodeURIComponent(techId));
+                // La section d'affichage des avis sera ajoutée plus tard :
+                // les données sont récupérées mais non rendues pour l'instant.
+            } catch (err) {
+                showToast('Impossible de charger les avis : ' + err.message, 'error');
+            }
+        }
+
+        /* --- Disponibilité (PATCH /api/technician/status/:id) --- */
         function initAvailability() {
             const toggle = document.getElementById('availToggle');
             const badge = document.getElementById('availStateBadge');
-            const update = () => {
-                const on = toggle.checked;
+            const update = (on) => {
+                toggle.checked = !!on;
                 badge.textContent = on ? 'Disponible' : 'Indisponible';
                 badge.className = 'badge-avail-state ' + (on ? 'on' : 'off');
             };
-            toggle.addEventListener('change', () => {
-                update();
-                showToast(toggle.checked ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', toggle.checked ? 'success' : '');
+            toggle.addEventListener('change', async () => {
+                const on = toggle.checked;
+                toggle.disabled = true;
+                try {
+                    if (!techId) throw new Error('Aucun technicien connecté.');
+                    await api('/api/technician/status/' + encodeURIComponent(techId), {
+                        method: 'PATCH',
+                        body: JSON.stringify({ disponible: on })
+                    });
+                    update(on);
+                    showToast(on ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', 'success');
+                } catch (err) {
+                    update(!on);
+                    showToast('Erreur : ' + err.message, 'error');
+                }
+                toggle.disabled = false;
             });
-            update();
+            update(true);
         }
 
         async function init() {
             loadMyMissions();
+            loadStats();
+            loadReviews();
             initAvailability();
             if (!techId) {
                 renderPicker();

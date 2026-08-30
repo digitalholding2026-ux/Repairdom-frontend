@@ -289,7 +289,9 @@
                     userId: data.user && data.user.id
                 });
                 setTimeout(function () {
-                    var target = data.role === 'technicien' ? 'dashboard-technicien.html' : 'client-depot.html';
+                    var role = String(data.role || '').toLowerCase();
+                    var isTech = role === 'technicien' || role === 'technician';
+                    var target = isTech ? 'dashboard-technicien.html' : 'client-depot.html';
                     window.location.href = target;
                 }, 800);
             } catch (err) {

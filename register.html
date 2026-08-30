@@ -924,7 +924,7 @@
                 var role = data.role;
                 var user = data.client || data.technicien || null;
                 window.RepairAuth.saveSession({
-                    token: 'local-session',
+                    token: data.token || 'local-session',
                     userName: user && user.nom,
                     userRole: role,
                     userId: user && user.id
