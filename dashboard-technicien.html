@@ -232,6 +232,95 @@
             .stats-grid { grid-template-columns: repeat(4, 1fr); }
         }
 
+        /* Mes missions */
+        .missions-table-wrap {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+        .missions-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .missions-table thead th {
+            text-align: left;
+            padding: 14px 18px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--gray-500);
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+        .missions-table tbody td {
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--gray-100);
+            color: var(--gray-800);
+            vertical-align: middle;
+        }
+        .missions-table tbody tr:last-child td { border-bottom: none; }
+        .missions-table tbody tr:hover { background: var(--gray-50); }
+        .mission-device { white-space: nowrap; }
+        .mission-device i { margin-right: 6px; color: var(--blue); }
+        .mission-price { font-weight: 700; color: var(--gray-900); white-space: nowrap; }
+        .btn-view {
+            padding: 8px 16px;
+            background: var(--blue);
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background var(--transition);
+        }
+        .btn-view:hover { background: var(--blue-light); }
+
+        /* Cartes missions (mobile) */
+        .missions-cards {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .mission-item {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .mission-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .mission-item .mission-client { font-weight: 700; color: var(--gray-900); }
+        .mission-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--gray-600);
+        }
+        .mission-item-row .mission-price { font-weight: 700; color: var(--gray-900); }
+        .mission-item-actions { text-align: right; }
+
+        @media (max-width: 700px) {
+            .missions-table-wrap { display: none; }
+            .missions-cards { display: flex; }
+        }
+
         @media (max-width: 600px) {
             .avail-col { align-items: stretch; width: 100%; }
             .btn-toggle { width: 100%; }
@@ -293,6 +382,11 @@
                         <div class="stat-value">4.8/5</div>
                     </div>
                 </div>
+            </div>
+
+            <div class="missions-section">
+                <div class="section-title"><i class="fa-solid fa-clipboard-list" style="color:var(--blue);"></i> Mes missions</div>
+                <div id="myMissions"></div>
             </div>
 
             <div id="pickerCard"></div>
@@ -475,7 +569,79 @@
             }).join('');
         }
 
+        /* --- Mes missions (données fictives mockées via API) --- */
+        async function fetchMockMissions() {
+            await new Promise(r => setTimeout(r, 400));
+            return [
+                { id: 'm1', clientName: 'Marie Ngo', device: 'iPhone 12', status: 'in-progress', price: 25000 },
+                { id: 'm2', clientName: 'Jean Mbarga', device: 'Samsung S21', status: 'pending', price: 18000 },
+                { id: 'm3', clientName: 'Awa Diallo', device: 'Laptop HP', status: 'completed', price: 30000 }
+            ];
+        }
+
+        function missionBadge(status) {
+            const label = statusLabels[status] || status;
+            return `<span class="badge-statut ${status}">${label}</span>`;
+        }
+
+        async function loadMyMissions() {
+            const container = document.getElementById('myMissions');
+            let missions = [];
+            try {
+                missions = await fetchMockMissions();
+            } catch {}
+            if (!missions.length) {
+                container.innerHTML = '<div class="empty-msg">Aucune mission pour le moment.</div>';
+                return;
+            }
+
+            const rows = missions.map(m => `
+                <tr>
+                    <td>${m.clientName}</td>
+                    <td class="mission-device"><i class="fa-solid fa-mobile-screen"></i>${m.device}</td>
+                    <td>${missionBadge(m.status)}</td>
+                    <td class="mission-price">${m.price.toLocaleString('fr-FR')} FCFA</td>
+                    <td><a class="btn-view" href="suivi-mission.html?id=${encodeURIComponent(m.id)}"><i class="fa-solid fa-eye"></i> Voir</a></td>
+                </tr>`).join('');
+
+            const cards = missions.map(m => `
+                <div class="mission-item">
+                    <div class="mission-item-top">
+                        <span class="mission-client">${m.clientName}</span>
+                        ${missionBadge(m.status)}
+                    </div>
+                    <div class="mission-item-row">
+                        <span><i class="fa-solid fa-mobile-screen"></i> ${m.device}</span>
+                    </div>
+                    <div class="mission-item-row">
+                        <span>Prix</span>
+                        <span class="mission-price">${m.price.toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                    <div class="mission-item-actions">
+                        <a class="btn-view" href="suivi-mission.html?id=${encodeURIComponent(m.id)}"><i class="fa-solid fa-eye"></i> Voir</a>
+                    </div>
+                </div>`).join('');
+
+            container.innerHTML = `
+                <div class="missions-table-wrap">
+                    <table class="missions-table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Appareil</th>
+                                <th>Statut</th>
+                                <th>Prix</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                <div class="missions-cards">${cards}</div>`;
+        }
+
         async function init() {
+            loadMyMissions();
             if (!techId) {
                 renderPicker();
                 return;
