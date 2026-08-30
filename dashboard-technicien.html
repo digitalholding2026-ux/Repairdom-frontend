@@ -529,12 +529,120 @@
         .p-card-row b { color: var(--gray-900); }
         .p-date { font-size: 0.8rem; color: var(--gray-500); }
 
+        /* Calendrier */
+        .cal-wrap {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+        .cal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .cal-month {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+        .cal-nav {
+            display: flex;
+            gap: 8px;
+        }
+        .cal-nav-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: var(--white);
+            color: var(--blue);
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .cal-nav-btn:hover { background: var(--blue); color: var(--white); }
+        .cal-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .cal-weekday {
+            text-align: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--gray-500);
+            padding: 6px 0;
+        }
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        .cal-day {
+            min-height: 56px;
+            border-radius: 8px;
+            border: 1px solid var(--gray-100);
+            background: var(--white);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.85rem;
+            color: var(--gray-800);
+            cursor: pointer;
+            transition: border-color var(--transition), background var(--transition);
+        }
+        .cal-day.empty { background: var(--gray-50); cursor: default; }
+        .cal-day:hover:not(.empty) { border-color: var(--blue); }
+        .cal-day.today { border-color: var(--blue); }
+        .cal-day.selected { background: var(--blue-pale); border-color: var(--blue); }
+        .cal-day.has-mission { background: #EAF4FF; }
+        .cal-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            margin-top: 4px;
+        }
+        .cal-day.has-mission.selected .cal-dot { background: var(--blue); }
+        .cal-details { margin-top: 20px; }
+        .cal-details-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 12px;
+        }
+        .cal-day-missions { display: flex; flex-direction: column; gap: 10px; }
+        .cal-mission-card {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-100);
+            border-left: 3px solid var(--blue);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+        .cal-mission-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .cal-mission-client { font-weight: 700; color: var(--gray-900); }
+        .cal-mission-meta { font-size: 0.82rem; color: var(--gray-500); }
+        .cal-mission-meta i { margin-right: 6px; }
+
         @media (max-width: 700px) {
             .missions-table-wrap { display: none; }
             .missions-cards { display: flex; }
         }
         @media (max-width: 700px) {
             .p-cards { display: flex; }
+        }
+        @media (max-width: 480px) {
+            .cal-day { min-height: 44px; font-size: 0.78rem; }
         }
 
         @media (max-width: 600px) {
@@ -588,6 +696,7 @@
             <div class="tabs" role="tablist">
                 <button class="tab-btn active" id="tabBtnApercu" type="button" role="tab"><i class="fa-solid fa-chart-simple"></i> Aperçu</button>
                 <button class="tab-btn" id="tabBtnPaiements" type="button" role="tab"><i class="fa-solid fa-money-bill-wave"></i> Paiements</button>
+                <button class="tab-btn" id="tabBtnCalendrier" type="button" role="tab"><i class="fa-solid fa-calendar-days"></i> Calendrier</button>
                 <button class="tab-btn" id="tabBtnProfil" type="button" role="tab"><i class="fa-solid fa-user-gear"></i> Profil</button>
             </div>
 
@@ -697,6 +806,22 @@
                 <div class="section-title"><i class="fa-solid fa-money-bill-wave" style="color:var(--blue);"></i> Historique des paiements</div>
                 <div class="payments-total" id="paymentsTotal"></div>
                 <div id="paymentsContent"></div>
+            </div>
+
+            <div id="tabCalendrier" style="display:none;">
+                <div class="section-title"><i class="fa-solid fa-calendar-days" style="color:var(--blue);"></i> Calendrier</div>
+                <div class="cal-wrap">
+                    <div class="cal-header">
+                        <span class="cal-month" id="calMonthLabel"></span>
+                        <div class="cal-nav">
+                            <button class="cal-nav-btn" id="calPrev" type="button" aria-label="Mois précédent"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="cal-nav-btn" id="calNext" type="button" aria-label="Mois suivant"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="cal-weekdays" id="calWeekdays"></div>
+                    <div class="cal-grid" id="calGrid"></div>
+                </div>
+                <div class="cal-details" id="calDetails"></div>
             </div>
         </div>
     </main>
@@ -1039,17 +1164,171 @@
                 <div class="p-cards">${cards}</div>`;
         }
 
-        /* --- Onglets Aperçu / Paiements / Profil --- */
+        /* --- Calendrier (missions par jour, route missions du technicien) --- */
+        let calendarMissions = [];
+        const calState = { year: null, month: null, selected: null };
+        const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+        const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+
+        function calKey(date) {
+            const d = new Date(date);
+            if (isNaN(d)) return null;
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        function buildMissionByDay() {
+            const map = {};
+            calendarMissions.forEach(m => {
+                const k = calKey(m.dateSouhaitee);
+                if (!k) return;
+                (map[k] = map[k] || []).push(m);
+            });
+            return map;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calGrid');
+            const label = document.getElementById('calMonthLabel');
+            const year = calState.year;
+            const month = calState.month;
+
+            label.textContent = MONTHS_FR[month] + ' ' + year;
+
+            const firstDay = new Date(year, month, 1);
+            const startOffset = (firstDay.getDay() + 6) % 7; // lundi = 0
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const byDay = buildMissionByDay();
+            const today = new Date();
+            const todayKey = calKey(today);
+            const selectedKey = calState.selected ? calKey(calState.selected) : null;
+
+            let html = '';
+            for (let i = 0; i < startOffset; i++) {
+                html += '<div class="cal-day empty"></div>';
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dt = new Date(year, month, d);
+                const key = calKey(dt);
+                const missionsToday = byDay[key] || [];
+                const cls = ['cal-day'];
+                if (missionsToday.length) cls.push('has-mission');
+                if (key === todayKey) cls.push('today');
+                if (key === selectedKey) cls.push('selected');
+                if (missionsToday.length && key === selectedKey) cls.push('selected has-mission');
+                html += `<div class="${cls.join(' ')}" data-day="${key}">
+                    <span>${d}</span>
+                    ${missionsToday.length ? '<span class="cal-dot"></span>' : ''}
+                </div>`;
+            }
+            const totalCells = startOffset + daysInMonth;
+            const remainder = totalCells % 7;
+            if (remainder) {
+                for (let i = 0; i < (7 - remainder); i++) {
+                    html += '<div class="cal-day empty"></div>';
+                }
+            }
+            grid.innerHTML = html;
+
+            grid.querySelectorAll('.cal-day[data-day]').forEach(cell => {
+                cell.addEventListener('click', function () {
+                    const key = this.getAttribute('data-day');
+                    calState.selected = new Date(key + 'T00:00:00');
+                    renderCalendar();
+                    renderDayDetails();
+                });
+            });
+        }
+
+        function renderDayDetails() {
+            const container = document.getElementById('calDetails');
+            if (!calState.selected) { container.innerHTML = ''; return; }
+            const key = calKey(calState.selected);
+            const byDay = buildMissionByDay();
+            const list = byDay[key] || [];
+
+            const dateStr = calState.selected.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            if (!calendarMissions.length) {
+                container.innerHTML = '<div class="empty-msg">Aucune mission planifiée.</div>';
+                return;
+            }
+
+            if (!list.length) {
+                container.innerHTML = '<div class="cal-details-title">' + dateStr + '</div><div class="empty-msg">Aucune mission prévue ce jour-là.</div>';
+                return;
+            }
+
+            const cards = list.map(m => `
+                <div class="cal-mission-card">
+                    <div class="cal-mission-top">
+                        <span class="cal-mission-client">${m.clientName || 'Client'}</span>
+                        ${missionBadge(m.status)}
+                    </div>
+                    <div class="cal-mission-meta"><i class="fa-solid fa-mobile-screen"></i>${m.device || '—'}</div>
+                    <div class="cal-mission-meta"><i class="fa-regular fa-clock"></i>${m.time || 'Heure à définir'}</div>
+                </div>`).join('');
+
+            container.innerHTML = `<div class="cal-details-title">${dateStr}</div>
+                <div class="cal-day-missions">${cards}</div>`;
+        }
+
+        function loadCalendar() {
+            const container = document.getElementById('tabCalendrier');
+            if (!techId) {
+                document.getElementById('calGrid').innerHTML = '';
+                document.getElementById('calDetails').innerHTML = '<div class="empty-msg">Connectez votre profil pour consulter le calendrier.</div>';
+                return;
+            }
+            api('/api/technician/missions/' + encodeURIComponent(techId))
+                .then(function (missions) {
+                    calendarMissions = missions || [];
+                    const now = new Date();
+                    calState.year = now.getFullYear();
+                    calState.month = now.getMonth();
+                    calState.selected = null;
+                    renderCalendar();
+                    renderDayDetails();
+                })
+                .catch(function (err) {
+                    document.getElementById('calGrid').innerHTML = '';
+                    document.getElementById('calDetails').innerHTML = '<div class="empty-msg">Impossible de charger le calendrier : ' + err.message + '</div>';
+                });
+        }
+
+        function initCalendar() {
+            const prev = document.getElementById('calPrev');
+            const next = document.getElementById('calNext');
+            prev.addEventListener('click', function () {
+                calState.month -= 1;
+                if (calState.month < 0) { calState.month = 11; calState.year -= 1; }
+                calState.selected = null;
+                renderCalendar();
+                renderDayDetails();
+            });
+            next.addEventListener('click', function () {
+                calState.month += 1;
+                if (calState.month > 11) { calState.month = 0; calState.year += 1; }
+                calState.selected = null;
+                renderCalendar();
+                renderDayDetails();
+            });
+            // En-têtes des jours de la semaine.
+            document.getElementById('calWeekdays').innerHTML = WEEKDAYS.map(w => `<div class="cal-weekday">${w}</div>`).join('');
+        }
+
+        /* --- Onglets Aperçu / Paiements / Calendrier / Profil --- */
         function initTabs() {
-            const tabs = ['apercu', 'paiements', 'profil'];
+            const tabs = ['apercu', 'paiements', 'calendrier', 'profil'];
             const panels = {
                 apercu: document.getElementById('tabApercu'),
                 paiements: document.getElementById('tabPaiements'),
+                calendrier: document.getElementById('tabCalendrier'),
                 profil: document.getElementById('tabProfil')
             };
             const buttons = {
                 apercu: document.getElementById('tabBtnApercu'),
                 paiements: document.getElementById('tabBtnPaiements'),
+                calendrier: document.getElementById('tabBtnCalendrier'),
                 profil: document.getElementById('tabBtnProfil')
             };
             function show(which) {
@@ -1162,10 +1441,12 @@
         async function init() {
             initTabs();
             initProfileForm();
+            initCalendar();
             loadMyMissions();
             loadStats();
             loadReviews();
             loadPayments();
+            loadCalendar();
             if (!techId) {
                 initAvailability();
                 renderPicker();
