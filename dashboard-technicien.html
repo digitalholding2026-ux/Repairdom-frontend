@@ -316,6 +316,68 @@
         .mission-item-row .mission-price { font-weight: 700; color: var(--gray-900); }
         .mission-item-actions { text-align: right; }
 
+        /* Disponibilité */
+        .avail-section {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        .avail-info { flex: 1; min-width: 200px; }
+        .avail-info p { font-size: 0.85rem; color: var(--gray-500); margin-top: 4px; }
+        .avail-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch .slider {
+            position: absolute;
+            inset: 0;
+            background: var(--gray-300);
+            border-radius: 28px;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .switch .slider::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            left: 3px;
+            top: 3px;
+            border-radius: 50%;
+            background: var(--white);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform var(--transition);
+        }
+        .switch input:checked + .slider { background: var(--blue); }
+        .switch input:checked + .slider::before { transform: translateX(24px); }
+        .badge-avail-state {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .badge-avail-state.on { background: #D3F9D8; color: #2B8A3E; }
+        .badge-avail-state.off { background: #FFE3E3; color: #C92A2A; }
+
         @media (max-width: 700px) {
             .missions-table-wrap { display: none; }
             .missions-cards { display: flex; }
@@ -387,6 +449,20 @@
             <div class="missions-section">
                 <div class="section-title"><i class="fa-solid fa-clipboard-list" style="color:var(--blue);"></i> Mes missions</div>
                 <div id="myMissions"></div>
+            </div>
+
+            <div class="avail-section">
+                <div class="avail-info">
+                    <div class="section-title" style="margin-bottom:0;"><i class="fa-solid fa-circle-dot" style="color:var(--blue);"></i> Disponibilité</div>
+                    <p>Activez pour recevoir de nouvelles missions.</p>
+                </div>
+                <div class="avail-control">
+                    <span class="badge-avail-state on" id="availStateBadge">Disponible</span>
+                    <label class="switch">
+                        <input type="checkbox" id="availToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
 
             <div id="pickerCard"></div>
@@ -640,8 +716,25 @@
                 <div class="missions-cards">${cards}</div>`;
         }
 
+        /* --- Disponibilité (toggle non persistant) --- */
+        function initAvailability() {
+            const toggle = document.getElementById('availToggle');
+            const badge = document.getElementById('availStateBadge');
+            const update = () => {
+                const on = toggle.checked;
+                badge.textContent = on ? 'Disponible' : 'Indisponible';
+                badge.className = 'badge-avail-state ' + (on ? 'on' : 'off');
+            };
+            toggle.addEventListener('change', () => {
+                update();
+                showToast(toggle.checked ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', toggle.checked ? 'success' : '');
+            });
+            update();
+        }
+
         async function init() {
             loadMyMissions();
+            initAvailability();
             if (!techId) {
                 renderPicker();
                 return;
