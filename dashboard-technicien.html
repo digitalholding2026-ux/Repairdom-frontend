@@ -481,10 +481,6 @@
                         <div class="profile-sub"><i class="fa-solid fa-location-dot"></i><span id="techLocation">—</span></div>
                         <div class="stars" id="techRating"></div>
                     </div>
-                    <div class="avail-col">
-                        <span class="badge-avail" id="techAvailBadge">—</span>
-                        <button class="btn-toggle" id="toggleAvailBtn"><i class="fa-solid fa-circle-dot"></i> Changer mon statut</button>
-                    </div>
                 </div>
 
                 <div class="section-title"><i class="fa-solid fa-clipboard-list" style="color:var(--blue);"></i> Mes missions</div>
@@ -595,39 +591,7 @@
             document.getElementById('techSpecialty').textContent = tech.specialty;
             document.getElementById('techLocation').textContent = tech.location;
             document.getElementById('techRating').innerHTML = renderStars(tech.rating);
-            updateAvailUI();
         }
-
-        function updateAvailUI() {
-            const badge = document.getElementById('techAvailBadge');
-            const btn = document.getElementById('toggleAvailBtn');
-            if (tech.available) {
-                badge.textContent = 'Disponible';
-                badge.className = 'badge-avail on';
-                btn.innerHTML = '<i class="fa-solid fa-circle-pause"></i> Me rendre indisponible';
-            } else {
-                badge.textContent = 'Indisponible';
-                badge.className = 'badge-avail off';
-                btn.innerHTML = '<i class="fa-solid fa-circle-play"></i> Me rendre disponible';
-            }
-        }
-
-        document.getElementById('toggleAvailBtn').addEventListener('click', async () => {
-            const btn = document.getElementById('toggleAvailBtn');
-            btn.disabled = true;
-            try {
-                tech = await api('/api/technicians/' + encodeURIComponent(techId), {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ available: !tech.available })
-                });
-                updateAvailUI();
-                showToast(tech.available ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', 'success');
-            } catch (err) {
-                showToast(err.message, 'error');
-            }
-            btn.disabled = false;
-        });
 
         async function loadMissions() {
             const list = document.getElementById('missionList');
@@ -772,7 +736,7 @@
         }
 
         /* --- Disponibilité (PATCH /api/technician/status/:id) --- */
-        function initAvailability() {
+        function initAvailability(initial) {
             const toggle = document.getElementById('availToggle');
             const badge = document.getElementById('availStateBadge');
             const update = (on) => {
@@ -785,27 +749,28 @@
                 toggle.disabled = true;
                 try {
                     if (!techId) throw new Error('Aucun technicien connecté.');
-                    await api('/api/technician/status/' + encodeURIComponent(techId), {
+                    const res = await api('/api/technician/status/' + encodeURIComponent(techId), {
                         method: 'PATCH',
                         body: JSON.stringify({ disponible: on })
                     });
-                    update(on);
-                    showToast(on ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', 'success');
+                    update(res.disponible !== undefined ? res.disponible : on);
+                    if (tech) tech.available = !!res.disponible;
+                    showToast(res.disponible ? 'Vous êtes maintenant disponible.' : 'Vous êtes marqué indisponible.', 'success');
                 } catch (err) {
                     update(!on);
                     showToast('Erreur : ' + err.message, 'error');
                 }
                 toggle.disabled = false;
             });
-            update(true);
+            update(initial !== undefined ? initial : true);
         }
 
         async function init() {
             loadMyMissions();
             loadStats();
             loadReviews();
-            initAvailability();
             if (!techId) {
+                initAvailability();
                 renderPicker();
                 return;
             }
@@ -813,6 +778,7 @@
             document.getElementById('pickerCard').innerHTML = '';
             try {
                 await loadTech();
+                initAvailability(tech.available);
             } catch (err) {
                 showToast('Technicien introuvable.', 'error');
                 document.getElementById('techPanel').style.display = 'none';
