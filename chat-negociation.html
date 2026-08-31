@@ -228,6 +228,81 @@
             cursor: not-allowed;
         }
 
+        /* Statut du prix (estimé / en attente / validé) */
+        .price-status {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        .price-status.estim { background: var(--blue-pale); color: var(--blue); }
+        .price-status.pending { background: #FFF3BF; color: #E67700; }
+        .price-status.ok { background: #D3F9D8; color: #2B8A3E; }
+        .price-status.warn { background: #FFE3E3; color: #C92A2A; }
+
+        /* Contrôles de négociation */
+        .negoc-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+        .negoc-group input:focus { outline: none; border-color: var(--blue); }
+        .negoc-btns { display: flex; flex-direction: column; gap: 8px; }
+        .btn-negoc {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--blue);
+            background: var(--white);
+            color: var(--blue);
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-negoc:hover { background: var(--blue); color: var(--white); }
+        .btn-negoc.solid { background: var(--blue); color: var(--white); border-color: var(--blue); }
+        .btn-negoc.solid:hover { background: var(--blue-light); }
+
+        /* Proposition de prix (surlignée) */
+        .proposal-card {
+            border: 1px solid var(--gray-200);
+            border-left: 4px solid var(--blue);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 8px;
+            background: var(--gray-50);
+        }
+        .proposal-card .p-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--gray-600);
+            padding: 2px 0;
+        }
+        .proposal-card .p-row b { color: var(--gray-900); font-size: 0.95rem; }
+        .proposal-actions { display: flex; gap: 8px; margin-top: 10px; }
+        .proposal-actions button {
+            flex: 1;
+            padding: 8px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-proposal-accept { background: #2F9E44; color: var(--white); }
+        .btn-proposal-accept:hover { background: #37B24D; }
+        .btn-proposal-reject { background: var(--gray-200); color: var(--gray-800); }
+        .btn-proposal-reject:hover { background: var(--gray-300); }
+        .pending-note { font-size: 0.8rem; color: #E67700; font-weight: 600; margin-top: 8px; }
+        .agree-note { font-size: 0.8rem; color: #2B8A3E; font-weight: 600; margin-top: 8px; }
+
         .accepted-banner {
             background: #D3F9D8;
             color: #2B8A3E;
@@ -295,7 +370,8 @@
                     <div>
                         <div id="techName">Technicien</div>
                         <div style="font-size:0.78rem;color:var(--gray-500);font-weight:400;">
-                            <span class="status-dot"></span> En ligne
+                            <span class="status-dot" id="techPresenceDot" style="background:#adb5bd;"></span>
+                            <span id="techPresenceText">Hors ligne</span>
                         </div>
                     </div>
                 </div>
@@ -316,14 +392,14 @@
                         <div class="facture-line"><span>Main d'œuvre</span><span class="price" id="fMainOeuvre">—</span></div>
                         <div class="facture-line"><span>Pièces</span><span class="price" id="fPieces">—</span></div>
                         <div class="facture-line total"><span>Total</span><span class="price" id="fTotal">—</span></div>
+                        <div class="price-status" id="priceStatus"></div>
                     </div>
                 </div>
 
                 <div class="facture-card">
                     <h3><i class="fa-solid fa-coins"></i> Négocier le prix</h3>
-                    <div class="negoc-group">
-                        <input type="number" id="newPrice" placeholder="Nouveau montant (FCFA)">
-                        <button class="btn-negoc" id="proposeBtn">Proposer un nouveau prix</button>
+                    <div class="negoc-group" id="negotiateBox">
+                        <div class="facture-line"><span>Prix estimé par le système</span><span class="price" id="autoPriceLine">—</span></div>
                     </div>
                 </div>
 
@@ -365,6 +441,12 @@
         const techId = params.get('tech') || 'tech-001';
         const demandeId = params.get('demande') || '';
 
+        /* --- Utilisateur courant --- */
+        const currentUserId = localStorage.getItem('userId') || '';
+        const currentRole = (localStorage.getItem('userRole') || 'client').toLowerCase() === 'technician' ? 'technician' : 'client';
+        const currentName = localStorage.getItem('userName') || (currentRole === 'technician' ? 'Technicien' : 'Client');
+        const SELF = currentRole;
+
         /* --- Loading overlay --- */
         (function () {
             var ov = document.createElement('div');
@@ -374,8 +456,11 @@
             document.querySelector('.page-inner').prepend(ov);
         })();
 
+        const fmtFCFA = n => (n == null ? '—' : Number(n).toLocaleString('fr-FR') + ' FCFA');
+
         /* --- Techniciens (from API) --- */
-        let tech = { name: 'Technicien', avatar: '??', location: '' };
+        let tech = { name: 'Technicien', avatar: '??', location: '', id: techId };
+        let mission = null;
 
         async function loadTech() {
             try {
@@ -384,13 +469,21 @@
             } catch {}
             document.getElementById('techAvatar').textContent = tech.avatar;
             document.getElementById('techName').textContent = tech.name;
+            document.getElementById('recapTech').textContent = tech.name;
+            refreshPresence();
         }
         loadTech();
 
         /* --- Catalogue & Facture --- */
         let catalogue = [];
         let panne = null;
-        let currentPrice = 0;
+        let autoPrice = 0;
+        // agreedPrice : mission.price (validé). null tant que non fixé.
+        let agreedPrice = null;
+        let currentProposals = [];
+        let negotiationStatus = 'pending';
+        let systemPrice = 0;
+        const TRAVEL_FEE = 2000;
 
         async function loadCatalogue() {
             try {
@@ -398,108 +491,312 @@
                 catalogue = await res.json();
             } catch { catalogue = []; }
             if (demandeId) {
+                let m = null;
                 try {
                     const res = await fetch(API_URL + '/api/missions/' + demandeId);
-                    if (res.ok) {
-                        const mission = await res.json();
-                        if (mission.price) currentPrice = mission.price;
-                        const deviceType = mission.device || '';
-                        const matching = catalogue.filter(p => p.type.toLowerCase() === deviceType.toLowerCase());
-                        panne = matching.length ? matching[0] : catalogue[0] || null;
-                    }
+                    if (res.ok) m = await res.json();
                 } catch {}
+                mission = m;
+                if (m) {
+                    agreedPrice = (m.price != null && m.price !== '') ? Number(m.price) : null;
+                    negotiationStatus = m.negotiationStatus || 'pending';
+                    systemPrice = m.systemPrice || 0;
+                    const deviceType = m.device || '';
+                    const matching = catalogue.filter(p => String(p.type).toLowerCase() === String(deviceType).toLowerCase());
+                    panne = matching.length ? matching[0] : catalogue[0] || null;
+                }
             }
             if (!panne && catalogue.length) {
                 panne = catalogue[0];
             }
+            if (panne) {
+                if (!systemPrice) {
+                    const mainOeuvre = Math.round((panne.prix_min + panne.prix_max) / 2);
+                    const pieces = Math.round(panne.prix_min * 0.4);
+                    systemPrice = mainOeuvre + pieces + TRAVEL_FEE;
+                }
+                autoPrice = systemPrice;
+                document.getElementById('fPanne').textContent = panne.nom;
+                document.getElementById('fMainOeuvre').textContent = fmtFCFA(Math.round((panne.prix_min + panne.prix_max) / 2));
+                document.getElementById('fPieces').textContent = fmtFCFA(Math.round(panne.prix_min * 0.4));
+                document.getElementById('autoPriceLine').textContent = fmtFCFA(autoPrice);
+                document.getElementById('recapPanne').textContent = panne.nom;
+            }
             buildFacture();
+            refreshNegotiation();
+            if (demandeId) {
+                startHeartbeat();
+            }
         }
 
         function buildFacture() {
-            if (panne) {
-                const mainOeuvre = Math.round((panne.prix_min + panne.prix_max) / 2);
-                const pieces = Math.round(panne.prix_min * 0.4);
-                if (!currentPrice) currentPrice = mainOeuvre + pieces;
-                document.getElementById('fPanne').textContent = panne.nom;
-                document.getElementById('fMainOeuvre').textContent = mainOeuvre.toLocaleString() + ' FCFA';
-                document.getElementById('fPieces').textContent = pieces.toLocaleString() + ' FCFA';
-                document.getElementById('fTotal').textContent = currentPrice.toLocaleString() + ' FCFA';
-                document.getElementById('newPrice').placeholder = `Actuel : ${currentPrice.toLocaleString()} FCFA`;
-                document.getElementById('recapPanne').textContent = panne.nom;
-                document.getElementById('recapTech').textContent = tech.name;
-                document.getElementById('recapPrix').textContent = currentPrice.toLocaleString() + ' FCFA';
+            // Recette : prix validé → sinon proposition en attente → sinon estimation auto.
+            const total = agreedPrice != null ? agreedPrice : autoPrice;
+            document.getElementById('fTotal').textContent = fmtFCFA(total);
+            document.getElementById('recapPrix').textContent = fmtFCFA(agreedPrice != null ? agreedPrice : total);
+
+            let status;
+            if (agreedPrice != null) {
+                status = '<div class="price-status ok"><i class="fa-solid fa-check-circle"></i> Prix validé : ' + fmtFCFA(agreedPrice) + '</div>';
+                document.getElementById('badgeStatut').textContent = 'Tarif validé';
+                document.getElementById('badgeStatut').classList.add('accepted');
+            } else if (negotiationStatus === 'client_proposed' && SELF === 'client') {
+                status = '<div class="price-status pending"><i class="fa-solid fa-hourglass-half"></i> Votre proposition attend la validation du technicien</div>';
+                document.getElementById('badgeStatut').textContent = 'En attente';
+                document.getElementById('badgeStatut').classList.remove('accepted');
+            } else if (negotiationStatus === 'tech_proposed' && SELF === 'technician') {
+                status = '<div class="price-status pending"><i class="fa-solid fa-hourglass-half"></i> Votre proposition attend la validation du client</div>';
+                document.getElementById('badgeStatut').textContent = 'En attente';
+                document.getElementById('badgeStatut').classList.remove('accepted');
+            } else {
+                const pending = currentProposals.find(p => p.status === 'proposed');
+                if (pending) {
+                    const fromWho = pending.proposer_role === 'client' ? 'le client' : 'le technicien';
+                    status = '<div class="price-status pending"><i class="fa-solid fa-hourglass-half"></i> Proposition de ' + fmtFCFA(pending.amount) + ' de ' + fromWho + ' en attente</div>';
+                    document.getElementById('badgeStatut').textContent = 'En attente';
+                    document.getElementById('badgeStatut').classList.remove('accepted');
+                } else {
+                    status = '<div class="price-status estim"><i class="fa-solid fa-wand-magic-sparkles"></i> Prix estimé automatiquement (catalogue + frais déplacement)</div>';
+                    document.getElementById('badgeStatut').textContent = 'En attente';
+                    document.getElementById('badgeStatut').classList.remove('accepted');
+                }
             }
+            document.getElementById('priceStatus').innerHTML = status;
             var ov = document.getElementById('chatLoading');
             if (ov) ov.remove();
         }
-        loadCatalogue();
+
+        /* --- Négociation / propositions de prix --- */
+        async function refreshNegotiation() {
+            if (!demandeId) return;
+            try {
+                const res = await fetch(API_URL + '/api/missions/' + demandeId + '/proposals');
+                if (res.ok) currentProposals = await res.json();
+            } catch {
+                currentProposals = [];
+            }
+            buildFacture();
+            renderNegotiateBox();
+        }
+
+        function renderNegotiateBox() {
+            const box = document.getElementById('negotiateBox');
+            let html = '<div class="facture-line"><span>Prix estimé par le système</span><span class="price">' + fmtFCFA(autoPrice) + '</span></div>';
+            html += '<div class="facture-line" style="font-size:0.78rem;color:var(--gray-500);"><span>(catalogue + ' + fmtFCFA(TRAVEL_FEE) + ' frais déplacement)</span></div>';
+
+            const pending = currentProposals.find(p => p.status === 'proposed');
+            const myPending = pending && pending.proposer_role === SELF;
+            const otherPending = pending && pending.proposer_role !== SELF;
+
+            if (agreedPrice != null) {
+                html += '<div class="agree-note"><i class="fa-solid fa-check-circle"></i> Tarif convenu : ' + fmtFCFA(agreedPrice) + '</div>';
+            } else if (!pending) {
+                // Aucune proposition active → proposer le prix système
+                html += '<div class="negoc-btns" style="margin-top:10px;">' +
+                    '<button class="btn-negoc solid" id="btnValidateAuto">Proposer le prix système (' + fmtFCFA(autoPrice) + ')</button>' +
+                    '</div>';
+            }
+
+            // Ma proposition en attente.
+            if (myPending) {
+                html += '<div class="pending-note"><i class="fa-solid fa-hourglass-half"></i> Votre proposition de ' + fmtFCFA(myPending.amount) + ' attend la validation de ' + (SELF === 'client' ? 'du technicien' : 'du client') + '.</div>';
+            }
+
+            // Proposition de l'autre partie en attente → boutons accepter / refuser.
+            if (otherPending) {
+                const fromWho = otherPending.proposer_role === 'client' ? 'du client' : 'du technicien';
+                html += '<div class="proposal-card">' +
+                    '<div class="p-row"><span>Proposition ' + fromWho + '</span></div>' +
+                    '<div class="p-row"><b>' + fmtFCFA(otherPending.amount) + '</b><span>' + new Date(otherPending.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + '</span></div>' +
+                    '<div class="proposal-actions">' +
+                    '<button class="btn-proposal-accept" data-act="accept" data-id="' + otherPending.id + '">Accepter</button>' +
+                    '<button class="btn-proposal-reject" data-act="reject" data-id="' + otherPending.id + '">Refuser</button>' +
+                    '</div></div>';
+            }
+
+            // Proposer son propre prix (si pas déjà validé et aucune proposition en cours).
+            if (agreedPrice == null && !pending) {
+                html +=
+                    '<div class="negoc-btns" style="margin-top:10px;">' +
+                    '<input type="number" id="newPrice" placeholder="Votre prix (FCFA)" min="1000">' +
+                    '<button class="btn-negoc" id="proposeBtn">Proposer mon prix</button>' +
+                    '</div>';
+            }
+
+            box.innerHTML = html;
+            bindNegotiationEvents();
+        }
+
+        function bindNegotiationEvents() {
+            const btnAuto = document.getElementById('btnValidateAuto');
+            if (btnAuto) btnAuto.addEventListener('click', validateAutoPrice);
+
+            const btnPropose = document.getElementById('proposeBtn');
+            if (btnPropose) btnPropose.addEventListener('click', proposeMyPrice);
+
+            box.querySelectorAll('[data-act]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const act = btn.getAttribute('data-act');
+                    const id = btn.getAttribute('data-id');
+                    if (act === 'accept') acceptProposal(id);
+                    else rejectProposal(id);
+                });
+            });
+        }
+        const box = document.getElementById('negotiateBox');
+
+        function postJson(url, body) {
+            return fetch(API_URL + url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+        }
+
+        // Valide le prix généré par le système via POST /api/negotiation.
+        async function validateAutoPrice() {
+            if (agreedPrice != null || !demandeId) return;
+            try {
+                const res = await postJson('/api/negotiation/' + demandeId, { proposedBy: SELF, amount: autoPrice });
+                if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur'); }
+                negotiationStatus = res.negotiationStatus || 'accepted';
+                if (negotiationStatus === 'accepted') {
+                    agreedPrice = autoPrice;
+                    addMessage('J\u2019accepte le prix estimé de ' + fmtFCFA(autoPrice) + '.', SELF);
+                    showToast('Prix validé : ' + fmtFCFA(autoPrice), 'success');
+                    enableAccept();
+                } else {
+                    addMessage('Je propose le prix estimé de ' + fmtFCFA(autoPrice) + '. En attente de validation du technicien.', SELF);
+                    showToast('Proposition envoyée. Le technicien doit valider le prix.', 'info');
+                }
+                buildFacture();
+                renderNegotiateBox();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Propose son propre prix via POST /api/negotiation.
+        async function proposeMyPrice() {
+            const valInput = document.getElementById('newPrice');
+            const val = Number(valInput && valInput.value);
+            if (!val || val < 1000) return showToast('Montant invalide (minimum 1 000 FCFA).', 'error');
+            try {
+                const res = await postJson('/api/negotiation/' + demandeId, { proposedBy: SELF, amount: val });
+                if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur'); }
+                negotiationStatus = res.negotiationStatus || negotiationStatus;
+                valInput.value = '';
+                const toWho = SELF === 'client' ? 'du technicien' : 'du client';
+                addMessage('Je propose un tarif de ' + fmtFCFA(val) + '. Merci de le valider ' + toWho + '.', SELF);
+                showToast('Proposition envoyée. Elle doit être validée par ' + toWho + '.', 'info');
+                refreshNegotiation();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function acceptProposal(id) {
+            try {
+                const res = await postJson('/api/missions/' + demandeId + '/proposals/' + id + '/accept', { accepterRole: SELF });
+                if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur'); }
+                agreedPrice = Number(res.price);
+                negotiationStatus = res.negotiationStatus || 'accepted';
+                if (res.mutualAgreement) {
+                    addMessage('Prix de ' + fmtFCFA(res.price) + ' validé par les deux parties. Mission prête !', SELF);
+                    showToast('Accord mutuel sur ' + fmtFCFA(res.price) + ' !', 'success');
+                } else {
+                    addMessage('J\u2019accepte votre prix de ' + fmtFCFA(res.price) + '. On valide la mission ?', SELF);
+                    showToast('Prix de ' + fmtFCFA(res.price) + ' accepté.', 'success');
+                }
+                enableAccept();
+                refreshNegotiation();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function rejectProposal(id) {
+            try {
+                const res = await postJson('/api/missions/' + demandeId + '/proposals/' + id + '/reject', { accepterRole: SELF });
+                if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Erreur'); }
+                const p = currentProposals.find(x => x.id === id);
+                negotiationStatus = 'pending';
+                if (p) addMessage('Je décline votre prix de ' + fmtFCFA(p.amount) + '.', SELF);
+                showToast('Proposition refusée.', 'info');
+                refreshNegotiation();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function enableAccept() {
+            if (agreedPrice != null) {
+                document.getElementById('acceptBtn').disabled = false;
+            }
+        }
 
         /* --- Chat --- */
         const chatMessages = document.getElementById('chatMessages');
+        let lastMessageCount = 0;
 
         function addMessage(text, type, time) {
             const div = document.createElement('div');
-            div.className = `msg msg-${type}`;
-            div.innerHTML = `${text}<div class="msg-time">${time || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>`;
+            div.className = 'msg msg-' + type;
+            div.innerHTML = escapeHtml(text) + '<div class="msg-time">' + (time || new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })) + '</div>';
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function now() { return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
-
-        function initChat() {
-            if (!demandeId) {
-                addMessage('Bonjour ! Comment puis-je vous aider ?', 'tech', '09:00');
-                return;
-            }
-            fetch(API_URL + '/api/messages/' + demandeId)
-                .then(r => r.json())
-                .then(msgs => {
-                    if (msgs.length) {
-                        msgs.forEach(m => addMessage(m.content, m.senderRole, new Date(m.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })));
-                    } else {
-                        addMessage('Bonjour ! Je suis ' + tech.name + '. Comment puis-je vous aider ?', 'tech', '09:00');
-                        addMessage('J\'ai bien reçu votre demande de réparation. Décrivez-moi le problème.', 'tech', '09:01');
-                    }
-                })
-                .catch(() => {
-                    addMessage('Bonjour ! Comment puis-je vous aider ?', 'tech', '09:00');
-                });
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
-        function sendMessage() {
+        function currentTime() {
+            return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function renderMessages(msgs) {
+            chatMessages.innerHTML = '';
+            if (!msgs.length) {
+                addMessage('Bonjour ! Envoyez un message pour discuter avec le technicien.', 'tech', currentTime());
+                return;
+            }
+            msgs.forEach(m => addMessage(m.content, m.sender_role === SELF ? SELF : 'tech', new Date(m.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })));
+
+            // Marque les messages comme lus par le client.
+            postJson('/api/messages/read', { missionId: demandeId, readerRole: SELF }).catch(() => {});
+        }
+
+        async function pollMessages() {
+            if (!demandeId) return;
+            try {
+                const res = await fetch(API_URL + '/api/messages/' + demandeId);
+                if (!res.ok) return;
+                const msgs = await res.json();
+                const count = msgs.length;
+                if (count !== lastMessageCount) {
+                    lastMessageCount = count;
+                    renderMessages(msgs);
+                }
+            } catch (_) {}
+        }
+
+        async function sendMessage() {
             const input = document.getElementById('msgInput');
             const text = input.value.trim();
             if (!text) return;
-            addMessage(text, 'client');
+            if (!demandeId) { input.value = ''; return; }
             input.value = '';
-
-            if (demandeId) {
-                fetch(API_URL + '/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ missionId: demandeId, content: text, senderRole: 'client', senderName: 'Client' })
-                }).catch(() => {});
-            }
-
-            setTimeout(() => {
-                const responses = [
-                    "Compris, je vérifie ça.",
-                    "C'est noté, je peux intervenir rapidement.",
-                    "D'accord, je prépare les pièces nécessaires.",
-                    "Merci pour ces précisions, je serai là à l'heure convenue.",
-                    "Je confirme ma disponibilité pour cette intervention."
-                ];
-                const reply = responses[Math.floor(Math.random() * responses.length)];
-                addMessage(reply, 'tech');
-                if (demandeId) {
-                    fetch(API_URL + '/api/messages', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ missionId: demandeId, content: reply, senderRole: 'technician', senderName: tech.name })
-                    }).catch(() => {});
-                }
-            }, 1200);
+            try {
+                const res = await postJson('/api/messages', {
+                    missionId: demandeId,
+                    content: text,
+                    senderRole: SELF,
+                    senderName: currentName,
+                    senderId: currentUserId || null
+                });
+                if (res.ok) await pollMessages();
+            } catch (_) {}
         }
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
@@ -507,70 +804,78 @@
             if (e.key === 'Enter') sendMessage();
         });
 
-        /* --- Négociation --- */
-        document.getElementById('proposeBtn').addEventListener('click', function () {
-            const val = Number(document.getElementById('newPrice').value);
-            if (!val || val < 1000) return showToast('Montant invalide (minimum 1 000 FCFA).', 'error');
-            currentPrice = val;
-            document.getElementById('fTotal').textContent = currentPrice.toLocaleString() + ' FCFA';
-            document.getElementById('recapPrix').textContent = currentPrice.toLocaleString() + ' FCFA';
-            document.getElementById('newPrice').value = '';
+        /* --- Présence (en ligne / hors ligne) & Heartbeat --- */
+        function startHeartbeat() {
+            if (!currentUserId) return;
+            const beat = () => postJson('/api/presence', { userId: currentUserId, role: currentRole }).catch(() => {});
+            beat();
+            setInterval(beat, 15000);
+            setInterval(refreshPresence, 5000);
+        }
 
-            addMessage(`J'ai proposé un nouveau tarif : ${currentPrice.toLocaleString()} FCFA`, 'client');
-            addMessage('Tarif mis à jour sur la facture.', 'system');
-            showToast('Nouveau tarif proposé : ' + currentPrice.toLocaleString() + ' FCFA', 'info');
+        async function refreshPresence() {
+            if (!techId || !mission) return;
+            try {
+                const res = await fetch(API_URL + '/api/presence/status?technicianId=' + encodeURIComponent(techId));
+                if (!res.ok) return;
+                const data = await res.json();
+                const online = data.technician && data.technician.online;
+                const dot = document.getElementById('techPresenceDot');
+                dot.style.background = online ? '#2F9E44' : '#adb5bd';
+                document.getElementById('techPresenceText').textContent = online ? 'En ligne' : 'Hors ligne';
+            } catch (_) {}
+        }
 
-            if (demandeId) {
-                fetch(API_URL + '/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ missionId: demandeId, content: `Nouveau tarif proposé : ${currentPrice.toLocaleString()} FCFA`, senderRole: 'client', senderName: 'Client' })
-                }).catch(() => {});
+        /* --- Accepter la mission --- */
+        function acceptMission() {
+            if (agreedPrice == null) {
+                showToast('Un prix doit d\u2019abord être convenu avant d\u2019accepter la mission.', 'error');
+                return;
             }
-
-            setTimeout(() => {
-                addMessage(`OK, ${currentPrice.toLocaleString()} FCFA me convient. On valide ?`, 'tech');
-                if (demandeId) {
-                    fetch(API_URL + '/api/messages', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ missionId: demandeId, content: `Tarif accepté : ${currentPrice.toLocaleString()} FCFA`, senderRole: 'technician', senderName: tech.name })
-                    }).catch(() => {});
-                }
-                document.getElementById('acceptBtn').disabled = false;
-            }, 1500);
-        });
-
-        /* --- Accepter --- */
-        document.getElementById('acceptBtn').addEventListener('click', function () {
             document.getElementById('badgeStatut').textContent = 'Acceptée';
             document.getElementById('badgeStatut').classList.add('accepted');
             document.getElementById('acceptedBanner').classList.add('show');
             document.getElementById('acceptBtn').disabled = true;
 
-            addMessage(`Mission acceptée à ${currentPrice.toLocaleString()} FCFA. Merci !`, 'client');
-            addMessage('Parfait, à bientôt !', 'tech');
+            addMessage('Mission acceptée à ' + fmtFCFA(agreedPrice) + '. Merci !', SELF);
             showToast('Mission acceptée ! Redirection...', 'success');
 
             if (demandeId) {
-                fetch(API_URL + '/api/messages', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ missionId: demandeId, content: `Mission acceptée à ${currentPrice.toLocaleString()} FCFA.`, senderRole: 'client', senderName: 'Client' })
+                postJson('/api/messages', {
+                    missionId: demandeId,
+                    content: 'Mission acceptée à ' + fmtFCFA(agreedPrice) + '.',
+                    senderRole: SELF,
+                    senderName: currentName
                 }).catch(() => {});
                 fetch(API_URL + '/api/missions/' + demandeId, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'accepted', price: currentPrice, technicianId: techId, technicianName: tech.name })
+                    body: JSON.stringify({ status: 'accepted', price: agreedPrice, technicianId: techId })
                 }).catch(() => {});
             }
-
             setTimeout(() => {
                 window.location.href = 'suivi-mission.html?id=' + demandeId;
             }, 1500);
-        });
+        }
+        document.getElementById('acceptBtn').addEventListener('click', acceptMission);
 
-        initChat();
+        /* --- Init --- */
+        async function init() {
+            await loadCatalogue();
+            await refreshNegotiation();
+            if (demandeId) {
+                await pollMessages();
+                setInterval(pollMessages, 3000);
+            }
+        }
+        init();
+
+        /* Détection de fermeture → last heartbeat (best effort). */
+        window.addEventListener('beforeunload', function () {
+            if (currentUserId) {
+                try { navigator.sendBeacon(API_URL + '/api/presence', new Blob([JSON.stringify({ userId: currentUserId, role: currentRole })], { type: 'application/json' })); } catch (_) {}
+            }
+        });
     </script>
 
 </body>
