@@ -326,11 +326,19 @@
         .recap-row:last-child { border-bottom: none; }
         .recap-label { color: var(--gray-500); }
         .recap-value { font-weight: 600; color: var(--gray-900); }
+        .recap-value.small { font-size: 0.8rem; max-width: 170px; text-align: right; overflow-wrap: anywhere; }
 
         @media (max-width: 720px) {
             .page-inner {
                 grid-template-columns: 1fr;
             }
+            .chat-panel { min-height: 460px; }
+            .chat-messages { max-height: 340px; }
+        }
+        @media (max-width: 460px) {
+            .chat-panel { min-height: 400px; }
+            .chat-messages { max-height: 280px; padding: 14px; }
+            .msg { max-width: 85%; }
         }
     </style>
 </head>
@@ -407,12 +415,14 @@
 
                 <div class="facture-card mission-recap" id="missionRecap">
                     <h3><i class="fa-solid fa-clipboard-check"></i> Résumé de la mission</h3>
+                    <div class="recap-row"><span class="recap-label">Appareil</span><span class="recap-value" id="recapDevice">—</span></div>
                     <div class="recap-row"><span class="recap-label">Panne</span><span class="recap-value" id="recapPanne">—</span></div>
                     <div class="recap-row"><span class="recap-label">Technicien</span><span class="recap-value" id="recapTech">—</span></div>
+                    <div class="recap-row"><span class="recap-label">Adresse</span><span class="recap-value small" id="recapAddress">—</span></div>
                     <div class="recap-row"><span class="recap-label">Tarif convenu</span><span class="recap-value" id="recapPrix">—</span></div>
                 </div>
 
-                <button class="btn-accept" id="acceptBtn" disabled>Accepter la mission</button>
+                <button class="btn-accept" id="acceptBtn" disabled>Valider la mission</button>
             </div>
 
         </div>
@@ -457,6 +467,7 @@
         })();
 
         const fmtFCFA = n => (n == null ? '—' : Number(n).toLocaleString('fr-FR') + ' FCFA');
+        const capitalize = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 
         /* --- Techniciens (from API) --- */
         let tech = { name: 'Technicien', avatar: '??', location: '', id: techId };
@@ -504,6 +515,8 @@
                     const deviceType = m.device || '';
                     const matching = catalogue.filter(p => String(p.type).toLowerCase() === String(deviceType).toLowerCase());
                     panne = matching.length ? matching[0] : catalogue[0] || null;
+                    document.getElementById('recapDevice').textContent = capitalize(m.device || '—');
+                    document.getElementById('recapAddress').textContent = m.address || '—';
                 }
             }
             if (!panne && catalogue.length) {
@@ -575,8 +588,18 @@
             } catch {
                 currentProposals = [];
             }
+            // Recharge l'état de la mission (statut de négociation).
+            try {
+                const r = await fetch(API_URL + '/api/missions/' + demandeId);
+                if (r.ok) {
+                    const m = await r.json();
+                    negotiationStatus = m.negotiationStatus || negotiationStatus;
+                    agreedPrice = (m.price != null && m.price !== '') ? Number(m.price) : agreedPrice;
+                }
+            } catch {}
             buildFacture();
             renderNegotiateBox();
+            enableAccept();
         }
 
         function renderNegotiateBox() {
@@ -729,12 +752,6 @@
             }
         }
 
-        function enableAccept() {
-            if (agreedPrice != null) {
-                document.getElementById('acceptBtn').disabled = false;
-            }
-        }
-
         /* --- Chat --- */
         const chatMessages = document.getElementById('chatMessages');
         let lastMessageCount = 0;
@@ -826,31 +843,31 @@
             } catch (_) {}
         }
 
-        /* --- Accepter la mission --- */
+        /* --- Valider la mission (après accord mutuel sur le prix) --- */
         function acceptMission() {
             if (agreedPrice == null) {
-                showToast('Un prix doit d\u2019abord être convenu avant d\u2019accepter la mission.', 'error');
+                showToast('Un prix doit d\u2019abord être convenu par les deux parties avant de valider la mission.', 'error');
                 return;
             }
-            document.getElementById('badgeStatut').textContent = 'Acceptée';
+            document.getElementById('badgeStatut').textContent = 'Tarif validé';
             document.getElementById('badgeStatut').classList.add('accepted');
             document.getElementById('acceptedBanner').classList.add('show');
             document.getElementById('acceptBtn').disabled = true;
 
-            addMessage('Mission acceptée à ' + fmtFCFA(agreedPrice) + '. Merci !', SELF);
-            showToast('Mission acceptée ! Redirection...', 'success');
+            addMessage('Mission validée à ' + fmtFCFA(agreedPrice) + '. Merci !', SELF);
+            showToast('Mission validée ! Redirection...', 'success');
 
             if (demandeId) {
                 postJson('/api/messages', {
                     missionId: demandeId,
-                    content: 'Mission acceptée à ' + fmtFCFA(agreedPrice) + '.',
+                    content: 'Mission validée à ' + fmtFCFA(agreedPrice) + '.',
                     senderRole: SELF,
                     senderName: currentName
                 }).catch(() => {});
                 fetch(API_URL + '/api/missions/' + demandeId, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'accepted', price: agreedPrice, technicianId: techId })
+                    body: JSON.stringify({ status: 'accepted', price: agreedPrice, technicianId: techId, negotiationStatus: 'accepted' })
                 }).catch(() => {});
             }
             setTimeout(() => {
@@ -858,6 +875,17 @@
             }, 1500);
         }
         document.getElementById('acceptBtn').addEventListener('click', acceptMission);
+
+        // Active/désactive le bouton "Valider la mission".
+        // Seul un accord mutuel (statut accepted) débloque la validation.
+        function enableAccept() {
+            var btn = document.getElementById('acceptBtn');
+            if (agreedPrice != null && negotiationStatus === 'accepted') {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
 
         /* --- Init --- */
         async function init() {

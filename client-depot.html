@@ -118,9 +118,114 @@
         }
         .btn-submit { width: 100%; margin-top: 8px; }
 
+        /* Stade d'envoi */
+        .submit-step { display: none; }
+        .submit-step.show { display: block; }
+
+        /* Étape de validation / récapitulatif */
+        .recap-card {
+            max-width: 640px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+        }
+        .recap-card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+            color: var(--gray-900);
+        }
+        .recap-sub { font-size: 0.9rem; color: var(--gray-500); margin-bottom: 22px; }
+        .recap-pane {
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 18px;
+        }
+        .recap-pane-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray-500);
+            margin-bottom: 14px;
+        }
+        .techer {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .techer-avatar {
+            width: 54px; height: 54px;
+            border-radius: 50%;
+            background: var(--blue);
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .techer-info { flex: 1; }
+        .techer-name { font-weight: 700; font-size: 1.02rem; color: var(--gray-900); }
+        .techer-spec { font-size: 0.84rem; color: var(--gray-600); }
+        .techer-meta { font-size: 0.8rem; color: var(--gray-500); margin-top: 2px; }
+        .recap-stars { color: #F59F00; font-size: 0.85rem; }
+        .recap-rows { margin-top: 14px; }
+        .recap-row2 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 0;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 0.9rem;
+        }
+        .recap-row2:last-child { border-bottom: none; }
+        .recap-row2 .lbl { color: var(--gray-600); }
+        .recap-row2 .val { font-weight: 600; color: var(--gray-900); }
+        .recap-row2.total { border-top: 2px solid var(--gray-200); margin-top: 4px; padding-top: 14px; }
+        .recap-row2.total .val { font-size: 1.15rem; color: var(--blue); }
+        .price-estim-tag {
+            display: inline-block;
+            background: var(--blue-pale);
+            color: var(--blue);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+        .recap-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        .btn-accept {
+            padding: 13px;
+            background: #2F9E44;
+            color: var(--white);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background var(--transition);
+        }
+        .btn-accept:hover { background: #37B24D; }
+        .btn-negociate {
+            padding: 13px;
+            background: var(--white);
+            color: var(--blue);
+            border: 2px solid var(--blue);
+            border-radius: var(--radius);
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background var(--transition), color var(--transition);
+        }
+        .btn-negociate:hover { background: var(--blue); color: var(--white); }
+
         @media (max-width: 540px) {
             .form-card { padding: 28px 20px; }
             .form-row { grid-template-columns: 1fr; }
+            .recap-card { padding: 24px 18px; }
         }
     </style>
 </head>
@@ -151,7 +256,7 @@
                 <span class="separator"><i class="fa-solid fa-chevron-right"></i></span>
                 <span class="current">Déposer une panne</span>
             </nav>
-            <div class="form-card">
+            <div class="form-card" id="formStep">
                 <h2>Déposer une panne</h2>
                 <form id="depotForm" novalidate>
                     <div class="form-group">
@@ -216,6 +321,45 @@
 
                     <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">Soumettre</button>
                 </form>
+            </div>
+
+            <!-- Étape de validation : récapitulatif + choix accepter / négocier -->
+            <div class="recap-card" id="recapStep" style="display:none;">
+                <h2>Mission prête !</h2>
+                <p class="recap-sub">Un technicien disponible a été assigné automatiquement.</p>
+
+                <div class="recap-pane">
+                    <div class="recap-pane-title"><i class="fa-solid fa-user-gear"></i> Votre technicien</div>
+                    <div class="techer">
+                        <div class="techer-avatar" id="raTechAvatar">–</div>
+                        <div class="techer-info">
+                            <div class="techer-name" id="raTechName">—</div>
+                            <div class="techer-spec" id="raTechSpec">—</div>
+                            <div class="techer-meta">
+                                <span class="recap-stars" id="raTechStars"></span>
+                                <span id="raTechLocation"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recap-pane">
+                    <div class="recap-pane-title"><i class="fa-solid fa-file-invoice"></i> Estimation</div>
+                    <div class="recap-rows">
+                        <div class="recap-row2"><span class="lbl">Appareil</span><span class="val" id="raDevice">—</span></div>
+                        <div class="recap-row2"><span class="lbl">Panne</span><span class="val" id="raPanne">—</span></div>
+                        <div class="recap-row2"><span class="lbl">Frais de déplacement</span><span class="val" id="raTravel">—</span></div>
+                        <div class="recap-row2 total">
+                            <span class="lbl">Prix estimé <span class="price-estim-tag">système</span></span>
+                            <span class="val" id="raPrice">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recap-actions">
+                    <button class="btn-accept" id="raAcceptBtn"><i class="fa-solid fa-check-circle"></i> Accepter le prix</button>
+                    <button class="btn-negociate" id="raNegociateBtn"><i class="fa-solid fa-handshake"></i> Négocier le prix</button>
+                </div>
             </div>
         </div>
     </main>
@@ -374,7 +518,7 @@
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner"></span>Envoi en cours...';
-            document.querySelector('.form-card').classList.add('loading');
+            document.getElementById('formStep').classList.add('loading');
 
             try {
                 const res = await fetch(API_URL + '/api/missions', {
@@ -393,17 +537,96 @@
                 });
                 const mission = await res.json();
                 if (!res.ok) throw new Error(mission.error || 'Erreur serveur');
-                showToast('Mission créée !', 'success');
-                setTimeout(function () {
-                    window.location.href = 'tech-liste.html?id=' + mission.id;
-                }, 800);
+
+                // Assignation automatique d'un technicien disponible.
+                const assignRes = await fetch(API_URL + '/api/missions/' + mission.id + '/assign-technician', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const assignData = await assignRes.json();
+                if (!assignRes.ok) throw new Error(assignData.error || 'Erreur d\'assignation');
+
+                showRecap(mission.id, assignData);
+                showToast('Mission créée et technicien assigné !', 'success');
             } catch (err) {
                 showToast(err.message, 'error');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Soumettre';
-                document.querySelector('.form-card').classList.remove('loading');
+                submitBtn.innerHTML = 'Soumettre';
+                document.getElementById('formStep').classList.remove('loading');
             }
         });
+
+        /* --- Étape de validation (récapitulatif) --- */
+        function renderStarsSimple(rating) {
+            if (!rating) return '';
+            let out = '';
+            for (let i = 0; i < 5; i++) {
+                out += i < Math.round(rating)
+                    ? '<i class="fa-solid fa-star"></i>'
+                    : '<i class="fa-regular fa-star"></i>';
+            }
+            return out + ' <span style="color:var(--gray-600)">' + rating + '</span>';
+        }
+
+        function showRecap(missionId, assignData) {
+            const tech = assignData.technician || {};
+            const mission = assignData.mission || {};
+            const price = assignData.systemPrice;
+            const travel = assignData.travelFee;
+
+            document.getElementById('formStep').style.display = 'none';
+            const recap = document.getElementById('recapStep');
+            recap.style.display = 'block';
+
+            document.getElementById('raTechAvatar').textContent = tech.avatar || (tech.name || 'T').slice(0, 2).toUpperCase();
+            document.getElementById('raTechName').textContent = tech.name || 'Technicien';
+            document.getElementById('raTechSpec').textContent = tech.specialty || '—';
+            const stars = document.getElementById('raTechStars');
+            stars.innerHTML = renderStarsSimple(tech.rating);
+            document.getElementById('raTechLocation').textContent = tech.location ? '<i class="fa-solid fa-location-dot"></i> ' + tech.location : '';
+            document.getElementById('raDevice').textContent = capitalize(mission.device || '') || '—';
+            document.getElementById('raPanne').textContent = mission.issue || '—';
+            document.getElementById('raTravel').textContent = fmtPrice(travel);
+            document.getElementById('raPrice').textContent = fmtPrice(price);
+
+            // Accepter le prix → valide la mission puis suivi.
+            document.getElementById('raAcceptBtn').onclick = async function () {
+                const btn = this;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Validation...';
+                try {
+                    const r = await fetch(API_URL + '/api/missions/' + missionId, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'accepted', price: price, negotiationStatus: 'accepted' })
+                    });
+                    const d = await r.json();
+                    if (!r.ok) throw new Error(d.error || 'Erreur');
+                    showToast('Mission acceptée !', 'success');
+                    setTimeout(function () {
+                        window.location.href = 'suivi-mission.html?id=' + missionId;
+                    }, 800);
+                } catch (err) {
+                    showToast(err.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Accepter le prix';
+                }
+            };
+
+            // Négocier le prix → ouvre le chat.
+            document.getElementById('raNegociateBtn').onclick = function () {
+                window.location.href = 'chat-negociation.html?tech=' + encodeURIComponent(tech.id) + '&demande=' + encodeURIComponent(missionId);
+            };
+        }
+
+        function capitalize(s) {
+            return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+        }
+
+        function fmtPrice(n) {
+            return (n == null || n === '') ? '—' : Number(n).toLocaleString('fr-FR') + ' FCFA';
+        }
     </script>
 
 </body>
