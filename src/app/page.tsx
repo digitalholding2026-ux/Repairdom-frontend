@@ -47,6 +47,11 @@ export default function HomePage() {
             <Link href="/client">
               <Button size="lg">Devenir client</Button>
             </Link>
+            <Link href="/technicien/inscription">
+              <Button size="lg" variant="secondary">
+                Devenir technicien
+              </Button>
+            </Link>
           </div>
         </section>
 

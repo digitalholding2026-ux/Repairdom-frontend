@@ -2,9 +2,13 @@ import { siteConfig } from '@/lib/site-config';
 
 export interface SignUpInput {
   firstName: string;
+  lastName?: string;
   phone?: string;
   email: string;
   password: string;
+  role?: 'CLIENT' | 'TECHNICIAN';
+  city?: string;
+  categories?: string[];
 }
 
 export interface SignInInput {
@@ -16,6 +20,8 @@ export interface AuthUser {
   id: string;
   email: string;
   firstName?: string;
+  lastName?: string;
+  phone?: string;
   role?: string;
 }
 
@@ -52,15 +58,24 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function signUp(input: SignUpInput): Promise<AuthSession> {
+  const payload: Record<string, unknown> = {
+    firstName: input.firstName,
+    phone: input.phone || undefined,
+    email: input.email,
+    password: input.password,
+  };
+
+  if (input.role === 'TECHNICIAN') {
+    payload.role = 'TECHNICIAN';
+    payload.lastName = input.lastName || undefined;
+    payload.city = input.city || undefined;
+    payload.categories = input.categories ?? [];
+  }
+
   const data = await apiFetch<{ user: AuthUser; mode: 'real' }>('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      firstName: input.firstName,
-      phone: input.phone || undefined,
-      email: input.email,
-      password: input.password,
-    }),
+    body: JSON.stringify(payload),
   });
 
   return { user: data.user, mode: 'real' };

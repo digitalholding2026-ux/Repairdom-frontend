@@ -9,12 +9,13 @@ export const metadata: Metadata = {
 };
 
 interface ConfirmationPageProps {
-  searchParams: Promise<{ ref?: string | string[] }>;
+  searchParams: Promise<{ ref?: string | string[]; id?: string | string[] }>;
 }
 
 export default async function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
-  const { ref } = await searchParams;
+  const { ref, id } = await searchParams;
   const requestId = Array.isArray(ref) ? ref[0] : ref;
+  const demandeId = Array.isArray(id) ? id[0] : id;
 
   return (
     <div className="space-y-6">
@@ -53,12 +54,17 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
       </section>
 
       <div className="flex flex-col gap-3">
+        {demandeId ? (
+          <Link href={`/client/demandes/${demandeId}`} className="block">
+            <Button className="w-full">Suivre ma demande</Button>
+          </Link>
+        ) : null}
         <Link href="/client/demande" className="block">
           <Button className="w-full">Déposer une nouvelle demande</Button>
         </Link>
         <Link href="/" className="block">
           <Button variant="secondary" className="w-full">
-            Retour à l’accueil
+            Retour à l&apos;accueil
           </Button>
         </Link>
       </div>

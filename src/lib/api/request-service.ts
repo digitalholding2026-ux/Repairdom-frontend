@@ -21,14 +21,25 @@ export interface CreateDemandeInput {
   address?: string;
 }
 
+export interface TechnicianInfo {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  phone: string | null;
+  city: string | null;
+}
+
 export interface CreateDemandeResult {
   id: string;
   reference: string;
   status: string;
   categoryId: string;
+  categoryLabel: string;
   description: string;
   city: string;
   address: string | null;
+  technicianId: string | null;
+  technician: TechnicianInfo | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -41,6 +52,8 @@ export interface CreateDemandeResult {
   storageStatus: string;
   createdAt: string;
 }
+
+export type DemandeListItem = CreateDemandeResult;
 
 const MEDIA_KIND_MAP: Record<string, string> = {
   'image/': 'IMAGE',
@@ -64,10 +77,26 @@ class ApiError extends Error {
   }
 }
 
-export async function createDemande(input: CreateDemandeInput): Promise<CreateDemandeResult> {
-  const res = await fetch(`${siteConfig.apiBaseUrl}/demandes`, {
-    method: 'POST',
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',
+    ...init,
+  });
+
+  const body = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message = (body as { message?: string | string[] } | null)?.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
+  }
+
+  return body as T;
+}
+
+export async function createDemande(input: CreateDemandeInput): Promise<CreateDemandeResult> {
+  const result = await apiFetch<CreateDemandeResult>('/demandes', {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       categoryId: input.categoryId,
@@ -83,13 +112,13 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
     }),
   });
 
-  const body = await res.json().catch(() => null);
+  return result;
+}
 
-  if (!res.ok) {
-    const message = (body as { message?: string | string[] } | null)?.message;
-    const text = Array.isArray(message) ? message.join(', ') : message;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
-  }
+export async function listMyDemandes(): Promise<DemandeListItem[]> {
+  return apiFetch<DemandeListItem[]>('/demandes');
+}
 
-  return body as CreateDemandeResult;
+export async function getDemande(id: string): Promise<DemandeListItem> {
+  return apiFetch<DemandeListItem>(`/demandes/${encodeURIComponent(id)}`);
 }

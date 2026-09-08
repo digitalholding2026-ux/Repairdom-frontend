@@ -48,8 +48,14 @@ export default function ClientHomePage() {
             <span className="h-px flex-1 bg-border" />
           </div>
           <Link
-            href="/client/demande"
+            href="/client/demandes"
             className="block text-center text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Voir mes demandes
+          </Link>
+          <Link
+            href="/client/demande"
+            className="block text-center text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
             Commencer une demande sans compte
           </Link>
