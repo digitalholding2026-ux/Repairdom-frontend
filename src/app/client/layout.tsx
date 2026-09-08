@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { RoleGuard } from '@/components/auth/role-guard';
 import { siteConfig } from '@/lib/site-config';
+
+const CLIENT_PUBLIC_PATHS = ['/client/connexion', '/client/inscription'];
 
 export default function ClientLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -15,7 +18,11 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6">
+        <RoleGuard expectedRole="CLIENT" publicPaths={CLIENT_PUBLIC_PATHS}>
+          {children}
+        </RoleGuard>
+      </main>
 
       <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground safe-bottom">
         <p>© {new Date().getFullYear()} {siteConfig.name}. Tous droits réservés.</p>

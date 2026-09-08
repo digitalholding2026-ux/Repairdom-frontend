@@ -95,6 +95,10 @@ export async function getMe(): Promise<AuthUser> {
   return apiFetch<AuthUser>('/auth/me');
 }
 
+export function homePathForRole(role: string | undefined): string {
+  return role === 'TECHNICIAN' ? '/technicien' : '/client';
+}
+
 export async function logout(): Promise<void> {
   await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
 }

@@ -4,7 +4,7 @@ import { type FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { signIn, signUp } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
 
 export type ClientAuthMode = 'signup' | 'signin';
 
@@ -33,12 +33,10 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (isSignUp) {
-        await signUp({ firstName: firstName.trim(), phone: phone.trim() || undefined, email: email.trim(), password });
-      } else {
-        await signIn({ email: email.trim(), password });
-      }
-      router.push('/client/demande');
+      const session = isSignUp
+        ? await signUp({ firstName: firstName.trim(), phone: phone.trim() || undefined, email: email.trim(), password })
+        : await signIn({ email: email.trim(), password });
+      router.push(homePathForRole(session.user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);

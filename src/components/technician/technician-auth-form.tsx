@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
-import { signIn, signUp } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
 import { cn } from '@/lib/cn';
 
 export type TechnicianAuthMode = 'signup' | 'signin';
@@ -50,21 +50,19 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (isSignUp) {
-        await signUp({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          password,
-          role: 'TECHNICIAN',
-          city: city.trim(),
-          categories,
-        });
-      } else {
-        await signIn({ email: email.trim(), password });
-      }
-      router.push('/technicien');
+      const session = isSignUp
+        ? await signUp({
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            phone: phone.trim(),
+            email: email.trim(),
+            password,
+            role: 'TECHNICIAN',
+            city: city.trim(),
+            categories,
+          })
+        : await signIn({ email: email.trim(), password });
+      router.push(homePathForRole(session.user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);
