@@ -9,12 +9,12 @@ export const metadata: Metadata = {
 };
 
 interface ConfirmationPageProps {
-  searchParams: Promise<{ id?: string | string[] }>;
+  searchParams: Promise<{ ref?: string | string[] }>;
 }
 
 export default async function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
-  const { id } = await searchParams;
-  const requestId = Array.isArray(id) ? id[0] : id;
+  const { ref } = await searchParams;
+  const requestId = Array.isArray(ref) ? ref[0] : ref;
 
   return (
     <div className="space-y-6">
@@ -62,10 +62,6 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           </Button>
         </Link>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground">
-        Mode démonstration : la demande n’est pas réellement transmise à un technicien.
-      </p>
     </div>
   );
 }

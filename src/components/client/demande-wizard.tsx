@@ -136,7 +136,7 @@ export function DemandeWizard() {
         city: city.trim(),
         address: address.trim() || undefined,
       });
-      router.push(`/client/confirmation?id=${encodeURIComponent(result.id)}`);
+      router.push(`/client/confirmation?ref=${encodeURIComponent(result.reference)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);

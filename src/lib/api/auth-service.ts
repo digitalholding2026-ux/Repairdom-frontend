@@ -1,10 +1,4 @@
-// ============================================================
-// Service d'authentification client.
-// Aujourd'hui l'authentification est SIMULÉE (MOCK) : aucun
-// compte n'est réellement créé ni stocké. Quand l'API sera
-// disponible, il suffira d'utiliser la branche réelle (fetch)
-// commentée ci-dessous.
-// ============================================================
+import { siteConfig } from '@/lib/site-config';
 
 export interface SignUpInput {
   firstName: string;
@@ -22,47 +16,70 @@ export interface AuthUser {
   id: string;
   email: string;
   firstName?: string;
+  role?: string;
 }
 
 export interface AuthSession {
   user: AuthUser;
-  token: string;
-  mode: 'mock';
+  mode: 'real';
 }
 
-const MOCK_AUTH_DELAY_MS = 700;
-
-function mockRandomId(): string {
-  return crypto.randomUUID();
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
 }
 
-function asyncMockAuth(session: AuthSession): Promise<AuthSession> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(session), MOCK_AUTH_DELAY_MS);
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
+    credentials: 'include',
+    ...init,
   });
+
+  const body = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message =
+      (body as { message?: string | string[] } | null)?.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
+  }
+
+  return body as T;
 }
 
-// MOCK : crée un compte simulé (rien n'est envoyé ni stocké).
 export async function signUp(input: SignUpInput): Promise<AuthSession> {
-  return asyncMockAuth({
-    user: {
-      id: mockRandomId(),
-      email: input.email,
+  const data = await apiFetch<{ user: AuthUser; mode: 'real' }>('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       firstName: input.firstName,
-    },
-    token: mockRandomId(),
-    mode: 'mock',
+      phone: input.phone || undefined,
+      email: input.email,
+      password: input.password,
+    }),
   });
+
+  return { user: data.user, mode: 'real' };
 }
 
-// MOCK : simule une connexion (aucune vérification d'identifiants).
 export async function signIn(input: SignInInput): Promise<AuthSession> {
-  return asyncMockAuth({
-    user: {
-      id: mockRandomId(),
-      email: input.email,
-    },
-    token: mockRandomId(),
-    mode: 'mock',
+  const data = await apiFetch<{ user: AuthUser; mode: 'real' }>('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: input.email, password: input.password }),
   });
+
+  return { user: data.user, mode: 'real' };
+}
+
+export async function getMe(): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/auth/me');
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
 }

@@ -1,13 +1,5 @@
 import { siteConfig } from '@/lib/site-config';
 
-// ============================================================
-// Couche d'abstraction API côté client.
-// Aujourd'hui le backend n'est pas encore connecté : les
-// fonctions concernées retournent des données simulées (MOCK).
-// Quand l'API sera disponible, il suffira de supprimer la
-// branche mock et d'utiliser la branche réelle (fetch).
-// ============================================================
-
 export interface RequestMedia {
   id: string;
   name: string;
@@ -31,48 +23,73 @@ export interface CreateDemandeInput {
 
 export interface CreateDemandeResult {
   id: string;
-  status: 'created';
+  reference: string;
+  status: string;
+  categoryId: string;
+  description: string;
+  city: string;
+  address: string | null;
+  medias: Array<{
+    id: string;
+    kind: string;
+    name: string;
+    mimeType: string;
+    sizeBytes: number;
+    stored: boolean;
+  }>;
+  mediaPersisted: boolean;
+  storageStatus: string;
   createdAt: string;
-  mode: 'mock';
 }
 
-const MOCK_CREATION_DELAY_MS = 900;
+const MEDIA_KIND_MAP: Record<string, string> = {
+  'image/': 'IMAGE',
+  'video/': 'VIDEO',
+  'audio/': 'AUDIO',
+};
 
-function randomRequestId(): string {
-  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `RD-${suffix}`;
-}
-
-function asyncMockCreateDemande(input: CreateDemandeInput): Promise<CreateDemandeResult> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: randomRequestId(),
-        status: 'created',
-        createdAt: new Date().toISOString(),
-        mode: 'mock',
-      });
-    }, MOCK_CREATION_DELAY_MS);
-  });
-}
-
-async function realCreateDemande(input: CreateDemandeInput): Promise<CreateDemandeResult> {
-  const response = await fetch(`${siteConfig.apiBaseUrl}/demandes`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Erreur lors de la création de la demande (${response.status})`);
+function resolveMediaKind(mimeType: string): string {
+  for (const [prefix, kind] of Object.entries(MEDIA_KIND_MAP)) {
+    if (mimeType.startsWith(prefix)) return kind;
   }
+  return 'IMAGE';
+}
 
-  return response.json();
+class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
 }
 
 export async function createDemande(input: CreateDemandeInput): Promise<CreateDemandeResult> {
-  // MOCK : retour simulé utilisé tant que le backend n'est pas branché.
-  return asyncMockCreateDemande(input);
-  // À activer quand l'API sera disponible :
-  // return realCreateDemande(input);
+  const res = await fetch(`${siteConfig.apiBaseUrl}/demandes`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      categoryId: input.categoryId,
+      description: input.description,
+      city: input.city,
+      address: input.address || undefined,
+      medias: input.medias.map((m) => ({
+        kind: resolveMediaKind(m.type),
+        name: m.name,
+        mimeType: m.type,
+        sizeBytes: m.size,
+      })),
+    }),
+  });
+
+  const body = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const message = (body as { message?: string | string[] } | null)?.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
+  }
+
+  return body as CreateDemandeResult;
 }

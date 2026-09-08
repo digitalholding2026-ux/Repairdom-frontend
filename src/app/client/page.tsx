@@ -55,10 +55,6 @@ export default function ClientHomePage() {
           </Link>
         </CardContent>
       </Card>
-
-      <p className="text-center text-xs text-muted-foreground">
-        Mode démonstration : aucune donnée réelle n’est enregistrée côté serveur.
-      </p>
     </div>
   );
 }

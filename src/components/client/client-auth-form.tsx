@@ -77,10 +77,6 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
         />
       </label>
 
-      <p className="rounded-lg border border-dashed border-border bg-muted/50 px-3.5 py-2.5 text-xs text-muted-foreground">
-        Mode démonstration : aucun compte n’est réellement créé ni vérifié.
-      </p>
-
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
           {error}
