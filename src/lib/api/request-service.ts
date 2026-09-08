@@ -131,3 +131,69 @@ export async function updateDemandeStatus(id: string, status: string): Promise<D
     body: JSON.stringify({ status }),
   });
 }
+
+export interface ConversationMessage {
+  id: string;
+  content: string;
+  senderId: string;
+  sender: { id: string; firstName: string; lastName: string | null };
+  createdAt: string;
+}
+
+export interface MissionDiagnostic {
+  id: string;
+  content: string;
+  recommendation: string | null;
+  technicianId: string;
+  technician: { id: string; firstName: string; lastName: string | null };
+  createdAt: string;
+}
+
+export interface MissionQuote {
+  id: string;
+  demandeId: string;
+  technicianId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+}
+
+export function formatQuoteAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string {
+  return `${quote.amount.toLocaleString('fr-FR')} ${quote.currency}`;
+}
+
+export async function listDemandeMessages(demandeId: string): Promise<ConversationMessage[]> {
+  return apiFetch<ConversationMessage[]>(`/demandes/${encodeURIComponent(demandeId)}/messages`);
+}
+
+export async function sendDemandeMessage(
+  demandeId: string,
+  content: string,
+): Promise<ConversationMessage> {
+  return apiFetch<ConversationMessage>(`/demandes/${encodeURIComponent(demandeId)}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function listDemandeDiagnostics(demandeId: string): Promise<MissionDiagnostic[]> {
+  return apiFetch<MissionDiagnostic[]>(`/demandes/${encodeURIComponent(demandeId)}/diagnostics`);
+}
+
+export async function listDemandeQuotes(demandeId: string): Promise<MissionQuote[]> {
+  return apiFetch<MissionQuote[]>(`/demandes/${encodeURIComponent(demandeId)}/quotes`);
+}
+
+export async function respondToQuote(
+  demandeId: string,
+  quoteId: string,
+  action: 'accept' | 'reject',
+): Promise<MissionQuote> {
+  return apiFetch<MissionQuote>(
+    `/demandes/${encodeURIComponent(demandeId)}/quotes/${encodeURIComponent(quoteId)}/${action}`,
+    { method: 'POST' },
+  );
+}

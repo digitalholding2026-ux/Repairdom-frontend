@@ -7,7 +7,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { getDemande, updateDemandeStatus, type DemandeListItem } from '@/lib/api/request-service';
+import { ConversationSection } from '@/components/mission/conversation-section';
+import {
+  getDemande,
+  updateDemandeStatus,
+  listDemandeDiagnostics,
+  listDemandeQuotes,
+  respondToQuote,
+  formatQuoteAmount,
+  type DemandeListItem,
+  type MissionDiagnostic,
+  type MissionQuote,
+} from '@/lib/api/request-service';
 
 const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Recherche de technicien',
@@ -30,6 +41,20 @@ const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' 
   CONFIRMED: 'success',
   CANCELED: 'danger',
 };
+
+const QUOTE_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'En attente',
+  ACCEPTED: 'Tarif accepté',
+  REJECTED: 'Tarif refusé',
+};
+
+const QUOTE_STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
+  PENDING: 'warning',
+  ACCEPTED: 'success',
+  REJECTED: 'neutral',
+};
+
+const POLL_INTERVAL_MS = 5000;
 
 const PROGRESS_STEPS = [
   'Demande déposée',
@@ -68,12 +93,23 @@ function formatDateTime(iso: string): string {
   });
 }
 
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
   const [demande, setDemande] = useState<DemandeListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
+  const [quotes, setQuotes] = useState<MissionQuote[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +130,33 @@ export default function ClientDemandeDetailPage() {
     return () => { cancelled = true; };
   }, [params?.id]);
 
+  useEffect(() => {
+    if (!params?.id) return;
+    let active = true;
+
+    const load = async () => {
+      try {
+        const [diagnosticsList, quotesList] = await Promise.all([
+          listDemandeDiagnostics(params.id!),
+          listDemandeQuotes(params.id!),
+        ]);
+        if (active) {
+          setDiagnostics(diagnosticsList);
+          setQuotes(quotesList);
+        }
+      } catch {
+        // Erreur silencieuse en rafraîchissement périodique.
+      }
+    };
+
+    load();
+    const timer = setInterval(load, POLL_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [params?.id]);
+
   const handleStatusChange = async (status: 'CONFIRMED' | 'CANCELED') => {
     if (!params?.id) return;
     setActionBusy(status);
@@ -103,6 +166,20 @@ export default function ClientDemandeDetailPage() {
       setDemande(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleQuoteResponse = async (quoteId: string, action: 'accept' | 'reject') => {
+    if (!params?.id) return;
+    setActionBusy(`quote:${action}`);
+    setError(null);
+    try {
+      const updated = await respondToQuote(params.id, quoteId, action);
+      setQuotes((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la réponse au tarif.');
     } finally {
       setActionBusy(null);
     }
@@ -133,6 +210,9 @@ export default function ClientDemandeDetailPage() {
 
   const stepIndex = STATUS_STEP_INDEX[demande.status];
   const canCancel = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED'].includes(demande.status);
+  const canDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
+  const latestDiagnostic = diagnostics[0] ?? null;
+  const latestQuote = quotes[0] ?? null;
 
   return (
     <div className="space-y-4">
@@ -256,6 +336,105 @@ export default function ClientDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {demande.technician ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Discussion avec votre technicien</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {demande.technician ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Diagnostic proposé par le technicien</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {latestDiagnostic ? (
+              <div className="space-y-2">
+                <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
+                {latestDiagnostic.recommendation ? (
+                  <div className="rounded-lg border border-border bg-muted/50 p-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recommandation</p>
+                    <p className="mt-1 whitespace-pre-line text-sm">{latestDiagnostic.recommendation}</p>
+                  </div>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  {[latestDiagnostic.technician.firstName, latestDiagnostic.technician.lastName]
+                    .filter(Boolean)
+                    .join(' ')}{' '}
+                  · {formatTime(latestDiagnostic.createdAt)}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Le technicien n&apos;a pas encore publié de diagnostic.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {demande.technician ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Proposition d&apos;intervention</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {latestQuote ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-lg font-semibold">{formatQuoteAmount(latestQuote)}</span>
+                  <Badge variant={QUOTE_STATUS_VARIANTS[latestQuote.status] ?? 'neutral'}>
+                    {QUOTE_STATUS_LABELS[latestQuote.status] ?? latestQuote.status}
+                  </Badge>
+                </div>
+                <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
+
+                {latestQuote.status === 'PENDING' ? (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleQuoteResponse(latestQuote.id, 'accept')}
+                      isLoading={actionBusy === 'quote:accept'}
+                      className="flex-1"
+                    >
+                      Accepter le tarif
+                    </Button>
+                    <Button
+                      onClick={() => handleQuoteResponse(latestQuote.id, 'reject')}
+                      variant="destructive"
+                      isLoading={actionBusy === 'quote:reject'}
+                      className="flex-1"
+                    >
+                      Refuser
+                    </Button>
+                  </div>
+                ) : null}
+
+                {latestQuote.status === 'ACCEPTED' ? (
+                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    Tarif accepté. Le technicien peut maintenant planifier l&apos;intervention.
+                  </p>
+                ) : null}
+
+                {latestQuote.status === 'REJECTED' ? (
+                  <p className="text-sm text-muted-foreground">
+                    Tarif refusé. Le technicien peut proposer une nouvelle proposition.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Le technicien n&apos;a pas encore proposé de tarif.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

@@ -109,3 +109,80 @@ export async function updateTechnicianDemandeStatus(
     body: JSON.stringify({ status, scheduledAt }),
   });
 }
+
+export interface ConversationMessage {
+  id: string;
+  content: string;
+  senderId: string;
+  sender: { id: string; firstName: string; lastName: string | null };
+  createdAt: string;
+}
+
+export interface MissionDiagnostic {
+  id: string;
+  content: string;
+  recommendation: string | null;
+  technicianId: string;
+  technician: { id: string; firstName: string; lastName: string | null };
+  createdAt: string;
+}
+
+export interface MissionQuote {
+  id: string;
+  demandeId: string;
+  technicianId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+}
+
+export async function listDemandeMessages(demandeId: string): Promise<ConversationMessage[]> {
+  return apiFetch<ConversationMessage[]>(`/demandes/${encodeURIComponent(demandeId)}/messages`);
+}
+
+export async function sendDemandeMessage(
+  demandeId: string,
+  content: string,
+): Promise<ConversationMessage> {
+  return apiFetch<ConversationMessage>(`/demandes/${encodeURIComponent(demandeId)}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function listDemandeDiagnostics(demandeId: string): Promise<MissionDiagnostic[]> {
+  return apiFetch<MissionDiagnostic[]>(`/demandes/${encodeURIComponent(demandeId)}/diagnostics`);
+}
+
+export async function createDemandeDiagnostic(
+  demandeId: string,
+  data: { content: string; recommendation?: string },
+): Promise<MissionDiagnostic> {
+  return apiFetch<MissionDiagnostic>(`/demandes/${encodeURIComponent(demandeId)}/diagnostic`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: data.content, recommendation: data.recommendation || undefined }),
+  });
+}
+
+export async function listDemandeQuotes(demandeId: string): Promise<MissionQuote[]> {
+  return apiFetch<MissionQuote[]>(`/demandes/${encodeURIComponent(demandeId)}/quotes`);
+}
+
+export async function createDemandeQuote(
+  demandeId: string,
+  data: { amount: number; description: string; currency?: string },
+): Promise<MissionQuote> {
+  return apiFetch<MissionQuote>(`/demandes/${encodeURIComponent(demandeId)}/quotes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: data.amount,
+      description: data.description,
+      currency: data.currency || undefined,
+    }),
+  });
+}
