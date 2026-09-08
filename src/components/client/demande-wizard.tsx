@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,49 +11,30 @@ import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import {
   createDemande,
   type RequestLocation,
-  type RequestMedia,
 } from '@/lib/api/request-service';
 
-const STEPS = ['Catégorie', 'Description', 'Médias', 'Localisation', 'Récapitulatif'];
+const STEPS = ['Catégorie', 'Description', 'Localisation', 'Récapitulatif'];
 
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1000;
-const MAX_MEDIA_FILES = 5;
-const MAX_MEDIA_SIZE_BYTES = 25 * 1024 * 1024;
-const ACCEPTED_MEDIA_TYPES = ['image/', 'video/', 'audio/'];
 
 const STEP_DESCRIPTIONS = [
   'Choisissez le type de panne à dépanner.',
   'Décrivez le problème le plus précisément possible.',
-  'Ajoutez des photos, vidéos ou un message audio (facultatif).',
   'Indiquez le lieu où nous devons intervenir.',
   'Vérifiez votre demande avant de l’envoyer.',
 ];
 
-function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-  return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-}
-
 export function DemandeWizard() {
   const router = useRouter();
-  const objectUrlsRef = useRef<string[]>([]);
 
   const [step, setStep] = useState(0);
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
-  const [medias, setMedias] = useState<RequestMedia[]>([]);
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      objectUrlsRef.current = [];
-    };
-  }, []);
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -62,53 +43,11 @@ export function DemandeWizard() {
       case 1:
         return description.trim().length >= MIN_DESCRIPTION_LENGTH;
       case 2:
-        return true;
-      case 3:
         return city.trim() !== '';
       default:
         return true;
     }
   }, [step, categoryId, description, city]);
-
-  const handleFilesChange = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    setError(null);
-    const pending: RequestMedia[] = [];
-
-    Array.from(files).forEach((file) => {
-      if (!ACCEPTED_MEDIA_TYPES.some((prefix) => file.type.startsWith(prefix))) {
-        setError('Un ou plusieurs fichiers ne sont pas au bon format (image, vidéo ou audio).');
-        return;
-      }
-      if (file.size > MAX_MEDIA_SIZE_BYTES) {
-        setError('Un ou plusieurs fichiers dépassent la limite de 25 Mo.');
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      objectUrlsRef.current.push(url);
-      pending.push({
-        id: file.name + String(Date.now()),
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        url,
-      });
-    });
-
-    setMedias((prev) => [...prev, ...pending].slice(0, MAX_MEDIA_FILES));
-  };
-
-  const removeMedia = (id: string) => {
-    setMedias((prev) => {
-      const target = prev.find((m) => m.id === id);
-      if (target) {
-        URL.revokeObjectURL(target.url);
-        objectUrlsRef.current = objectUrlsRef.current.filter((u) => u !== target.url);
-      }
-      return prev.filter((m) => m.id !== id);
-    });
-  };
 
   const goNext = () => {
     setError(null);
@@ -132,7 +71,7 @@ export function DemandeWizard() {
       const result = await createDemande({
         categoryId,
         description: description.trim(),
-        medias: medias.map(({ name, type, size }) => ({ name, type, size })),
+        medias: [],
         city: city.trim(),
         address: address.trim() || undefined,
       });
@@ -232,61 +171,6 @@ export function DemandeWizard() {
 
         {step === 2 ? (
           <div className="space-y-3">
-            <input
-              id="demande-medias"
-              type="file"
-              multiple
-              accept="image/*,video/*,audio/*"
-              onChange={(e) => {
-                handleFilesChange(e.target.files);
-                e.target.value = '';
-              }}
-              className="sr-only"
-            />
-            <label
-              htmlFor="demande-medias"
-              className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/50 px-4 py-6 text-center transition-colors hover:bg-muted"
-            >
-              <span className="text-base font-medium">Ajouter un fichier</span>
-              <span className="text-xs text-muted-foreground">
-                Photos, vidéos ou audio — jusqu’à {MAX_MEDIA_FILES} fichiers de 25 Mo max.
-              </span>
-            </label>
-
-            {medias.length > 0 ? (
-              <ul className="space-y-2">
-                {medias.map((media) => (
-                  <li key={media.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-2.5">
-                    {media.type.startsWith('image/') ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={media.url}
-                        alt={media.name}
-                        className="h-12 w-12 shrink-0 rounded-md object-cover"
-                      />
-                    ) : media.type.startsWith('video/') ? (
-                      <video src={media.url} className="h-12 w-12 shrink-0 rounded-md object-cover" />
-                    ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">
-                        Audio
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{media.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatSize(media.size)}</p>
-                    </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeMedia(media.id)}>
-                      Retirer
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-
-        {step === 3 ? (
-          <div className="space-y-3">
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Ville *</span>
               <Input
@@ -308,7 +192,7 @@ export function DemandeWizard() {
           </div>
         ) : null}
 
-        {step === 4 ? (
+        {step === 3 ? (
           <div className="space-y-4">
             <SummaryRow
               label="Catégorie"
@@ -320,12 +204,7 @@ export function DemandeWizard() {
               value={description.trim()}
               onEdit={() => jumpTo(1)}
             />
-            <SummaryRow
-              label="Médias"
-              value={medias.length === 0 ? 'Aucun fichier' : `${medias.length} fichier(s)`}
-              onEdit={() => jumpTo(2)}
-            />
-            <SummaryRow label="Localisation" value={location.address ? `${location.city} — ${location.address}` : location.city} onEdit={() => jumpTo(3)} />
+            <SummaryRow label="Localisation" value={location.address ? `${location.city} — ${location.address}` : location.city} onEdit={() => jumpTo(2)} />
           </div>
         ) : null}
 

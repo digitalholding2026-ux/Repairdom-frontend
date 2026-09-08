@@ -23,8 +23,8 @@ export default function ClientHomePage() {
           Déposez votre demande de dépannage
         </h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Racontez votre panne avec des photos, une vidéo ou un message audio. Nous trouvons le
-          technicien adapté près de chez vous.
+          Décrivez votre panne et indiquez le lieu d’intervention. Nous trouvons le technicien
+          adapté près de chez vous.
         </p>
       </section>
 
