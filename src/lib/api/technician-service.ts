@@ -25,6 +25,7 @@ export interface TechnicianDemande {
   address: string | null;
   technicianId: string | null;
   technician: { id: string; firstName: string; lastName: string | null; phone: string | null; city: string | null } | null;
+  scheduledAt: string | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -94,5 +95,17 @@ export async function getTechnicianDemande(id: string): Promise<TechnicianDemand
 export async function acceptDemande(id: string): Promise<TechnicianDemande> {
   return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/accept`, {
     method: 'POST',
+  });
+}
+
+export async function updateTechnicianDemandeStatus(
+  id: string,
+  status: string,
+  scheduledAt?: string,
+): Promise<TechnicianDemande> {
+  return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, scheduledAt }),
   });
 }

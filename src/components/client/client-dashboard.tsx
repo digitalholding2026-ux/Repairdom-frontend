@@ -15,6 +15,10 @@ const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Recherche de technicien',
   PENDING: 'En attente',
   ACCEPTED: 'Technicien trouvé',
+  SCHEDULED: 'Rendez-vous fixé',
+  IN_PROGRESS: 'Intervention en cours',
+  COMPLETED: 'Intervention terminée',
+  CONFIRMED: 'Confirmée',
   CANCELED: 'Annulée',
 };
 
@@ -22,6 +26,10 @@ const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' 
   SUBMITTED: 'info',
   PENDING: 'warning',
   ACCEPTED: 'success',
+  SCHEDULED: 'info',
+  IN_PROGRESS: 'warning',
+  COMPLETED: 'warning',
+  CONFIRMED: 'success',
   CANCELED: 'danger',
 };
 

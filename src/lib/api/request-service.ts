@@ -40,6 +40,7 @@ export interface CreateDemandeResult {
   address: string | null;
   technicianId: string | null;
   technician: TechnicianInfo | null;
+  scheduledAt: string | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -121,4 +122,12 @@ export async function listMyDemandes(): Promise<DemandeListItem[]> {
 
 export async function getDemande(id: string): Promise<DemandeListItem> {
   return apiFetch<DemandeListItem>(`/demandes/${encodeURIComponent(id)}`);
+}
+
+export async function updateDemandeStatus(id: string, status: string): Promise<DemandeListItem> {
+  return apiFetch<DemandeListItem>(`/demandes/${encodeURIComponent(id)}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
 }
