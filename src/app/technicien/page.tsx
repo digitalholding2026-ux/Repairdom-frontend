@@ -186,7 +186,7 @@ export default function TechnicianDashboardPage() {
             </p>
           </div>
           <Button
-            variant={profile?.isAvailable ? 'secondary' : 'default'}
+            variant={profile?.isAvailable ? 'secondary' : 'primary'}
             size="sm"
             onClick={handleToggleAvailability}
             isLoading={availabilityBusy}
