@@ -11,8 +11,12 @@ import { getMe, logout } from '@/lib/api/auth-service';
 import {
   listAvailableDemandes,
   listMyDemandes,
+  getTechnicianProfile,
+  updateTechnicianAvailability,
   type TechnicianDemande,
+  type TechnicianProfile,
 } from '@/lib/api/technician-service';
+import { formatRequestedTiming } from '@/lib/request-timing';
 
 const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Nouvelle',
@@ -62,6 +66,15 @@ function DemandeCard({ demande, detailHref }: { demande: TechnicianDemande; deta
             <span>·</span>
             <span>{formatDate(demande.createdAt)}</span>
           </div>
+          <p className="text-xs font-medium">
+            {demande.requestedMode === 'SCHEDULED' ? (
+              <>
+                📅 Intervention souhaitée — {formatRequestedTiming(demande.requestedMode, demande.requestedAt)}
+              </>
+            ) : (
+              <>🚨 Intervention dès que possible</>
+            )}
+          </p>
         </CardContent>
       </Card>
     </Link>
@@ -69,10 +82,13 @@ function DemandeCard({ demande, detailHref }: { demande: TechnicianDemande; deta
 }
 
 export default function TechnicianDashboardPage() {
+  const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [available, setAvailable] = useState<TechnicianDemande[]>([]);
   const [mine, setMine] = useState<TechnicianDemande[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availabilityBusy, setAvailabilityBusy] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,11 +102,13 @@ export default function TechnicianDashboardPage() {
           setLoading(false);
           return;
         }
-        const [availableList, myList] = await Promise.all([
+        const [profileData, availableList, myList] = await Promise.all([
+          getTechnicianProfile(),
           listAvailableDemandes(),
           listMyDemandes(),
         ]);
         if (!cancelled) {
+          setProfile(profileData);
           setAvailable(availableList);
           setMine(myList);
         }
@@ -108,6 +126,22 @@ export default function TechnicianDashboardPage() {
   const handleLogout = async () => {
     await logout();
     window.location.href = '/technicien/connexion';
+  };
+
+  const handleToggleAvailability = async () => {
+    if (!profile) return;
+    setAvailabilityBusy(true);
+    setAvailabilityError(null);
+    try {
+      const updated = await updateTechnicianAvailability(!profile.isAvailable);
+      setProfile(updated);
+    } catch (err) {
+      setAvailabilityError(
+        err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la disponibilité.',
+      );
+    } finally {
+      setAvailabilityBusy(false);
+    }
   };
 
   if (loading) {
@@ -139,6 +173,31 @@ export default function TechnicianDashboardPage() {
         <Button variant="ghost" size="sm" onClick={handleLogout}>
           Déconnexion
         </Button>
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">Ma disponibilité</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {profile?.isAvailable
+                ? '🟢 Disponible — interventions urgentes proposées en priorité.'
+                : '⚪ Indisponible — activez votre disponibilité pour être prioritaire sur les interventions urgentes.'}
+            </p>
+          </div>
+          <Button
+            variant={profile?.isAvailable ? 'secondary' : 'default'}
+            size="sm"
+            onClick={handleToggleAvailability}
+            isLoading={availabilityBusy}
+            disabled={!profile}
+          >
+            {profile?.isAvailable ? 'Passer indisponible' : 'Me rendre disponible'}
+          </Button>
+        </div>
+        {availabilityError ? (
+          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{availabilityError}</p>
+        ) : null}
       </section>
 
       <section>

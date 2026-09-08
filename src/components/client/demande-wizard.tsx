@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/cn';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
+import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
 import {
   createDemande,
   type RequestLocation,
 } from '@/lib/api/request-service';
 
-const STEPS = ['Catégorie', 'Description', 'Localisation', 'Récapitulatif'];
+const STEPS = ['Catégorie', 'Description', 'Localisation', 'Moment souhaité', 'Récapitulatif'];
 
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1000;
@@ -22,8 +23,15 @@ const STEP_DESCRIPTIONS = [
   'Choisissez le type de panne à dépanner.',
   'Décrivez le problème le plus précisément possible.',
   'Indiquez le lieu où nous devons intervenir.',
+  'Indiquez quand vous souhaitez être dépanné.',
   'Vérifiez votre demande avant de l’envoyer.',
 ];
+
+function nowLocalValue(): string {
+  const date = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function DemandeWizard() {
   const router = useRouter();
@@ -33,8 +41,16 @@ export function DemandeWizard() {
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
+  const [requestedMode, setRequestedMode] = useState<RequestTimingMode>('ASAP');
+  const [requestedAt, setRequestedAt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const minRequestedAt = useMemo(() => nowLocalValue(), []);
+  const requestedAtIso = useMemo(
+    () => (requestedMode === 'SCHEDULED' && requestedAt ? new Date(requestedAt).toISOString() : null),
+    [requestedMode, requestedAt],
+  );
 
   const canContinue = useMemo(() => {
     switch (step) {
@@ -44,10 +60,12 @@ export function DemandeWizard() {
         return description.trim().length >= MIN_DESCRIPTION_LENGTH;
       case 2:
         return city.trim() !== '';
+      case 3:
+        return requestedMode === 'ASAP' || requestedAt !== '';
       default:
         return true;
     }
-  }, [step, categoryId, description, city]);
+  }, [step, categoryId, description, city, requestedMode, requestedAt]);
 
   const goNext = () => {
     setError(null);
@@ -74,8 +92,14 @@ export function DemandeWizard() {
         medias: [],
         city: city.trim(),
         address: address.trim() || undefined,
+        requestedMode,
+        requestedAt: requestedAtIso ?? undefined,
       });
-      router.push(`/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}`);
+      router.push(
+        `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
+          result.id,
+        )}&mode=${encodeURIComponent(requestedMode)}&req=${encodeURIComponent(requestedAtIso ?? '')}`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);
@@ -193,6 +217,63 @@ export function DemandeWizard() {
         ) : null}
 
         {step === 3 ? (
+          <div className="space-y-3">
+            <div className="grid gap-3" role="radiogroup" aria-label="Moment souhaité">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={requestedMode === 'ASAP'}
+                onClick={() => setRequestedMode('ASAP')}
+                className={cn(
+                  'rounded-lg border p-3.5 text-left transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  requestedMode === 'ASAP'
+                    ? 'border-primary bg-secondary text-secondary-foreground'
+                    : 'border-border bg-card text-foreground hover:bg-muted',
+                )}
+              >
+                <span className="block text-sm font-semibold">Dès que possible</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  RepairDom recherchera les techniciens disponibles pouvant intervenir rapidement près de vous.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="radio"
+                aria-checked={requestedMode === 'SCHEDULED'}
+                onClick={() => setRequestedMode('SCHEDULED')}
+                className={cn(
+                  'rounded-lg border p-3.5 text-left transition-colors',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  requestedMode === 'SCHEDULED'
+                    ? 'border-primary bg-secondary text-secondary-foreground'
+                    : 'border-border bg-card text-foreground hover:bg-muted',
+                )}
+              >
+                <span className="block text-sm font-semibold">À une date et une heure précises</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Vous choisissez le moment qui vous arrange ; nous trouvons un technicien disponible à ce moment.
+                </span>
+              </button>
+            </div>
+
+            {requestedMode === 'SCHEDULED' ? (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium">Date et heure souhaitées *</span>
+                <input
+                  type="datetime-local"
+                  value={requestedAt}
+                  min={minRequestedAt}
+                  onChange={(e) => setRequestedAt(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+            ) : null}
+          </div>
+        ) : null}
+
+        {step === 4 ? (
           <div className="space-y-4">
             <SummaryRow
               label="Catégorie"
@@ -205,6 +286,11 @@ export function DemandeWizard() {
               onEdit={() => jumpTo(1)}
             />
             <SummaryRow label="Localisation" value={location.address ? `${location.city} — ${location.address}` : location.city} onEdit={() => jumpTo(2)} />
+            <SummaryRow
+              label="Moment souhaité"
+              value={formatRequestedTiming(requestedMode, requestedAtIso)}
+              onEdit={() => jumpTo(3)}
+            />
           </div>
         ) : null}
 

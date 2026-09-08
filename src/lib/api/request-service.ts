@@ -1,4 +1,5 @@
 import { siteConfig } from '@/lib/site-config';
+import type { RequestTimingMode } from '@/lib/request-timing';
 
 export interface RequestMedia {
   id: string;
@@ -19,6 +20,8 @@ export interface CreateDemandeInput {
   medias: Array<{ name: string; type: string; size: number }>;
   city: string;
   address?: string;
+  requestedMode: RequestTimingMode;
+  requestedAt?: string;
 }
 
 export interface TechnicianInfo {
@@ -41,6 +44,8 @@ export interface CreateDemandeResult {
   technicianId: string | null;
   technician: TechnicianInfo | null;
   scheduledAt: string | null;
+  requestedMode: string;
+  requestedAt: string | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -104,6 +109,8 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       description: input.description,
       city: input.city,
       address: input.address || undefined,
+      requestedMode: input.requestedMode,
+      requestedAt: input.requestedAt || undefined,
       medias: input.medias.map((m) => ({
         kind: resolveMediaKind(m.type),
         name: m.name,

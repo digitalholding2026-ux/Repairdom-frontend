@@ -3,19 +3,22 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatRequestedTiming } from '@/lib/request-timing';
 
 export const metadata: Metadata = {
   title: 'Demande envoyée',
 };
 
 interface ConfirmationPageProps {
-  searchParams: Promise<{ ref?: string | string[]; id?: string | string[] }>;
+  searchParams: Promise<{ ref?: string | string[]; id?: string | string[]; mode?: string | string[]; req?: string | string[] }>;
 }
 
 export default async function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
-  const { ref, id } = await searchParams;
+  const { ref, id, mode, req } = await searchParams;
   const requestId = Array.isArray(ref) ? ref[0] : ref;
   const demandeId = Array.isArray(id) ? id[0] : id;
+  const requestedMode = String(Array.isArray(mode) ? mode[0] : mode ?? 'ASAP');
+  const requestedAt = Array.isArray(req) ? req[0] : req ?? null;
 
   return (
     <div className="space-y-6">
@@ -27,6 +30,10 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         <p className="max-w-sm text-sm text-muted-foreground">
           Nous recherchons un technicien adapté à votre panne. Vous recevrez une confirmation
           lorsqu’un professionnel aura accepté la mission.
+        </p>
+        <p className="text-sm font-medium">
+          {requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'} :{' '}
+          {formatRequestedTiming(requestedMode, requestedAt)}
         </p>
       </section>
 

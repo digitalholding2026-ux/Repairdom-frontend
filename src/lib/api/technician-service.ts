@@ -4,6 +4,7 @@ export interface TechnicianProfile {
   id: string;
   city: string;
   categories: string[];
+  isAvailable: boolean;
   createdAt: string;
   user: {
     firstName: string;
@@ -26,6 +27,8 @@ export interface TechnicianDemande {
   technicianId: string | null;
   technician: { id: string; firstName: string; lastName: string | null; phone: string | null; city: string | null } | null;
   scheduledAt: string | null;
+  requestedMode: string;
+  requestedAt: string | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -70,13 +73,22 @@ export async function getTechnicianProfile(): Promise<TechnicianProfile> {
 }
 
 export async function updateTechnicianProfile(data: {
-  city: string;
-  categories: string[];
+  city?: string;
+  categories?: string[];
+  isAvailable?: boolean;
 }): Promise<TechnicianProfile> {
   return apiFetch<TechnicianProfile>('/technician/profile', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateTechnicianAvailability(isAvailable: boolean): Promise<TechnicianProfile> {
+  return apiFetch<TechnicianProfile>('/technician/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ isAvailable }),
   });
 }
 

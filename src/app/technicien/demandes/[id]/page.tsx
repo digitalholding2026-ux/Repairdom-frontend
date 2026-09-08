@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ConversationSection } from '@/components/mission/conversation-section';
+import { formatRequestedTiming } from '@/lib/request-timing';
 import {
   getTechnicianDemande,
   acceptDemande,
@@ -290,6 +291,19 @@ export default function TechnicianDemandeDetailPage() {
           <div className="space-y-2">
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Localisation</h2>
             <p className="text-sm font-medium">{demande.city}</p>
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {demande.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée par le client' : 'Intervention'}
+            </h2>
+            <p className="text-sm font-medium">
+              {demande.requestedMode === 'SCHEDULED' ? (
+                <>📅 {formatRequestedTiming(demande.requestedMode, demande.requestedAt)}</>
+              ) : (
+                <>🚨 Intervention dès que possible</>
+              )}
+            </p>
           </div>
 
           <div className="space-y-2">

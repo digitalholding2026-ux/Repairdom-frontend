@@ -10,6 +10,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { getMe, logout, homePathForRole } from '@/lib/api/auth-service';
 import { listMyDemandes, type DemandeListItem } from '@/lib/api/request-service';
+import { formatRequestedTiming } from '@/lib/request-timing';
 
 const STATUS_LABELS: Record<string, string> = {
   SUBMITTED: 'Recherche de technicien',
@@ -144,6 +145,10 @@ export function ClientDashboard() {
                     <span>·</span>
                     <span>{formatDate(d.createdAt)}</span>
                   </div>
+                  <p className="text-xs font-medium text-foreground">
+                    {d.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'} :{' '}
+                    {formatRequestedTiming(d.requestedMode, d.requestedAt)}
+                  </p>
                 </CardContent>
               </Card>
             </Link>
