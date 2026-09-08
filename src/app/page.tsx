@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { siteConfig } from '@/lib/site-config';
+import Link from 'next/link';
 
 const features = [
   {
@@ -43,7 +44,9 @@ export default function HomePage() {
             {siteConfig.description}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg">Devenir client</Button>
+            <Link href="/client">
+              <Button size="lg">Devenir client</Button>
+            </Link>
             <Button size="lg" variant="secondary">
               Devenir technicien
             </Button>
