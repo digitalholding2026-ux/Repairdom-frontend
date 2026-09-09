@@ -128,7 +128,7 @@ export default function ClientTechnicianProfilePage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {profile.categories.map((id) => (
-              <Badge key={id} variant="secondary">
+              <Badge key={id} variant="neutral">
                 🔧 {categoryLabel(id)}
               </Badge>
             ))}
@@ -143,7 +143,7 @@ export default function ClientTechnicianProfilePage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {profile.specialties.map((specialty) => (
-              <Badge key={specialty} variant="outline">
+              <Badge key={specialty} variant="neutral">
                 {specialty}
               </Badge>
             ))}
