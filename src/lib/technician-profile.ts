@@ -26,6 +26,15 @@ export function kycIsVerified(status: string): boolean {
   return status === 'VERIFIED';
 }
 
+export const KYC_DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  IDENTITY: 'Pièce d’identité',
+  PROFESSIONAL: 'Justificatif professionnel',
+};
+
+export function kycDocumentTypeLabel(type: string): string {
+  return KYC_DOCUMENT_TYPE_LABELS[type] ?? type;
+}
+
 export function categoryLabel(id: string): string {
   return REQUEST_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 }

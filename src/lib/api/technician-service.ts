@@ -131,6 +131,41 @@ export async function uploadTechnicianAvatar(file: File): Promise<TechnicianProf
   });
 }
 
+export interface KycDocumentMetadata {
+  id: string;
+  type: string;
+  originalName: string;
+  createdAt: string;
+}
+
+export interface TechnicianKycOverview {
+  status: string;
+  documents: KycDocumentMetadata[];
+}
+
+export async function getTechnicianKyc(): Promise<TechnicianKycOverview> {
+  return apiFetch<TechnicianKycOverview>('/technician/kyc');
+}
+
+export async function uploadTechnicianKycDocument(
+  file: File,
+  type: string,
+): Promise<TechnicianKycOverview> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('type', type);
+  return apiFetch<TechnicianKycOverview>('/technician/kyc/documents', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export async function deleteTechnicianKycDocument(id: string): Promise<TechnicianKycOverview> {
+  return apiFetch<TechnicianKycOverview>(`/technician/kyc/documents/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
 export async function getPublicTechnicianProfile(id: string): Promise<PublicTechnicianProfile> {
   return apiFetch<PublicTechnicianProfile>(`/technicians/${encodeURIComponent(id)}/profile`);
 }

@@ -14,16 +14,40 @@ import {
   getTechnicianProfile,
   updateTechnicianProfile,
   uploadTechnicianAvatar,
+  getTechnicianKyc,
+  uploadTechnicianKycDocument,
+  deleteTechnicianKycDocument,
   type TechnicianProfile,
+  type TechnicianKycOverview,
 } from '@/lib/api/technician-service';
-import { kycStatusLabel, kycVariantFor, technicianInitials } from '@/lib/technician-profile';
+import {
+  kycStatusLabel,
+  kycVariantFor,
+  kycDocumentTypeLabel,
+  technicianInitials,
+} from '@/lib/technician-profile';
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 
+const ALLOWED_KYC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const MAX_KYC_SIZE = 10 * 1024 * 1024;
+
 function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
   return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
 }
 
 export default function TechnicianProfilePage() {
@@ -46,14 +70,25 @@ export default function TechnicianProfilePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [photoUploaded, setPhotoUploaded] = useState(false);
 
+  const [kyc, setKyc] = useState<TechnicianKycOverview | null>(null);
+  const [kycLoading, setKycLoading] = useState(true);
+  const [kycError, setKycError] = useState<string | null>(null);
+  const [kycSuccess, setKycSuccess] = useState<string | null>(null);
+  const [showKycForm, setShowKycForm] = useState(false);
+  const [uploadingKycType, setUploadingKycType] = useState<string | null>(null);
+  const [deletingKycId, setDeletingKycId] = useState<string | null>(null);
+  const identityInputRef = useRef<HTMLInputElement>(null);
+  const professionalInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const p = await getTechnicianProfile();
+        const [p, k] = await Promise.all([getTechnicianProfile(), getTechnicianKyc()]);
         if (cancelled) return;
         setProfile(p);
+        setKyc(k);
         setCity(p.city);
         setCategories(p.categories);
         setSpecialties(p.specialties.join(', '));
@@ -63,7 +98,10 @@ export default function TechnicianProfilePage() {
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setKycLoading(false);
+        }
       }
     }
 
@@ -104,7 +142,7 @@ export default function TechnicianProfilePage() {
     }
   };
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
@@ -132,6 +170,51 @@ export default function TechnicianProfilePage() {
     } finally {
       setUploading(false);
       setUploadingName(null);
+    }
+  };
+
+  const handleKycFileChange = async (type: string, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setKycError(null);
+    setKycSuccess(null);
+
+    if (!ALLOWED_KYC_TYPES.includes(file.type)) {
+      setKycError('Format non supporté. Formats acceptés : PDF, JPG, PNG, WEBP.');
+      return;
+    }
+    if (file.size > MAX_KYC_SIZE) {
+      setKycError('Le fichier dépasse 10 Mo.');
+      return;
+    }
+
+    setUploadingKycType(type);
+    try {
+      const overview = await uploadTechnicianKycDocument(file, type);
+      setKyc(overview);
+      setKycSuccess(`${file.name} a bien été envoyé.`);
+    } catch (err) {
+      setKycError(err instanceof Error ? err.message : 'Erreur lors de l’envoi du document.');
+    } finally {
+      setUploadingKycType(null);
+    }
+  };
+
+  const handleKycDelete = async (id: string) => {
+    if (!kyc) return;
+    setKycError(null);
+    setKycSuccess(null);
+    setDeletingKycId(id);
+    try {
+      const overview = await deleteTechnicianKycDocument(id);
+      setKyc(overview);
+      setKycSuccess('Document retiré.');
+    } catch (err) {
+      setKycError(err instanceof Error ? err.message : 'Erreur lors de la suppression.');
+    } finally {
+      setDeletingKycId(null);
     }
   };
 
@@ -190,7 +273,7 @@ export default function TechnicianProfilePage() {
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                onChange={handleFileChange}
+                onChange={handleAvatarFileChange}
               />
               {uploading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -352,6 +435,151 @@ export default function TechnicianProfilePage() {
               Voir mon profil public
             </Button>
           </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Vérification de votre profil</CardTitle>
+          <CardDescription>RepairDom vérifie manuellement votre identité.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {kycLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Spinner size="sm" /> Chargement…
+            </div>
+          ) : kyc ? (
+            <>
+              <div>
+                <Badge variant={kycVariantFor(kyc.status)}>{kycStatusLabel(kyc.status)}</Badge>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {kyc.status === 'NOT_SUBMITTED'
+                  ? 'Votre identité n’est pas encore vérifiée. Envoyez vos justificatifs pour permettre à RepairDom de vérifier votre profil.'
+                  : kyc.status === 'PENDING'
+                    ? 'Votre dossier est en cours de vérification par RepairDom.'
+                    : kyc.status === 'VERIFIED'
+                      ? 'Profil vérifié par RepairDom.'
+                      : 'Votre dossier nécessite une nouvelle soumission.'}
+              </p>
+
+              {kyc.documents.length > 0 ? (
+                <div className="space-y-2">
+                  <span className="block text-sm font-medium">Documents envoyés</span>
+                  <ul className="space-y-2">
+                    {kyc.documents.map((document) => (
+                      <li
+                        key={document.id}
+                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">
+                            {kycDocumentTypeLabel(document.type)}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {document.originalName} · {formatDate(document.createdAt)}
+                          </p>
+                        </div>
+                        {kyc.status === 'VERIFIED' ? (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            Conservé par RepairDom
+                          </span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleKycDelete(document.id)}
+                            disabled={deletingKycId === document.id || uploadingKycType !== null}
+                            className="shrink-0"
+                          >
+                            {deletingKycId === document.id ? 'Suppression…' : 'Retirer'}
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {kyc.status === 'VERIFIED' ? null : !showKycForm ? (
+                <Button className="w-full" onClick={() => setShowKycForm(true)} disabled={uploadingKycType !== null}>
+                  {kyc.status === 'NOT_SUBMITTED' ? 'Commencer la vérification' : 'Ajouter un document'}
+                </Button>
+              ) : (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <p className="text-sm font-medium">Envoyer un justificatif</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Pièce d’identité</p>
+                        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, WEBP · 10 Mo max.</p>
+                      </div>
+                      <input
+                        ref={identityInputRef}
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => handleKycFileChange('IDENTITY', event)}
+                      />
+                      {uploadingKycType === 'IDENTITY' ? (
+                        <span className="shrink-0 text-sm text-muted-foreground">Envoi…</span>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => identityInputRef.current?.click()}
+                        >
+                          Choisir un fichier
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Justificatif professionnel</p>
+                        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, WEBP · 10 Mo max.</p>
+                      </div>
+                      <input
+                        ref={professionalInputRef}
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => handleKycFileChange('PROFESSIONAL', event)}
+                      />
+                      {uploadingKycType === 'PROFESSIONAL' ? (
+                        <span className="shrink-0 text-sm text-muted-foreground">Envoi…</span>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="shrink-0"
+                          onClick={() => professionalInputRef.current?.click()}
+                        >
+                          Choisir un fichier
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {kycError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
+                  {kycError}
+                </p>
+              ) : null}
+              {kycSuccess ? (
+                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  {kycSuccess}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-red-600 dark:text-red-300">
+              {kycError ?? 'Impossible de charger votre dossier.'}
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
