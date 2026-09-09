@@ -96,7 +96,9 @@ export async function getMe(): Promise<AuthUser> {
 }
 
 export function homePathForRole(role: string | undefined): string {
-  return role === 'TECHNICIAN' ? '/technicien' : '/client';
+  if (role === 'TECHNICIAN') return '/technicien';
+  if (role === 'ADMIN') return '/admin/kyc';
+  return '/client';
 }
 
 export async function logout(): Promise<void> {

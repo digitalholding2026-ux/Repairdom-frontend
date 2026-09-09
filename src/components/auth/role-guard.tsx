@@ -6,7 +6,7 @@ import { getMe, homePathForRole } from '@/lib/api/auth-service';
 import { Spinner } from '@/components/ui/spinner';
 
 interface RoleGuardProps {
-  expectedRole: 'CLIENT' | 'TECHNICIAN';
+  expectedRole: 'CLIENT' | 'TECHNICIAN' | 'ADMIN';
   publicPaths: string[];
   children: ReactNode;
 }

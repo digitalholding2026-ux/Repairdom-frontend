@@ -460,9 +460,16 @@ export default function TechnicianProfilePage() {
                   : kyc.status === 'PENDING'
                     ? 'Votre dossier est en cours de vérification par RepairDom.'
                     : kyc.status === 'VERIFIED'
-                      ? 'Profil vérifié par RepairDom.'
-                      : 'Votre dossier nécessite une nouvelle soumission.'}
+                      ? '✓ Profil vérifié par RepairDom.'
+                      : 'Votre dossier a été rejeté.'}
               </p>
+
+              {kyc.status === 'REJECTED' && kyc.kycRejectionReason ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/30 dark:text-amber-300">
+                  <span className="block font-medium">Motif du rejet</span>
+                  <p className="mt-0.5 text-xs">{kyc.kycRejectionReason}</p>
+                </div>
+              ) : null}
 
               {kyc.documents.length > 0 ? (
                 <div className="space-y-2">
@@ -504,7 +511,11 @@ export default function TechnicianProfilePage() {
 
               {kyc.status === 'VERIFIED' ? null : !showKycForm ? (
                 <Button className="w-full" onClick={() => setShowKycForm(true)} disabled={uploadingKycType !== null}>
-                  {kyc.status === 'NOT_SUBMITTED' ? 'Commencer la vérification' : 'Ajouter un document'}
+                  {kyc.status === 'NOT_SUBMITTED'
+                    ? 'Commencer la vérification'
+                    : kyc.status === 'REJECTED'
+                      ? 'Soumettre à nouveau'
+                      : 'Ajouter un document'}
                 </Button>
               ) : (
                 <div className="space-y-3 rounded-lg border border-border p-3">

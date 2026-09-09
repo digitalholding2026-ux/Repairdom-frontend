@@ -11,6 +11,7 @@ export interface TechnicianProfile {
   serviceDescription: string | null;
   specialties: string[];
   kycStatus: string;
+  kycRejectionReason: string | null;
   completedInterventions: number;
   createdAt: string;
   user: {
@@ -140,6 +141,7 @@ export interface KycDocumentMetadata {
 
 export interface TechnicianKycOverview {
   status: string;
+  kycRejectionReason: string | null;
   documents: KycDocumentMetadata[];
 }
 
