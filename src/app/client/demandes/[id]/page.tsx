@@ -295,14 +295,20 @@ export default function ClientDemandeDetailPage() {
           {demande.technician ? (
             <div className="space-y-2">
               <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Technicien assigné</h2>
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
+              <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
                 <p className="text-sm font-medium">
                   {demande.technician.firstName}
                   {demande.technician.lastName ? ` ${demande.technician.lastName}` : ''}
                 </p>
                 {demande.technician.city ? (
-                  <p className="mt-1 text-xs text-muted-foreground">{demande.technician.city}</p>
+                  <p className="text-xs text-muted-foreground">{demande.technician.city}</p>
                 ) : null}
+                <Link
+                  href={`/client/technicien/${demande.technician.id}`}
+                  className="inline-flex text-sm font-medium text-primary hover:underline"
+                >
+                  Voir le profil
+                </Link>
               </div>
             </div>
           ) : (

@@ -5,6 +5,13 @@ export interface TechnicianProfile {
   city: string;
   categories: string[];
   isAvailable: boolean;
+  avatarUrl: string | null;
+  bio: string | null;
+  experience: string | null;
+  serviceDescription: string | null;
+  specialties: string[];
+  kycStatus: string;
+  completedInterventions: number;
   createdAt: string;
   user: {
     firstName: string;
@@ -13,6 +20,24 @@ export interface TechnicianProfile {
     email: string;
     role: string;
   };
+}
+
+export interface PublicTechnicianProfile {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
+  city: string;
+  categories: string[];
+  specialties: string[];
+  bio: string | null;
+  experience: string | null;
+  serviceDescription: string | null;
+  isAvailable: boolean;
+  kycStatus: string;
+  completedInterventions: number;
+  registeredAt: string;
 }
 
 export interface TechnicianDemande {
@@ -76,6 +101,11 @@ export async function updateTechnicianProfile(data: {
   city?: string;
   categories?: string[];
   isAvailable?: boolean;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  experience?: string | null;
+  serviceDescription?: string | null;
+  specialties?: string[];
 }): Promise<TechnicianProfile> {
   return apiFetch<TechnicianProfile>('/technician/profile', {
     method: 'PATCH',
@@ -90,6 +120,10 @@ export async function updateTechnicianAvailability(isAvailable: boolean): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isAvailable }),
   });
+}
+
+export async function getPublicTechnicianProfile(id: string): Promise<PublicTechnicianProfile> {
+  return apiFetch<PublicTechnicianProfile>(`/technicians/${encodeURIComponent(id)}/profile`);
 }
 
 export async function listAvailableDemandes(): Promise<TechnicianDemande[]> {

@@ -168,11 +168,18 @@ export default function TechnicianDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center justify-between">
+      <section className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">Demandes disponibles</h1>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          Déconnexion
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/technicien/profil">
+            <Button variant="secondary" size="sm">
+              Mon profil
+            </Button>
+          </Link>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            Déconnexion
+          </Button>
+        </div>
       </section>
 
       <section className="rounded-lg border border-border bg-card p-4">
