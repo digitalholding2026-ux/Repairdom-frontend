@@ -8,7 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ConversationSection } from '@/components/mission/conversation-section';
+import { RatingSection } from '@/components/mission/rating-section';
 import { formatRequestedTiming } from '@/lib/request-timing';
+import { formatReputation } from '@/lib/api/review-service';
 import {
   getTechnicianDemande,
   acceptDemande,
@@ -318,6 +320,22 @@ export default function TechnicianDemandeDetailPage() {
             </div>
           ) : null}
 
+          {demande.client ? (
+            <div className="space-y-2">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Client</h2>
+              <div className="rounded-lg border border-border bg-muted/50 p-3">
+                <p className="text-sm font-medium">
+                  {[demande.client.firstName, demande.client.lastName].filter(Boolean).join(' ')}
+                </p>
+                {demande.clientReputation ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatReputation(demande.clientReputation)}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
           {error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
               {error}
@@ -571,6 +589,14 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {demande.status === 'CONFIRMED' ? (
+        <RatingSection
+          demandeId={demande.id}
+          title="Votre avis sur le client"
+          alreadyRatedLabel="Vous avez déjà évalué ce client pour cette intervention."
+        />
+      ) : null}
     </div>
   );
 }

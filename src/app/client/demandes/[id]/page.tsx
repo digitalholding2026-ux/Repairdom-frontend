@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ConversationSection } from '@/components/mission/conversation-section';
+import { RatingSection } from '@/components/mission/rating-section';
 import { formatRequestedTiming } from '@/lib/request-timing';
 import {
   getDemande,
@@ -448,6 +449,14 @@ export default function ClientDemandeDetailPage() {
             )}
           </CardContent>
         </Card>
+      ) : null}
+
+      {demande.technician && demande.status === 'CONFIRMED' ? (
+        <RatingSection
+          demandeId={demande.id}
+          title="Votre avis sur le technicien"
+          alreadyRatedLabel="Vous avez déjà évalué cette intervention."
+        />
       ) : null}
     </div>
   );

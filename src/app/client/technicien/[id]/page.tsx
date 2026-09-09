@@ -13,6 +13,11 @@ import {
   type PublicTechnicianProfile,
 } from '@/lib/api/technician-service';
 import {
+  getTechnicianReputation,
+  formatReputation,
+  type Reputation,
+} from '@/lib/api/review-service';
+import {
   categoryLabel,
   kycStatusLabel,
   kycVariantFor,
@@ -40,6 +45,7 @@ function Avatar({ profile }: { profile: PublicTechnicianProfile }) {
 export default function ClientTechnicianProfilePage() {
   const params = useParams<{ id: string }>();
   const [profile, setProfile] = useState<PublicTechnicianProfile | null>(null);
+  const [reputation, setReputation] = useState<Reputation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,9 +59,16 @@ export default function ClientTechnicianProfilePage() {
         if (!cancelled) setProfile(p);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
-      } finally {
         if (!cancelled) setLoading(false);
+        return;
       }
+      try {
+        const r = await getTechnicianReputation(params.id);
+        if (!cancelled) setReputation(r);
+      } catch {
+        // La réputation est optionnelle : ne bloque pas l'affichage du profil.
+      }
+      if (!cancelled) setLoading(false);
     }
 
     load();
@@ -109,6 +122,11 @@ export default function ClientTechnicianProfilePage() {
                   {profile.isAvailable ? '🟢 Disponible' : '⚪ Indisponible'}
                 </Badge>
               </div>
+              {reputation ? (
+                <p className="mt-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
+                  {formatReputation(reputation)}
+                </p>
+              ) : null}
             </div>
           </div>
 

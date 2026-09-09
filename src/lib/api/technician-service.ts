@@ -66,6 +66,8 @@ export interface TechnicianDemande {
   mediaPersisted: boolean;
   storageStatus: string;
   createdAt: string;
+  client?: { id: string; firstName: string; lastName: string | null } | null;
+  clientReputation?: { averageRating: number | null; totalReviews: number } | null;
 }
 
 class ApiError extends Error {
