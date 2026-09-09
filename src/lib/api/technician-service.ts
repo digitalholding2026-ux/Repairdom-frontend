@@ -122,6 +122,15 @@ export async function updateTechnicianAvailability(isAvailable: boolean): Promis
   });
 }
 
+export async function uploadTechnicianAvatar(file: File): Promise<TechnicianProfile> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiFetch<TechnicianProfile>('/technician/profile/avatar', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
 export async function getPublicTechnicianProfile(id: string): Promise<PublicTechnicianProfile> {
   return apiFetch<PublicTechnicianProfile>(`/technicians/${encodeURIComponent(id)}/profile`);
 }

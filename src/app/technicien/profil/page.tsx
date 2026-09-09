@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,18 @@ import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import {
   getTechnicianProfile,
   updateTechnicianProfile,
+  uploadTechnicianAvatar,
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
-import { kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
+import { kycStatusLabel, kycVariantFor, technicianInitials } from '@/lib/technician-profile';
+
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+  return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+}
 
 export default function TechnicianProfilePage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
@@ -24,13 +33,18 @@ export default function TechnicianProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const [avatarUrl, setAvatarUrl] = useState('');
   const [city, setCity] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState('');
   const [experience, setExperience] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
   const [bio, setBio] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadingName, setUploadingName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [photoUploaded, setPhotoUploaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,7 +54,6 @@ export default function TechnicianProfilePage() {
         const p = await getTechnicianProfile();
         if (cancelled) return;
         setProfile(p);
-        setAvatarUrl(p.avatarUrl ?? '');
         setCity(p.city);
         setCategories(p.categories);
         setSpecialties(p.specialties.join(', '));
@@ -74,7 +87,6 @@ export default function TechnicianProfilePage() {
       const updated = await updateTechnicianProfile({
         city: city.trim(),
         categories,
-        avatarUrl: avatarUrl.trim() || null,
         bio: bio.trim() || null,
         experience: experience.trim() || null,
         serviceDescription: serviceDescription.trim() || null,
@@ -89,6 +101,37 @@ export default function TechnicianProfilePage() {
       setError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploadError(null);
+    setPhotoUploaded(false);
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setUploadError('Format non supporté. Choisissez une image JPG, PNG ou WEBP.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE) {
+      setUploadError('Le fichier dépasse 5 Mo.');
+      return;
+    }
+
+    setUploading(true);
+    setUploadingName(`${file.name} (${formatFileSize(file.size)})`);
+    try {
+      const updated = await uploadTechnicianAvatar(file);
+      setProfile(updated);
+      setPhotoUploaded(true);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Erreur lors de l’envoi de la photo.');
+    } finally {
+      setUploading(false);
+      setUploadingName(null);
     }
   };
 
@@ -113,6 +156,8 @@ export default function TechnicianProfilePage() {
     );
   }
 
+  const currentAvatar = profile.avatarUrl;
+
   return (
     <div className="space-y-4">
       <Link href="/technicien" className="text-sm font-medium text-primary hover:underline">
@@ -127,16 +172,55 @@ export default function TechnicianProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Photo (URL)</span>
-              <Input
-                value={avatarUrl}
-                onChange={(event) => setAvatarUrl(event.target.value)}
-                placeholder="https://exemple.com/photo.jpg"
-                maxLength={510}
+          <div className="flex items-start gap-4">
+            {currentAvatar ? (
+              <img
+                src={currentAvatar}
+                alt="Photo de profil"
+                className="size-20 shrink-0 rounded-full border border-border object-cover"
               />
-            </label>
+            ) : (
+              <div className="flex size-20 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xl font-semibold text-muted-foreground">
+                {technicianInitials(profile.user.firstName, profile.user.lastName)}
+              </div>
+            )}
+            <div className="flex-1 space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {uploading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Spinner size="sm" />
+                  <span className="truncate">Envoi de {uploadingName ?? 'la photo'}…</span>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant={currentAvatar ? 'secondary' : 'primary'}
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {currentAvatar ? 'Modifier la photo' : 'Ajouter une photo'}
+                </Button>
+              )}
+              {!uploading && !uploadError && !photoUploaded ? (
+                <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP · 5 Mo maximum.</p>
+              ) : null}
+              {photoUploaded ? (
+                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  Photo mise à jour.
+                </p>
+              ) : null}
+              {uploadError ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
+                  {uploadError}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -263,13 +347,11 @@ export default function TechnicianProfilePage() {
             <span className="text-sm text-muted-foreground">Interventions réalisées</span>
             <span className="text-sm font-semibold">{profile.completedInterventions}</span>
           </div>
-          {profile?.id ? (
-            <Link href={`/client/technicien/${profile.id}`} className="block">
-              <Button variant="secondary" className="w-full">
-                Voir mon profil public
-              </Button>
-            </Link>
-          ) : null}
+          <Link href={`/client/technicien/${profile.id}`} className="block">
+            <Button variant="secondary" className="w-full">
+              Voir mon profil public
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>
