@@ -3,13 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Avatar } from '@/components/ui/avatar';
+import { Icon } from '@/components/ui/icon';
+import { Alert } from '@/components/ui/alert';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
+import { MissionInfo } from '@/components/mission/mission-info';
+import { DemandeProgress } from '@/components/mission/demande-progress';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
-import { formatRequestedTiming } from '@/lib/request-timing';
+import { formatTime, fullName } from '@/lib/format';
 import {
   getDemande,
   updateDemandeStatus,
@@ -22,87 +28,7 @@ import {
   type MissionQuote,
 } from '@/lib/api/request-service';
 
-const STATUS_LABELS: Record<string, string> = {
-  SUBMITTED: 'Recherche de technicien',
-  PENDING: 'En attente',
-  ACCEPTED: 'Technicien trouvé',
-  SCHEDULED: 'Rendez-vous fixé',
-  IN_PROGRESS: 'Intervention en cours',
-  COMPLETED: 'Intervention terminée',
-  CONFIRMED: 'Confirmée',
-  CANCELED: 'Annulée',
-};
-
-const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  SUBMITTED: 'info',
-  PENDING: 'warning',
-  ACCEPTED: 'success',
-  SCHEDULED: 'info',
-  IN_PROGRESS: 'warning',
-  COMPLETED: 'warning',
-  CONFIRMED: 'success',
-  CANCELED: 'danger',
-};
-
-const QUOTE_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'En attente',
-  ACCEPTED: 'Tarif accepté',
-  REJECTED: 'Tarif refusé',
-};
-
-const QUOTE_STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  PENDING: 'warning',
-  ACCEPTED: 'success',
-  REJECTED: 'neutral',
-};
-
 const POLL_INTERVAL_MS = 5000;
-
-const PROGRESS_STEPS = [
-  'Demande déposée',
-  'Technicien trouvé',
-  'Rendez-vous fixé',
-  'Intervention en cours',
-  'Intervention terminée',
-  'Confirmée',
-];
-
-const STATUS_STEP_INDEX: Record<string, number> = {
-  SUBMITTED: 0,
-  PENDING: 0,
-  ACCEPTED: 1,
-  SCHEDULED: 2,
-  IN_PROGRESS: 3,
-  COMPLETED: 4,
-  CONFIRMED: 5,
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
@@ -198,9 +124,7 @@ export default function ClientDemandeDetailPage() {
   if (error && !demande) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
+        <Alert variant="error">{error}</Alert>
         <Link href="/client/demandes">
           <Button variant="secondary">Retour à mes demandes</Button>
         </Link>
@@ -210,7 +134,6 @@ export default function ClientDemandeDetailPage() {
 
   if (!demande) return null;
 
-  const stepIndex = STATUS_STEP_INDEX[demande.status];
   const canCancel = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED'].includes(demande.status);
   const canDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
   const latestDiagnostic = diagnostics[0] ?? null;
@@ -218,114 +141,66 @@ export default function ClientDemandeDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/client/demandes" className="text-sm font-medium text-primary hover:underline">
-        ← Retour à mes demandes
-      </Link>
+      <PageHeader title="Détail de la demande" backHref="/client/demandes" />
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-mono text-lg font-semibold text-primary">{demande.reference}</span>
-            <Badge variant={STATUS_VARIANTS[demande.status] ?? 'neutral'}>
-              {STATUS_LABELS[demande.status] ?? demande.status}
-            </Badge>
+            <DemandeStatusBadge status={demande.status} context="client" />
           </div>
           <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</h2>
-            <p className="whitespace-pre-line text-sm">{demande.description}</p>
-          </div>
+          <MissionInfo
+            description={demande.description}
+            city={demande.city}
+            requestedMode={demande.requestedMode}
+            requestedAt={demande.requestedAt}
+            createdAt={demande.createdAt}
+            scheduledAt={demande.scheduledAt}
+          />
 
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Localisation</h2>
-            <p className="text-sm font-medium">{demande.city}</p>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {demande.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'}
-            </h2>
-            <p className="text-sm font-medium">{formatRequestedTiming(demande.requestedMode, demande.requestedAt)}</p>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Date de la demande</h2>
-            <p className="text-sm">{formatDate(demande.createdAt)}</p>
-          </div>
-
-          {demande.scheduledAt ? (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rendez-vous prévu</h2>
-              <p className="text-sm font-medium">{formatDateTime(demande.scheduledAt)}</p>
+          {demande.status !== 'CANCELED' ? (
+            <div className="space-y-3">
+              <SectionHeader title="Avancement" />
+              <div className="rounded-xl border border-border bg-card p-4">
+                <DemandeProgress status={demande.status} />
+              </div>
             </div>
           ) : null}
 
-          {demande.status === 'CANCELED' ? null : stepIndex !== undefined ? (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Avancement</h2>
-              <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
-                {PROGRESS_STEPS.map((label, index) => (
-                  <li key={label} className="flex items-center gap-2">
-                    <span
-                      className={
-                        index <= stepIndex
-                          ? 'flex size-3 items-center justify-center rounded-full bg-primary'
-                          : 'flex size-3 items-center justify-center rounded-full border border-muted-foreground/40'
-                      }
-                    />
-                    <span
-                      className={
-                        index <= stepIndex
-                          ? 'text-xs font-medium text-foreground'
-                          : 'text-xs text-muted-foreground'
-                      }
-                    >
-                      {label}
-                    </span>
-                    {index < PROGRESS_STEPS.length - 1 ? (
-                      <span className="text-muted-foreground/40">·</span>
+          <div className="space-y-3">
+            <SectionHeader title={demande.technician ? 'Technicien assigné' : 'Technicien'} />
+            {demande.technician ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar
+                    size="lg"
+                    firstName={demande.technician.firstName ?? ''}
+                    lastName={demande.technician.lastName}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{fullName(demande.technician.firstName, demande.technician.lastName)}</p>
+                    {demande.technician.city ? (
+                      <p className="text-xs text-muted-foreground">{demande.technician.city}</p>
                     ) : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ) : null}
-
-          {demande.technician ? (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Technicien assigné</h2>
-              <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
-                <p className="text-sm font-medium">
-                  {demande.technician.firstName}
-                  {demande.technician.lastName ? ` ${demande.technician.lastName}` : ''}
-                </p>
-                {demande.technician.city ? (
-                  <p className="text-xs text-muted-foreground">{demande.technician.city}</p>
-                ) : null}
-                <Link
-                  href={`/client/technicien/${demande.technician.id}`}
-                  className="inline-flex text-sm font-medium text-primary hover:underline"
-                >
-                  Voir le profil
+                  </div>
+                </div>
+                <Link href={`/client/technicien/${demande.technician.id}`} className="shrink-0">
+                  <Button variant="outline" size="sm">
+                    Voir le profil
+                  </Button>
                 </Link>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Technicien</h2>
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
-                <p className="text-sm text-muted-foreground">Recherche d&apos;un technicien adapté à votre panne…</p>
-              </div>
-            </div>
-          )}
+            ) : (
+              <Alert variant="neutral" icon="search">
+                Recherche d&apos;un technicien adapté à votre panne…
+              </Alert>
+            )}
+          </div>
 
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-              {error}
-            </div>
-          ) : null}
+          {error ? <Alert variant="error">{error}</Alert> : null}
 
           {demande.status === 'COMPLETED' ? (
             <Button
@@ -355,7 +230,10 @@ export default function ClientDemandeDetailPage() {
       {demande.technician ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Discussion avec votre technicien</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="chat" size="sm" className="text-muted-foreground" />
+              Discussion avec votre technicien
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
@@ -366,23 +244,25 @@ export default function ClientDemandeDetailPage() {
       {demande.technician ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Diagnostic proposé par le technicien</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="file" size="sm" className="text-muted-foreground" />
+              Diagnostic proposé par le technicien
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {latestDiagnostic ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
                 {latestDiagnostic.recommendation ? (
-                  <div className="rounded-lg border border-border bg-muted/50 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recommandation</p>
-                    <p className="mt-1 whitespace-pre-line text-sm">{latestDiagnostic.recommendation}</p>
-                  </div>
+                  <Alert variant="info" title="Recommandation">
+                    <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
+                  </Alert>
                 ) : null}
-                <p className="text-xs text-muted-foreground">
-                  {[latestDiagnostic.technician.firstName, latestDiagnostic.technician.lastName]
-                    .filter(Boolean)
-                    .join(' ')}{' '}
-                  · {formatTime(latestDiagnostic.createdAt)}
+                <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Icon name="user" size="3.5" />
+                  {fullName(latestDiagnostic.technician.firstName, latestDiagnostic.technician.lastName)}
+                  <span aria-hidden>·</span>
+                  {formatTime(latestDiagnostic.createdAt)}
                 </p>
               </div>
             ) : (
@@ -397,16 +277,17 @@ export default function ClientDemandeDetailPage() {
       {demande.technician ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Proposition d&apos;intervention</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="badge-check" size="sm" className="text-muted-foreground" />
+              Proposition d&apos;intervention
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {latestQuote ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-lg font-semibold">{formatQuoteAmount(latestQuote)}</span>
-                  <Badge variant={QUOTE_STATUS_VARIANTS[latestQuote.status] ?? 'neutral'}>
-                    {QUOTE_STATUS_LABELS[latestQuote.status] ?? latestQuote.status}
-                  </Badge>
+                  <span className="text-lg font-bold">{formatQuoteAmount(latestQuote)}</span>
+                  <QuoteStatusBadge status={latestQuote.status} />
                 </div>
                 <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
 
@@ -431,15 +312,15 @@ export default function ClientDemandeDetailPage() {
                 ) : null}
 
                 {latestQuote.status === 'ACCEPTED' ? (
-                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <Alert variant="success" dense>
                     Tarif accepté. Le technicien peut maintenant planifier l&apos;intervention.
-                  </p>
+                  </Alert>
                 ) : null}
 
                 {latestQuote.status === 'REJECTED' ? (
-                  <p className="text-sm text-muted-foreground">
+                  <Alert variant="neutral" dense>
                     Tarif refusé. Le technicien peut proposer une nouvelle proposition.
-                  </p>
+                  </Alert>
                 ) : null}
               </div>
             ) : (

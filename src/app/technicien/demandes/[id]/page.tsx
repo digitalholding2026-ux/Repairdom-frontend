@@ -3,13 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Avatar } from '@/components/ui/avatar';
+import { Icon } from '@/components/ui/icon';
+import { Alert } from '@/components/ui/alert';
+import { Field, Input, Textarea } from '@/components/ui';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
+import { MissionInfo } from '@/components/mission/mission-info';
+import { DemandeProgress } from '@/components/mission/demande-progress';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
-import { formatRequestedTiming } from '@/lib/request-timing';
+import { fullName } from '@/lib/format';
 import { formatReputation } from '@/lib/api/review-service';
 import {
   getTechnicianDemande,
@@ -24,59 +31,7 @@ import {
   type MissionQuote,
 } from '@/lib/api/technician-service';
 
-const STATUS_LABELS: Record<string, string> = {
-  SUBMITTED: 'Nouvelle',
-  PENDING: 'En attente',
-  ACCEPTED: 'Acceptée',
-  SCHEDULED: 'Rendez-vous fixé',
-  IN_PROGRESS: 'Intervention en cours',
-  COMPLETED: 'Terminée',
-  CONFIRMED: 'Confirmée',
-  CANCELED: 'Annulée',
-};
-
-const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  SUBMITTED: 'info',
-  PENDING: 'warning',
-  ACCEPTED: 'success',
-  SCHEDULED: 'info',
-  IN_PROGRESS: 'warning',
-  COMPLETED: 'warning',
-  CONFIRMED: 'success',
-  CANCELED: 'danger',
-};
-
-const QUOTE_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'En attente du client',
-  ACCEPTED: 'Accepté',
-  REJECTED: 'Refusé',
-};
-
-const QUOTE_STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  PENDING: 'warning',
-  ACCEPTED: 'success',
-  REJECTED: 'neutral',
-};
-
 const POLL_INTERVAL_MS = 5000;
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string {
   return `${quote.amount.toLocaleString('fr-FR')} ${quote.currency}`;
@@ -250,9 +205,7 @@ export default function TechnicianDemandeDetailPage() {
   if (error && !demande) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
+        <Alert variant="error">{error}</Alert>
         <Link href="/technicien">
           <Button variant="secondary">Retour aux demandes</Button>
         </Link>
@@ -270,77 +223,53 @@ export default function TechnicianDemandeDetailPage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/technicien" className="text-sm font-medium text-primary hover:underline">
-        ← Retour aux demandes
-      </Link>
+      <PageHeader title="Détail de la demande" backHref="/technicien" />
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-mono text-lg font-semibold text-primary">{demande.reference}</span>
-            <Badge variant={STATUS_VARIANTS[demande.status] ?? 'neutral'}>
-              {STATUS_LABELS[demande.status] ?? demande.status}
-            </Badge>
+            <DemandeStatusBadge status={demande.status} context="technician" />
           </div>
           <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</h2>
-            <p className="whitespace-pre-line text-sm">{demande.description}</p>
-          </div>
+          <MissionInfo
+            description={demande.description}
+            city={demande.city}
+            requestedMode={demande.requestedMode}
+            requestedAt={demande.requestedAt}
+            createdAt={demande.createdAt}
+            scheduledAt={demande.scheduledAt}
+          />
 
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Localisation</h2>
-            <p className="text-sm font-medium">{demande.city}</p>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {demande.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée par le client' : 'Intervention'}
-            </h2>
-            <p className="text-sm font-medium">
-              {demande.requestedMode === 'SCHEDULED' ? (
-                <>📅 {formatRequestedTiming(demande.requestedMode, demande.requestedAt)}</>
-              ) : (
-                <>🚨 Intervention dès que possible</>
-              )}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Date de la demande</h2>
-            <p className="text-sm">{formatDate(demande.createdAt)}</p>
-          </div>
-
-          {demande.scheduledAt ? (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rendez-vous prévu</h2>
-              <p className="text-sm font-medium">{formatDateTime(demande.scheduledAt)}</p>
-            </div>
-          ) : null}
-
-          {demande.client ? (
-            <div className="space-y-2">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Client</h2>
-              <div className="rounded-lg border border-border bg-muted/50 p-3">
-                <p className="text-sm font-medium">
-                  {[demande.client.firstName, demande.client.lastName].filter(Boolean).join(' ')}
-                </p>
-                {demande.clientReputation ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatReputation(demande.clientReputation)}
-                  </p>
-                ) : null}
+          {demande.status !== 'CANCELED' ? (
+            <div className="space-y-3">
+              <SectionHeader title="Avancement" />
+              <div className="rounded-xl border border-border bg-card p-4">
+                <DemandeProgress status={demande.status} />
               </div>
             </div>
           ) : null}
 
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-              {error}
+          {demande.client ? (
+            <div className="space-y-3">
+              <SectionHeader title="Client" />
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <Avatar size="lg" firstName={demande.client.firstName ?? ''} lastName={demande.client.lastName} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {fullName(demande.client.firstName, demande.client.lastName)}
+                  </p>
+                  {demande.clientReputation ? (
+                    <p className="text-xs text-muted-foreground">{formatReputation(demande.clientReputation)}</p>
+                  ) : null}
+                </div>
+              </div>
             </div>
           ) : null}
+
+          {error ? <Alert variant="error">{error}</Alert> : null}
 
           {canAccept ? (
             <Button
@@ -354,22 +283,15 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
 
           {demande.status === 'ACCEPTED' && hasAcceptedQuote ? (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-3">
-              <div className="space-y-1">
-                <label
-                  htmlFor="scheduledAt"
-                  className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Date et heure de l&apos;intervention
-                </label>
-                <input
+            <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+              <Field htmlFor="scheduledAt" label="Date et heure de l'intervention">
+                <Input
                   id="scheduledAt"
                   type="datetime-local"
                   value={scheduledValue}
                   onChange={(event) => setScheduledValue(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </div>
+              </Field>
               <Button
                 onClick={handleSchedule}
                 isLoading={actionBusy === 'SCHEDULED'}
@@ -383,9 +305,9 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
 
           {demande.status === 'ACCEPTED' && !hasAcceptedQuote ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/30 dark:text-amber-300">
+            <Alert variant="warning" icon="clock" dense>
               En attente d&apos;acceptation du tarif par le client avant de planifier l&apos;intervention.
-            </div>
+            </Alert>
           ) : null}
 
           {demande.status === 'SCHEDULED' ? (
@@ -411,28 +333,27 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
 
           {demande.status === 'COMPLETED' ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/30 dark:text-amber-300">
+            <Alert variant="warning" icon="clock" dense>
               Intervention terminée. En attente de confirmation du client.
-            </div>
+            </Alert>
           ) : null}
 
           {demande.status === 'CONFIRMED' ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-              Intervention confirmée par le client.
-            </div>
+            <Alert variant="success" dense>Intervention confirmée par le client.</Alert>
           ) : null}
 
           {demande.status === 'CANCELED' ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-              Cette demande a été annulée.
-            </div>
+            <Alert variant="error" dense>Cette demande a été annulée.</Alert>
           ) : null}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Discussion avec le client</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Icon name="chat" size="sm" className="text-muted-foreground" />
+            Discussion avec le client
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
@@ -441,9 +362,13 @@ export default function TechnicianDemandeDetailPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Diagnostic</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="file" size="sm" className="text-muted-foreground" />
+              Diagnostic
+            </CardTitle>
             <Button variant="secondary" size="sm" onClick={() => setShowDiagnosticForm((v) => !v)}>
+              <Icon name="plus" size="3.5" />
               Ajouter un diagnostic
             </Button>
           </div>
@@ -453,10 +378,9 @@ export default function TechnicianDemandeDetailPage() {
             <div className="space-y-2">
               <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
               {latestDiagnostic.recommendation ? (
-                <div className="rounded-lg border border-border bg-muted/50 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recommandation</p>
-                  <p className="mt-1 whitespace-pre-line text-sm">{latestDiagnostic.recommendation}</p>
-                </div>
+                <Alert variant="info" title="Recommandation">
+                  <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
+                </Alert>
               ) : null}
             </div>
           ) : (
@@ -466,34 +390,26 @@ export default function TechnicianDemandeDetailPage() {
           )}
 
           {showDiagnosticForm ? (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-3">
-              <div className="space-y-1">
-                <label htmlFor="diagnosticContent" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Diagnostic
-                </label>
-                <textarea
+            <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+              <Field htmlFor="diagnosticContent" label="Diagnostic">
+                <Textarea
                   id="diagnosticContent"
                   value={diagnosticContent}
                   onChange={(event) => setDiagnosticContent(event.target.value)}
                   maxLength={2000}
                   rows={3}
                   placeholder="Ex. : connecteur de charge probablement endommagé."
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="recommendation" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Recommandation (facultatif)
-                </label>
-                <input
+              </Field>
+              <Field htmlFor="recommendation" label="Recommandation (facultatif)">
+                <Input
                   id="recommendation"
                   value={recommendation}
                   onChange={(event) => setRecommendation(event.target.value)}
                   maxLength={2000}
                   placeholder="Ex. : remplacement du connecteur et test de la carte."
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </div>
+              </Field>
               <Button
                 onClick={handleCreateDiagnostic}
                 isLoading={actionBusy === 'DIAGNOSTIC'}
@@ -509,9 +425,13 @@ export default function TechnicianDemandeDetailPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Proposition tarifaire</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="badge-check" size="sm" className="text-muted-foreground" />
+              Proposition tarifaire
+            </CardTitle>
             <Button variant="secondary" size="sm" onClick={() => setShowQuoteForm((v) => !v)}>
+              <Icon name="plus" size="3.5" />
               Proposer un tarif
             </Button>
           </div>
@@ -520,26 +440,22 @@ export default function TechnicianDemandeDetailPage() {
           {latestQuote ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-lg font-semibold">{formatAmount(latestQuote)}</span>
-                <Badge variant={QUOTE_STATUS_VARIANTS[latestQuote.status] ?? 'neutral'}>
-                  {QUOTE_STATUS_LABELS[latestQuote.status] ?? latestQuote.status}
-                </Badge>
+                <span className="text-lg font-bold">{formatAmount(latestQuote)}</span>
+                <QuoteStatusBadge status={latestQuote.status} />
               </div>
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
               {latestQuote.status === 'PENDING' ? (
-                <p className="text-sm text-muted-foreground">
-                  En attente de la réponse du client.
-                </p>
+                <p className="text-sm text-muted-foreground">En attente de la réponse du client.</p>
               ) : null}
               {latestQuote.status === 'ACCEPTED' ? (
-                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                <Alert variant="success" dense>
                   Tarif accepté. Vous pouvez maintenant planifier l&apos;intervention.
-                </p>
+                </Alert>
               ) : null}
               {latestQuote.status === 'REJECTED' ? (
-                <p className="text-sm text-muted-foreground">
+                <Alert variant="neutral" dense>
                   Tarif refusé. Vous pouvez proposer une nouvelle proposition.
-                </p>
+                </Alert>
               ) : null}
             </div>
           ) : (
@@ -549,34 +465,26 @@ export default function TechnicianDemandeDetailPage() {
           )}
 
           {showQuoteForm ? (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/50 p-3">
-              <div className="space-y-1">
-                <label htmlFor="quoteAmount" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Montant (XAF)
-                </label>
-                <input
+            <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+              <Field htmlFor="quoteAmount" label="Montant (XAF)">
+                <Input
                   id="quoteAmount"
                   type="number"
                   min={1}
                   value={amountValue}
                   onChange={(event) => setAmountValue(event.target.value)}
                   placeholder="Ex. : 15000"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="quoteDescription" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Description
-                </label>
-                <input
+              </Field>
+              <Field htmlFor="quoteDescription" label="Description">
+                <Input
                   id="quoteDescription"
                   value={quoteDescription}
                   onChange={(event) => setQuoteDescription(event.target.value)}
                   maxLength={1000}
                   placeholder="Ex. : remplacement du connecteur de charge + main-d'œuvre."
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                 />
-              </div>
+              </Field>
               <Button
                 onClick={handleCreateQuote}
                 isLoading={actionBusy === 'QUOTE'}

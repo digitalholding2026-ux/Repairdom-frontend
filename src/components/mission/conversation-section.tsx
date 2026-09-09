@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Avatar } from '@/components/ui/avatar';
+import { formatTime } from '@/lib/format';
 import { getMe } from '@/lib/api/auth-service';
 import {
   listDemandeMessages,
@@ -79,10 +82,12 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
     <div className="space-y-3">
       <div
         ref={listRef}
-        className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-border bg-muted/20 p-3"
+        className="max-h-80 space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3"
       >
         {messages.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun message pour le moment.</p>
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Aucun message pour le moment. Échangez avec {canSend ? 'l\'autre partie' : 'votre interlocuteur'} ici.
+          </p>
         ) : (
           messages.map((message) => {
             const isMine = message.senderId === currentUserId;
@@ -90,20 +95,28 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
               .filter(Boolean)
               .join(' ');
             return (
-              <div
-                key={message.id}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={message.id} className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                {!isMine ? (
+                  <Avatar size="sm" firstName={message.sender.firstName} lastName={message.sender.lastName} />
+                ) : null}
                 <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                  className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
                     isMine
-                      ? 'bg-primary text-primary-foreground'
-                      : 'border border-border bg-background'
+                      ? 'rounded-br-md bg-primary text-primary-foreground'
+                      : 'rounded-bl-md border border-border bg-background'
                   }`}
                 >
-                  <p className="text-xs font-medium opacity-80">{isMine ? 'Vous' : senderName}</p>
-                  <p className="whitespace-pre-line">{message.content}</p>
+                  <div className={`flex items-baseline gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                    <p className="text-xs font-medium opacity-80">{isMine ? 'Vous' : senderName}</p>
+                    <p className={`text-[10px] ${isMine ? 'opacity-70' : 'text-muted-foreground'}`}>
+                      {formatTime(message.createdAt)}
+                    </p>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-line">{message.content}</p>
                 </div>
+                {isMine ? (
+                  <Avatar size="sm" firstName={message.sender.firstName} lastName={message.sender.lastName} />
+                ) : null}
               </div>
             );
           })
@@ -111,21 +124,31 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
       </div>
 
       {canSend ? (
-        <div className="flex items-center gap-2">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSend();
+          }}
+          className="flex items-center gap-2"
+        >
           <input
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') handleSend();
-            }}
             maxLength={2000}
             placeholder="Votre message…"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
-          <Button onClick={handleSend} isLoading={sending} disabled={!content.trim()}>
-            Envoyer
+          <Button
+            type="submit"
+            variant="secondary"
+            size="icon"
+            isLoading={sending}
+            disabled={!content.trim()}
+            aria-label="Envoyer le message"
+          >
+            <Icon name="send" size="sm" />
           </Button>
-        </div>
+        </form>
       ) : null}
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
