@@ -57,7 +57,7 @@ export default function TechnicianDashboardPage() {
         ]);
         if (!cancelled) {
           setProfile(profileData);
-          setFirstName(me.firstName);
+          setFirstName(me.firstName ?? null);
           setAvailable(availableList);
           setMine(myList);
         }

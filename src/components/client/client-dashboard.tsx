@@ -59,7 +59,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         }
         const list = await listMyDemandes();
         if (!cancelled) {
-          setFirstName(me.firstName);
+          setFirstName(me.firstName ?? null);
           setDemandes(list);
         }
       } catch (err) {
