@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/cn';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
@@ -242,8 +243,12 @@ export default function TechnicianProfilePage() {
 
   return (
     <div className="space-y-4">
-      <Link href="/technicien" className="text-sm font-medium text-primary hover:underline">
-        ← Retour au tableau de bord
+      <Link
+        href="/technicien"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+      >
+        <Icon name="arrow-left" size="sm" />
+        Retour au tableau de bord
       </Link>
 
       <Card>
@@ -556,9 +561,7 @@ export default function TechnicianProfilePage() {
               {kycSuccess ? <Alert variant="success" dense>{kycSuccess}</Alert> : null}
             </>
           ) : (
-            <p className="text-sm text-red-600 dark:text-red-300">
-              {kycError ?? 'Impossible de charger votre dossier.'}
-            </p>
+            <Alert variant="error">{kycError ?? 'Impossible de charger votre dossier.'}</Alert>
           )}
         </CardContent>
       </Card>

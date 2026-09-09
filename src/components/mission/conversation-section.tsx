@@ -151,7 +151,7 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
         </form>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-error-ink">{error}</p> : null}
     </div>
   );
 }
