@@ -15,7 +15,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
         <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
           <Link href="/technicien" className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" className="size-4" strokeWidth={2.2} />
+              <Icon name="wrench" size="sm" strokeWidth={2.2} />
             </span>
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>

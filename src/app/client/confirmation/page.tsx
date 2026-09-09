@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { formatRequestedTiming } from '@/lib/request-timing';
 
 export const metadata: Metadata = {
@@ -12,6 +12,12 @@ export const metadata: Metadata = {
 interface ConfirmationPageProps {
   searchParams: Promise<{ ref?: string | string[]; id?: string | string[]; mode?: string | string[]; req?: string | string[] }>;
 }
+
+const nextSteps = [
+  'Un technicien certifié consulte votre demande.',
+  'Vous recevez un premier retour avec un délai d’intervention.',
+  'Vous validez le rendez-vous et le devis avant toute intervention.',
+];
 
 export default async function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
   const { ref, id, mode, req } = await searchParams;
@@ -23,7 +29,9 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
   return (
     <div className="space-y-6">
       <section className="flex flex-col items-center gap-3 text-center">
-        <Badge variant="success">Demande envoyée</Badge>
+        <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
+          <Icon name="check-circle" size="xl" filled />
+        </span>
         <h1 className="text-xl font-bold leading-tight tracking-tight sm:text-2xl">
           Votre demande a bien été envoyée
         </h1>
@@ -43,7 +51,7 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           <CardDescription>Conservez ce numéro pour toute communication.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border border-dashed border-border bg-muted/50 px-4 py-4 text-center">
+          <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-4 text-center">
             <span className="font-mono text-lg font-semibold tracking-wide text-primary">
               {requestId ?? '—'}
             </span>
@@ -51,12 +59,20 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         </CardContent>
       </Card>
 
-      <section className="space-y-2 rounded-lg border border-border bg-card p-4">
+      <section className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-card">
         <h2 className="text-sm font-semibold">Et maintenant ?</h2>
-        <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>Un technicien certifié consulte votre demande.</li>
-          <li>Vous recevez un premier retour avec un délai d’intervention.</li>
-          <li>Vous validez le rendez-vous et le devis avant toute intervention.</li>
+        <ol className="space-y-2">
+          {nextSteps.map((step, index) => (
+            <li key={step} className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground"
+              >
+                {index + 1}
+              </span>
+              <span className="text-sm text-muted-foreground">{step}</span>
+            </li>
+          ))}
         </ol>
       </section>
 
@@ -67,11 +83,13 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           </Link>
         ) : null}
         <Link href="/client/demande" className="block">
-          <Button className="w-full">Déposer une nouvelle demande</Button>
+          <Button variant="outline" className="w-full">
+            Déposer une nouvelle demande
+          </Button>
         </Link>
         <Link href="/" className="block">
-          <Button variant="secondary" className="w-full">
-            Retour à l&apos;accueil
+          <Button variant="ghost" className="w-full">
+            Retour à l’accueil
           </Button>
         </Link>
       </div>

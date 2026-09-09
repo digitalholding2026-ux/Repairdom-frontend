@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between gap-3 px-4">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" className="size-4" strokeWidth={2.2} />
+              <Icon name="wrench" size="sm" strokeWidth={2.2} />
             </span>
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>
@@ -83,7 +83,7 @@ export default function HomePage() {
         <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 sm:p-8">
           <div className="flex h-full flex-col items-start gap-4 text-white">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
-              <Icon name="badge-check" className="size-4" />
+              <Icon name="badge-check" size="sm" />
               Techniciens vérifiés
             </span>
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance sm:text-3xl">
@@ -124,12 +124,12 @@ export default function HomePage() {
                 key={category.id}
                 className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium"
               >
-                <Icon name="wrench" className="size-4 text-primary" />
+                <Icon name="wrench" size="sm" className="text-primary" />
                 {category.label}
               </span>
             ))}
             <Link href="/client/inscription" className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-primary hover:bg-muted">
-              <Icon name="plus" className="size-4" />
+              <Icon name="plus" size="sm" />
               Autre besoin…
             </Link>
           </div>
@@ -149,7 +149,7 @@ export default function HomePage() {
                   aria-hidden
                   className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-secondary text-primary"
                 >
-                  <Icon name={step.icon} className="size-5" />
+                  <Icon name={step.icon} size="md" />
                 </span>
                 <div className="pt-0.5">
                   <p className="flex items-center gap-2 text-base font-semibold">
@@ -171,7 +171,7 @@ export default function HomePage() {
             {trust.map((item) => (
               <div key={item.title} className="rounded-xl border border-border bg-card p-4 shadow-card">
                 <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name={item.icon} className="size-5" />
+                  <Icon name={item.icon} size="md" />
                 </span>
                 <p className="mt-3 text-sm font-semibold">{item.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
@@ -182,7 +182,7 @@ export default function HomePage() {
 
         <section className="mt-12 overflow-hidden rounded-2xl border border-border bg-card p-6 text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Icon name="sparkles" className="size-6" />
+            <Icon name="sparkles" size="lg" />
           </span>
           <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à être dépanné ?</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">

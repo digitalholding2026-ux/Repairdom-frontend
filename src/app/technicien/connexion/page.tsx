@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthCard } from '@/components/auth/auth-card';
 import { TechnicianAuthForm } from '@/components/technician/technician-auth-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Connexion technicien',
@@ -10,17 +10,13 @@ export const metadata: Metadata = {
 export default function TechnicianConnexionPage() {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Se connecter</CardTitle>
-          <CardDescription>
-            Accédez à vos demandes de dépannage et gérez vos interventions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TechnicianAuthForm mode="signin" />
-        </CardContent>
-      </Card>
+      <AuthCard
+        icon="briefcase"
+        title="Se connecter"
+        description="Accédez à vos demandes de dépannage et gérez vos interventions."
+      >
+        <TechnicianAuthForm mode="signin" />
+      </AuthCard>
 
       <p className="text-center text-sm text-muted-foreground">
         Pas encore de compte ?{' '}

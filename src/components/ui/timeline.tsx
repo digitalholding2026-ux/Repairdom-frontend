@@ -46,9 +46,9 @@ export function Timeline({ steps, className }: TimelineProps) {
               )}
             >
               {step.icon ? (
-                <Icon name={step.icon} className="size-4" strokeWidth={2.2} filled={done && step.icon === 'check'} />
+                <Icon name={step.icon} size="sm" strokeWidth={2.2} filled={done && step.icon === 'check'} />
               ) : done ? (
-                <Icon name="check" className="size-4" strokeWidth={2.2} />
+                <Icon name="check" size="sm" strokeWidth={2.2} />
               ) : current ? (
                 <span className="size-2 rounded-full bg-primary-foreground" />
               ) : (

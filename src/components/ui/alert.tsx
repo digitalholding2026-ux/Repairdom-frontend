@@ -52,7 +52,7 @@ export function Alert({
     >
       {iconName ? (
         <span aria-hidden className="mt-0.5 shrink-0">
-          <Icon name={iconName} className="size-5" filled={variant === 'success'} />
+          <Icon name={iconName} size="md" filled={variant === 'success'} />
         </span>
       ) : null}
       <div className="min-w-0 flex-1 space-y-0.5">

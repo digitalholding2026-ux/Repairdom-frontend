@@ -50,7 +50,7 @@ export function Avatar({
             text,
           )}
         >
-          {firstName ? initials(firstName, lastName) : <Icon name="user" className="size-1/2" />}
+          {firstName ? initials(firstName, lastName) : <Icon name="user" style={{ width: '50%', height: '50%' }} />}
         </span>
       )}
       {online ? (

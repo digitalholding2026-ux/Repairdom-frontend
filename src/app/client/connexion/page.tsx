@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthCard } from '@/components/auth/auth-card';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Se connecter',
@@ -10,17 +10,13 @@ export const metadata: Metadata = {
 export default function ConnexionPage() {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Se connecter</CardTitle>
-          <CardDescription>
-            Reprenez le suivi de vos demandes de dépannage.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ClientAuthForm mode="signin" />
-        </CardContent>
-      </Card>
+      <AuthCard
+        icon="home"
+        title="Se connecter"
+        description="Reprenez le suivi de vos demandes de dépannage."
+      >
+        <ClientAuthForm mode="signin" />
+      </AuthCard>
 
       <p className="text-center text-sm text-muted-foreground">
         Nouveau sur RepairDom ?{' '}

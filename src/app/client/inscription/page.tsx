@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { AuthCard } from '@/components/auth/auth-card';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const metadata: Metadata = {
   title: 'Créer un compte',
@@ -10,17 +10,13 @@ export const metadata: Metadata = {
 export default function InscriptionPage() {
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Créer un compte client</CardTitle>
-          <CardDescription>
-            Remplissez le formulaire pour déposer vos demandes de dépannage.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ClientAuthForm mode="signup" />
-        </CardContent>
-      </Card>
+      <AuthCard
+        icon="wrench"
+        title="Créer un compte client"
+        description="Remplissez le formulaire pour déposer vos demandes de dépannage."
+      >
+        <ClientAuthForm mode="signup" />
+      </AuthCard>
 
       <p className="text-center text-sm text-muted-foreground">
         Déjà client ?{' '}

@@ -46,7 +46,7 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
               aria-label={primaryHref.label}
               className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform hover:scale-105 active:scale-95"
             >
-              <Icon name={primaryHref.icon} className="size-6" strokeWidth={2.2} />
+              <Icon name={primaryHref.icon} size="lg" strokeWidth={2.2} />
             </Link>
           ) : null}
         </span>
@@ -68,7 +68,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
         active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
       )}
     >
-      <Icon name={item.icon} className="size-5" strokeWidth={active ? 2.3 : 1.8} />
+      <Icon name={item.icon} strokeWidth={active ? 2.3 : 1.8} />
       {item.label}
     </Link>
   );

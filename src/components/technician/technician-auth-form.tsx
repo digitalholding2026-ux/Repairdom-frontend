@@ -2,7 +2,10 @@
 
 import { type FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
@@ -72,53 +75,84 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Prénom *</span>
-          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" autoComplete="given-name" />
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Prénom *" htmlFor="tech-firstName">
+            <Input
+              id="tech-firstName"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Votre prénom"
+              autoComplete="given-name"
+            />
+          </Field>
+          <Field label="Nom *" htmlFor="tech-lastName">
+            <Input
+              id="tech-lastName"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Votre nom"
+              autoComplete="family-name"
+            />
+          </Field>
+        </div>
       ) : null}
 
       {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Nom *</span>
-          <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Votre nom" autoComplete="family-name" />
-        </label>
+        <Field label="Téléphone *" htmlFor="tech-phone">
+          <Input
+            id="tech-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="06 12 34 56 78"
+            inputMode="tel"
+            autoComplete="tel"
+          />
+        </Field>
       ) : null}
 
-      {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Téléphone *</span>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" inputMode="tel" autoComplete="tel" />
-        </label>
-      ) : null}
-
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">Adresse e-mail *</span>
-        <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="vous@exemple.fr" autoComplete="email" />
-      </label>
-
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">Mot de passe *</span>
+      <Field label="Adresse e-mail *" htmlFor="tech-email">
         <Input
+          id="tech-email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="vous@exemple.fr"
+          autoComplete="email"
+        />
+      </Field>
+
+      <Field label="Mot de passe *" htmlFor="tech-password">
+        <Input
+          id="tech-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
           placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
           autoComplete={isSignUp ? 'new-password' : 'current-password'}
         />
-      </label>
+      </Field>
 
       {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Ville d&apos;intervention *</span>
-          <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex. : Lyon" autoComplete="address-level2" />
-        </label>
+        <Field label="Ville d’intervention *" htmlFor="tech-city">
+          <Input
+            id="tech-city"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="Ex. : Lyon"
+            autoComplete="address-level2"
+          />
+        </Field>
       ) : null}
 
       {isSignUp ? (
-        <div>
-          <span className="mb-1.5 block text-sm font-medium">Catégories de réparation *</span>
-          <div className="grid gap-2" role="group" aria-label="Catégories maîtrisées">
+        <div className="space-y-2">
+          <span className="block text-sm font-medium">
+            Catégories de réparation *{' '}
+            {categories.length > 0 ? (
+              <span className="text-xs text-muted-foreground">({categories.length} sélectionnée{categories.length > 1 ? 's' : ''})</span>
+            ) : null}
+          </span>
+          <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Catégories maîtrisées">
             {REQUEST_CATEGORIES.map((cat) => {
               const selected = categories.includes(cat.id);
               return (
@@ -129,17 +163,25 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
                   aria-checked={selected}
                   onClick={() => toggleCategory(cat.id)}
                   className={cn(
-                    'rounded-lg border p-3 text-left text-sm transition-colors',
+                    'flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     selected
                       ? 'border-primary bg-secondary text-secondary-foreground'
                       : 'border-border bg-card text-foreground hover:bg-muted',
                   )}
                 >
-                  <span className="font-medium">{cat.label}</span>
-                  {cat.description ? (
-                    <span className="ml-2 text-xs text-muted-foreground">{cat.description}</span>
-                  ) : null}
+                  <Icon
+                    name="wrench"
+                    className={cn('size-4 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')}
+                  />
+                  <span className="min-w-0">
+                    <span className="font-medium">{cat.label}</span>
+                    {cat.description ? (
+                      <span className="ml-1 hidden text-xs text-muted-foreground sm:inline">
+                        {cat.description}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               );
             })}
@@ -147,13 +189,9 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
         </div>
       ) : null}
 
-      {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Button type="submit" className="w-full" isLoading={isSubmitting} disabled={!canSubmit}>
+      <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting} disabled={!canSubmit}>
         {isSignUp ? 'Créer mon compte technicien' : 'Se connecter'}
       </Button>
     </form>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 export const ICON_NAMES = [
@@ -199,11 +199,15 @@ const paths: Record<IconName, ReactNode> = {
   ),
 };
 
+export type IconSize = '3.5' | 'xs' | 'sm' | 'md' | '4.5' | 'lg' | 'xl';
+
 export interface IconProps {
   name: IconName;
   className?: string;
   strokeWidth?: number;
   filled?: boolean;
+  size?: IconSize;
+  style?: CSSProperties;
 }
 
 const strokeProps = {
@@ -213,13 +217,24 @@ const strokeProps = {
   strokeLinejoin: 'round' as const,
 };
 
-export function Icon({ name, className, strokeWidth = 1.8, filled = false }: IconProps) {
+const sizeClasses: Record<IconSize, string> = {
+  '3.5': 'size-3.5',
+  xs: 'size-3',
+  sm: 'size-4',
+  md: 'size-5',
+  '4.5': 'size-4.5',
+  lg: 'size-6',
+  xl: 'size-8',
+};
+
+export function Icon({ name, className, strokeWidth = 1.8, filled = false, size = 'md', style }: IconProps) {
   const isStar = name === 'star';
   return (
     <svg
       aria-hidden
       viewBox="0 0 24 24"
-      className={cn('size-5 shrink-0', className)}
+      style={style}
+      className={cn(sizeClasses[size], 'shrink-0', className)}
       {...(isStar
         ? {
             fill: filled ? 'currentColor' : 'none',

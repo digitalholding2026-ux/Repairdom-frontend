@@ -2,7 +2,9 @@
 
 import { type FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
 
@@ -26,7 +28,10 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
 
   const isSignUp = mode === 'signup';
 
-  const canSubmit = email.trim() !== '' && password.length >= MIN_PASSWORD_LENGTH && (isSignUp ? firstName.trim() !== '' : true);
+  const canSubmit =
+    email.trim() !== '' &&
+    password.length >= MIN_PASSWORD_LENGTH &&
+    (isSignUp ? firstName.trim() !== '' : true);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -46,42 +51,55 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Prénom *</span>
-          <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Votre prénom" autoComplete="given-name" />
-        </label>
+        <Field label="Prénom *" htmlFor="client-firstName">
+          <Input
+            id="client-firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Votre prénom"
+            autoComplete="given-name"
+          />
+        </Field>
       ) : null}
 
       {isSignUp ? (
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium">Téléphone (facultatif)</span>
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="06 12 34 56 78" inputMode="tel" autoComplete="tel" />
-        </label>
+        <Field label="Téléphone (facultatif)" htmlFor="client-phone">
+          <Input
+            id="client-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="06 12 34 56 78"
+            inputMode="tel"
+            autoComplete="tel"
+          />
+        </Field>
       ) : null}
 
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">Adresse e-mail *</span>
-        <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="vous@exemple.fr" autoComplete="email" />
-      </label>
-
-      <label className="block">
-        <span className="mb-1.5 block text-sm font-medium">Mot de passe *</span>
+      <Field label="Adresse e-mail *" htmlFor="client-email">
         <Input
+          id="client-email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="vous@exemple.fr"
+          autoComplete="email"
+        />
+      </Field>
+
+      <Field label="Mot de passe *" htmlFor="client-password">
+        <Input
+          id="client-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           type="password"
           placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
           autoComplete={isSignUp ? 'new-password' : 'current-password'}
         />
-      </label>
+      </Field>
 
-      {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Button type="submit" className="w-full" isLoading={isSubmitting} disabled={!canSubmit}>
+      <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting} disabled={!canSubmit}>
         {isSignUp ? 'Créer mon compte' : 'Se connecter'}
       </Button>
     </form>
