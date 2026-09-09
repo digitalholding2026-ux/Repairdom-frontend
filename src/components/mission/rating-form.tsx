@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Icon } from '@/components/ui/icon';
+import { Alert } from '@/components/ui/alert';
+import { cn } from '@/lib/cn';
 
 export const REVIEW_COMMENT_MAX_LENGTH = 1000;
 
@@ -14,15 +17,15 @@ function StarSelector({ value, onChange }: { value: number; onChange: (value: nu
           key={star}
           type="button"
           aria-label={`${star} étoile${star > 1 ? 's' : ''}`}
-          aria-pressed={value === star}
+          aria-pressed={value >= star}
           onClick={(event) => {
             event.preventDefault();
             onChange(star);
           }}
-          className="rounded text-2xl leading-none transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded p-0.5 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className={star <= value ? 'text-amber-400' : 'text-muted-foreground/40'}>
-            ★
+          <span className={cn(star <= value ? 'text-amber-400' : 'text-muted-foreground/40')}>
+            <Icon name="star" size="lg" filled={star <= value} />
           </span>
         </button>
       ))}
@@ -55,9 +58,9 @@ export function RatingForm({
 
   if (alreadyRated) {
     return (
-      <p className="rounded-lg border border-border bg-muted/50 px-3.5 py-2.5 text-sm text-muted-foreground">
+      <Alert variant="neutral" icon="check-circle">
         {alreadyRatedLabel}
-      </p>
+      </Alert>
     );
   }
 
@@ -94,15 +97,9 @@ export function RatingForm({
       <p className="text-right text-xs text-muted-foreground">
         {comment.length}/{REVIEW_COMMENT_MAX_LENGTH}
       </p>
-      {error ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
-      ) : null}
+      {error ? <Alert variant="error" dense>{error}</Alert> : null}
       {success ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-          Merci ! Votre avis a bien été publié.
-        </p>
+        <Alert variant="success" dense>Merci ! Votre avis a bien été publié.</Alert>
       ) : null}
       <Button onClick={handleSubmit} isLoading={submitting} disabled={success} className="w-full">
         {submitLabel}

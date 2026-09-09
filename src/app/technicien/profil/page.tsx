@@ -438,7 +438,7 @@ export default function TechnicianProfilePage() {
                   : kyc.status === 'PENDING'
                     ? 'Votre dossier est en cours de vérification par RepairDom.'
                     : kyc.status === 'VERIFIED'
-                      ? '✓ Profil vérifié par RepairDom.'
+                      ? 'Profil vérifié par RepairDom.'
                       : 'Votre dossier a été rejeté.'}
               </p>
 

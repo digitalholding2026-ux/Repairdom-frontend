@@ -6,8 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/cn';
+import { formatDate } from '@/lib/format';
 import { logout } from '@/lib/api/auth-service';
 import {
   getAdminKycFolders,
@@ -20,19 +23,6 @@ const STATUS_TABS = [
   { id: 'VERIFIED', label: 'Vérifiés' },
   { id: 'REJECTED', label: 'Rejetés' },
 ] as const;
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export default function AdminKycPage() {
   const [status, setStatus] = useState<'PENDING' | 'VERIFIED' | 'REJECTED'>('PENDING');
@@ -69,12 +59,15 @@ export default function AdminKycPage() {
 
   return (
     <div className="space-y-4">
-      <section className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">Vérifications KYC</h1>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          Déconnexion
-        </Button>
-      </section>
+      <PageHeader
+        title="Vérifications KYC"
+        description="Examinez les identités des techniciens inscrits."
+        actions={
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            Déconnexion
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-2" role="tablist" aria-label="Statuts des dossiers">
         {STATUS_TABS.map((tab) => {
@@ -116,6 +109,7 @@ export default function AdminKycPage() {
         />
       ) : folders.length === 0 ? (
         <EmptyState
+          icon="shield-check"
           title="Aucun dossier"
           description={`Aucun dossier ${STATUS_TABS.find((t) => t.id === status)?.label.toLowerCase()} pour le moment.`}
         />
@@ -131,7 +125,12 @@ export default function AdminKycPage() {
                         {folder.firstName}
                         {folder.lastName ? ` ${folder.lastName}` : ''}
                       </p>
-                      <p className="text-xs text-muted-foreground">📍 {folder.city}</p>
+                      {folder.city ? (
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Icon name="pin" size="3.5" />
+                          {folder.city}
+                        </p>
+                      ) : null}
                     </div>
                     <Badge variant={kycVariantFor(folder.kycStatus)}>
                       {kycStatusLabel(folder.kycStatus)}

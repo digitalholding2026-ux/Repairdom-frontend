@@ -3,42 +3,36 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { RatingStars } from '@/components/ui/rating-stars';
 import {
   getPublicTechnicianProfile,
   type PublicTechnicianProfile,
 } from '@/lib/api/technician-service';
 import {
   getTechnicianReputation,
-  formatReputation,
   type Reputation,
 } from '@/lib/api/review-service';
 import {
   categoryLabel,
   kycStatusLabel,
   kycVariantFor,
-  technicianInitials,
 } from '@/lib/technician-profile';
+import { fullName } from '@/lib/format';
 
-function Avatar({ profile }: { profile: PublicTechnicianProfile }) {
-  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
-  if (profile.avatarUrl) {
-    return (
-      <img
-        src={profile.avatarUrl}
-        alt={`Photo de ${name}`}
-        className="size-20 rounded-full border border-border object-cover"
-      />
-    );
-  }
+function AvailabilityBadge({ available }: { available: boolean }) {
   return (
-    <div className="flex size-20 items-center justify-center rounded-full border border-border bg-muted text-xl font-semibold text-muted-foreground">
-      {technicianInitials(profile.firstName, profile.lastName)}
-    </div>
+    <Badge variant={available ? 'success' : 'neutral'}>
+      <Icon name={available ? 'check-circle' : 'clock'} size="3.5" />
+      {available ? 'Disponible' : 'Indisponible'}
+    </Badge>
   );
 }
 
@@ -101,53 +95,57 @@ export default function ClientTechnicianProfilePage() {
 
   if (!profile) return null;
 
+  const hasReviews = reputation !== null && reputation.totalReviews > 0 && reputation.averageRating !== null;
+
   return (
     <div className="space-y-4">
-      <Link href="/client/demandes" className="text-sm font-medium text-primary hover:underline">
-        ← Retour à mes demandes
-      </Link>
+      <PageHeader title="Profil du technicien" backHref="/client/demandes" />
 
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center gap-4">
-            <Avatar profile={profile} />
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold leading-tight">
-                {profile.firstName}
-                {profile.lastName ? ` ${profile.lastName}` : ''}
-              </h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">📍 {profile.city}</p>
-              <div className="mt-1.5">
-                <Badge variant={profile.isAvailable ? 'success' : 'neutral'}>
-                  {profile.isAvailable ? '🟢 Disponible' : '⚪ Indisponible'}
-                </Badge>
-              </div>
-              {reputation ? (
-                <p className="mt-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
-                  {formatReputation(reputation)}
+            <Avatar size="2xl" src={profile.avatarUrl} firstName={profile.firstName} lastName={profile.lastName} />
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="text-lg font-bold leading-tight">{fullName(profile.firstName, profile.lastName)}</h1>
+              {profile.city ? (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Icon name="pin" size="3.5" />
+                  {profile.city}
                 </p>
               ) : null}
+              <AvailabilityBadge available={profile.isAvailable} />
+              {hasReviews ? (
+                <div className="flex items-center gap-2">
+                  <RatingStars value={reputation!.averageRating!} size="sm" showValue />
+                  <p className="text-xs text-muted-foreground">
+                    {reputation!.totalReviews} évaluation{reputation!.totalReviews > 1 ? 's' : ''}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Aucune évaluation pour le moment.</p>
+              )}
             </div>
           </div>
 
-          <div>
-            <Badge variant={kycVariantFor(profile.kycStatus)}>
-              {profile.kycStatus === 'VERIFIED' ? '✓ ' : ''}
-              {kycStatusLabel(profile.kycStatus)}
-            </Badge>
-          </div>
+          <Badge variant={kycVariantFor(profile.kycStatus)}>
+            <Icon name={profile.kycStatus === 'VERIFIED' ? 'shield-check' : 'info'} size="3.5" />
+            {kycStatusLabel(profile.kycStatus)}
+          </Badge>
         </CardContent>
       </Card>
 
       {profile.categories.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Compétences</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="wrench" size="sm" className="text-muted-foreground" />
+              Compétences
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {profile.categories.map((id) => (
-              <Badge key={id} variant="neutral">
-                🔧 {categoryLabel(id)}
+              <Badge key={id} variant="outline">
+                {categoryLabel(id)}
               </Badge>
             ))}
           </CardContent>
@@ -157,11 +155,14 @@ export default function ClientTechnicianProfilePage() {
       {profile.specialties.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Spécialités</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="sparkles" size="sm" className="text-muted-foreground" />
+              Spécialités
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             {profile.specialties.map((specialty) => (
-              <Badge key={specialty} variant="neutral">
+              <Badge key={specialty} variant="outline">
                 {specialty}
               </Badge>
             ))}
@@ -172,7 +173,10 @@ export default function ClientTechnicianProfilePage() {
       {profile.experience ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Expérience</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="briefcase" size="sm" className="text-muted-foreground" />
+              Expérience
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-line text-sm">{profile.experience}</p>
@@ -183,7 +187,10 @@ export default function ClientTechnicianProfilePage() {
       {profile.serviceDescription ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Services proposés</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="badge-check" size="sm" className="text-muted-foreground" />
+              Services proposés
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-line text-sm">{profile.serviceDescription}</p>
@@ -194,7 +201,10 @@ export default function ClientTechnicianProfilePage() {
       {profile.bio ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">À propos</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="user" size="sm" className="text-muted-foreground" />
+              À propos
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-line text-sm">{profile.bio}</p>
@@ -204,7 +214,10 @@ export default function ClientTechnicianProfilePage() {
 
       <Card>
         <CardContent className="flex items-center justify-between pt-6">
-          <span className="text-sm font-medium">Interventions réalisées</span>
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <Icon name="check-circle" size="sm" className="text-muted-foreground" />
+            Interventions réalisées
+          </span>
           <span className="text-lg font-bold">{profile.completedInterventions}</span>
         </CardContent>
       </Card>

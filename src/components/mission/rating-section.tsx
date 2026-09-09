@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
+import { RatingStars } from '@/components/ui/rating-stars';
 import { RatingForm } from './rating-form';
 import {
   createDemandeReview,
@@ -47,7 +49,10 @@ export function RatingSection({ demandeId, title, alreadyRatedLabel }: RatingSec
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Avis &amp; réputation</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon name="star" size="sm" className="text-muted-foreground" />
+          Avis &amp; réputation
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {!loading ? (
@@ -71,15 +76,10 @@ export function RatingSection({ demandeId, title, alreadyRatedLabel }: RatingSec
                 className="space-y-1 rounded-lg border border-border bg-muted/50 p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-medium">
-                    {fullName(review.author)}
-                    <span className="ml-1.5 text-amber-500">
-                      {'★'.repeat(review.rating)}
-                      <span className="text-muted-foreground/40">
-                        {'★'.repeat(5 - review.rating)}
-                      </span>
-                    </span>
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{fullName(review.author)}</span>
+                    <RatingStars value={review.rating} size="sm" />
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {reviewDateTime(review.createdAt)}
                   </span>

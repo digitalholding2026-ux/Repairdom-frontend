@@ -16,8 +16,8 @@ import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
+import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
-import { formatReputation } from '@/lib/api/review-service';
 import {
   getTechnicianDemande,
   acceptDemande,
@@ -261,8 +261,14 @@ export default function TechnicianDemandeDetailPage() {
                   <p className="truncate text-sm font-semibold">
                     {fullName(demande.client.firstName, demande.client.lastName)}
                   </p>
-                  {demande.clientReputation ? (
-                    <p className="text-xs text-muted-foreground">{formatReputation(demande.clientReputation)}</p>
+                  {demande.clientReputation && demande.clientReputation.totalReviews > 0 ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <RatingStars value={demande.clientReputation.averageRating ?? 0} size="sm" showValue />
+                      <p className="text-xs text-muted-foreground">
+                        {demande.clientReputation.totalReviews} évaluation
+                        {demande.clientReputation.totalReviews > 1 ? 's' : ''}
+                      </p>
+                    </div>
                   ) : null}
                 </div>
               </div>

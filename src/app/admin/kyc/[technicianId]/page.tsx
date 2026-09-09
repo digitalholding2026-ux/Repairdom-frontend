@@ -7,8 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar } from '@/components/ui/avatar';
+import { Icon } from '@/components/ui/icon';
+import { Alert } from '@/components/ui/alert';
+import { Field } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/ui/page-header';
+import { formatDate, formatDateTime, formatFileSize, fullName } from '@/lib/format';
 import {
   getAdminKycFolder,
   getAdminKycDocumentUrl,
@@ -20,27 +26,7 @@ import {
   kycStatusLabel,
   kycVariantFor,
   kycDocumentTypeLabel,
-  technicianInitials,
 } from '@/lib/technician-profile';
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-  return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-}
 
 export default function AdminKycFolderPage() {
   const params = useParams<{ technicianId: string }>();
@@ -153,36 +139,28 @@ export default function AdminKycFolderPage() {
   }
 
   const technician = detail.technician;
-  const name = [technician.firstName, technician.lastName].filter(Boolean).join(' ');
+  const name = fullName(technician.firstName, technician.lastName);
 
   return (
     <div className="space-y-4">
-      <Link href="/admin/kyc" className="text-sm font-medium text-primary hover:underline">
-        ← Retour aux dossiers KYC
-      </Link>
+      <PageHeader title="Examen du dossier" backHref="/admin/kyc" />
 
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center gap-4">
-            {technician.avatarUrl ? (
-              <img
-                src={technician.avatarUrl}
-                alt={`Photo de ${name}`}
-                className="size-20 shrink-0 rounded-full border border-border object-cover"
-              />
-            ) : (
-              <div className="flex size-20 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xl font-semibold text-muted-foreground">
-                {technicianInitials(technician.firstName, technician.lastName)}
-              </div>
-            )}
-            <div className="min-w-0">
+            <Avatar size="2xl" src={technician.avatarUrl} firstName={technician.firstName} lastName={technician.lastName} />
+            <div className="min-w-0 space-y-1.5">
               <h1 className="text-lg font-bold leading-tight">{name}</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">📍 {technician.city}</p>
-              <div className="mt-1.5">
-                <Badge variant={kycVariantFor(technician.kycStatus)}>
-                  {kycStatusLabel(technician.kycStatus)}
-                </Badge>
-              </div>
+              {technician.city ? (
+                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Icon name="pin" size="3.5" />
+                  {technician.city}
+                </p>
+              ) : null}
+              <Badge variant={kycVariantFor(technician.kycStatus)}>
+                <Icon name={technician.kycStatus === 'VERIFIED' ? 'shield-check' : 'info'} size="3.5" />
+                {kycStatusLabel(technician.kycStatus)}
+              </Badge>
             </div>
           </div>
 
@@ -207,10 +185,13 @@ export default function AdminKycFolderPage() {
 
           {technician.categories.length > 0 ? (
             <div>
-              <span className="block text-sm font-medium">Compétences</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <Icon name="wrench" size="3.5" className="text-muted-foreground" />
+                Compétences
+              </span>
               <div className="mt-1.5 flex flex-wrap gap-2">
                 {technician.categories.map((id) => (
-                  <Badge key={id} variant="neutral">
+                  <Badge key={id} variant="outline">
                     {categoryLabel(id)}
                   </Badge>
                 ))}
@@ -220,10 +201,13 @@ export default function AdminKycFolderPage() {
 
           {technician.specialties.length > 0 ? (
             <div>
-              <span className="block text-sm font-medium">Spécialités</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <Icon name="sparkles" size="3.5" className="text-muted-foreground" />
+                Spécialités
+              </span>
               <div className="mt-1.5 flex flex-wrap gap-2">
                 {technician.specialties.map((specialty) => (
-                  <Badge key={specialty} variant="neutral">
+                  <Badge key={specialty} variant="outline">
                     {specialty}
                   </Badge>
                 ))}
@@ -260,7 +244,10 @@ export default function AdminKycFolderPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Documents ({detail.documents.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Icon name="file" size="sm" className="text-muted-foreground" />
+            Documents ({detail.documents.length})
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {detail.documents.length === 0 ? (
@@ -274,7 +261,7 @@ export default function AdminKycFolderPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{kycDocumentTypeLabel(document.type)}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {document.originalName} · {formatFileSize(document.size)} · {formatDate(document.createdAt)}
+                        {document.originalName} · {formatFileSize(document.size)} · {formatDateTime(document.createdAt)}
                       </p>
                     </div>
                     <Button
@@ -284,6 +271,7 @@ export default function AdminKycFolderPage() {
                       onClick={() => handleOpenDocument(document.id)}
                       disabled={fetchingUrlId === document.id}
                     >
+                      <Icon name="file" size="3.5" />
                       {fetchingUrlId === document.id ? 'Génération…' : 'Consulter le document'}
                     </Button>
                   </div>
@@ -310,7 +298,10 @@ export default function AdminKycFolderPage() {
       {detail.reviews.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Historique des décisions</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="clock" size="sm" className="text-muted-foreground" />
+              Historique des décisions
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {detail.reviews.map((review) => (
@@ -319,7 +310,7 @@ export default function AdminKycFolderPage() {
                   <p className="text-sm font-medium">
                     {review.previousStatus} → {review.newStatus}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatDate(review.createdAt)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDateTime(review.createdAt)}</p>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">Par {review.reviewerName || review.reviewerId}</p>
                 {review.reason ? (
@@ -334,32 +325,27 @@ export default function AdminKycFolderPage() {
       {technician.kycStatus === 'PENDING' ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Décision de vérification</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="shield-check" size="sm" className="text-muted-foreground" />
+              Décision de vérification
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {actionSuccess ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-                {actionSuccess}
-              </p>
-            ) : null}
-            {actionError ? (
-              <p className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-                {actionError}
-              </p>
-            ) : null}
+            {actionSuccess ? <Alert variant="success">{actionSuccess}</Alert> : null}
+            {actionError ? <Alert variant="error">{actionError}</Alert> : null}
 
             {showReject ? (
               <div className="space-y-3">
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium">Motif du rejet</span>
+                <Field htmlFor="rejectReason" label="Motif du rejet">
                   <Textarea
+                    id="rejectReason"
                     value={rejectReason}
                     onChange={(event) => setRejectReason(event.target.value)}
                     placeholder="Expliquez au technicien ce qui doit être corrigé…"
                     rows={3}
                     maxLength={500}
                   />
-                </label>
+                </Field>
                 <div className="flex items-center gap-2">
                   <Button onClick={handleReject} isLoading={actionBusy} disabled={!rejectReason.trim()}>
                     Confirmer le rejet
@@ -380,7 +366,8 @@ export default function AdminKycFolderPage() {
             ) : (
               <div className="flex flex-wrap items-center gap-2">
                 <Button onClick={handleValidate} isLoading={actionBusy}>
-                  ✓ Valider le profil
+                  <Icon name="check" size="sm" />
+                  Valider le profil
                 </Button>
                 <Button
                   variant="destructive"
@@ -390,7 +377,8 @@ export default function AdminKycFolderPage() {
                   }}
                   disabled={actionBusy}
                 >
-                  ✕ Rejeter le dossier
+                  <Icon name="x" size="sm" />
+                  Rejeter le dossier
                 </Button>
               </div>
             )}
