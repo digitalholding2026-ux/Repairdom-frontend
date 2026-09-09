@@ -1,6 +1,6 @@
 export type RequestTimingMode = 'ASAP' | 'SCHEDULED';
 
-export function formatRequestedTiming(mode: string, requestedAt: string | null): string {
+export function formatRequestedTiming(mode: string | null, requestedAt: string | null): string {
   if (mode !== 'SCHEDULED' || !requestedAt) {
     return 'Dès que possible';
   }
