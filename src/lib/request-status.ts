@@ -13,25 +13,41 @@ export const DEMANDE_STATUSES = [
 
 export type DemandeStatus = (typeof DEMANDE_STATUSES)[number];
 
-export const DEMANDE_STATUS_CONFIG: Record<
-  DemandeStatus,
-  { label: string; variant: StatusVariant }
+export type StatusContext = 'client' | 'technician';
+
+const STATUS_BY_CONTEXT: Record<
+  StatusContext,
+  Record<DemandeStatus, { label: string; variant: StatusVariant }>
 > = {
-  SUBMITTED: { label: 'Recherche de technicien', variant: 'info' },
-  PENDING: { label: 'En attente', variant: 'warning' },
-  ACCEPTED: { label: 'Technicien trouvé', variant: 'success' },
-  SCHEDULED: { label: 'Rendez-vous fixé', variant: 'info' },
-  IN_PROGRESS: { label: 'Intervention en cours', variant: 'warning' },
-  COMPLETED: { label: 'Intervention terminée', variant: 'info' },
-  CONFIRMED: { label: 'Confirmée', variant: 'success' },
-  CANCELED: { label: 'Annulée', variant: 'danger' },
+  client: {
+    SUBMITTED: { label: 'Recherche de technicien', variant: 'info' },
+    PENDING: { label: 'En attente', variant: 'warning' },
+    ACCEPTED: { label: 'Technicien trouvé', variant: 'success' },
+    SCHEDULED: { label: 'Rendez-vous fixé', variant: 'info' },
+    IN_PROGRESS: { label: 'Intervention en cours', variant: 'warning' },
+    COMPLETED: { label: 'Intervention terminée', variant: 'info' },
+    CONFIRMED: { label: 'Confirmée', variant: 'success' },
+    CANCELED: { label: 'Annulée', variant: 'danger' },
+  },
+  technician: {
+    SUBMITTED: { label: 'Nouvelle', variant: 'info' },
+    PENDING: { label: 'En attente', variant: 'warning' },
+    ACCEPTED: { label: 'Acceptée', variant: 'success' },
+    SCHEDULED: { label: 'Rendez-vous fixé', variant: 'info' },
+    IN_PROGRESS: { label: 'Intervention en cours', variant: 'warning' },
+    COMPLETED: { label: 'Terminée', variant: 'info' },
+    CONFIRMED: { label: 'Confirmée', variant: 'success' },
+    CANCELED: { label: 'Annulée', variant: 'danger' },
+  },
 };
 
-export function demandeStatusConfig(status: string | null | undefined): {
-  label: string;
-  variant: StatusVariant;
-} {
-  if (status && status in DEMANDE_STATUS_CONFIG) return DEMANDE_STATUS_CONFIG[status as DemandeStatus];
+export function demandeStatusConfig(
+  status: string | null | undefined,
+  context: StatusContext = 'client',
+): { label: string; variant: StatusVariant } {
+  if (status && status in STATUS_BY_CONTEXT[context]) {
+    return STATUS_BY_CONTEXT[context][status as DemandeStatus];
+  }
   return { label: status ?? '—', variant: 'neutral' };
 }
 

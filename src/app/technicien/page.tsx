@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
+import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
 import { getMe, logout } from '@/lib/api/auth-service';
 import {
   listAvailableDemandes,
@@ -17,72 +23,14 @@ import {
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
+import { formatDate } from '@/lib/format';
 
-const STATUS_LABELS: Record<string, string> = {
-  SUBMITTED: 'Nouvelle',
-  PENDING: 'En attente',
-  ACCEPTED: 'Acceptée',
-  SCHEDULED: 'Rendez-vous fixé',
-  IN_PROGRESS: 'Intervention en cours',
-  COMPLETED: 'Terminée',
-  CONFIRMED: 'Confirmée',
-  CANCELED: 'Annulée',
-};
-
-const STATUS_VARIANTS: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  SUBMITTED: 'info',
-  PENDING: 'warning',
-  ACCEPTED: 'success',
-  SCHEDULED: 'info',
-  IN_PROGRESS: 'warning',
-  COMPLETED: 'warning',
-  CONFIRMED: 'success',
-  CANCELED: 'danger',
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function DemandeCard({ demande, detailHref }: { demande: TechnicianDemande; detailHref: string }) {
-  return (
-    <Link href={detailHref} className="block">
-      <Card className="transition-colors hover:bg-muted/50">
-        <CardContent className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-sm font-semibold text-primary">{demande.reference}</span>
-            <Badge variant={STATUS_VARIANTS[demande.status] ?? 'neutral'}>
-              {STATUS_LABELS[demande.status] ?? demande.status}
-            </Badge>
-          </div>
-          <p className="text-sm font-medium">{demande.categoryLabel}</p>
-          <p className="line-clamp-2 text-sm text-muted-foreground">{demande.description}</p>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{demande.city}</span>
-            <span>·</span>
-            <span>{formatDate(demande.createdAt)}</span>
-          </div>
-          <p className="text-xs font-medium">
-            {demande.requestedMode === 'SCHEDULED' ? (
-              <>
-                📅 Intervention souhaitée — {formatRequestedTiming(demande.requestedMode, demande.requestedAt)}
-              </>
-            ) : (
-              <>🚨 Intervention dès que possible</>
-            )}
-          </p>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
+const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
+const DONE_STATUSES = ['COMPLETED', 'CONFIRMED'];
 
 export default function TechnicianDashboardPage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
   const [available, setAvailable] = useState<TechnicianDemande[]>([]);
   const [mine, setMine] = useState<TechnicianDemande[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +57,7 @@ export default function TechnicianDashboardPage() {
         ]);
         if (!cancelled) {
           setProfile(profileData);
+          setFirstName(me.firstName);
           setAvailable(availableList);
           setMine(myList);
         }
@@ -144,6 +93,21 @@ export default function TechnicianDashboardPage() {
     }
   };
 
+  const currentMission = useMemo(() => {
+    const active = mine
+      .filter((d) => ACTIVE_STATUSES.includes(d.status))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return active[0] ?? null;
+  }, [mine]);
+
+  const mineList = useMemo(
+    () => mine.filter((d) => !currentMission || d.id !== currentMission.id),
+    [mine, currentMission],
+  );
+
+  const activeCount = mine.filter((d) => ACTIVE_STATUSES.includes(d.status)).length;
+  const doneCount = mine.filter((d) => DONE_STATUSES.includes(d.status)).length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -168,71 +132,147 @@ export default function TechnicianDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">Demandes disponibles</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/technicien/profil">
-            <Button variant="secondary" size="sm">
-              Mon profil
+      <PageHeader
+        title={`Bonjour${firstName ? ` ${firstName}` : ''}`}
+        description="Voici les nouvelles demandes autour de chez vous."
+        actions={
+          <>
+            <Link href="/technicien/profil">
+              <Button variant="outline" size="sm">
+                <Icon name="user" size="sm" />
+                Profil
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Déconnexion
             </Button>
-          </Link>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            Déconnexion
-          </Button>
-        </div>
-      </section>
+          </>
+        }
+      />
 
-      <section className="rounded-lg border border-border bg-card p-4">
+      <section className="rounded-xl border border-border bg-card p-4 shadow-card">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold">Ma disponibilité</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Icon
+                name="clock"
+                size="sm"
+                className={profile?.isAvailable ? 'text-success' : 'text-muted-foreground'}
+              />
+              Ma disponibilité
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
               {profile?.isAvailable
-                ? '🟢 Disponible — interventions urgentes proposées en priorité.'
-                : '⚪ Indisponible — activez votre disponibilité pour être prioritaire sur les interventions urgentes.'}
+                ? 'Disponible — les interventions urgentes vous sont proposées en priorité.'
+                : 'Indisponible — activez votre disponibilité pour recevoir de nouvelles demandes.'}
             </p>
           </div>
-          <Button
-            variant={profile?.isAvailable ? 'secondary' : 'primary'}
-            size="sm"
-            onClick={handleToggleAvailability}
-            isLoading={availabilityBusy}
-            disabled={!profile}
-          >
-            {profile?.isAvailable ? 'Passer indisponible' : 'Me rendre disponible'}
-          </Button>
+          <Switch
+            checked={profile?.isAvailable ?? false}
+            onCheckedChange={handleToggleAvailability}
+            disabled={availabilityBusy || !profile}
+            aria-label={
+              profile?.isAvailable ? 'Passer indisponible' : 'Me rendre disponible'
+            }
+          />
         </div>
-        {availabilityError ? (
-          <p className="mt-2 text-xs text-red-600 dark:text-red-400">{availabilityError}</p>
-        ) : null}
+        {availabilityError ? <Alert variant="error" dense className="mt-3">{availabilityError}</Alert> : null}
       </section>
 
-      <section>
-        <Badge variant="info">{available.length} demande{available.length !== 1 ? 's' : ''}</Badge>
+      <section className="grid grid-cols-3 gap-3">
+        <StatBlock icon="users" label="Nouvelles" value={available.length} />
+        <StatBlock icon="clock" label="En cours" value={activeCount} />
+        <StatBlock icon="check-circle" label="Terminées" value={doneCount} />
       </section>
 
-      {available.length === 0 ? (
-        <EmptyState
-          title="Aucune demande disponible"
-          description="Il n'y a pas de demande correspondant à votre profil et votre zone pour le moment."
+      {currentMission ? (
+        <section className="space-y-3">
+          <SectionHeader title="Intervention en cours" />
+          <Link href={`/technicien/demandes/${currentMission.id}`} className="block">
+            <Card className="overflow-hidden transition-colors hover:bg-muted/50">
+              <div className="border-t-2 border-primary">
+                <CardContent className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-mono text-sm font-semibold text-primary">
+                      {currentMission.reference}
+                    </span>
+                    <Badge variant="outline">Suivre</Badge>
+                  </div>
+                  <p className="text-sm font-medium">{currentMission.categoryLabel}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">
+                    {currentMission.description}
+                  </p>
+                  <p className="text-xs font-medium text-foreground">
+                    {currentMission.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'} :{' '}
+                    {formatRequestedTiming(currentMission.requestedMode, currentMission.requestedAt)}
+                  </p>
+                </CardContent>
+              </div>
+            </Card>
+          </Link>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <SectionHeader
+          title="Nouvelles demandes"
+          action={
+            <Badge variant={available.length > 0 ? 'info' : 'neutral'}>
+              {available.length} disponible{available.length !== 1 ? 's' : ''}
+            </Badge>
+          }
         />
-      ) : (
-        <div className="space-y-3">
-          {available.map((d) => (
-            <DemandeCard key={d.id} demande={d} detailHref={`/technicien/demandes/${d.id}`} />
-          ))}
-        </div>
-      )}
+        {available.length === 0 ? (
+          <EmptyState
+            title="Aucune demande disponible"
+            description="Il n’y a pas de demande correspondant à votre profil et votre zone pour le moment."
+          />
+        ) : (
+          <div className="space-y-3">
+            {available.map((d) => (
+              <TechnicianDemandeCard key={d.id} demande={d} detailHref={`/technicien/demandes/${d.id}`} />
+            ))}
+          </div>
+        )}
+      </section>
 
       {mine.length > 0 ? (
-        <section className="mt-8 space-y-3">
-          <h2 className="text-lg font-semibold">Mes interventions</h2>
-          <Badge variant="success">{mine.length} intervention{mine.length !== 1 ? 's' : ''}</Badge>
-          {mine.map((d) => (
-            <DemandeCard key={d.id} demande={d} detailHref={`/technicien/demandes/${d.id}`} />
-          ))}
+        <section className="space-y-3">
+          <SectionHeader
+            title="Mes interventions"
+            action={
+              <Badge variant="success">
+                {mine.length} intervention{mine.length !== 1 ? 's' : ''}
+              </Badge>
+            }
+          />
+          <div className="space-y-3">
+            {mineList.map((d) => (
+              <TechnicianDemandeCard key={d.id} demande={d} detailHref={`/technicien/demandes/${d.id}`} />
+            ))}
+          </div>
         </section>
       ) : null}
     </div>
+  );
+}
+
+function StatBlock({
+  icon,
+  label,
+  value,
+}: {
+  icon: 'users' | 'clock' | 'check-circle';
+  label: string;
+  value: number;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
+        <Icon name={icon} className="text-primary" />
+        <p className="text-2xl font-bold leading-none">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </CardContent>
+    </Card>
   );
 }

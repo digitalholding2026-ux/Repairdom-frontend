@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
+import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +26,6 @@ import {
   kycStatusLabel,
   kycVariantFor,
   kycDocumentTypeLabel,
-  technicianInitials,
 } from '@/lib/technician-profile';
 
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -229,9 +230,7 @@ export default function TechnicianProfilePage() {
   if (!profile) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-          {error}
-        </div>
+        <Alert variant="error">{error}</Alert>
         <Link href="/technicien">
           <Button variant="secondary">Retour au tableau de bord</Button>
         </Link>
@@ -256,19 +255,14 @@ export default function TechnicianProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-4">
-            {currentAvatar ? (
-              <img
-                src={currentAvatar}
-                alt="Photo de profil"
-                className="size-20 shrink-0 rounded-full border border-border object-cover"
-              />
-            ) : (
-              <div className="flex size-20 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xl font-semibold text-muted-foreground">
-                {technicianInitials(profile.user.firstName, profile.user.lastName)}
-              </div>
-            )}
-            <div className="flex-1 space-y-2">
-              <input
+            <Avatar
+              src={currentAvatar}
+              firstName={profile.user.firstName}
+              lastName={profile.user.lastName}
+              size="xl"
+              alt="Photo de profil"
+            />
+            <div className="flex-1 space-y-2"><input
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -293,16 +287,8 @@ export default function TechnicianProfilePage() {
               {!uploading && !uploadError && !photoUploaded ? (
                 <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP · 5 Mo maximum.</p>
               ) : null}
-              {photoUploaded ? (
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-                  Photo mise à jour.
-                </p>
-              ) : null}
-              {uploadError ? (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-                  {uploadError}
-                </p>
-              ) : null}
+              {photoUploaded ? <Alert variant="success" dense>Photo mise à jour.</Alert> : null}
+              {uploadError ? <Alert variant="error" dense>{uploadError}</Alert> : null}
             </div>
           </div>
 
@@ -396,17 +382,9 @@ export default function TechnicianProfilePage() {
             </label>
           </div>
 
-          {error ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-              {error}
-            </div>
-          ) : null}
+          {error ? <Alert variant="error">{error}</Alert> : null}
 
-          {saved ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-              Profil enregistré.
-            </div>
-          ) : null}
+          {saved ? <Alert variant="success">Profil enregistré.</Alert> : null}
 
           <Button onClick={handleSave} isLoading={saving} disabled={!canSave} className="w-full" size="lg">
             Enregistrer le profil
@@ -465,10 +443,9 @@ export default function TechnicianProfilePage() {
               </p>
 
               {kyc.status === 'REJECTED' && kyc.kycRejectionReason ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/30 dark:text-amber-300">
-                  <span className="block font-medium">Motif du rejet</span>
-                  <p className="mt-0.5 text-xs">{kyc.kycRejectionReason}</p>
-                </div>
+                <Alert variant="warning" title="Motif du rejet">
+                  {kyc.kycRejectionReason}
+                </Alert>
               ) : null}
 
               {kyc.documents.length > 0 ? (
@@ -575,16 +552,8 @@ export default function TechnicianProfilePage() {
                 </div>
               )}
 
-              {kycError ? (
-                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/30 dark:text-red-300">
-                  {kycError}
-                </p>
-              ) : null}
-              {kycSuccess ? (
-                <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300">
-                  {kycSuccess}
-                </p>
-              ) : null}
+              {kycError ? <Alert variant="error" dense>{kycError}</Alert> : null}
+              {kycSuccess ? <Alert variant="success" dense>{kycSuccess}</Alert> : null}
             </>
           ) : (
             <p className="text-sm text-red-600 dark:text-red-300">

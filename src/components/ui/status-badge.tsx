@@ -1,13 +1,14 @@
 import { Badge } from './badge';
-import { demandeStatusConfig, quoteStatusConfig } from '@/lib/request-status';
+import { demandeStatusConfig, quoteStatusConfig, type StatusContext } from '@/lib/request-status';
 
 export interface DemandeStatusBadgeProps {
   status: string | null | undefined;
+  context?: StatusContext;
   className?: string;
 }
 
-export function DemandeStatusBadge({ status, className }: DemandeStatusBadgeProps) {
-  const config = demandeStatusConfig(status);
+export function DemandeStatusBadge({ status, context = 'client', className }: DemandeStatusBadgeProps) {
+  const config = demandeStatusConfig(status, context);
   return (
     <Badge variant={config.variant} className={className}>
       {config.label}

@@ -29,6 +29,7 @@ export {
 export { Modal, type ModalProps } from './modal';
 export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog';
 export { BottomNav, type BottomNavProps, type BottomNavItem } from './bottom-nav';
+export { Switch, type SwitchProps } from './switch';
 export { Spinner, type SpinnerProps } from './spinner';
 export { Skeleton, type SkeletonProps } from './skeleton';
 export { EmptyState, type EmptyStateProps } from './empty-state';
