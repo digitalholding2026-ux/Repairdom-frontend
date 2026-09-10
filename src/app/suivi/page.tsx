@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,20 +78,18 @@ const stepsFor = (tracking: PublicTracking): TimelineStep[] => {
 };
 
 export default function SuiviPage() {
-  const searchParams = useSearchParams();
-  const initialRef = (searchParams.get('reference') ?? '').trim().toUpperCase();
-  const [reference, setReference] = useState(initialRef);
+  const [reference, setReference] = useState('');
   const [tracking, setTracking] = useState<PublicTracking | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleTrack = async () => {
-    const ref = reference.trim().toUpperCase();
-    if (!ref) return;
+  const handleTrack = async (ref?: string) => {
+    const value = (ref ?? reference).trim().toUpperCase();
+    if (!value) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await trackByReference(ref);
+      const result = await trackByReference(value);
       setTracking(result);
     } catch (err) {
       setTracking(null);
@@ -102,12 +99,18 @@ export default function SuiviPage() {
     }
   };
 
-  // Si ?reference= est présent (lien depuis la page de confirmation), on lance
-  // le suivi automatiquement sans que l'utilisateur ait à appuyer sur « Suivre ».
+  // Si ?reference= est présent (lien depuis la page de confirmation), on
+  // préremplit le champ et on lance le suivi automatiquement. Lecture côté
+  // client uniquement (window.location) pour rester compatible avec le
+  // rendu statique du build Vercel.
   useEffect(() => {
-    if (initialRef) {
-      handleTrack();
-    }
+    const fromUrl = new URLSearchParams(window.location.search)
+      .get('reference')
+      ?.trim()
+      .toUpperCase();
+    if (!fromUrl) return;
+    setReference(fromUrl);
+    void handleTrack(fromUrl);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -146,7 +149,7 @@ export default function SuiviPage() {
               />
             </Field>
             <Button
-              onClick={handleTrack}
+              onClick={() => void handleTrack()}
               isLoading={loading}
               disabled={reference.trim().length === 0}
               className="w-full"
