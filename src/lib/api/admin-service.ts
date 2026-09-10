@@ -182,8 +182,6 @@ export interface CatalogPricing {
   minPrice: number | null;
   referencePrice: number | null;
   maxPrice: number | null;
-  technicianPrice: number | null;
-  customerPrice: number | null;
   travelFee: number | null;
   serviceFee: number | null;
   currency: string;
@@ -313,7 +311,7 @@ export function getPricing(interventionId: string): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>(`/admin/catalog/interventions/${encodeURIComponent(interventionId)}/pricing`);
 }
 
-export function createPricing(data: { interventionId: string; minPrice?: number; referencePrice?: number; maxPrice?: number; technicianPrice?: number; customerPrice?: number; travelFee?: number; serviceFee?: number }): Promise<CatalogPricing> {
+export function createPricing(data: { interventionId: string; minPrice?: number; referencePrice?: number; maxPrice?: number; travelFee?: number; serviceFee?: number }): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>('/admin/catalog/pricing', jsonBody(data));
 }
 

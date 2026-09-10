@@ -46,8 +46,6 @@ export default function AdminDiagnosticPage() {
   const [minPrice, setMinPrice] = useState('');
   const [refPrice, setRefPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [techPrice, setTechPrice] = useState('');
-  const [custPrice, setCustPrice] = useState('');
   const [travelFee, setTravelFee] = useState('');
   const [serviceFee, setServiceFee] = useState('');
   const [savingPricing, setSavingPricing] = useState(false);
@@ -116,8 +114,6 @@ export default function AdminDiagnosticPage() {
     setMinPrice('');
     setRefPrice('');
     setMaxPrice('');
-    setTechPrice('');
-    setCustPrice('');
     setTravelFee('');
     setServiceFee('');
     try {
@@ -126,8 +122,6 @@ export default function AdminDiagnosticPage() {
       setMinPrice(pricing.minPrice?.toString() ?? '');
       setRefPrice(pricing.referencePrice?.toString() ?? '');
       setMaxPrice(pricing.maxPrice?.toString() ?? '');
-      setTechPrice(pricing.technicianPrice?.toString() ?? '');
-      setCustPrice(pricing.customerPrice?.toString() ?? '');
       setTravelFee(pricing.travelFee?.toString() ?? '');
       setServiceFee(pricing.serviceFee?.toString() ?? '');
     } catch {
@@ -146,16 +140,12 @@ export default function AdminDiagnosticPage() {
         minPrice?: number;
         referencePrice?: number;
         maxPrice?: number;
-        technicianPrice?: number;
-        customerPrice?: number;
         travelFee?: number;
         serviceFee?: number;
       } = { interventionId: pricingInterventionId };
       if (minPrice) payload.minPrice = parseFloat(minPrice);
       if (refPrice) payload.referencePrice = parseFloat(refPrice);
       if (maxPrice) payload.maxPrice = parseFloat(maxPrice);
-      if (techPrice) payload.technicianPrice = parseFloat(techPrice);
-      if (custPrice) payload.customerPrice = parseFloat(custPrice);
       if (travelFee) payload.travelFee = parseFloat(travelFee);
       if (serviceFee) payload.serviceFee = parseFloat(serviceFee);
 
@@ -322,26 +312,20 @@ export default function AdminDiagnosticPage() {
                   </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Prix min (€)" htmlFor="pMin">
-                    <Input id="pMin" type="number" step="0.01" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0.00" />
+                  <Field label="Prix min (XAF)" htmlFor="pMin" hint="Interne RepairDom">
+                    <Input id="pMin" type="number" step="1" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix référence (€)" htmlFor="pRef">
-                    <Input id="pRef" type="number" step="0.01" value={refPrice} onChange={(e) => setRefPrice(e.target.value)} placeholder="0.00" />
+                  <Field label="Prix référence (XAF)" htmlFor="pRef">
+                    <Input id="pRef" type="number" step="1" value={refPrice} onChange={(e) => setRefPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix max (€)" htmlFor="pMax">
-                    <Input id="pMax" type="number" step="0.01" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="0.00" />
+                  <Field label="Prix max (XAF)" htmlFor="pMax" hint="Interne RepairDom">
+                    <Input id="pMax" type="number" step="1" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix technicien (€)" htmlFor="pTech">
-                    <Input id="pTech" type="number" step="0.01" value={techPrice} onChange={(e) => setTechPrice(e.target.value)} placeholder="0.00" />
+                  <Field label="Frais déplacement (XAF)" htmlFor="pTravel">
+                    <Input id="pTravel" type="number" step="1" value={travelFee} onChange={(e) => setTravelFee(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix client (€)" htmlFor="pCust">
-                    <Input id="pCust" type="number" step="0.01" value={custPrice} onChange={(e) => setCustPrice(e.target.value)} placeholder="0.00" />
-                  </Field>
-                  <Field label="Frais déplacement (€)" htmlFor="pTravel">
-                    <Input id="pTravel" type="number" step="0.01" value={travelFee} onChange={(e) => setTravelFee(e.target.value)} placeholder="0.00" />
-                  </Field>
-                  <Field label="Frais service (€)" htmlFor="pService">
-                    <Input id="pService" type="number" step="0.01" value={serviceFee} onChange={(e) => setServiceFee(e.target.value)} placeholder="0.00" />
+                  <Field label="Frais RepairDom (XAF)" htmlFor="pService">
+                    <Input id="pService" type="number" step="1" value={serviceFee} onChange={(e) => setServiceFee(e.target.value)} placeholder="0" />
                   </Field>
                 </div>
                 <Button onClick={handleSavePricing} isLoading={savingPricing} className="w-full">
