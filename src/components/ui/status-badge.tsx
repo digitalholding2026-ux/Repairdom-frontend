@@ -4,14 +4,15 @@ import { demandeStatusConfig, quoteStatusConfig, type StatusContext } from '@/li
 export interface DemandeStatusBadgeProps {
   status: string | null | undefined;
   context?: StatusContext;
+  labelOverride?: string;
   className?: string;
 }
 
-export function DemandeStatusBadge({ status, context = 'client', className }: DemandeStatusBadgeProps) {
+export function DemandeStatusBadge({ status, context = 'client', labelOverride, className }: DemandeStatusBadgeProps) {
   const config = demandeStatusConfig(status, context);
   return (
     <Badge variant={config.variant} className={className}>
-      {config.label}
+      {labelOverride ?? config.label}
     </Badge>
   );
 }

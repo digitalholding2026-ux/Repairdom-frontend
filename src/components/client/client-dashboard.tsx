@@ -10,41 +10,67 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
-import { DemandeCard } from '@/components/client/demande-card';
+import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
 import { getMe, logout, homePathForRole } from '@/lib/api/auth-service';
-import { listMyDemandes, type DemandeListItem } from '@/lib/api/request-service';
+import {
+  listMyDemandes,
+  listMyDemandeHistory,
+  type DemandeListItem,
+} from '@/lib/api/request-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
 import { cn } from '@/lib/cn';
 
-export type ClientDashboardVariant = 'home' | 'list';
-
-const FILTERS = [
-  { id: 'all', label: 'Toutes' },
-  { id: 'active', label: 'En cours' },
-  { id: 'done', label: 'Terminées' },
-  { id: 'canceled', label: 'Annulées' },
-] as const;
-
-type FilterId = (typeof FILTERS)[number]['id'];
+export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
 const ACTIVE_STATUSES = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
-const DONE_STATUSES = ['COMPLETED', 'CONFIRMED'];
-const CANCELED_STATUSES = ['CANCELED'];
 
-function matchFilter(status: string, filter: FilterId): boolean {
-  if (filter === 'active') return ACTIVE_STATUSES.includes(status);
-  if (filter === 'done') return DONE_STATUSES.includes(status);
-  if (filter === 'canceled') return CANCELED_STATUSES.includes(status);
-  return true;
+/** Libellés d'historique : CONFIRMED → « Terminée », CANCELED → « Annulée ». */
+function historyBadgeLabel(status: string): string {
+  return status === 'CANCELED' ? 'Annulée' : 'Terminée';
+}
+
+function MissionTabs({ current }: { current: 'missions' | 'history' }) {
+  const tabs = [
+    { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
+    { id: 'history', label: 'Historique', href: '/client/demandes/historique' },
+  ] as const;
+  return (
+    <div
+      className="flex items-center gap-2 overflow-x-auto no-scrollbar"
+      role="tablist"
+      aria-label="Mes missions et historique"
+    >
+      {tabs.map((tab) => {
+        const active = tab.id === current;
+        return (
+          <Link
+            key={tab.id}
+            href={tab.href}
+            role="tab"
+            aria-selected={active}
+            className={cn(
+              'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              active
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-secondary-foreground hover:opacity-90',
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
 }
 
 export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboardVariant }) {
   const router = useRouter();
   const [firstName, setFirstName] = useState<string | null>(null);
   const [demandes, setDemandes] = useState<DemandeListItem[]>([]);
+  const [historique, setHistorique] = useState<DemandeListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterId>('all');
 
   useEffect(() => {
     let cancelled = false;
@@ -57,10 +83,16 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           router.replace(homePathForRole(me.role));
           return;
         }
-        const list = await listMyDemandes();
+        // Le filtrage actif/historique est réalisé côté backend :
+        // GET /demandes (actives) et GET /demandes/my/history (terminées/annulées).
+        const [missions, history] = await Promise.all([
+          variant === 'history' ? Promise.resolve([]) : listMyDemandes(),
+          variant === 'list' ? Promise.resolve([]) : listMyDemandeHistory(),
+        ]);
         if (!cancelled) {
           setFirstName(me.firstName ?? null);
-          setDemandes(list);
+          setDemandes(missions);
+          setHistorique(history);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
@@ -73,20 +105,12 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, variant]);
 
-  const filtered = useMemo(
-    () => demandes.filter((d) => matchFilter(d.status, filter)),
-    [demandes, filter],
-  );
-
-  const activeCount = useMemo(
-    () => demandes.filter((d) => ACTIVE_STATUSES.includes(d.status)).length,
-    [demandes],
-  );
+  const activeCount = demandes.length;
   const doneCount = useMemo(
-    () => demandes.filter((d) => DONE_STATUSES.includes(d.status)).length,
-    [demandes],
+    () => historique.filter((d) => d.status === 'CONFIRMED').length,
+    [historique],
   );
 
   const currentMission = useMemo(() => {
@@ -131,45 +155,29 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     );
   }
 
-  if (variant === 'list') {
+  if (variant === 'list' || variant === 'history') {
+    const isHistory = variant === 'history';
+    const list = isHistory ? historique : demandes;
     return (
       <div className="space-y-5">
         <PageHeader
-          title="Mes demandes"
-          description="Suivez vos demandes, devis et interventions."
+          title={isHistory ? 'Historique' : 'Mes missions'}
+          description={
+            isHistory
+              ? 'Vos interventions confirmées et annulées.'
+              : 'Suivez vos demandes, devis et interventions en cours.'
+          }
         />
 
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar" role="tablist" aria-label="Filtrer les demandes">
-          {FILTERS.map((tab) => {
-            const active = tab.id === filter;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(tab.id)}
-                className={cn(
-                  'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:opacity-90',
-                )}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <MissionTabs current={isHistory ? 'history' : 'missions'} />
 
-        {filtered.length === 0 ? (
+        {list.length === 0 ? (
           <EmptyState
-            title="Aucune demande"
+            title={isHistory ? 'Votre historique est vide' : 'Aucune mission en cours'}
             description={
-              filter === 'all'
-                ? 'Vous n’avez encore déposé aucune demande de dépannage.'
-                : 'Aucune demande ne correspond à ce filtre pour le moment.'
+              isHistory
+                ? 'Les interventions confirmées et annulées apparaîtront ici.'
+                : 'Vous n’avez aucune demande en cours pour le moment.'
             }
             action={
               <Link href="/client/demande">
@@ -179,9 +187,13 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           />
         ) : (
           <div className="space-y-3">
-            {filtered.map((d) => (
+            {list.map((d) => (
               <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
-                <DemandeCard demande={d} />
+                {isHistory ? (
+                  <HistoryDemandeCard demande={d} labelOverride={historyBadgeLabel(d.status)} />
+                ) : (
+                  <DemandeCard demande={d} />
+                )}
               </Link>
             ))}
           </div>
@@ -215,7 +227,12 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
 
       <section className="grid grid-cols-2 gap-3">
         <QuickStat icon="clock" label="En cours" value={activeCount} href="/client/demandes" />
-        <QuickStat icon="check-circle" label="Terminées" value={doneCount} href="/client/demandes" />
+        <QuickStat
+          icon="check-circle"
+          label="Terminées"
+          value={doneCount}
+          href="/client/demandes/historique"
+        />
       </section>
 
       {currentMission ? (

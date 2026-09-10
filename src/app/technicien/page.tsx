@@ -17,6 +17,7 @@ import { getMe, logout } from '@/lib/api/auth-service';
 import {
   listAvailableDemandes,
   listMyDemandes,
+  listMyDemandeHistory,
   getTechnicianProfile,
   updateTechnicianAvailability,
   type TechnicianDemande,
@@ -26,13 +27,13 @@ import { formatRequestedTiming } from '@/lib/request-timing';
 import { formatDate } from '@/lib/format';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
-const DONE_STATUSES = ['COMPLETED', 'CONFIRMED'];
 
 export default function TechnicianDashboardPage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [available, setAvailable] = useState<TechnicianDemande[]>([]);
   const [mine, setMine] = useState<TechnicianDemande[]>([]);
+  const [history, setHistory] = useState<TechnicianDemande[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availabilityBusy, setAvailabilityBusy] = useState(false);
@@ -50,16 +51,18 @@ export default function TechnicianDashboardPage() {
           setLoading(false);
           return;
         }
-        const [profileData, availableList, myList] = await Promise.all([
+        const [profileData, availableList, myList, historyList] = await Promise.all([
           getTechnicianProfile(),
           listAvailableDemandes(),
           listMyDemandes(),
+          listMyDemandeHistory(),
         ]);
         if (!cancelled) {
           setProfile(profileData);
           setFirstName(me.firstName ?? null);
           setAvailable(availableList);
           setMine(myList);
+          setHistory(historyList);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
@@ -106,7 +109,7 @@ export default function TechnicianDashboardPage() {
   );
 
   const activeCount = mine.filter((d) => ACTIVE_STATUSES.includes(d.status)).length;
-  const doneCount = mine.filter((d) => DONE_STATUSES.includes(d.status)).length;
+  const doneCount = history.filter((d) => d.status === 'CONFIRMED').length;
 
   if (loading) {
     return (
@@ -137,6 +140,12 @@ export default function TechnicianDashboardPage() {
         description="Voici les nouvelles demandes autour de chez vous."
         actions={
           <>
+            <Link href="/technicien/historique">
+              <Button variant="outline" size="sm">
+                <Icon name="clock" size="sm" />
+                Historique
+              </Button>
+            </Link>
             <Link href="/technicien/profil">
               <Button variant="outline" size="sm">
                 <Icon name="user" size="sm" />
@@ -182,7 +191,7 @@ export default function TechnicianDashboardPage() {
       <section className="grid grid-cols-3 gap-3">
         <StatBlock icon="users" label="Nouvelles" value={available.length} />
         <StatBlock icon="clock" label="En cours" value={activeCount} />
-        <StatBlock icon="check-circle" label="Terminées" value={doneCount} />
+        <StatBlock icon="check-circle" label="Terminées" value={doneCount} href="/technicien/historique" />
       </section>
 
       {currentMission ? (
@@ -261,18 +270,27 @@ function StatBlock({
   icon,
   label,
   value,
+  href,
 }: {
   icon: 'users' | 'clock' | 'check-circle';
   label: string;
   value: number;
+  href?: string;
 }) {
-  return (
-    <Card>
+  const content = (
+    <Card className={href ? 'transition-colors hover:bg-muted/50' : undefined}>
       <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
         <Icon name={icon} className="text-primary" />
         <p className="text-2xl font-bold leading-none">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
       </CardContent>
     </Card>
+  );
+  return href ? (
+    <Link href={href} className="block">
+      {content}
+    </Link>
+  ) : (
+    content
   );
 }

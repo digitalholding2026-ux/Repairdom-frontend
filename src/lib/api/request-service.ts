@@ -159,6 +159,10 @@ export async function listMyDemandes(): Promise<DemandeListItem[]> {
   return apiFetch<DemandeListItem[]>('/demandes');
 }
 
+export async function listMyDemandeHistory(): Promise<DemandeListItem[]> {
+  return apiFetch<DemandeListItem[]>('/demandes/my/history');
+}
+
 export async function getDemande(id: string): Promise<DemandeListItem> {
   return apiFetch<DemandeListItem>(`/demandes/${encodeURIComponent(id)}`);
 }

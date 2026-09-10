@@ -197,6 +197,10 @@ export async function listMyDemandes(): Promise<TechnicianDemande[]> {
   return apiFetch<TechnicianDemande[]>('/technician/my-demandes');
 }
 
+export async function listMyDemandeHistory(): Promise<TechnicianDemande[]> {
+  return apiFetch<TechnicianDemande[]>('/technician/my-demandes/history');
+}
+
 export async function getTechnicianDemande(id: string): Promise<TechnicianDemande> {
   return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}`);
 }
