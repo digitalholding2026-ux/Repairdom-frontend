@@ -26,7 +26,20 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </RoleGuard>
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground safe-bottom">
+      <nav className="border-t border-border bg-background/90 backdrop-blur safe-bottom">
+        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-around px-4">
+          <Link href="/admin/kyc" className="flex flex-col items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Icon name="badge-check" size="sm" />
+            KYC
+          </Link>
+          <Link href="/admin/catalog" className="flex flex-col items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Icon name="wrench" size="sm" />
+            Catalogue
+          </Link>
+        </div>
+      </nav>
+
+      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground">
         <p>© {new Date().getFullYear()} {siteConfig.name}. Tous droits réservés.</p>
       </footer>
     </div>
