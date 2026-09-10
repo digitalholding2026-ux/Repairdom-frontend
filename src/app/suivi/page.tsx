@@ -119,7 +119,7 @@ export default function SuiviPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight">Suivre une intervention</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Entrez votre numéro de suivi (ex. RD-26-8F4K29) pour consulter l&apos;avancement de votre mission.
+            Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l&apos;avancement de votre mission.
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export default function SuiviPage() {
                 id="tracking-reference"
                 value={reference}
                 onChange={(e) => setReference(e.target.value.toUpperCase())}
-                placeholder="RD-XX-XXXXXX"
+                placeholder="RD-XXXXXX"
                 className="font-mono"
               />
             </Field>
