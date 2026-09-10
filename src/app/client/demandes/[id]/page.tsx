@@ -14,9 +14,11 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
+import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatTime, fullName } from '@/lib/format';
+import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getDemande,
   updateDemandeStatus,
@@ -44,6 +46,7 @@ export default function ClientDemandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
+  const [events, setEvents] = useState<MissionEvent[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,8 +54,14 @@ export default function ClientDemandeDetailPage() {
     async function load() {
       if (!params?.id) return;
       try {
-        const d = await getDemande(params.id);
-        if (!cancelled) setDemande(d);
+        const [d, ev] = await Promise.all([
+          getDemande(params.id),
+          listMissionEvents(params.id).catch(() => []),
+        ]);
+        if (!cancelled) {
+          setDemande(d);
+          setEvents(ev);
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
@@ -70,15 +79,17 @@ export default function ClientDemandeDetailPage() {
 
     const load = async () => {
       try {
-        const [d, diagnosticsList, quotesList] = await Promise.all([
+        const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
           getDemande(params.id!),
           listDemandeDiagnostics(params.id!),
           listDemandeQuotes(params.id!),
+          listMissionEvents(params.id!).catch(() => []),
         ]);
         if (active) {
           setDemande(d);
           setDiagnostics(diagnosticsList);
           setQuotes(quotesList);
+          setEvents(eventsList);
         }
       } catch {
         // Erreur silencieuse en rafraîchissement périodique.
@@ -269,6 +280,20 @@ export default function ClientDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {events.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="clock" size="sm" className="text-muted-foreground" />
+              Chronologie de la mission
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MissionTimeline events={events} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       {demande.technician ? (
         <MissionSummaryCard demandeId={demande.id} />

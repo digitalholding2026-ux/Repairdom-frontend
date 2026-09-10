@@ -1,35 +1,18 @@
 import { siteConfig } from '@/lib/site-config';
 
-export interface DeviceContext {
-  name: string;
-  slug: string;
+export interface MissionEventActor {
+  firstName: string;
+  lastName: string | null;
 }
 
-export interface TrackingTimelineEntry {
+export interface MissionEvent {
+  id: string;
   type: string;
   label: string;
-  date: string | null;
-}
-
-export interface PublicTracking {
-  reference: string;
-  status: string;
-  category: string;
-  device: {
-    domain: DeviceContext | null;
-    brand: DeviceContext | null;
-    model: DeviceContext | null;
-    problem: DeviceContext | null;
-  };
-  timing: {
-    mode: string;
-    requestedAt: string | null;
-  };
-  scheduledAt: string | null;
-  submittedAt: string;
-  technicianAssigned: boolean;
-  technicianVerified: boolean;
-  timeline: TrackingTimelineEntry[];
+  fromStatus: string | null;
+  toStatus: string | null;
+  createdAt: string;
+  actor: MissionEventActor | null;
 }
 
 class ApiError extends Error {
@@ -58,6 +41,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export async function trackByReference(reference: string): Promise<PublicTracking> {
-  return apiFetch<PublicTracking>(`/tracking/${encodeURIComponent(reference)}`);
+/** Chronologie métier d'une mission (API privée, acteurs autorisés uniquement). */
+export async function listMissionEvents(demandeId: string): Promise<MissionEvent[]> {
+  return apiFetch<MissionEvent[]>(`/demandes/${encodeURIComponent(demandeId)}/events`);
 }

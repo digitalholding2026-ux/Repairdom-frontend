@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Icon } from '@/components/ui/icon';
 import { RoleGuard } from '@/components/auth/role-guard';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { siteConfig } from '@/lib/site-config';
 
 const CLIENT_PUBLIC_PATHS = ['/client/connexion', '/client/inscription'];
@@ -19,7 +20,10 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
             </span>
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>
-          <Badge variant="outline">Espace client</Badge>
+          <div className="flex items-center gap-2">
+            <NotificationBell href="/client/notifications" />
+            <Badge variant="outline">Espace client</Badge>
+          </div>
         </div>
       </header>
 

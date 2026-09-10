@@ -193,7 +193,20 @@ export default function SuiviPage() {
               ) : null}
               <div>
                 <p className="text-sm font-medium">Avancement</p>
-                <Timeline steps={stepsFor(tracking)} className="mt-3" />
+                {tracking.timeline && tracking.timeline.length > 0 ? (
+                  <Timeline
+                    steps={tracking.timeline.map((entry, index) => ({
+                      id: `${entry.type}-${index}`,
+                      title: entry.label,
+                      state: 'done',
+                      icon: 'check',
+                      timestamp: entry.date ? formatDateTime(entry.date) : undefined,
+                    }))}
+                    className="mt-3"
+                  />
+                ) : (
+                  <Timeline steps={stepsFor(tracking)} className="mt-3" />
+                )}
               </div>
             </CardContent>
           </Card>

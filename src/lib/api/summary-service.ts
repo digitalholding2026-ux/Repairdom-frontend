@@ -1,4 +1,5 @@
 import { siteConfig } from '@/lib/site-config';
+import type { MissionEvent } from './mission-events-service';
 
 export interface DeviceContext {
   id: string;
@@ -20,6 +21,7 @@ export interface MissionSummary {
   };
   negotiationRequestedAt: string | null;
   finalAmount: number | null;
+  events: MissionEvent[];
   technician: {
     id: string;
     firstName: string;

@@ -15,11 +15,13 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
+import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
 import { kycStatusLabel } from '@/lib/technician-profile';
+import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getTechnicianDemande,
   acceptDemande,
@@ -59,6 +61,7 @@ export default function TechnicianDemandeDetailPage() {
   const [technicianProfile, setTechnicianProfile] = useState<{ kycStatus: string } | null>(null);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
+  const [events, setEvents] = useState<MissionEvent[]>([]);
   const [showDiagnosticForm, setShowDiagnosticForm] = useState(false);
   const [diagnosticContent, setDiagnosticContent] = useState('');
   const [recommendation, setRecommendation] = useState('');
@@ -79,14 +82,16 @@ export default function TechnicianDemandeDetailPage() {
     async function load() {
       if (!params?.id) return;
       try {
-        const [d, profile] = await Promise.all([
+        const [d, profile, eventsList] = await Promise.all([
           getTechnicianDemande(params.id),
           getTechnicianProfile().catch(() => null),
+          listMissionEvents(params.id).catch(() => []),
         ]);
         if (!cancelled) {
           setDemande(d);
           setTechnicianProfile(profile);
           if (profile) setKycVerified(profile.kycStatus === 'VERIFIED');
+          setEvents(eventsList);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
@@ -105,15 +110,17 @@ export default function TechnicianDemandeDetailPage() {
 
     const load = async () => {
       try {
-        const [d, diagnosticsList, quotesList] = await Promise.all([
+        const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
           getTechnicianDemande(params.id!),
           listDemandeDiagnostics(params.id!),
           listDemandeQuotes(params.id!),
+          listMissionEvents(params.id!).catch(() => []),
         ]);
         if (active) {
           setDemande(d);
           setDiagnostics(diagnosticsList);
           setQuotes(quotesList);
+          setEvents(eventsList);
         }
       } catch {
         // Erreur silencieuse en rafraîchissement périodique.
@@ -488,6 +495,20 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {events.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="clock" size="sm" className="text-muted-foreground" />
+              Chronologie de la mission
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MissionTimeline events={events} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) &&
       demande.domain ? (
