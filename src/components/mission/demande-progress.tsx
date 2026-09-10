@@ -7,7 +7,7 @@ interface ProgressStep {
   icon: IconName;
 }
 
-const PROGRESS_STEPS: ProgressStep[] = [
+export const PROGRESS_STEPS: ProgressStep[] = [
   { statuses: ['SUBMITTED', 'PENDING'], title: 'Demande déposée', icon: 'file' },
   { statuses: ['ACCEPTED'], title: 'Technicien trouvé', icon: 'users' },
   { statuses: ['SCHEDULED'], title: 'Rendez-vous fixé', icon: 'calendar' },

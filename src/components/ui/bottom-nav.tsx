@@ -30,15 +30,12 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
         className,
       )}
     >
-      <div
-        className={cn(
-          'mx-auto grid w-full max-w-lg px-2 pb-1 pt-1.5',
-          primaryHref ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-2',
-        )}
-      >
-        {items.slice(0, 1).map((item) => (
-          <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
-        ))}
+      <div className="mx-auto grid w-full max-w-lg grid-cols-[1fr_auto_1fr] px-2 pb-1 pt-1.5">
+        <span className="flex items-center justify-around gap-1">
+          {items.slice(0, 1).map((item) => (
+            <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+        </span>
         <span className="flex justify-center">
           {primaryHref ? (
             <Link
@@ -50,9 +47,11 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
             </Link>
           ) : null}
         </span>
-        {items.slice(1).map((item) => (
-          <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
-        ))}
+        <span className="flex items-center justify-around gap-1">
+          {items.slice(1).map((item) => (
+            <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
+          ))}
+        </span>
       </div>
     </nav>
   );

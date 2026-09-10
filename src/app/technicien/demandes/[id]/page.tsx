@@ -15,12 +15,12 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
-import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
 import { kycStatusLabel } from '@/lib/technician-profile';
+import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getTechnicianDemande,
@@ -331,6 +331,10 @@ export default function TechnicianDemandeDetailPage() {
     !catalogFlow || (Boolean(demande.negotiationRequestedAt) && !hasAcceptedQuote);
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
+  const lastActivityLabel =
+    events.length > 0
+      ? events[events.length - 1].label
+      : demandeStatusConfig(demande.status, 'technician').label;
   const deviceLabel = [
     demande.domain?.name,
     demande.brand?.name,
@@ -497,17 +501,19 @@ export default function TechnicianDemandeDetailPage() {
       </Card>
 
       {events.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="clock" size="sm" className="text-muted-foreground" />
-              Chronologie de la mission
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MissionTimeline events={events} />
-          </CardContent>
-        </Card>
+        <Link
+          href={`/technicien/chronologies/${demande.id}`}
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
+            <p className="truncate text-sm font-medium">{lastActivityLabel}</p>
+          </div>
+          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
+            Voir la chronologie
+            <Icon name="chevron-right" size="sm" />
+          </span>
+        </Link>
       ) : null}
 
       {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) &&

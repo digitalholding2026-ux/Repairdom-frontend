@@ -36,6 +36,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
       <BottomNav
         items={[
           { href: '/technicien', label: 'Accueil', icon: 'home' },
+          { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
           { href: '/technicien/profil', label: 'Profil', icon: 'user' },
         ]}
       />
