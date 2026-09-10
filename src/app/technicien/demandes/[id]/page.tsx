@@ -29,15 +29,23 @@ import {
   createDemandeDiagnostic,
   listDemandeQuotes,
   createDemandeQuote,
+  getDemandeSuggestions,
+  selectDemandeDiagnostic,
   type TechnicianDemande,
   type MissionDiagnostic,
   type MissionQuote,
+  type DiagnosticSuggestion,
+  type SuggestionIntervention,
 } from '@/lib/api/technician-service';
 
 const POLL_INTERVAL_MS = 5000;
 
 function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string {
   return `${quote.amount.toLocaleString('fr-FR')} ${quote.currency}`;
+}
+
+function formatPrice(value: number | null | undefined): string {
+  return value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
 }
 
 export default function TechnicianDemandeDetailPage() {
@@ -57,6 +65,10 @@ export default function TechnicianDemandeDetailPage() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [amountValue, setAmountValue] = useState('');
   const [quoteDescription, setQuoteDescription] = useState('');
+  const [suggestions, setSuggestions] = useState<DiagnosticSuggestion[]>([]);
+  const [showManualCatForm, setShowManualCatForm] = useState(false);
+  const [manualContent, setManualContent] = useState('');
+  const [manualRecommendation, setManualRecommendation] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -90,11 +102,13 @@ export default function TechnicianDemandeDetailPage() {
 
     const load = async () => {
       try {
-        const [diagnosticsList, quotesList] = await Promise.all([
+        const [d, diagnosticsList, quotesList] = await Promise.all([
+          getTechnicianDemande(params.id!),
           listDemandeDiagnostics(params.id!),
           listDemandeQuotes(params.id!),
         ]);
         if (active) {
+          setDemande(d);
           setDiagnostics(diagnosticsList);
           setQuotes(quotesList);
         }
@@ -206,6 +220,70 @@ export default function TechnicianDemandeDetailPage() {
     }
   };
 
+  useEffect(() => {
+    if (!params?.id || !demande) return;
+    if (!demande.domain) return;
+    if (!['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status)) {
+      return;
+    }
+    let active = true;
+    getDemandeSuggestions(params.id)
+      .then((res) => {
+        if (active) setSuggestions(res.suggestions);
+      })
+      .catch(() => {
+        if (active) setSuggestions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [params?.id, demande?.id, demande?.status, Boolean(demande?.domain)]);
+
+  const handleSelectCatalogDiagnostic = async (diagId: string, intervention: SuggestionIntervention) => {
+    if (!params?.id) return;
+    setActionBusy(`catalog:${intervention.id}`);
+    setError(null);
+    try {
+      const result = await selectDemandeDiagnostic(params.id, {
+        mode: 'CATALOG',
+        catalogDiagnosticId: diagId,
+        catalogInterventionId: intervention.id,
+      });
+      if (result.quote) setQuotes((prev) => [result.quote!, ...prev]);
+      if (result.diagnostic) setDiagnostics((prev) => [result.diagnostic, ...prev]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la sélection du diagnostic.');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
+  const handleManualSelect = async () => {
+    if (!params?.id) return;
+    const content = manualContent.trim();
+    if (content.length < 10) {
+      setError('Décrivez l’anomalie constatée (10 caractères minimum).');
+      return;
+    }
+    setActionBusy('catalog:manual');
+    setError(null);
+    try {
+      const result = await selectDemandeDiagnostic(params.id, {
+        mode: 'MANUAL',
+        content,
+        recommendation: manualRecommendation.trim() || undefined,
+      });
+      if (result.diagnostic) setDiagnostics((prev) => [result.diagnostic, ...prev]);
+      setShowManualCatForm(false);
+      setManualContent('');
+      setManualRecommendation('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -229,10 +307,24 @@ export default function TechnicianDemandeDetailPage() {
 
   const canAccept = demande.status === 'SUBMITTED' || demande.status === 'PENDING';
   const kycRequired = canAccept && !kycVerified;
-  const canDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
+  const baseCanDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
   const hasAcceptedQuote = quotes.some((q) => q.status === 'ACCEPTED');
+  const catalogFlow = quotes.some((q) => q.source === 'CATALOG');
+  const negotiationUnlocked =
+    Boolean(demande.negotiationRequestedAt) || hasAcceptedQuote;
+  const canDiscuss = baseCanDiscuss && (!catalogFlow || negotiationUnlocked);
+  const canProposeManualQuote =
+    !catalogFlow || (Boolean(demande.negotiationRequestedAt) && !hasAcceptedQuote);
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
+  const deviceLabel = [
+    demande.domain?.name,
+    demande.brand?.name,
+    demande.model?.name,
+    demande.problem?.name,
+  ]
+    .filter(Boolean)
+    .join(' — ');
 
   return (
     <div className="space-y-4">
@@ -247,6 +339,13 @@ export default function TechnicianDemandeDetailPage() {
           <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {deviceLabel ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+              <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
+              <p className="text-sm text-foreground">{deviceLabel}</p>
+            </div>
+          ) : null}
+
           <MissionInfo
             description={demande.description}
             city={demande.city}
@@ -383,6 +482,102 @@ export default function TechnicianDemandeDetailPage() {
         </CardContent>
       </Card>
 
+      {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) &&
+      demande.domain ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="briefcase" size="sm" className="text-muted-foreground" />
+              Diagnostics possibles
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {quotes.some((q) => q.source === 'CATALOG' && q.status === 'PENDING') ? (
+              <Alert variant="info" dense icon="info">
+                Un tarif automatique est déjà en attente de la décision du client.
+              </Alert>
+            ) : null}
+            {suggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun diagnostic compatible n&apos;a été trouvé pour cet appareil.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {suggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    className="space-y-2 rounded-xl border border-border bg-card p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold">{suggestion.name}</p>
+                      {suggestion.score > 0 ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          Pertinence : {suggestion.score}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestion.interventions.map((intervention) => (
+                        <Button
+                          key={intervention.id}
+                          size="sm"
+                          variant="secondary"
+                          isLoading={actionBusy === `catalog:${intervention.id}`}
+                          onClick={() => handleSelectCatalogDiagnostic(suggestion.id, intervention)}
+                        >
+                          Sélectionner — {intervention.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!showManualCatForm ? (
+              <Button variant="ghost" size="sm" onClick={() => setShowManualCatForm(true)}>
+                <Icon name="plus" size="3.5" />
+                Autre anomalie (hors catalogue)
+              </Button>
+            ) : (
+              <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+                <Field htmlFor="manualCatContent" label="Décrivez l’anomalie constatée *">
+                  <Textarea
+                    id="manualCatContent"
+                    value={manualContent}
+                    onChange={(event) => setManualContent(event.target.value)}
+                    maxLength={2000}
+                    rows={2}
+                    placeholder="Ex. : problème de carte mère non répertorié."
+                  />
+                </Field>
+                <Field htmlFor="manualCatReco" label="Recommandation (facultatif)">
+                  <Input
+                    id="manualCatReco"
+                    value={manualRecommendation}
+                    onChange={(event) => setManualRecommendation(event.target.value)}
+                    maxLength={2000}
+                    placeholder="Ex. : diagnostic approfondi requis."
+                  />
+                </Field>
+                <Button
+                  onClick={handleManualSelect}
+                  isLoading={actionBusy === 'catalog:manual'}
+                  className="w-full"
+                >
+                  Enregistrer le diagnostic
+                </Button>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              La sélection d&apos;un diagnostic du catalogue envoie automatiquement le tarif
+              RepairDom au client.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) ? (
         <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
       ) : null}
@@ -394,7 +589,13 @@ export default function TechnicianDemandeDetailPage() {
             Discussion avec le client
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {baseCanDiscuss && catalogFlow && !negotiationUnlocked ? (
+            <Alert variant="info" icon="info">
+              Discussion verrouillée : le tarif automatique est en attente de la décision du client
+              (accepter ou négocier).
+            </Alert>
+          ) : null}
           <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
         </CardContent>
       </Card>
@@ -469,13 +670,21 @@ export default function TechnicianDemandeDetailPage() {
               <Icon name="badge-check" size="sm" className="text-muted-foreground" />
               Proposition tarifaire
             </CardTitle>
-            <Button variant="secondary" size="sm" onClick={() => setShowQuoteForm((v) => !v)}>
-              <Icon name="plus" size="3.5" />
-              Proposer un tarif
-            </Button>
+            {canProposeManualQuote ? (
+              <Button variant="secondary" size="sm" onClick={() => setShowQuoteForm((v) => !v)}>
+                <Icon name="plus" size="3.5" />
+                Proposer un tarif
+              </Button>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          {catalogFlow && !negotiationUnlocked ? (
+            <Alert variant="info" dense icon="info">
+              Le tarif automatique RepairDom est en attente de la décision du client (acceptation ou
+              demande de négociation).
+            </Alert>
+          ) : null}
           {latestQuote ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
@@ -483,6 +692,18 @@ export default function TechnicianDemandeDetailPage() {
                 <QuoteStatusBadge status={latestQuote.status} />
               </div>
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
+              {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
+                <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Réparation</span>
+                    <span className="font-medium">{formatPrice(latestQuote.breakdown.referencePrice)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Déplacement</span>
+                    <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                  </div>
+                </div>
+              ) : null}
               {latestQuote.status === 'PENDING' ? (
                 <p className="text-sm text-muted-foreground">En attente de la réponse du client.</p>
               ) : null}

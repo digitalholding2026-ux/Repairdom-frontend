@@ -16,6 +16,7 @@ import { Modal } from '@/components/ui/modal';
 import {
   getDomain,
   createProblem,
+  createBrand,
   updateDomain,
   type CatalogDomainDetail,
   type CatalogProblem,
@@ -31,6 +32,11 @@ export default function AdminDomainPage() {
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [showCreateBrand, setShowCreateBrand] = useState(false);
+  const [creatingBrand, setCreatingBrand] = useState(false);
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandSlug, setNewBrandSlug] = useState('');
+  const [newBrandDesc, setNewBrandDesc] = useState('');
 
   async function load(quiet = false) {
     if (!params?.domainId) return;
@@ -78,6 +84,26 @@ export default function AdminDomainPage() {
     }
   };
 
+  const handleCreateBrand = async () => {
+    if (!params?.domainId) return;
+    const name = newBrandName.trim();
+    const slug = newBrandSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (!name) return;
+    setCreatingBrand(true);
+    try {
+      await createBrand({ domainId: params.domainId, name, slug, description: newBrandDesc.trim() || undefined });
+      setShowCreateBrand(false);
+      setNewBrandName('');
+      setNewBrandSlug('');
+      setNewBrandDesc('');
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création de la marque.');
+    } finally {
+      setCreatingBrand(false);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
   if (!domain) return <EmptyState title="Domaine introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
@@ -92,9 +118,56 @@ export default function AdminDomainPage() {
             <span className="text-sm font-medium">Actif</span>
             <Switch checked={domain.isActive} onCheckedChange={handleToggleActive} />
           </div>
-          <p className="text-xs text-muted-foreground">Slug : {domain.slug}</p>
+          <p className="text-xs text-muted-foreground">
+            Slug : {domain.slug}
+            {domain.category ? ` — Catégorie : ${domain.category}` : ''}
+          </p>
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Marques ({domain.brands.length})</h2>
+        <Button size="sm" onClick={() => setShowCreateBrand(true)}>
+          <Icon name="plus" size="3.5" />
+          Marque
+        </Button>
+      </div>
+
+      {domain.brands.length === 0 ? (
+        <EmptyState icon="briefcase" title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
+      ) : (
+        <div className="space-y-2">
+          {domain.brands.map((brand) => (
+            <Link
+              key={brand.id}
+              href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
+              className="block"
+            >
+              <Card className="transition-colors hover:bg-muted/50">
+                <CardContent className="flex items-center justify-between gap-3 pt-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{brand.name}</p>
+                      <Badge variant={brand.isActive ? 'success' : 'neutral'}>
+                        {brand.isActive ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {brand.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {brand.description}
+                      </p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {brand._count?.models ?? 0} modèle{(brand._count?.models ?? 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Problèmes ({domain.problems.length})</h2>
@@ -135,6 +208,50 @@ export default function AdminDomainPage() {
           ))}
         </div>
       )}
+
+      <Modal
+        open={showCreateBrand}
+        onClose={() => setShowCreateBrand(false)}
+        title="Nouvelle marque"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowCreateBrand(false)} disabled={creatingBrand}>
+              Annuler
+            </Button>
+            <Button onClick={handleCreateBrand} isLoading={creatingBrand} disabled={!newBrandName.trim()}>
+              Créer
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Nom" htmlFor="brandName" required>
+            <Input
+              id="brandName"
+              value={newBrandName}
+              onChange={(e) => setNewBrandName(e.target.value)}
+              placeholder="Ex. : Tecno"
+            />
+          </Field>
+          <Field label="Slug" htmlFor="brandSlug" hint="Généré automatiquement si vide">
+            <Input
+              id="brandSlug"
+              value={newBrandSlug}
+              onChange={(e) => setNewBrandSlug(e.target.value)}
+              placeholder="tecno"
+            />
+          </Field>
+          <Field label="Description" htmlFor="brandDesc">
+            <Textarea
+              id="brandDesc"
+              value={newBrandDesc}
+              onChange={(e) => setNewBrandDesc(e.target.value)}
+              rows={2}
+              maxLength={1000}
+            />
+          </Field>
+        </div>
+      </Modal>
 
       <Modal
         open={showCreate}

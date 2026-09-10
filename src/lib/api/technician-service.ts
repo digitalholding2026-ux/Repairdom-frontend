@@ -58,6 +58,12 @@ export interface TechnicianDemande {
   scheduledAt: string | null;
   requestedMode: string;
   requestedAt: string | null;
+  domain: DeviceContext | null;
+  brand: DeviceContext | null;
+  model: DeviceContext | null;
+  problem: DeviceContext | null;
+  negotiationRequestedAt: string | null;
+  finalAmount: number | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -71,6 +77,12 @@ export interface TechnicianDemande {
   createdAt: string;
   client?: { id: string; firstName: string; lastName: string | null } | null;
   clientReputation?: { averageRating: number | null; totalReviews: number } | null;
+}
+
+export interface DeviceContext {
+  id: string;
+  name: string;
+  slug: string;
 }
 
 class ApiError extends Error {
@@ -232,7 +244,90 @@ export interface MissionQuote {
   currency: string;
   description: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  source?: string;
+  catalogDiagnosticId?: string | null;
+  catalogInterventionId?: string | null;
+  breakdown?: {
+    referencePrice: number | null;
+    travelFee: number | null;
+    serviceFee: number | null;
+  } | null;
   createdAt: string;
+}
+
+/* ── Catalogue → mission (Sprint 8.1) ────────────────────────── */
+
+export interface SuggestionIntervention {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  difficulty: string | null;
+  estimatedTime: string | null;
+  needsParts: boolean;
+  partsNote: string | null;
+}
+
+export interface DiagnosticSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  confidence: string | null;
+  difficulty: string | null;
+  estimatedTime: string | null;
+  problem: {
+    id: string;
+    name: string;
+    slug: string;
+    brand: { id: string; name: string } | null;
+    model: { id: string; name: string } | null;
+  };
+  interventions: SuggestionIntervention[];
+  score: number;
+}
+
+export interface SuggestionResponse {
+  suggestions: DiagnosticSuggestion[];
+  total: number;
+  demand: {
+    domainId: string | null;
+    brandId: string | null;
+    modelId: string | null;
+    problemId: string | null;
+  };
+}
+
+export interface SelectDiagnosticResult {
+  mode: 'CATALOG' | 'MANUAL';
+  diagnostic: MissionDiagnostic;
+  quote: MissionQuote | null;
+}
+
+export async function getDemandeSuggestions(demandeId: string): Promise<SuggestionResponse> {
+  return apiFetch<SuggestionResponse>(
+    `/demandes/${encodeURIComponent(demandeId)}/catalog/suggestions`,
+  );
+}
+
+export async function selectDemandeDiagnostic(
+  demandeId: string,
+  data: {
+    mode: 'CATALOG' | 'MANUAL';
+    catalogDiagnosticId?: string;
+    catalogInterventionId?: string;
+    content?: string;
+    recommendation?: string;
+  },
+): Promise<SelectDiagnosticResult> {
+  return apiFetch<SelectDiagnosticResult>(
+    `/demandes/${encodeURIComponent(demandeId)}/diagnostic/select`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+  );
 }
 
 export async function listDemandeMessages(demandeId: string): Promise<ConversationMessage[]> {

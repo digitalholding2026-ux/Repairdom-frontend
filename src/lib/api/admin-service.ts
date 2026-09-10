@@ -129,10 +129,37 @@ export interface CatalogDomain {
   slug: string;
   description: string | null;
   icon: string | null;
+  category: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
-  _count?: { problems: number };
+  _count?: { problems: number; brands?: number };
+}
+
+export interface CatalogBrand {
+  id: string;
+  domainId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  isActive: boolean;
+  sortOrder: number;
+  _count?: { models: number };
+}
+
+export interface CatalogModel {
+  id: string;
+  brandId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface CatalogBrandDetail extends CatalogBrand {
+  domain: CatalogDomain;
+  models: CatalogModel[];
 }
 
 export interface CatalogProblem {
@@ -202,6 +229,7 @@ export interface CatalogPricingHistory {
 
 export interface CatalogDomainDetail extends CatalogDomain {
   problems: CatalogProblem[];
+  brands: CatalogBrand[];
 }
 
 export interface CatalogProblemDetail extends CatalogProblem {
@@ -247,7 +275,7 @@ export function getDomain(id: string): Promise<CatalogDomainDetail> {
   return catalogFetch<CatalogDomainDetail>(`/admin/catalog/domains/${encodeURIComponent(id)}`);
 }
 
-export function createDomain(data: { name: string; slug: string; description?: string; icon?: string }): Promise<CatalogDomain> {
+export function createDomain(data: { name: string; slug: string; description?: string; icon?: string; category?: string }): Promise<CatalogDomain> {
   return catalogFetch<CatalogDomain>('/admin/catalog/domains', jsonBody(data));
 }
 
@@ -270,6 +298,36 @@ export function createProblem(data: { domainId: string; name: string; slug: stri
 
 export function updateProblem(id: string, data: Record<string, unknown>): Promise<CatalogProblem> {
   return catalogFetch<CatalogProblem>(`/admin/catalog/problems/${encodeURIComponent(id)}`, patchBody(data));
+}
+
+/* Brands */
+export function listBrands(domainId: string): Promise<CatalogBrand[]> {
+  return catalogFetch<CatalogBrand[]>(`/admin/catalog/domains/${encodeURIComponent(domainId)}/brands`);
+}
+
+export function getBrand(id: string): Promise<CatalogBrandDetail> {
+  return catalogFetch<CatalogBrandDetail>(`/admin/catalog/brands/${encodeURIComponent(id)}`);
+}
+
+export function createBrand(data: { domainId: string; name: string; slug: string; description?: string }): Promise<CatalogBrand> {
+  return catalogFetch<CatalogBrand>('/admin/catalog/brands', jsonBody(data));
+}
+
+export function updateBrand(id: string, data: Record<string, unknown>): Promise<CatalogBrand> {
+  return catalogFetch<CatalogBrand>(`/admin/catalog/brands/${encodeURIComponent(id)}`, patchBody(data));
+}
+
+/* Models */
+export function listModels(brandId: string): Promise<CatalogModel[]> {
+  return catalogFetch<CatalogModel[]>(`/admin/catalog/brands/${encodeURIComponent(brandId)}/models`);
+}
+
+export function createModel(data: { brandId: string; name: string; slug: string; description?: string }): Promise<CatalogModel> {
+  return catalogFetch<CatalogModel>('/admin/catalog/models', jsonBody(data));
+}
+
+export function updateModel(id: string, data: Record<string, unknown>): Promise<CatalogModel> {
+  return catalogFetch<CatalogModel>(`/admin/catalog/models/${encodeURIComponent(id)}`, patchBody(data));
 }
 
 /* Diagnostics */

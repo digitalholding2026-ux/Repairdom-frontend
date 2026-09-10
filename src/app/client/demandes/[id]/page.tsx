@@ -23,6 +23,7 @@ import {
   listDemandeDiagnostics,
   listDemandeQuotes,
   respondToQuote,
+  requestQuoteNegotiation,
   formatQuoteAmount,
   type DemandeListItem,
   type MissionDiagnostic,
@@ -30,6 +31,10 @@ import {
 } from '@/lib/api/request-service';
 
 const POLL_INTERVAL_MS = 5000;
+
+function formatPrice(value: number | null | undefined): string {
+  return value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
+}
 
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
@@ -65,11 +70,13 @@ export default function ClientDemandeDetailPage() {
 
     const load = async () => {
       try {
-        const [diagnosticsList, quotesList] = await Promise.all([
+        const [d, diagnosticsList, quotesList] = await Promise.all([
+          getDemande(params.id!),
           listDemandeDiagnostics(params.id!),
           listDemandeQuotes(params.id!),
         ]);
         if (active) {
+          setDemande(d);
           setDiagnostics(diagnosticsList);
           setQuotes(quotesList);
         }
@@ -114,6 +121,22 @@ export default function ClientDemandeDetailPage() {
     }
   };
 
+  const handleNegotiate = async (quoteId: string) => {
+    if (!params?.id) return;
+    setActionBusy('negotiate');
+    setError(null);
+    try {
+      const result = await requestQuoteNegotiation(params.id, quoteId);
+      setDemande((prev) =>
+        prev ? { ...prev, negotiationRequestedAt: result.negotiationRequestedAt } : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la demande de négociation.');
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -136,9 +159,21 @@ export default function ClientDemandeDetailPage() {
   if (!demande) return null;
 
   const canCancel = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED'].includes(demande.status);
-  const canDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
+  const baseCanDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
+  const catalogFlow = quotes.some((q) => q.source === 'CATALOG');
+  const negotiationUnlocked =
+    Boolean(demande.negotiationRequestedAt) || quotes.some((q) => q.status === 'ACCEPTED');
+  const canDiscuss = baseCanDiscuss && (!catalogFlow || negotiationUnlocked);
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
+  const deviceLabel = [
+    demande.domain?.name,
+    demande.brand?.name,
+    demande.model?.name,
+    demande.problem?.name,
+  ]
+    .filter(Boolean)
+    .join(' — ');
 
   return (
     <div className="space-y-4">
@@ -153,6 +188,13 @@ export default function ClientDemandeDetailPage() {
           <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {deviceLabel ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+              <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
+              <p className="text-sm text-foreground">{deviceLabel}</p>
+            </div>
+          ) : null}
+
           <MissionInfo
             description={demande.description}
             city={demande.city}
@@ -240,7 +282,13 @@ export default function ClientDemandeDetailPage() {
               Discussion avec votre technicien
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {baseCanDiscuss && catalogFlow && !negotiationUnlocked ? (
+              <Alert variant="info" icon="info">
+                La discussion est verrouillée tant que vous n&apos;avez pas accepté le tarif ou demandé
+                une négociation.
+              </Alert>
+            ) : null}
             <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
           </CardContent>
         </Card>
@@ -296,23 +344,51 @@ export default function ClientDemandeDetailPage() {
                 </div>
                 <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
 
+                {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
+                  <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Réparation</span>
+                      <span className="font-medium">
+                        {formatPrice(latestQuote.breakdown.referencePrice)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Déplacement</span>
+                      <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                    </div>
+                  </div>
+                ) : null}
+
                 {latestQuote.status === 'PENDING' ? (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleQuoteResponse(latestQuote.id, 'accept')}
-                      isLoading={actionBusy === 'quote:accept'}
-                      className="flex-1"
-                    >
-                      Accepter le tarif
-                    </Button>
-                    <Button
-                      onClick={() => handleQuoteResponse(latestQuote.id, 'reject')}
-                      variant="destructive"
-                      isLoading={actionBusy === 'quote:reject'}
-                      className="flex-1"
-                    >
-                      Refuser
-                    </Button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleQuoteResponse(latestQuote.id, 'accept')}
+                        isLoading={actionBusy === 'quote:accept'}
+                        className="flex-1"
+                      >
+                        Accepter le tarif
+                      </Button>
+                      <Button
+                        onClick={() => handleQuoteResponse(latestQuote.id, 'reject')}
+                        variant="destructive"
+                        isLoading={actionBusy === 'quote:reject'}
+                        className="flex-1"
+                      >
+                        Refuser
+                      </Button>
+                    </div>
+                    {latestQuote.source === 'CATALOG' && !demande.negotiationRequestedAt ? (
+                      <Button
+                        onClick={() => handleNegotiate(latestQuote.id)}
+                        variant="secondary"
+                        isLoading={actionBusy === 'negotiate'}
+                        className="w-full"
+                      >
+                        <Icon name="chat" size="sm" />
+                        Négocier avec le technicien
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -325,6 +401,12 @@ export default function ClientDemandeDetailPage() {
                 {latestQuote.status === 'REJECTED' ? (
                   <Alert variant="neutral" dense>
                     Tarif refusé. Le technicien peut proposer une nouvelle proposition.
+                  </Alert>
+                ) : null}
+
+                {demande.negotiationRequestedAt ? (
+                  <Alert variant="info" dense>
+                    Négociation ouverte : discutez maintenant avec le technicien.
                   </Alert>
                 ) : null}
               </div>

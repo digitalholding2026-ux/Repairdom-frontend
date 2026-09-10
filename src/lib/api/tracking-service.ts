@@ -1,9 +1,21 @@
 import { siteConfig } from '@/lib/site-config';
 
+export interface DeviceContext {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface PublicTracking {
   reference: string;
   status: string;
   category: string;
+  device: {
+    domain: DeviceContext | null;
+    brand: DeviceContext | null;
+    model: DeviceContext | null;
+    problem: DeviceContext | null;
+  };
   timing: {
     mode: string;
     requestedAt: string | null;

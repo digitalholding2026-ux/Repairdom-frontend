@@ -1,11 +1,25 @@
 import { siteConfig } from '@/lib/site-config';
 
+export interface DeviceContext {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface MissionSummary {
   demandeId: string;
   reference: string;
   status: string;
   category: string;
   description: string;
+  device: {
+    domain: DeviceContext | null;
+    brand: DeviceContext | null;
+    model: DeviceContext | null;
+    problem: DeviceContext | null;
+  };
+  negotiationRequestedAt: string | null;
+  finalAmount: number | null;
   technician: {
     id: string;
     firstName: string;
@@ -30,6 +44,12 @@ export interface MissionSummary {
     currency: string;
     description: string;
     status: string;
+    source?: string;
+    breakdown?: {
+      referencePrice: number | null;
+      travelFee: number | null;
+      serviceFee: number | null;
+    } | null;
   } | null;
   location: {
     city: string;

@@ -9,6 +9,17 @@ import { getMissionSummary, type MissionSummary } from '@/lib/api/summary-servic
 import { formatDateTime } from '@/lib/format';
 import { categoryLabel } from '@/lib/technician-profile';
 
+const formatPrice = (value: number | null | undefined) =>
+  value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
+
+function formatCatalogBreakdown(quote: NonNullable<MissionSummary['quote']>) {
+  const lines = [
+    `Réparation : ${formatPrice(quote.breakdown?.referencePrice ?? null)}`,
+    `Déplacement : ${formatPrice(quote.breakdown?.travelFee ?? null)}`,
+  ];
+  return lines.join('\n');
+}
+
 interface MissionSummaryCardProps {
   demandeId: string;
   title?: string;
@@ -79,6 +90,20 @@ export function MissionSummaryCard({ demandeId, title = 'Récapitulatif de la mi
               <DemandeStatusBadge status={summary.status} context="client" />
             </div>
             <SummaryRow icon="wrench" label="Catégorie" value={categoryLabel(summary.category)} />
+            {summary.device.domain ? (
+              <SummaryRow
+                icon="wrench"
+                label="Appareil"
+                value={[
+                  summary.device.domain?.name,
+                  summary.device.brand?.name,
+                  summary.device.model?.name,
+                  summary.device.problem?.name,
+                ]
+                  .filter(Boolean)
+                  .join(' — ')}
+              />
+            ) : null}
             <SummaryRow icon="file" label="Problème" value={summary.description} />
             {summary.technician ? (
               <SummaryRow
@@ -95,6 +120,13 @@ export function MissionSummaryCard({ demandeId, title = 'Récapitulatif de la mi
                 icon="badge-check"
                 label="Tarif accepté"
                 value={`${summary.quote.amount.toLocaleString('fr-FR')} ${summary.quote.currency}`}
+              />
+            ) : null}
+            {summary.quote && summary.quote.source === 'CATALOG' ? (
+              <SummaryRow
+                icon="badge-check"
+                label="Détail du tarif RepairDom"
+                value={formatCatalogBreakdown(summary.quote)}
               />
             ) : null}
             {summary.scheduledAt ? (

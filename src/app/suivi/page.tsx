@@ -159,6 +159,24 @@ export default function SuiviPage() {
               <p className="text-sm text-muted-foreground">{tracking.category}</p>
             </CardHeader>
             <CardContent className="space-y-4">
+              {(tracking.device.domain ||
+                tracking.device.brand ||
+                tracking.device.model ||
+                tracking.device.problem) ? (
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+                  <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
+                  <p className="text-sm">
+                    {[
+                      tracking.device.domain?.name,
+                      tracking.device.brand?.name,
+                      tracking.device.model?.name,
+                      tracking.device.problem?.name,
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')}
+                  </p>
+                </div>
+              ) : null}
               <div>
                 <p className="text-sm font-medium">Avancement</p>
                 <Timeline steps={stepsFor(tracking)} className="mt-3" />

@@ -17,6 +17,12 @@ export interface RequestLocation {
   contactPhone?: string;
 }
 
+export interface DeviceContext {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface CreateDemandeInput {
   categoryId: string;
   description: string;
@@ -28,6 +34,10 @@ export interface CreateDemandeInput {
   contactPhone?: string;
   requestedMode: RequestTimingMode;
   requestedAt?: string;
+  domainId?: string;
+  brandId?: string;
+  modelId?: string;
+  problemId?: string;
 }
 
 export interface TechnicianInfo {
@@ -55,6 +65,12 @@ export interface CreateDemandeResult {
   scheduledAt: string | null;
   requestedMode: string;
   requestedAt: string | null;
+  domain: DeviceContext | null;
+  brand: DeviceContext | null;
+  model: DeviceContext | null;
+  problem: DeviceContext | null;
+  negotiationRequestedAt: string | null;
+  finalAmount: number | null;
   medias: Array<{
     id: string;
     kind: string;
@@ -123,6 +139,10 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       contactPhone: input.contactPhone || undefined,
       requestedMode: input.requestedMode,
       requestedAt: input.requestedAt || undefined,
+      domainId: input.domainId ?? undefined,
+      brandId: input.brandId ?? undefined,
+      modelId: input.modelId ?? undefined,
+      problemId: input.problemId ?? undefined,
       medias: input.medias.map((m) => ({
         kind: resolveMediaKind(m.type),
         name: m.name,
@@ -176,6 +196,14 @@ export interface MissionQuote {
   currency: string;
   description: string;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  source?: string;
+  catalogDiagnosticId?: string | null;
+  catalogInterventionId?: string | null;
+  breakdown?: {
+    referencePrice: number | null;
+    travelFee: number | null;
+    serviceFee: number | null;
+  } | null;
   createdAt: string;
 }
 
@@ -213,6 +241,22 @@ export async function respondToQuote(
 ): Promise<MissionQuote> {
   return apiFetch<MissionQuote>(
     `/demandes/${encodeURIComponent(demandeId)}/quotes/${encodeURIComponent(quoteId)}/${action}`,
+    { method: 'POST' },
+  );
+}
+
+export interface NegotiationResult {
+  demandeId: string;
+  negotiationRequestedAt: string;
+}
+
+/** Le client déclenche l'ouverture du chat de négociation sur un tarif auto. */
+export async function requestQuoteNegotiation(
+  demandeId: string,
+  quoteId: string,
+): Promise<NegotiationResult> {
+  return apiFetch<NegotiationResult>(
+    `/demandes/${encodeURIComponent(demandeId)}/quotes/${encodeURIComponent(quoteId)}/negotiate`,
     { method: 'POST' },
   );
 }

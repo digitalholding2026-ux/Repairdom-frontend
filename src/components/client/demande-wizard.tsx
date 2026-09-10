@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -8,13 +8,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/cn';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
 import { createDemande } from '@/lib/api/request-service';
+import {
+  listCatalogDomains,
+  listCatalogBrands,
+  listCatalogModels,
+  listCatalogProblems,
+  type CatalogDomainLite,
+  type CatalogBrandLite,
+  type CatalogModelLite,
+  type CatalogProblemLite,
+} from '@/lib/api/catalog-service';
 
-const STEPS = ['Votre problème', 'Où et quand ?', 'Vérifiez et envoyez'];
+const STEPS = ['Votre appareil', 'Votre problème', 'Où et quand ?', 'Vérifiez et envoyez'];
 
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1000;
@@ -41,17 +52,129 @@ export function DemandeWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Appareil (catalogue, Sprint 8.1) — tout est facultatif.
+  const [deviceEnabled, setDeviceEnabled] = useState(true);
+  const [domains, setDomains] = useState<CatalogDomainLite[]>([]);
+  const [domainId, setDomainId] = useState('');
+  const [domainName, setDomainName] = useState('');
+  const [categoryDerived, setCategoryDerived] = useState<string | null>(null);
+  const [brandId, setBrandId] = useState('');
+  const [modelId, setModelId] = useState('');
+  const [problemId, setProblemId] = useState('');
+  const [brands, setBrands] = useState<CatalogBrandLite[]>([]);
+  const [models, setModels] = useState<CatalogModelLite[]>([]);
+  const [problems, setProblems] = useState<CatalogProblemLite[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    listCatalogDomains()
+      .then((list) => {
+        if (active) setDomains(list);
+      })
+      .catch(() => {
+        if (active) setDomains([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const minRequestedAt = useMemo(() => nowLocalValue(), []);
   const requestedAtIso = useMemo(
     () => (requestedMode === 'SCHEDULED' && requestedAt ? new Date(requestedAt).toISOString() : null),
     [requestedMode, requestedAt],
   );
 
+  const selectedDeviceLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (domainName) parts.push(domainName);
+    const brand = brands.find((b) => b.id === brandId);
+    if (brand) parts.push(brand.name);
+    const model = models.find((m) => m.id === modelId);
+    if (model) parts.push(model.name);
+    const problem = problems.find((p) => p.id === problemId);
+    if (problem) parts.push(problem.name);
+    return parts.join(' — ');
+  }, [domainName, brands, brandId, models, modelId, problems, problemId]);
+
   const canContinue = useMemo(() => {
-    if (step === 0) return categoryId !== '' && description.trim().length >= MIN_DESCRIPTION_LENGTH;
-    if (step === 1) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
+    if (step === 0) return categoryId !== '';
+    if (step === 1) return description.trim().length >= MIN_DESCRIPTION_LENGTH;
+    if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
   }, [step, categoryId, description, city, requestedMode, requestedAt]);
+
+  const loadProblems = async (newBrandId: string, newModelId: string) => {
+    if (!domainId) {
+      setProblems([]);
+      return;
+    }
+    try {
+      const list = await listCatalogProblems(
+        domainId,
+        newBrandId || undefined,
+        newModelId || undefined,
+      );
+      setProblems(list);
+    } catch {
+      setProblems([]);
+    }
+  };
+
+  const handleToggleDevice = (enabled: boolean) => {
+    setDeviceEnabled(enabled);
+    setError(null);
+    if (!enabled) {
+      setDomainId('');
+      setDomainName('');
+      setCategoryDerived(null);
+      setBrandId('');
+      setModelId('');
+      setProblemId('');
+      setBrands([]);
+      setModels([]);
+      setProblems([]);
+    }
+  };
+
+  const handleDomainChange = (id: string) => {
+    setDomainId(id);
+    setBrandId('');
+    setModelId('');
+    setProblemId('');
+    setBrands([]);
+    setModels([]);
+    setProblems([]);
+    const domain = domains.find((d) => d.id === id);
+    setDomainName(domain?.name ?? '');
+    const derived = domain?.category ?? null;
+    setCategoryDerived(derived);
+    if (derived) setCategoryId(derived);
+    if (id) {
+      listCatalogBrands(id)
+        .then(setBrands)
+        .catch(() => setBrands([]));
+    }
+  };
+
+  const handleBrandChange = (id: string) => {
+    setBrandId(id);
+    setModelId('');
+    setProblemId('');
+    setModels([]);
+    if (id) {
+      listCatalogModels(id)
+        .then(setModels)
+        .catch(() => setModels([]));
+    }
+    void loadProblems(id, '');
+  };
+
+  const handleModelChange = (id: string) => {
+    setModelId(id);
+    setProblemId('');
+    void loadProblems(brandId, id);
+  };
 
   const goNext = () => {
     setError(null);
@@ -83,6 +206,10 @@ export function DemandeWizard() {
         contactPhone: contactPhone.trim() || undefined,
         requestedMode,
         requestedAt: requestedAtIso ?? undefined,
+        domainId: deviceEnabled && domainId ? domainId : undefined,
+        brandId: deviceEnabled && brandId ? brandId : undefined,
+        modelId: deviceEnabled && modelId ? modelId : undefined,
+        problemId: deviceEnabled && problemId ? problemId : undefined,
       });
       router.push(
         `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
@@ -138,7 +265,109 @@ export function DemandeWizard() {
         </ol>
 
         {step === 0 ? (
-          <section className="space-y-5" aria-label="Votre problème">
+          <section className="space-y-5" aria-label="Votre appareil">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+              <div>
+                <p className="text-sm font-semibold">Mon intervention concerne un appareil du catalogue</p>
+                <p className="text-xs text-muted-foreground">
+                  Plus d&apos;informations = un diagnostic plus rapide.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={deviceEnabled}
+                onClick={() => handleToggleDevice(!deviceEnabled)}
+                className={cn(
+                  'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+                  deviceEnabled ? 'bg-primary' : 'bg-border',
+                )}
+              >
+                <span
+                  className={cn(
+                    'absolute top-0.5 size-5 rounded-full bg-background shadow transition-transform',
+                    deviceEnabled ? 'left-[22px]' : 'left-0.5',
+                  )}
+                />
+              </button>
+            </div>
+
+            {deviceEnabled ? (
+              <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+                <Field label="Domaine de l'appareil" htmlFor="device-domain">
+                  <Select
+                    id="device-domain"
+                    value={domainId}
+                    onChange={(e) => handleDomainChange(e.target.value)}
+                  >
+                    <option value="">— Choisir —</option>
+                    {domains.map((domain) => (
+                      <option key={domain.id} value={domain.id}>
+                        {domain.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                {domainId ? (
+                  <Field label="Marque" htmlFor="device-brand" hint="Facultatif">
+                    <Select
+                      id="device-brand"
+                      value={brandId}
+                      onChange={(e) => handleBrandChange(e.target.value)}
+                    >
+                      <option value="">— Choisir —</option>
+                      {brands.map((brand) => (
+                        <option key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : null}
+
+                {brandId ? (
+                  <Field label="Modèle" htmlFor="device-model" hint="Facultatif">
+                    <Select
+                      id="device-model"
+                      value={modelId}
+                      onChange={(e) => handleModelChange(e.target.value)}
+                    >
+                      <option value="">— Choisir —</option>
+                      {models.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : null}
+
+                {domainId ? (
+                  <Field label="Problème constaté" htmlFor="device-problem" hint="Facultatif">
+                    <Select
+                      id="device-problem"
+                      value={problemId}
+                      onChange={(e) => setProblemId(e.target.value)}
+                    >
+                      <option value="">— Choisir —</option>
+                      {problems.map((problem) => (
+                        <option key={problem.id} value={problem.id}>
+                          {problem.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                ) : null}
+
+                {categoryDerived ? (
+                  <Alert variant="info" dense>
+                    Catégorie de dépannage dérivée de l&apos;appareil : {selectedCategory?.label ?? categoryDerived}.
+                  </Alert>
+                ) : null}
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <span className="block text-sm font-medium">Quel type de panne ? *</span>
               <div className="grid gap-2" role="radiogroup" aria-label="Catégorie de la panne">
@@ -183,7 +412,11 @@ export function DemandeWizard() {
                 })}
               </div>
             </div>
+          </section>
+        ) : null}
 
+        {step === 1 ? (
+          <section className="space-y-5" aria-label="Votre problème">
             <Field
               label="Décrivez le problème *"
               htmlFor="demande-description"
@@ -198,7 +431,7 @@ export function DemandeWizard() {
                 id="demande-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex. : ma chaudière ne s’allume plus et il y a une légère odeur de gaz…"
+                placeholder="Ex. : l’écran ne s’allume plus et le téléphone vibre parfois sans raison…"
                 rows={5}
                 maxLength={MAX_DESCRIPTION_LENGTH}
               />
@@ -206,14 +439,14 @@ export function DemandeWizard() {
           </section>
         ) : null}
 
-        {step === 1 ? (
+        {step === 2 ? (
           <section className="space-y-5" aria-label="Où et quand ?">
             <Field label="Ville *" htmlFor="demande-city" hint="Ville où se déroule l’intervention.">
               <Input
                 id="demande-city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Ex. : Lyon"
+                placeholder="Ex. : Yaoundé"
                 autoComplete="address-level2"
               />
             </Field>
@@ -324,7 +557,7 @@ export function DemandeWizard() {
           </section>
         ) : null}
 
-        {step === 2 ? (
+        {step === 3 ? (
           <section className="space-y-4" aria-label="Vérification">
             <div className="space-y-2">
               {selectedCategory ? (
@@ -336,10 +569,20 @@ export function DemandeWizard() {
                 />
               ) : null}
               <SummaryRow
+                icon="briefcase"
+                label="Appareil"
+                value={
+                  deviceEnabled && selectedDeviceLabel
+                    ? selectedDeviceLabel
+                    : 'Non renseigné'
+                }
+                onEdit={() => jumpTo(0)}
+              />
+              <SummaryRow
                 icon="file"
                 label="Description"
                 value={description.trim()}
-                onEdit={() => jumpTo(0)}
+                onEdit={() => jumpTo(1)}
               />
               <SummaryRow
                 icon="pin"
@@ -352,13 +595,13 @@ export function DemandeWizard() {
                 ]
                   .filter(Boolean)
                   .join(' — ')}
-                onEdit={() => jumpTo(1)}
+                onEdit={() => jumpTo(2)}
               />
               <SummaryRow
                 icon="clock"
                 label="Moment souhaité"
                 value={formatRequestedTiming(requestedMode, requestedAtIso)}
-                onEdit={() => jumpTo(1)}
+                onEdit={() => jumpTo(2)}
               />
             </div>
 
@@ -394,7 +637,7 @@ export function DemandeWizard() {
 }
 
 interface SummaryRowProps {
-  icon: 'wrench' | 'file' | 'pin' | 'clock';
+  icon: 'wrench' | 'briefcase' | 'file' | 'pin' | 'clock';
   label: string;
   value: string;
   onEdit: () => void;
