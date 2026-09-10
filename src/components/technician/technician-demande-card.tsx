@@ -66,11 +66,9 @@ export function TechnicianDemandeCard({ demande, detailHref }: TechnicianDemande
 export function TechnicianHistoryDemandeCard({
   demande,
   detailHref,
-  labelOverride,
 }: {
   demande: TechnicianDemande;
   detailHref: string;
-  labelOverride?: string;
 }) {
   const deviceLabel = deviceLabelFor(demande);
   const reputation = demande.clientReputation;
@@ -80,7 +78,7 @@ export function TechnicianHistoryDemandeCard({
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <span className="font-mono text-sm font-semibold text-primary">{demande.reference}</span>
-            <DemandeStatusBadge status={demande.status} context="technician" labelOverride={labelOverride} />
+            <DemandeStatusBadge status={demande.status} context="history" />
           </div>
           <p className="mt-2 text-sm font-medium">{demande.categoryLabel}</p>
           {deviceLabel ? (

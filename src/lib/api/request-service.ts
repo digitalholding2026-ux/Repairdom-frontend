@@ -203,6 +203,8 @@ export interface MissionQuote {
   source?: string;
   catalogDiagnosticId?: string | null;
   catalogInterventionId?: string | null;
+  catalogDiagnostic?: { id: string; name: string } | null;
+  catalogIntervention?: { id: string; name: string } | null;
   breakdown?: {
     referencePrice: number | null;
     travelFee: number | null;

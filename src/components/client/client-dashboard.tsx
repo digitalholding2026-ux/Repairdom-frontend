@@ -24,11 +24,6 @@ export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
 const ACTIVE_STATUSES = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
 
-/** Libellés d'historique : CONFIRMED → « Terminée », CANCELED → « Annulée ». */
-function historyBadgeLabel(status: string): string {
-  return status === 'CANCELED' ? 'Annulée' : 'Terminée';
-}
-
 function MissionTabs({ current }: { current: 'missions' | 'history' }) {
   const tabs = [
     { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
@@ -190,7 +185,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             {list.map((d) => (
               <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
                 {isHistory ? (
-                  <HistoryDemandeCard demande={d} labelOverride={historyBadgeLabel(d.status)} />
+                  <HistoryDemandeCard demande={d} />
                 ) : (
                   <DemandeCard demande={d} />
                 )}

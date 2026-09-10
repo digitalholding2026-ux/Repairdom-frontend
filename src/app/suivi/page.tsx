@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,7 +79,9 @@ const stepsFor = (tracking: PublicTracking): TimelineStep[] => {
 };
 
 export default function SuiviPage() {
-  const [reference, setReference] = useState('');
+  const searchParams = useSearchParams();
+  const initialRef = (searchParams.get('reference') ?? '').trim().toUpperCase();
+  const [reference, setReference] = useState(initialRef);
   const [tracking, setTracking] = useState<PublicTracking | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +101,14 @@ export default function SuiviPage() {
       setLoading(false);
     }
   };
+
+  // Si ?reference= est présent (lien depuis la page de confirmation), on lance
+  // le suivi automatiquement sans que l'utilisateur ait à appuyer sur « Suivre ».
+  useEffect(() => {
+    if (initialRef) {
+      handleTrack();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-dvh flex-col">

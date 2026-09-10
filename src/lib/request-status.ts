@@ -13,7 +13,7 @@ export const DEMANDE_STATUSES = [
 
 export type DemandeStatus = (typeof DEMANDE_STATUSES)[number];
 
-export type StatusContext = 'client' | 'technician';
+export type StatusContext = 'client' | 'technician' | 'history';
 
 const STATUS_BY_CONTEXT: Record<
   StatusContext,
@@ -37,6 +37,18 @@ const STATUS_BY_CONTEXT: Record<
     IN_PROGRESS: { label: 'Intervention en cours', variant: 'warning' },
     COMPLETED: { label: 'Terminée', variant: 'info' },
     CONFIRMED: { label: 'Confirmée', variant: 'success' },
+    CANCELED: { label: 'Annulée', variant: 'danger' },
+  },
+  // Contexte « historique » : seules les missions terminées / annulées y
+  // figurent, la source de vérité est centralisée ici (plus de labelOverride).
+  history: {
+    SUBMITTED: { label: '—', variant: 'neutral' },
+    PENDING: { label: '—', variant: 'neutral' },
+    ACCEPTED: { label: '—', variant: 'neutral' },
+    SCHEDULED: { label: '—', variant: 'neutral' },
+    IN_PROGRESS: { label: '—', variant: 'neutral' },
+    COMPLETED: { label: '—', variant: 'neutral' },
+    CONFIRMED: { label: 'Terminée', variant: 'success' },
     CANCELED: { label: 'Annulée', variant: 'danger' },
   },
 };

@@ -92,10 +92,8 @@ function DemandeCardEmpty() {
  *  (Terminée/Annulée), technicien assigné et montant final. */
 export function HistoryDemandeCard({
   demande,
-  labelOverride,
 }: {
   demande: DemandeListItem;
-  labelOverride?: string;
 }) {
   const deviceLabel = deviceLabelFor(demande);
   return (
@@ -103,7 +101,7 @@ export function HistoryDemandeCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <span className="font-mono text-sm font-semibold text-primary">{demande.reference}</span>
-          <DemandeStatusBadge status={demande.status} labelOverride={labelOverride} />
+          <DemandeStatusBadge status={demande.status} context="history" />
         </div>
         <p className="mt-2 text-sm font-medium">{demande.categoryLabel}</p>
         {deviceLabel ? (

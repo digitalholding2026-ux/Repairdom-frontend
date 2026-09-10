@@ -1,7 +1,6 @@
 import { siteConfig } from '@/lib/site-config';
 
 export interface DeviceContext {
-  id: string;
   name: string;
   slug: string;
 }

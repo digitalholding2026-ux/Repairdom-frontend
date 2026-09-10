@@ -82,6 +82,11 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
             <Button className="w-full">Suivre ma demande</Button>
           </Link>
         ) : null}
+        {requestId ? (
+          <Link href={`/suivi?reference=${encodeURIComponent(requestId)}`} className="block">
+            <Button variant="outline" className="w-full">Suivre ma mission</Button>
+          </Link>
+        ) : null}
         <Link href="/client/demande" className="block">
           <Button variant="outline" className="w-full">
             Déposer une nouvelle demande

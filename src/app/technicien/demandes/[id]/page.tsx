@@ -14,7 +14,6 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
-import { parseCatalogQuoteDescription } from '@/lib/catalog-quote';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -730,23 +729,21 @@ export default function TechnicianDemandeDetailPage() {
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
               {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
                 <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                  {(() => {
-                    const parts = parseCatalogQuoteDescription(latestQuote.description);
-                    if (!parts) return null;
-                    return (
-                      <>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">Diagnostic</span>
-                          <span className="text-right font-medium">{parts.diagnostic}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">Intervention</span>
-                          <span className="text-right font-medium">{parts.intervention}</span>
-                        </div>
-                        <div className="my-1 h-px bg-border" />
-                      </>
-                    );
-                  })()}
+                  {latestQuote.catalogDiagnostic?.name ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Diagnostic</span>
+                      <span className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</span>
+                    </div>
+                  ) : null}
+                  {latestQuote.catalogIntervention?.name ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-muted-foreground">Intervention</span>
+                      <span className="text-right font-medium">{latestQuote.catalogIntervention.name}</span>
+                    </div>
+                  ) : null}
+                  {(latestQuote.catalogDiagnostic?.name || latestQuote.catalogIntervention?.name) ? (
+                    <div className="my-1 h-px bg-border" />
+                  ) : null}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Réparation</span>
                     <span className="font-medium">{formatPrice(latestQuote.breakdown.referencePrice)}</span>

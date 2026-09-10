@@ -11,10 +11,6 @@ import { TechnicianHistoryDemandeCard } from '@/components/technician/technician
 import { getMe } from '@/lib/api/auth-service';
 import { listMyDemandeHistory, type TechnicianDemande } from '@/lib/api/technician-service';
 
-function historyBadgeLabel(status: string): string {
-  return status === 'CANCELED' ? 'Annulée' : 'Terminée';
-}
-
 export default function TechnicianHistoriquePage() {
   const [history, setHistory] = useState<TechnicianDemande[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +93,6 @@ export default function TechnicianHistoriquePage() {
               key={d.id}
               demande={d}
               detailHref={`/technicien/demandes/${d.id}`}
-              labelOverride={historyBadgeLabel(d.status)}
             />
           ))}
         </div>
