@@ -8,6 +8,7 @@ const EVENT_ICONS: Record<string, IconName> = {
   TECHNICIAN_ASSIGNED: 'users',
   TECHNICIAN_ACCEPTED: 'badge-check',
   DIAGNOSTIC_SELECTED: 'search',
+  MANUAL_DIAGNOSTIC_DECLARED: 'briefcase',
   QUOTE_CREATED: 'file',
   NEGOTIATION_REQUESTED: 'chat',
   QUOTE_ACCEPTED: 'check',

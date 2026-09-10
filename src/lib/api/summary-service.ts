@@ -37,6 +37,10 @@ export interface MissionSummary {
     id: string;
     content: string;
     recommendation: string | null;
+    mode?: 'CATALOG' | 'MANUAL';
+    proposedIntervention?: string | null;
+    justification?: string | null;
+    notes?: string | null;
     technician: { id: string; firstName: string; lastName: string | null };
     createdAt: string;
   } | null;

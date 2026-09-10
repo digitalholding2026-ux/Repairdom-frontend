@@ -235,6 +235,10 @@ export interface MissionDiagnostic {
   id: string;
   content: string;
   recommendation: string | null;
+  mode?: 'CATALOG' | 'MANUAL';
+  proposedIntervention?: string | null;
+  justification?: string | null;
+  notes?: string | null;
   technicianId: string;
   technician: { id: string; firstName: string; lastName: string | null };
   createdAt: string;
@@ -330,6 +334,9 @@ export async function selectDemandeDiagnostic(
     catalogInterventionId?: string;
     content?: string;
     recommendation?: string;
+    proposedIntervention?: string;
+    justification?: string;
+    notes?: string;
   },
 ): Promise<SelectDiagnosticResult> {
   return apiFetch<SelectDiagnosticResult>(

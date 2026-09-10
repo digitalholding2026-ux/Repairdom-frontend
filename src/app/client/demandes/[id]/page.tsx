@@ -322,15 +322,37 @@ export default function ClientDemandeDetailPage() {
       {demande.technician ? (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="file" size="sm" className="text-muted-foreground" />
-              Diagnostic proposé par le technicien
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Icon name="file" size="sm" className="text-muted-foreground" />
+                Diagnostic proposé par le technicien
+              </CardTitle>
+              {latestDiagnostic?.mode === 'MANUAL' ? (
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  Diagnostic non référencé
+                </span>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent>
             {latestDiagnostic ? (
               <div className="space-y-3">
                 <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
+                {latestDiagnostic.proposedIntervention ? (
+                  <Alert variant="info" title="Intervention proposée">
+                    <p className="whitespace-pre-line">{latestDiagnostic.proposedIntervention}</p>
+                  </Alert>
+                ) : null}
+                {latestDiagnostic.justification ? (
+                  <Alert variant="info" title="Justification">
+                    <p className="whitespace-pre-line">{latestDiagnostic.justification}</p>
+                  </Alert>
+                ) : null}
+                {latestDiagnostic.notes ? (
+                  <Alert variant="neutral" title="Note complémentaire">
+                    <p className="whitespace-pre-line">{latestDiagnostic.notes}</p>
+                  </Alert>
+                ) : null}
                 {latestDiagnostic.recommendation ? (
                   <Alert variant="info" title="Recommandation">
                     <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
