@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/cn';
-import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
 import { createDemande } from '@/lib/api/request-service';
 import {
@@ -29,6 +28,8 @@ const STEPS = ['Votre appareil', 'Votre problème', 'Où et quand ?', 'Vérifiez
 
 const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1000;
+
+const OTHER_DOMAIN = '__other__';
 
 function nowLocalValue(): string {
   const date = new Date();
@@ -52,12 +53,10 @@ export function DemandeWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Appareil (catalogue, Sprint 8.1) — tout est facultatif.
-  const [deviceEnabled, setDeviceEnabled] = useState(true);
+  // Appareil (catalogue) — source de vérité admin.
   const [domains, setDomains] = useState<CatalogDomainLite[]>([]);
   const [domainId, setDomainId] = useState('');
   const [domainName, setDomainName] = useState('');
-  const [categoryDerived, setCategoryDerived] = useState<string | null>(null);
   const [brandId, setBrandId] = useState('');
   const [modelId, setModelId] = useState('');
   const [problemId, setProblemId] = useState('');
@@ -98,11 +97,11 @@ export function DemandeWizard() {
   }, [domainName, brands, brandId, models, modelId, problems, problemId]);
 
   const canContinue = useMemo(() => {
-    if (step === 0) return categoryId !== '';
+    if (step === 0) return domainId !== '';
     if (step === 1) return description.trim().length >= MIN_DESCRIPTION_LENGTH;
     if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
-  }, [step, categoryId, description, city, requestedMode, requestedAt]);
+  }, [step, domainId, description, city, requestedMode, requestedAt]);
 
   const loadProblems = async (newBrandId: string, newModelId: string) => {
     if (!domainId) {
@@ -121,22 +120,6 @@ export function DemandeWizard() {
     }
   };
 
-  const handleToggleDevice = (enabled: boolean) => {
-    setDeviceEnabled(enabled);
-    setError(null);
-    if (!enabled) {
-      setDomainId('');
-      setDomainName('');
-      setCategoryDerived(null);
-      setBrandId('');
-      setModelId('');
-      setProblemId('');
-      setBrands([]);
-      setModels([]);
-      setProblems([]);
-    }
-  };
-
   const handleDomainChange = (id: string) => {
     setDomainId(id);
     setBrandId('');
@@ -145,11 +128,14 @@ export function DemandeWizard() {
     setBrands([]);
     setModels([]);
     setProblems([]);
+    if (id === OTHER_DOMAIN) {
+      setDomainName('');
+      setCategoryId('autre');
+      return;
+    }
     const domain = domains.find((d) => d.id === id);
     setDomainName(domain?.name ?? '');
-    const derived = domain?.category ?? null;
-    setCategoryDerived(derived);
-    if (derived) setCategoryId(derived);
+    setCategoryId(domain?.category ?? 'autre');
     if (id) {
       listCatalogBrands(id)
         .then(setBrands)
@@ -194,9 +180,10 @@ export function DemandeWizard() {
   const handleSubmit = async () => {
     setError(null);
     setIsSubmitting(true);
+    const hasDevice = domainId !== '' && domainId !== OTHER_DOMAIN;
     try {
       const result = await createDemande({
-        categoryId,
+        categoryId: categoryId || 'autre',
         description: description.trim(),
         medias: [],
         city: city.trim(),
@@ -206,10 +193,10 @@ export function DemandeWizard() {
         contactPhone: contactPhone.trim() || undefined,
         requestedMode,
         requestedAt: requestedAtIso ?? undefined,
-        domainId: deviceEnabled && domainId ? domainId : undefined,
-        brandId: deviceEnabled && brandId ? brandId : undefined,
-        modelId: deviceEnabled && modelId ? modelId : undefined,
-        problemId: deviceEnabled && problemId ? problemId : undefined,
+        domainId: hasDevice && domainId ? domainId : undefined,
+        brandId: hasDevice && brandId ? brandId : undefined,
+        modelId: hasDevice && modelId ? modelId : undefined,
+        problemId: hasDevice && problemId ? problemId : undefined,
       });
       router.push(
         `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
@@ -221,8 +208,6 @@ export function DemandeWizard() {
       setIsSubmitting(false);
     }
   };
-
-  const selectedCategory = REQUEST_CATEGORIES.find((c) => c.id === categoryId);
 
   return (
     <Card>
@@ -266,49 +251,24 @@ export function DemandeWizard() {
 
         {step === 0 ? (
           <section className="space-y-5" aria-label="Votre appareil">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
-              <div>
-                <p className="text-sm font-semibold">Mon intervention concerne un appareil du catalogue</p>
-                <p className="text-xs text-muted-foreground">
-                  Plus d&apos;informations = un diagnostic plus rapide.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={deviceEnabled}
-                onClick={() => handleToggleDevice(!deviceEnabled)}
-                className={cn(
-                  'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                  deviceEnabled ? 'bg-primary' : 'bg-border',
-                )}
+            <Field label="Quel appareil avez-vous ? *" htmlFor="device-domain">
+              <Select
+                id="device-domain"
+                value={domainId}
+                onChange={(e) => handleDomainChange(e.target.value)}
               >
-                <span
-                  className={cn(
-                    'absolute top-0.5 size-5 rounded-full bg-background shadow transition-transform',
-                    deviceEnabled ? 'left-[22px]' : 'left-0.5',
-                  )}
-                />
-              </button>
-            </div>
+                <option value="">— Choisir —</option>
+                {domains.map((domain) => (
+                  <option key={domain.id} value={domain.id}>
+                    {domain.name}
+                  </option>
+                ))}
+                <option value={OTHER_DOMAIN}>Mon appareil n&apos;est pas dans la liste</option>
+              </Select>
+            </Field>
 
-            {deviceEnabled ? (
+            {domainId && domainId !== OTHER_DOMAIN ? (
               <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-                <Field label="Domaine de l'appareil" htmlFor="device-domain">
-                  <Select
-                    id="device-domain"
-                    value={domainId}
-                    onChange={(e) => handleDomainChange(e.target.value)}
-                  >
-                    <option value="">— Choisir —</option>
-                    {domains.map((domain) => (
-                      <option key={domain.id} value={domain.id}>
-                        {domain.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-
                 {domainId ? (
                   <Field label="Marque" htmlFor="device-brand" hint="Facultatif">
                     <Select
@@ -344,7 +304,7 @@ export function DemandeWizard() {
                 ) : null}
 
                 {domainId ? (
-                  <Field label="Problème constaté" htmlFor="device-problem" hint="Facultatif">
+                  <Field label="Quel est votre problème ?" htmlFor="device-problem" hint="Facultatif">
                     <Select
                       id="device-problem"
                       value={problemId}
@@ -359,59 +319,14 @@ export function DemandeWizard() {
                     </Select>
                   </Field>
                 ) : null}
-
-                {categoryDerived ? (
-                  <Alert variant="info" dense>
-                    Catégorie de dépannage dérivée de l&apos;appareil : {selectedCategory?.label ?? categoryDerived}.
-                  </Alert>
-                ) : null}
               </div>
             ) : null}
 
-            <div className="space-y-2">
-              <span className="block text-sm font-medium">Quel type de panne ? *</span>
-              <div className="grid gap-2" role="radiogroup" aria-label="Catégorie de la panne">
-                {REQUEST_CATEGORIES.map((category) => {
-                  const selected = category.id === categoryId;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setCategoryId(category.id)}
-                      className={cn(
-                        'flex items-center gap-3 rounded-lg border p-3 text-left transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        selected
-                          ? 'border-primary bg-secondary text-secondary-foreground'
-                          : 'border-border bg-card text-foreground hover:bg-muted',
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex size-9 shrink-0 items-center justify-center rounded-full',
-                          selected ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground',
-                        )}
-                      >
-                        <Icon name="wrench" size="4.5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold">{category.label}</span>
-                        {category.description ? (
-                          <span className="mt-0.5 block text-xs text-muted-foreground">
-                            {category.description}
-                          </span>
-                        ) : null}
-                      </span>
-                      {selected ? (
-                        <Icon name="check-circle" className="text-primary" filled />
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            {domainId === OTHER_DOMAIN ? (
+              <Alert variant="neutral" dense icon="info">
+                Décrivez votre panne à l&apos;étape suivante : le technicien la verra directement.
+              </Alert>
+            ) : null}
           </section>
         ) : null}
 
@@ -560,21 +475,15 @@ export function DemandeWizard() {
         {step === 3 ? (
           <section className="space-y-4" aria-label="Vérification">
             <div className="space-y-2">
-              {selectedCategory ? (
-                <SummaryRow
-                  icon="wrench"
-                  label="Catégorie"
-                  value={selectedCategory.label}
-                  onEdit={() => jumpTo(0)}
-                />
-              ) : null}
               <SummaryRow
                 icon="briefcase"
                 label="Appareil"
                 value={
-                  deviceEnabled && selectedDeviceLabel
+                  selectedDeviceLabel
                     ? selectedDeviceLabel
-                    : 'Non renseigné'
+                    : domainId === OTHER_DOMAIN
+                      ? 'Mon appareil n’est pas dans la liste'
+                      : 'Non renseigné'
                 }
                 onEdit={() => jumpTo(0)}
               />
