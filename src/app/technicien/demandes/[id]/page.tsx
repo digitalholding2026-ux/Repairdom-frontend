@@ -14,6 +14,7 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
+import { parseCatalogQuoteDescription } from '@/lib/catalog-quote';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -66,6 +67,9 @@ export default function TechnicianDemandeDetailPage() {
   const [amountValue, setAmountValue] = useState('');
   const [quoteDescription, setQuoteDescription] = useState('');
   const [suggestions, setSuggestions] = useState<DiagnosticSuggestion[]>([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const [showManualCatForm, setShowManualCatForm] = useState(false);
   const [manualContent, setManualContent] = useState('');
   const [manualRecommendation, setManualRecommendation] = useState('');
@@ -220,24 +224,22 @@ export default function TechnicianDemandeDetailPage() {
     }
   };
 
-  useEffect(() => {
-    if (!params?.id || !demande) return;
-    if (!demande.domain) return;
-    if (!['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status)) {
-      return;
+  const handleLoadSuggestions = async () => {
+    if (!params?.id) return;
+    setSuggestionsOpen(true);
+    setSuggestionsLoading(true);
+    setSuggestionsError(null);
+    try {
+      const res = await getDemandeSuggestions(params.id);
+      setSuggestions(res.suggestions);
+    } catch (err) {
+      setSuggestionsError(
+        err instanceof Error ? err.message : 'Erreur lors du chargement des diagnostics compatibles.',
+      );
+    } finally {
+      setSuggestionsLoading(false);
     }
-    let active = true;
-    getDemandeSuggestions(params.id)
-      .then((res) => {
-        if (active) setSuggestions(res.suggestions);
-      })
-      .catch(() => {
-        if (active) setSuggestions([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [params?.id, demande?.id, demande?.status, Boolean(demande?.domain)]);
+  };
 
   const handleSelectCatalogDiagnostic = async (diagId: string, intervention: SuggestionIntervention) => {
     if (!params?.id) return;
@@ -313,6 +315,12 @@ export default function TechnicianDemandeDetailPage() {
   const negotiationUnlocked =
     Boolean(demande.negotiationRequestedAt) || hasAcceptedQuote;
   const canDiscuss = baseCanDiscuss && (!catalogFlow || negotiationUnlocked);
+  const hasPendingCatalogQuote = quotes.some(
+    (q) => q.source === 'CATALOG' && q.status === 'PENDING',
+  );
+  const catalogMission =
+    Boolean(demande.domain) &&
+    ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status);
   const canProposeManualQuote =
     !catalogFlow || (Boolean(demande.negotiationRequestedAt) && !hasAcceptedQuote);
   const latestDiagnostic = diagnostics[0] ?? null;
@@ -486,18 +494,45 @@ export default function TechnicianDemandeDetailPage() {
       demande.domain ? (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="briefcase" size="sm" className="text-muted-foreground" />
-              Diagnostics possibles
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Icon name="briefcase" size="sm" className="text-muted-foreground" />
+                Diagnostics possibles
+              </CardTitle>
+              {!suggestionsLoading ? (
+                <Button size="sm" onClick={handleLoadSuggestions}>
+                  <Icon name="search" size="3.5" />
+                  Ajouter un diagnostic
+                </Button>
+              ) : null}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {quotes.some((q) => q.source === 'CATALOG' && q.status === 'PENDING') ? (
-              <Alert variant="info" dense icon="info">
-                Un tarif automatique est déjà en attente de la décision du client.
-              </Alert>
-            ) : null}
-            {suggestions.length === 0 ? (
+            {suggestionsOpen && hasPendingCatalogQuote ? (
+                <Alert variant="info" dense icon="info">
+                  Un tarif automatique est déjà en attente de la décision du client.
+                </Alert>
+              ) : null}
+            {suggestionsLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Spinner />
+              </div>
+            ) : suggestionsError ? (
+              <div className="space-y-2">
+                <Alert variant="error">
+                  {suggestionsError}
+                </Alert>
+                <Button variant="secondary" size="sm" onClick={handleLoadSuggestions}>
+                  Réessayer
+                </Button>
+              </div>
+            ) : !suggestionsOpen ? (
+              <p className="text-sm text-muted-foreground">
+                Cliquez sur «&nbsp;Ajouter un diagnostic&nbsp;» pour afficher la liste des
+                diagnostics compatibles avec l&apos;appareil, ou enregistrez une anomalie hors
+                catalogue.
+              </p>
+            ) : suggestions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aucun diagnostic compatible n&apos;a été trouvé pour cet appareil.
               </p>
@@ -522,6 +557,7 @@ export default function TechnicianDemandeDetailPage() {
                           key={intervention.id}
                           size="sm"
                           variant="secondary"
+                          disabled={hasPendingCatalogQuote}
                           isLoading={actionBusy === `catalog:${intervention.id}`}
                           onClick={() => handleSelectCatalogDiagnostic(suggestion.id, intervention)}
                         >
@@ -534,41 +570,43 @@ export default function TechnicianDemandeDetailPage() {
               </div>
             )}
 
-            {!showManualCatForm ? (
-              <Button variant="ghost" size="sm" onClick={() => setShowManualCatForm(true)}>
-                <Icon name="plus" size="3.5" />
-                Autre anomalie (hors catalogue)
-              </Button>
-            ) : (
-              <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-                <Field htmlFor="manualCatContent" label="Décrivez l’anomalie constatée *">
-                  <Textarea
-                    id="manualCatContent"
-                    value={manualContent}
-                    onChange={(event) => setManualContent(event.target.value)}
-                    maxLength={2000}
-                    rows={2}
-                    placeholder="Ex. : problème de carte mère non répertorié."
-                  />
-                </Field>
-                <Field htmlFor="manualCatReco" label="Recommandation (facultatif)">
-                  <Input
-                    id="manualCatReco"
-                    value={manualRecommendation}
-                    onChange={(event) => setManualRecommendation(event.target.value)}
-                    maxLength={2000}
-                    placeholder="Ex. : diagnostic approfondi requis."
-                  />
-                </Field>
-                <Button
-                  onClick={handleManualSelect}
-                  isLoading={actionBusy === 'catalog:manual'}
-                  className="w-full"
-                >
-                  Enregistrer le diagnostic
+            {suggestionsOpen && !hasPendingCatalogQuote ? (
+              !showManualCatForm ? (
+                <Button variant="ghost" size="sm" onClick={() => setShowManualCatForm(true)}>
+                  <Icon name="plus" size="3.5" />
+                  Autre anomalie (hors catalogue)
                 </Button>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+                  <Field htmlFor="manualCatContent" label="Décrivez l’anomalie constatée *">
+                    <Textarea
+                      id="manualCatContent"
+                      value={manualContent}
+                      onChange={(event) => setManualContent(event.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      placeholder="Ex. : problème de carte mère non répertorié."
+                    />
+                  </Field>
+                  <Field htmlFor="manualCatReco" label="Recommandation (facultatif)">
+                    <Input
+                      id="manualCatReco"
+                      value={manualRecommendation}
+                      onChange={(event) => setManualRecommendation(event.target.value)}
+                      maxLength={2000}
+                      placeholder="Ex. : diagnostic approfondi requis."
+                    />
+                  </Field>
+                  <Button
+                    onClick={handleManualSelect}
+                    isLoading={actionBusy === 'catalog:manual'}
+                    className="w-full"
+                  >
+                    Enregistrer le diagnostic
+                  </Button>
+                </div>
+              )
+            ) : null}
 
             <p className="text-xs text-muted-foreground">
               La sélection d&apos;un diagnostic du catalogue envoie automatiquement le tarif
@@ -582,23 +620,19 @@ export default function TechnicianDemandeDetailPage() {
         <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon name="chat" size="sm" className="text-muted-foreground" />
-            Discussion avec le client
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {baseCanDiscuss && catalogFlow && !negotiationUnlocked ? (
-            <Alert variant="info" icon="info">
-              Discussion verrouillée : le tarif automatique est en attente de la décision du client
-              (accepter ou négocier).
-            </Alert>
-          ) : null}
-          <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
-        </CardContent>
-      </Card>
+      {baseCanDiscuss && (catalogFlow ? negotiationUnlocked : true) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="chat" size="sm" className="text-muted-foreground" />
+              Discussion avec le client
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -607,10 +641,12 @@ export default function TechnicianDemandeDetailPage() {
               <Icon name="file" size="sm" className="text-muted-foreground" />
               Diagnostic
             </CardTitle>
-            <Button variant="secondary" size="sm" onClick={() => setShowDiagnosticForm((v) => !v)}>
-              <Icon name="plus" size="3.5" />
-              Ajouter un diagnostic
-            </Button>
+            {!catalogMission ? (
+              <Button variant="secondary" size="sm" onClick={() => setShowDiagnosticForm((v) => !v)}>
+                <Icon name="plus" size="3.5" />
+                Ajouter un diagnostic
+              </Button>
+            ) : null}
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -629,7 +665,7 @@ export default function TechnicianDemandeDetailPage() {
             </p>
           )}
 
-          {showDiagnosticForm ? (
+          {showDiagnosticForm && !catalogMission ? (
             <div className="space-y-3 rounded-xl border border-border bg-card p-3">
               <Field htmlFor="diagnosticContent" label="Diagnostic">
                 <Textarea
@@ -694,6 +730,23 @@ export default function TechnicianDemandeDetailPage() {
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
               {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
                 <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                  {(() => {
+                    const parts = parseCatalogQuoteDescription(latestQuote.description);
+                    if (!parts) return null;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Diagnostic</span>
+                          <span className="text-right font-medium">{parts.diagnostic}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">Intervention</span>
+                          <span className="text-right font-medium">{parts.intervention}</span>
+                        </div>
+                        <div className="my-1 h-px bg-border" />
+                      </>
+                    );
+                  })()}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Réparation</span>
                     <span className="font-medium">{formatPrice(latestQuote.breakdown.referencePrice)}</span>
@@ -701,6 +754,16 @@ export default function TechnicianDemandeDetailPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Déplacement</span>
                     <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                  </div>
+                  <div className="my-1 h-px bg-border" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">TOTAL TTC</span>
+                    <span className="font-semibold">
+                      {formatPrice(
+                        (latestQuote.breakdown.referencePrice ?? 0) +
+                          (latestQuote.breakdown.travelFee ?? 0),
+                      )}
+                    </span>
                   </div>
                 </div>
               ) : null}

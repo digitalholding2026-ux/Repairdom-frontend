@@ -16,6 +16,7 @@ import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
+import { parseCatalogQuoteDescription } from '@/lib/catalog-quote';
 import { formatTime, fullName } from '@/lib/format';
 import {
   getDemande,
@@ -274,7 +275,7 @@ export default function ClientDemandeDetailPage() {
         <MissionSummaryCard demandeId={demande.id} />
       ) : null}
 
-      {demande.technician ? (
+      {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -282,13 +283,7 @@ export default function ClientDemandeDetailPage() {
               Discussion avec votre technicien
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {baseCanDiscuss && catalogFlow && !negotiationUnlocked ? (
-              <Alert variant="info" icon="info">
-                La discussion est verrouillée tant que vous n&apos;avez pas accepté le tarif ou demandé
-                une négociation.
-              </Alert>
-            ) : null}
+          <CardContent>
             <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
           </CardContent>
         </Card>
@@ -346,6 +341,23 @@ export default function ClientDemandeDetailPage() {
 
                 {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
                   <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                    {(() => {
+                      const parts = parseCatalogQuoteDescription(latestQuote.description);
+                      if (!parts) return null;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">Diagnostic</span>
+                            <span className="text-right font-medium">{parts.diagnostic}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">Intervention</span>
+                            <span className="text-right font-medium">{parts.intervention}</span>
+                          </div>
+                          <div className="my-1 h-px bg-border" />
+                        </>
+                      );
+                    })()}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Réparation</span>
                       <span className="font-medium">
@@ -355,6 +367,16 @@ export default function ClientDemandeDetailPage() {
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Déplacement</span>
                       <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                    </div>
+                    <div className="my-1 h-px bg-border" />
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">TOTAL TTC</span>
+                      <span className="font-semibold">
+                        {formatPrice(
+                          (latestQuote.breakdown.referencePrice ?? 0) +
+                            (latestQuote.breakdown.travelFee ?? 0),
+                        )}
+                      </span>
                     </div>
                   </div>
                 ) : null}
