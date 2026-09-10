@@ -13,6 +13,7 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
+import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatTime, fullName } from '@/lib/format';
@@ -226,6 +227,10 @@ export default function ClientDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {demande.technician ? (
+        <MissionSummaryCard demandeId={demande.id} />
+      ) : null}
 
       {demande.technician ? (
         <Card>

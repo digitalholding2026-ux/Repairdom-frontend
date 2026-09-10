@@ -207,6 +207,12 @@ export default function HomePage() {
         <p>
           © {new Date().getFullYear()} {siteConfig.name}. Tous droits réservés.
         </p>
+        <p className="mt-2">
+          <Link href="/suivi" className="inline-flex items-center gap-1.5 text-primary hover:underline">
+            <Icon name="search" size="sm" />
+            Suivre une intervention
+          </Link>
+        </p>
       </footer>
     </div>
   );

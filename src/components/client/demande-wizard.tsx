@@ -32,7 +32,10 @@ export function DemandeWizard() {
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
   const [address, setAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
   const [requestedMode, setRequestedMode] = useState<RequestTimingMode>('ASAP');
   const [requestedAt, setRequestedAt] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +77,10 @@ export function DemandeWizard() {
         description: description.trim(),
         medias: [],
         city: city.trim(),
+        neighborhood: neighborhood.trim() || undefined,
         address: address.trim() || undefined,
+        landmark: landmark.trim() || undefined,
+        contactPhone: contactPhone.trim() || undefined,
         requestedMode,
         requestedAt: requestedAtIso ?? undefined,
       });
@@ -222,6 +228,39 @@ export function DemandeWizard() {
               />
             </Field>
 
+            <Field label="Quartier / secteur (facultatif)" htmlFor="demande-neighborhood">
+              <Input
+                id="demande-neighborhood"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                placeholder="Ex. : Mbankomo, quartier centre"
+              />
+            </Field>
+
+            <Field label="Point de repère (facultatif)" htmlFor="demande-landmark">
+              <Input
+                id="demande-landmark"
+                value={landmark}
+                onChange={(e) => setLandmark(e.target.value)}
+                placeholder="Ex. : à côté de la pharmacie du quartier"
+              />
+            </Field>
+
+            <Field
+              label="Téléphone pour l'intervention (facultatif)"
+              htmlFor="demande-contact-phone"
+              hint="Communicable uniquement au technicien qui interviendra."
+            >
+              <Input
+                id="demande-contact-phone"
+                type="tel"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="Ex. : +237 6 00 00 00 00"
+                autoComplete="tel"
+              />
+            </Field>
+
             <div className="space-y-2">
               <span className="block text-sm font-medium">Quand souhaitez-vous être dépanné ? *</span>
               <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Moment souhaité">
@@ -305,7 +344,14 @@ export function DemandeWizard() {
               <SummaryRow
                 icon="pin"
                 label="Localisation"
-                value={address.trim() ? `${city.trim()} — ${address.trim()}` : city.trim()}
+                value={[
+                  city.trim(),
+                  neighborhood.trim(),
+                  address.trim(),
+                  landmark.trim(),
+                ]
+                  .filter(Boolean)
+                  .join(' — ')}
                 onEdit={() => jumpTo(1)}
               />
               <SummaryRow

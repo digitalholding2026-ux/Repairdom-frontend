@@ -11,7 +11,10 @@ export interface RequestMedia {
 
 export interface RequestLocation {
   city: string;
+  neighborhood?: string;
   address?: string;
+  landmark?: string;
+  contactPhone?: string;
 }
 
 export interface CreateDemandeInput {
@@ -19,7 +22,10 @@ export interface CreateDemandeInput {
   description: string;
   medias: Array<{ name: string; type: string; size: number }>;
   city: string;
+  neighborhood?: string;
   address?: string;
+  landmark?: string;
+  contactPhone?: string;
   requestedMode: RequestTimingMode;
   requestedAt?: string;
 }
@@ -40,7 +46,10 @@ export interface CreateDemandeResult {
   categoryLabel: string;
   description: string;
   city: string;
+  neighborhood: string | null;
   address: string | null;
+  landmark: string | null;
+  contactPhone: string | null;
   technicianId: string | null;
   technician: TechnicianInfo | null;
   scheduledAt: string | null;
@@ -108,7 +117,10 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       categoryId: input.categoryId,
       description: input.description,
       city: input.city,
+      neighborhood: input.neighborhood || undefined,
       address: input.address || undefined,
+      landmark: input.landmark || undefined,
+      contactPhone: input.contactPhone || undefined,
       requestedMode: input.requestedMode,
       requestedAt: input.requestedAt || undefined,
       medias: input.medias.map((m) => ({

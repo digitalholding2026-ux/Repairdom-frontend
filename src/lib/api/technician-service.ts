@@ -49,7 +49,10 @@ export interface TechnicianDemande {
   categoryLabel: string;
   description: string;
   city: string;
+  neighborhood: string | null;
   address: string | null;
+  landmark: string | null;
+  contactPhone: string | null;
   technicianId: string | null;
   technician: { id: string; firstName: string; lastName: string | null; phone: string | null; city: string | null } | null;
   scheduledAt: string | null;

@@ -14,14 +14,17 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
+import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
+import { kycStatusLabel } from '@/lib/technician-profile';
 import {
   getTechnicianDemande,
   acceptDemande,
   updateTechnicianDemandeStatus,
+  getTechnicianProfile,
   listDemandeDiagnostics,
   createDemandeDiagnostic,
   listDemandeQuotes,
@@ -44,6 +47,8 @@ export default function TechnicianDemandeDetailPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [scheduledValue, setScheduledValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [kycVerified, setKycVerified] = useState(true);
+  const [technicianProfile, setTechnicianProfile] = useState<{ kycStatus: string } | null>(null);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [showDiagnosticForm, setShowDiagnosticForm] = useState(false);
@@ -59,8 +64,15 @@ export default function TechnicianDemandeDetailPage() {
     async function load() {
       if (!params?.id) return;
       try {
-        const d = await getTechnicianDemande(params.id);
-        if (!cancelled) setDemande(d);
+        const [d, profile] = await Promise.all([
+          getTechnicianDemande(params.id),
+          getTechnicianProfile().catch(() => null),
+        ]);
+        if (!cancelled) {
+          setDemande(d);
+          setTechnicianProfile(profile);
+          if (profile) setKycVerified(profile.kycStatus === 'VERIFIED');
+        }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
@@ -216,6 +228,7 @@ export default function TechnicianDemandeDetailPage() {
   if (!demande) return null;
 
   const canAccept = demande.status === 'SUBMITTED' || demande.status === 'PENDING';
+  const kycRequired = canAccept && !kycVerified;
   const canDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
   const hasAcceptedQuote = quotes.some((q) => q.status === 'ACCEPTED');
   const latestDiagnostic = diagnostics[0] ?? null;
@@ -277,7 +290,23 @@ export default function TechnicianDemandeDetailPage() {
 
           {error ? <Alert variant="error">{error}</Alert> : null}
 
-          {canAccept ? (
+          {canAccept && kycRequired ? (
+            <div className="space-y-3">
+              <Alert variant="warning" title="Vérification requise">
+                <p>
+                  Votre compte technicien doit être vérifié avant de pouvoir accepter une mission
+                  (statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}).
+                </p>
+              </Alert>
+              <Link href="/technicien/profil">
+                <Button variant="secondary" className="w-full" size="lg">
+                  Compléter ma vérification
+                </Button>
+              </Link>
+            </div>
+          ) : null}
+
+          {canAccept && !kycRequired ? (
             <Button
               onClick={handleAccept}
               isLoading={actionBusy === 'ACCEPTED'}
@@ -353,6 +382,10 @@ export default function TechnicianDemandeDetailPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) ? (
+        <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
+      ) : null}
 
       <Card>
         <CardHeader>
