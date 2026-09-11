@@ -29,6 +29,19 @@ export function formatTime(iso: string | null | undefined): string {
   return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
+export function formatCurrency(value: number | null | undefined, currency = 'XAF'): string {
+  if (value == null) return '—';
+  return `${value.toLocaleString('fr-FR')} ${currency}`;
+}
+
+export function formatCurrencySigned(
+  value: number | null | undefined,
+  currency = 'XAF',
+): string {
+  if (value == null || value === 0) return formatCurrency(value, currency);
+  return `${value > 0 ? '+' : '−'}${formatCurrency(Math.abs(value), currency)}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
   return `${Math.max(1, Math.round(bytes / 1024))} Ko`;

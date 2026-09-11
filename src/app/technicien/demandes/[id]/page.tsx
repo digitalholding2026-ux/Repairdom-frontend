@@ -783,7 +783,7 @@ export default function TechnicianDemandeDetailPage() {
                 <QuoteStatusBadge status={latestQuote.status} />
               </div>
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
-              {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
+              {latestQuote.repair != null || latestQuote.travel != null || latestQuote.breakdown ? (
                 <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
                   {latestQuote.catalogDiagnostic?.name ? (
                     <div className="flex items-center justify-between gap-3">
@@ -802,23 +802,24 @@ export default function TechnicianDemandeDetailPage() {
                   ) : null}
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Réparation</span>
-                    <span className="font-medium">{formatPrice(latestQuote.breakdown.referencePrice)}</span>
+                    <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Déplacement</span>
-                    <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                    <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
                   </div>
                   <div className="my-1 h-px bg-border" />
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">TOTAL TTC</span>
-                    <span className="font-semibold">
-                      {formatPrice(
-                        (latestQuote.breakdown.referencePrice ?? 0) +
-                          (latestQuote.breakdown.travelFee ?? 0),
-                      )}
-                    </span>
+                    <span className="font-semibold">{formatPrice(latestQuote.amount)}</span>
                   </div>
                 </div>
+              ) : null}
+              {demande.status === 'CONFIRMED' && latestQuote ? (
+                <Alert variant="info" dense icon="info">
+                  Frais RepairDom (technicien) : 150 XAF sur ce tarif. Votre gain net pour cette
+                  intervention apparaît dans l&apos;onglet Revenus.
+                </Alert>
               ) : null}
               {latestQuote.status === 'PENDING' ? (
                 <p className="text-sm text-muted-foreground">En attente de la réponse du client.</p>

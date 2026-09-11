@@ -214,6 +214,10 @@ export interface MissionQuote {
     travelFee: number | null;
     serviceFee: number | null;
   } | null;
+  repair?: number | null;
+  travel?: number | null;
+  clientFee?: number | null;
+  totalToDebit?: number | null;
   createdAt: string;
 }
 

@@ -391,7 +391,7 @@ export default function ClientDemandeDetailPage() {
                 </div>
                 <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
 
-                {latestQuote.source === 'CATALOG' && latestQuote.breakdown ? (
+                {latestQuote.repair != null || latestQuote.travel != null || latestQuote.clientFee != null ? (
                   <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
                     {latestQuote.catalogDiagnostic?.name ? (
                       <div className="flex items-center justify-between gap-3">
@@ -410,24 +410,29 @@ export default function ClientDemandeDetailPage() {
                     ) : null}
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Réparation</span>
-                      <span className="font-medium">
-                        {formatPrice(latestQuote.breakdown.referencePrice)}
-                      </span>
+                      <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Déplacement</span>
-                      <span className="font-medium">{formatPrice(latestQuote.breakdown.travelFee)}</span>
+                      <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
                     </div>
+                    {latestQuote.clientFee != null ? (
+                      <>
+                        <div className="my-1 h-px bg-border" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Frais RepairDom (client)</span>
+                          <span className="font-medium">{formatPrice(latestQuote.clientFee)}</span>
+                        </div>
+                      </>
+                    ) : null}
                     <div className="my-1 h-px bg-border" />
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">TOTAL TTC</span>
+                      <span className="font-semibold">Total débité</span>
                       <span className="font-semibold">
-                        {formatPrice(
-                          (latestQuote.breakdown.referencePrice ?? 0) +
-                            (latestQuote.breakdown.travelFee ?? 0),
-                        )}
+                        {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.clientFee ?? 0)))}
                       </span>
                     </div>
+                    <p className="mt-1 text-xs text-muted-foreground">Montant débité de votre solde après acceptation.</p>
                   </div>
                 ) : null}
 

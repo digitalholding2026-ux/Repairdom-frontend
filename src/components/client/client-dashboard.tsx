@@ -19,6 +19,8 @@ import {
 } from '@/lib/api/request-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
 import { cn } from '@/lib/cn';
+import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
+import { formatCurrency } from '@/lib/format';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
@@ -64,6 +66,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   const [firstName, setFirstName] = useState<string | null>(null);
   const [demandes, setDemandes] = useState<DemandeListItem[]>([]);
   const [historique, setHistorique] = useState<DemandeListItem[]>([]);
+  const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +92,12 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           setDemandes(missions);
           setHistorique(history);
         }
+        // Solde de simulation (lecture seule, jamais recalculé côté UI).
+        getClientFinanceSummary()
+          .then((b) => {
+            if (!cancelled) setBalance(b);
+          })
+          .catch(() => undefined);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
@@ -229,6 +238,33 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           href="/client/demandes/historique"
         />
       </section>
+
+      {balance ? (
+        <section>
+          <Link href="/client/solde" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">Solde disponible</p>
+                  <p className="mt-0.5 text-2xl font-bold tracking-tight">
+                    {formatCurrency(balance.balance, balance.currency)}
+                  </p>
+                  {balance.mode === 'SIMULATION' ? (
+                    <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-ink">
+                      <Icon name="sparkles" size="3.5" />
+                      Simulation
+                    </p>
+                  ) : null}
+                </div>
+                <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
+                  Voir le solde
+                  <Icon name="chevron-right" size="sm" />
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+        </section>
+      ) : null}
 
       {currentMission ? (
         <section className="space-y-3">

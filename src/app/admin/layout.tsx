@@ -40,6 +40,10 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             <Icon name="wrench" size="sm" />
             Catalogue
           </Link>
+          <Link href="/admin/finances" className="flex flex-col items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Icon name="shield-check" size="sm" />
+            Finances
+          </Link>
         </div>
       </nav>
 

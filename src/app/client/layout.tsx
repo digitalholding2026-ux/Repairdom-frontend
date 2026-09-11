@@ -37,6 +37,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
         items={[
           { href: '/client', label: 'Accueil', icon: 'home' },
           { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
+          { href: '/client/solde', label: 'Solde', icon: 'file' },
           { href: '/client/demandes', label: 'Mes demandes', icon: 'briefcase' },
         ]}
         primaryHref={{ href: '/client/demande', label: 'Déposer une demande', icon: 'plus' }}
