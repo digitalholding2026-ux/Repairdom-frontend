@@ -20,7 +20,9 @@ export function BrandLogo({ href = '/', showText = true, className }: BrandLogoP
         <Icon name="wrench" size="sm" strokeWidth={2.2} />
       </span>
       {showText ? (
-        <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
+        <span className="hidden text-base font-bold tracking-tight min-[400px]:inline">
+          {siteConfig.name}
+        </span>
       ) : null}
     </Link>
   );
