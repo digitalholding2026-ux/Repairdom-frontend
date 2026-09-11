@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { SectionHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
-import { getMe, logout, homePathForRole } from '@/lib/api/auth-service';
+import { getMe, logout, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
   listMyDemandeHistory,
@@ -63,7 +63,7 @@ function MissionTabs({ current }: { current: 'missions' | 'history' }) {
 
 export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboardVariant }) {
   const router = useRouter();
-  const [firstName, setFirstName] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [demandes, setDemandes] = useState<DemandeListItem[]>([]);
   const [historique, setHistorique] = useState<DemandeListItem[]>([]);
   const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
@@ -81,18 +81,15 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           router.replace(homePathForRole(me.role));
           return;
         }
-        // Le filtrage actif/historique est réalisé côté backend :
-        // GET /demandes (actives) et GET /demandes/my/history (terminées/annulées).
         const [missions, history] = await Promise.all([
           variant === 'history' ? Promise.resolve([]) : listMyDemandes(),
           variant === 'list' ? Promise.resolve([]) : listMyDemandeHistory(),
         ]);
         if (!cancelled) {
-          setFirstName(me.firstName ?? null);
+          setUser(me);
           setDemandes(missions);
           setHistorique(history);
         }
-        // Solde de simulation (lecture seule, jamais recalculé côté UI).
         getClientFinanceSummary()
           .then((b) => {
             if (!cancelled) setBalance(b);
@@ -164,14 +161,22 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     const list = isHistory ? historique : demandes;
     return (
       <div className="space-y-5">
-        <PageHeader
-          title={isHistory ? 'Historique' : 'Mes missions'}
-          description={
-            isHistory
-              ? 'Vos interventions confirmées et annulées.'
-              : 'Suivez vos demandes, devis et interventions en cours.'
-          }
-        />
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              {isHistory ? 'Historique' : 'Mes missions'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isHistory
+                ? 'Vos interventions confirmées et annulées.'
+                : 'Suivez vos demandes, devis et interventions en cours.'}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Icon name="logout" size="sm" />
+            <span className="ml-1 hidden sm:inline">Déconnexion</span>
+          </Button>
+        </div>
 
         <MissionTabs current={isHistory ? 'history' : 'missions'} />
 
@@ -181,7 +186,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             description={
               isHistory
                 ? 'Les interventions confirmées et annulées apparaîtront ici.'
-                : 'Vous n’avez aucune demande en cours pour le moment.'
+                : 'Vous n\u2019avez aucune demande en cours pour le moment.'
             }
             action={
               <Link href="/client/demande">
@@ -206,66 +211,73 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     );
   }
 
+  const firstName = user?.firstName ?? '';
+
   return (
     <div className="space-y-6">
       <section className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            Bonjour{firstName ? ` ${firstName}` : ''}
+            Bonjour{firstName ? `, ${firstName}` : ''} 👋
           </h1>
-          <p className="text-sm text-muted-foreground">Que souhaitez-vous faire aujourd’hui ?</p>
+          <p className="text-sm text-muted-foreground">Que pouvons-nous réparer pour vous ?</p>
         </div>
         <Button variant="ghost" size="sm" onClick={handleLogout}>
-          Déconnexion
+          <Icon name="logout" size="sm" />
+          <span className="ml-1 hidden sm:inline">Déconnexion</span>
         </Button>
       </section>
 
+      {/* Niveau 1 — CTA principal (action immédiate dominante) */}
       <section>
         <Link href="/client/demande" className="block">
-          <Button size="lg" className="w-full">
-            <Icon name="plus" strokeWidth={2.2} />
-            Déposer une panne
+          <Button size="lg" className="w-full gap-2 text-base" strokeWidth={2}>
+            <Icon name="wrench" size="md" />
+            J&apos;ai besoin d&apos;un dépannage
           </Button>
         </Link>
       </section>
 
-      <section className="grid grid-cols-2 gap-3">
-        <QuickStat icon="clock" label="En cours" value={activeCount} href="/client/demandes" />
-        <QuickStat
-          icon="check-circle"
-          label="Terminées"
-          value={doneCount}
-          href="/client/demandes/historique"
-        />
-      </section>
-
+      {/* Solde */}
       {balance ? (
         <section>
           <Link href="/client/solde" className="block">
             <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">Solde disponible</p>
-                  <p className="mt-0.5 text-2xl font-bold tracking-tight">
-                    {formatCurrency(balance.balance, balance.currency)}
-                  </p>
-                  {balance.mode === 'SIMULATION' ? (
-                    <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-ink">
-                      <Icon name="sparkles" size="3.5" />
-                      Simulation
+              <CardContent className="space-y-3 py-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-muted-foreground">Solde disponible</p>
+                    <p className="mt-0.5 text-2xl font-bold tracking-tight">
+                      {formatCurrency(balance.balance, balance.currency)}
                     </p>
-                  ) : null}
+                    {balance.mode === 'SIMULATION' ? (
+                      <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-ink">
+                        <Icon name="sparkles" size="3.5" />
+                        Simulation
+                      </p>
+                    ) : null}
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
+                    Voir le solde
+                    <Icon name="chevron-right" size="sm" />
+                  </span>
                 </div>
-                <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
-                  Voir le solde
-                  <Icon name="chevron-right" size="sm" />
-                </span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" className="pointer-events-none flex-1 opacity-60" tabIndex={-1}>
+                    <Icon name="plus" size="sm" />
+                    Recharger
+                  </Button>
+                  <Button variant="secondary" size="sm" className="pointer-events-none flex-1 opacity-60" tabIndex={-1}>
+                    Retirer
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </Link>
         </section>
       ) : null}
 
+      {/* Niveau 2 — Interventions en cours */}
       {currentMission ? (
         <section className="space-y-3">
           <SectionHeader title="Intervention en cours" />
@@ -284,7 +296,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
                     {currentMission.description}
                   </p>
                   <p className="text-xs font-medium text-foreground">
-                    {currentMission.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'} :{' '}
+                    {currentMission.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'}:{' '}
                     {formatRequestedTiming(currentMission.requestedMode, currentMission.requestedAt)}
                   </p>
                 </CardContent>
@@ -294,7 +306,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         </section>
       ) : demandes.length === 0 ? (
         <EmptyState
-          title="Vous n’avez encore aucune demande"
+          title="Vous n\u2019avez encore aucune demande"
           description="Décrivez votre panne et nous trouvons le technicien adapté près de chez vous."
           action={
             <Link href="/client/demande">
@@ -304,53 +316,95 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         />
       ) : null}
 
-      {recent.length > 0 ? (
-        <section className="space-y-3">
-          <SectionHeader
-            title="Demandes récentes"
-            action={
-              <Link href="/client/demandes" className="text-sm font-medium text-primary hover:underline">
-                Tout voir
-              </Link>
-            }
-          />
-          <div className="space-y-3">
-            {recent.map((d) => (
-              <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
-                <DemandeCard demande={d} />
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </div>
-  );
-}
+      {/* Résumé rapide : missions + historique */}
+      <section className="grid grid-cols-2 gap-3">
+        <Link href="/client/demandes" className="block">
+          <Card className="transition-colors hover:bg-muted/50">
+            <CardContent className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon name="clock" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xl font-bold leading-none">{activeCount}</p>
+                <p className="mt-1 text-xs text-muted-foreground">En cours</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link href="/client/demandes/historique" className="block">
+          <Card className="transition-colors hover:bg-muted/50">
+            <CardContent className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon name="check-circle" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-xl font-bold leading-none">{doneCount}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Terminées</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </section>
 
-function QuickStat({
-  icon,
-  label,
-  value,
-  href,
-}: {
-  icon: 'clock' | 'check-circle';
-  label: string;
-  value: number;
-  href: string;
-}) {
-  return (
-    <Link href={href} className="block">
-      <Card className="transition-colors hover:bg-muted/50">
-        <CardContent className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Icon name={icon} />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xl font-bold leading-none">{value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+      {/* Niveau 3 — Avantages */}
+      <section className="space-y-3">
+        <SectionHeader title="Mes avantages" />
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/client/parrainage" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon name="users" />
+                </span>
+                <p className="text-sm font-semibold">Parrainage</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/client/recompenses" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon name="sparkles" />
+                </span>
+                <p className="text-sm font-semibold">Récompenses</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </section>
+
+      {/* Niveau 4 — Mon compte */}
+      <section className="space-y-3">
+        <SectionHeader title="Mon compte" />
+        <div className="space-y-2">
+          <Link href="/client/profil" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon name="user" />
+                </span>
+                <p className="text-sm font-semibold">Profil</p>
+                <span className="ml-auto">
+                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/conditions-utilisation" className="block">
+            <Card className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon name="file" />
+                </span>
+                <p className="text-sm font-semibold">Conditions d&apos;utilisation</p>
+                <span className="ml-auto">
+                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
+                </span>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }

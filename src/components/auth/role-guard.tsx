@@ -21,10 +21,12 @@ export function RoleGuard({ expectedRole, publicPaths, children }: RoleGuardProp
 
     async function check() {
       let role: string | undefined;
+      let emailVerified: boolean | undefined;
       let authenticated = true;
       try {
         const me = await getMe();
         role = me.role;
+        emailVerified = me.emailVerified;
       } catch {
         authenticated = false;
       }
@@ -33,6 +35,13 @@ export function RoleGuard({ expectedRole, publicPaths, children }: RoleGuardProp
       const isPublicPath = publicPaths.includes(pathname ?? '');
 
       if (authenticated) {
+        // Comptes clients dont l'email n'a pas été vérifié : on les redirige
+        // vers la page de vérification (sauf s'ils sont déjà dessus).
+        if (role === 'CLIENT' && emailVerified === false && pathname !== '/client/verification') {
+          router.replace('/client/verification');
+          return;
+        }
+
         if (role !== expectedRole || isPublicPath) {
           router.replace(homePathForRole(role));
           return;

@@ -2,13 +2,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { siteConfig } from '@/lib/site-config';
-import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 
 const steps: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'pin',
     title: 'Décrivez votre panne',
-    text: 'Choisissez une catégorie et indiquez où et quand se déroule l’intervention.',
+    text: 'Choisissez une catégorie et indiquez où et quand se déroule l\u2019intervention.',
   },
   {
     icon: 'users',
@@ -18,12 +17,12 @@ const steps: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'file',
     title: 'Un devis clair avant tout',
-    text: 'Vous validez le prix et le rendez-vous avant le début de l’intervention.',
+    text: 'Vous validez le prix et le rendez-vous avant le début de l\u2019intervention.',
   },
   {
     icon: 'truck',
     title: 'Intervention au rendez-vous',
-    text: 'Suivez votre mission pas à pas, du début jusqu’à la fin.',
+    text: 'Suivez votre mission pas à pas, du début jusqu\u2019à la fin.',
   },
   {
     icon: 'star',
@@ -46,12 +45,12 @@ const trust: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'clock',
     title: 'Rendez-vous planifié',
-    text: 'L’intervention se déroule à l’heure convenue avec le technicien.',
+    text: 'L\u2019intervention se déroule à l\u2019heure convenue avec le technicien.',
   },
   {
     icon: 'star',
     title: 'Avis des deux côtés',
-    text: 'Clients et techniciens s’évaluent après chaque mission.',
+    text: 'Clients et techniciens s\u2019évaluent après chaque mission.',
   },
 ];
 
@@ -87,10 +86,11 @@ export default function HomePage() {
               Techniciens vérifiés
             </span>
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance sm:text-3xl">
-              Une panne ? Trouvez le bon technicien près de chez vous.
+              Une panne ? On s&apos;occupe du reste.
             </h1>
             <p className="text-base leading-relaxed text-white/85">
-              {siteConfig.description}
+              Un technicien qualifié près de chez vous, un diagnostic clair et un tarif avant
+              l&apos;intervention.
             </p>
             <div className="mt-1 flex w-full flex-col gap-2 sm:flex-row">
               <Link href="/client/inscription" className="w-full sm:w-auto">
@@ -98,7 +98,7 @@ export default function HomePage() {
                   size="lg"
                   className="w-full bg-white text-brand-gradient-from hover:opacity-90 sm:w-auto"
                 >
-                  Trouver un technicien
+                  J&apos;ai besoin d&apos;un dépannage
                 </Button>
               </Link>
               <Link href="/technicien/inscription" className="w-full sm:w-auto">
@@ -111,27 +111,10 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
-          </div>
-        </section>
-
-        <section className="mt-8" aria-labelledby="categories-title">
-          <h2 id="categories-title" className="text-sm font-medium text-muted-foreground">
-            Dépannages disponibles
-          </h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {REQUEST_CATEGORIES.slice(0, 4).map((category) => (
-              <span
-                key={category.id}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium"
-              >
-                <Icon name="wrench" size="sm" className="text-primary" />
-                {category.label}
-              </span>
-            ))}
-            <Link href="/client/inscription" className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-primary hover:bg-muted">
-              <Icon name="plus" size="sm" />
-              Autre besoin…
-            </Link>
+            <p className="flex items-center gap-2 text-xs text-white/70">
+              <Icon name="check-circle" size="sm" className="text-white/80" />
+              Diagnostic &bull; Tarif avant intervention &bull; Technicien vérifié
+            </p>
           </div>
         </section>
 
@@ -186,17 +169,17 @@ export default function HomePage() {
           </span>
           <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à être dépanné ?</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Déposez votre demande, recevez un devis, validez. Le reste, on s’en occupe.
+            Déposez votre demande, recevez un devis, validez. Le reste, on s&apos;en occupe.
           </p>
           <div className="mt-4 flex flex-col gap-2">
             <Link href="/client/inscription">
               <Button size="lg" className="w-full">
-                Déposer une demande
+                J&apos;ai besoin d&apos;un dépannage
               </Button>
             </Link>
             <Link href="/client/connexion">
               <Button variant="secondary" className="w-full">
-                J’ai déjà un compte
+                J&apos;ai déjà un compte
               </Button>
             </Link>
           </div>

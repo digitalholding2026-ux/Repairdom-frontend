@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
@@ -76,7 +77,7 @@ export default function ClientSoldePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Mon solde" description="Suivi de votre porte-monnaie RepairDom." />
+      <PageHeader title="Mon solde" description="Suivi de votre portefeuille RepairDom." />
 
       {simulation ? (
         <Alert variant="info" icon="sparkles">
@@ -112,6 +113,38 @@ export default function ClientSoldePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Recharger / Retirer */}
+      <section className="grid grid-cols-2 gap-3">
+        <Card className="overflow-hidden">
+          <CardContent className="space-y-2 py-4 text-center">
+            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Icon name="plus" />
+            </span>
+            <p className="text-sm font-semibold">Recharger mon solde</p>
+            <p className="text-xs text-muted-foreground">
+              Cette fonctionnalité sera bientôt disponible.
+            </p>
+            <Button variant="secondary" size="sm" disabled className="w-full opacity-60">
+              Recharger
+            </Button>
+          </CardContent>
+        </Card>
+        <Card className="overflow-hidden">
+          <CardContent className="space-y-2 py-4 text-center">
+            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Icon name="arrow-right" />
+            </span>
+            <p className="text-sm font-semibold">Retirer</p>
+            <p className="text-xs text-muted-foreground">
+              Les retraits seront disponibles prochainement.
+            </p>
+            <Button variant="secondary" size="sm" disabled className="w-full opacity-60">
+              Retirer
+            </Button>
+          </CardContent>
+        </Card>
+      </section>
 
       <section className="space-y-3">
         <SectionHeader

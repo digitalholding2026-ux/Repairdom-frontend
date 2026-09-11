@@ -7,7 +7,11 @@ import { RoleGuard } from '@/components/auth/role-guard';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { siteConfig } from '@/lib/site-config';
 
-const CLIENT_PUBLIC_PATHS = ['/client/connexion', '/client/inscription'];
+const CLIENT_PUBLIC_PATHS = [
+  '/client/connexion',
+  '/client/inscription',
+  '/client/verification',
+];
 
 export default function ClientLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -36,9 +40,9 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
       <BottomNav
         items={[
           { href: '/client', label: 'Accueil', icon: 'home' },
-          { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
+          { href: '/client/demandes', label: 'Missions', icon: 'briefcase' },
           { href: '/client/solde', label: 'Solde', icon: 'file' },
-          { href: '/client/demandes', label: 'Mes demandes', icon: 'briefcase' },
+          { href: '/client/profil', label: 'Profil', icon: 'user' },
         ]}
         primaryHref={{ href: '/client/demande', label: 'Déposer une demande', icon: 'plus' }}
       />

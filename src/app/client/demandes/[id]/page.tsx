@@ -31,6 +31,8 @@ import {
   type MissionDiagnostic,
   type MissionQuote,
 } from '@/lib/api/request-service';
+import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
+import { formatCurrency } from '@/lib/format';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -47,6 +49,8 @@ export default function ClientDemandeDetailPage() {
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [events, setEvents] = useState<MissionEvent[]>([]);
+  const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
+  const [insufficientBalance, setInsufficientBalance] = useState<{ deficit: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +66,7 @@ export default function ClientDemandeDetailPage() {
           setDemande(d);
           setEvents(ev);
         }
+        getClientFinanceSummary().then((b) => { if (!cancelled) setBalance(b); }).catch(() => undefined);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
@@ -122,6 +127,21 @@ export default function ClientDemandeDetailPage() {
     if (!params?.id) return;
     setActionBusy(`quote:${action}`);
     setError(null);
+    setInsufficientBalance(null);
+
+    // Vérification du solde avant acceptation (mode simulation).
+    if (action === 'accept') {
+      const quote = quotes.find((q) => q.id === quoteId);
+      if (quote && balance) {
+        const totalToDebit = quote.totalToDebit ?? (quote.amount + (quote.clientFee ?? 0));
+        if (balance.balance < totalToDebit) {
+          setInsufficientBalance({ deficit: totalToDebit - balance.balance });
+          setActionBusy(null);
+          return;
+        }
+      }
+    }
+
     try {
       const updated = await respondToQuote(params.id, quoteId, action);
       setQuotes((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
@@ -436,7 +456,19 @@ export default function ClientDemandeDetailPage() {
                   </div>
                 ) : null}
 
-                {latestQuote.status === 'PENDING' ? (
+                {insufficientBalance ? (
+                  <div className="space-y-2 rounded-lg border border-error/30 bg-error/5 p-4">
+                    <p className="text-sm font-semibold text-error">Votre solde est insuffisant.</p>
+                    <p className="text-sm text-foreground">
+                      Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'XAF')} pour valider cette intervention.
+                    </p>
+                    <Link href="/client/solde">
+                      <Button className="w-full">Recharger mon solde</Button>
+                    </Link>
+                  </div>
+                ) : null}
+
+                {latestQuote.status === 'PENDING' && !insufficientBalance ? (
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Button
