@@ -231,8 +231,8 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       {/* Niveau 1 — CTA principal (action immédiate dominante) */}
       <section>
         <Link href="/client/demande" className="block">
-          <Button size="lg" className="w-full gap-2 text-base" strokeWidth={2}>
-            <Icon name="wrench" size="md" />
+          <Button size="lg" className="w-full gap-2 text-base">
+            <Icon name="wrench" size="md" strokeWidth={2} />
             J&apos;ai besoin d&apos;un dépannage
           </Button>
         </Link>
