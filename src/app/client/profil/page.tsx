@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Avatar } from '@/components/ui/avatar';
+import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
 import {
   getMe,
@@ -103,10 +104,7 @@ export default function ClientProfilPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h1 className="text-xl font-bold tracking-tight">Mon profil</h1>
-        <p className="text-sm text-muted-foreground">Gérez vos informations personnelles.</p>
-      </div>
+      <PageHeader title="Mon profil" description="Gérez vos informations personnelles." backHref="/client" />
 
       <div className="flex items-center gap-4">
         <Avatar

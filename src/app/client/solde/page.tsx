@@ -77,7 +77,7 @@ export default function ClientSoldePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Mon solde" description="Suivi de votre portefeuille RepairDom." />
+      <PageHeader title="Mon solde" description="Suivi de votre portefeuille RepairDom." backHref="/client" />
 
       {simulation ? (
         <Alert variant="info" icon="sparkles">
