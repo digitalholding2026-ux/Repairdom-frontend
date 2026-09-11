@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { siteConfig } from '@/lib/site-config';
+import { PublicHeader } from '@/components/public/public-header';
+import { PublicFooter } from '@/components/public/public-footer';
 
 const steps: Array<{ icon: IconName; title: string; text: string }> = [
   {
@@ -57,26 +58,7 @@ const trust: Array<{ icon: IconName; title: string; text: string }> = [
 export default function HomePage() {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between gap-3 px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" size="sm" strokeWidth={2.2} />
-            </span>
-            <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
-          </Link>
-          <nav className="flex items-center gap-2" aria-label="Navigation">
-            <Link href="/client/connexion">
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                Connexion
-              </Button>
-            </Link>
-            <Link href="/technicien/inscription">
-              <Button size="sm">Je suis technicien</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10">
         <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 sm:p-8">
@@ -99,15 +81,6 @@ export default function HomePage() {
                   className="w-full bg-white text-brand-gradient-from hover:opacity-90 sm:w-auto"
                 >
                   J&apos;ai besoin d&apos;un dépannage
-                </Button>
-              </Link>
-              <Link href="/technicien/inscription" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full border-white/40 bg-transparent text-white hover:bg-white/10 sm:w-auto"
-                >
-                  Proposer mes services
                 </Button>
               </Link>
             </div>
@@ -186,17 +159,7 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground safe-bottom">
-        <p>
-          © {new Date().getFullYear()} {siteConfig.name}. Tous droits réservés.
-        </p>
-        <p className="mt-2">
-          <Link href="/suivi" className="inline-flex items-center gap-1.5 text-primary hover:underline">
-            <Icon name="search" size="sm" />
-            Suivre une intervention
-          </Link>
-        </p>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

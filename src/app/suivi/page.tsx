@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -10,6 +9,8 @@ import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { Timeline, type TimelineStep } from '@/components/ui/timeline';
+import { PublicHeader } from '@/components/public/public-header';
+import { PublicFooter } from '@/components/public/public-footer';
 import { trackByReference, type PublicTracking } from '@/lib/api/tracking-service';
 import { formatDateTime } from '@/lib/format';
 
@@ -115,19 +116,7 @@ export default function SuiviPage() {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between gap-3 px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" size="sm" strokeWidth={2.2} />
-            </span>
-            <span className="text-base font-bold tracking-tight">Suivi de mission</span>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm">Accueil</Button>
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 space-y-5">
         <div>
@@ -213,9 +202,7 @@ export default function SuiviPage() {
         ) : null}
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground safe-bottom">
-        © {new Date().getFullYear()} RepairDom. Tous droits réservés.
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

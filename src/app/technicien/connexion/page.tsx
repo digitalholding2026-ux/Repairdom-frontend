@@ -12,7 +12,7 @@ export default function TechnicianConnexionPage() {
     <div className="space-y-4">
       <AuthCard
         icon="briefcase"
-        title="Se connecter"
+        title="Connexion technicien"
         description="Accédez à vos demandes de dépannage et gérez vos interventions."
       >
         <TechnicianAuthForm mode="signin" />
@@ -20,8 +20,8 @@ export default function TechnicianConnexionPage() {
 
       <p className="text-center text-sm text-muted-foreground">
         Pas encore de compte ?{' '}
-        <Link href="/technicien/inscription" className="font-medium text-primary underline-offset-4 hover:underline">
-          Créer un compte technicien
+        <Link href="/devenir-technicien" className="font-medium text-primary underline-offset-4 hover:underline">
+          Devenir technicien
         </Link>
       </p>
     </div>

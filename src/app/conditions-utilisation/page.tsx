@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { siteConfig } from '@/lib/site-config';
+import { PublicHeader } from '@/components/public/public-header';
+import { PublicFooter } from '@/components/public/public-footer';
 
 export const metadata: Metadata = {
   title: 'Conditions d\u2019utilisation',
@@ -11,21 +11,7 @@ export const metadata: Metadata = {
 export default function ConditionsPage() {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" size="sm" strokeWidth={2.2} />
-            </span>
-            <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
-          </Link>
-          <Link href="/client/inscription">
-            <Button variant="ghost" size="sm">
-              Inscription
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <PublicHeader />
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10">
         <h1 className="text-2xl font-bold tracking-tight">Conditions d&apos;utilisation</h1>
@@ -145,9 +131,7 @@ export default function ConditionsPage() {
         </div>
       </main>
 
-      <footer className="border-t border-border py-6 text-center text-sm text-muted-foreground safe-bottom">
-        © {new Date().getFullYear()} {siteConfig.name}. Tous droits réservés.
-      </footer>
+      <PublicFooter />
     </div>
   );
 }
