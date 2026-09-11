@@ -56,12 +56,14 @@ export function Timeline({ steps, className }: TimelineProps) {
               )}
             </span>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className={cn('text-sm font-medium', current && 'text-primary')}>{step.title}</p>
+              <p className={cn('break-words text-sm font-medium', current && 'text-primary')}>
+                {step.title}
+              </p>
               {step.timestamp ? (
-                <p className="mt-0.5 text-xs text-muted-foreground">{step.timestamp}</p>
+                <p className="mt-0.5 break-words text-xs text-muted-foreground">{step.timestamp}</p>
               ) : null}
               {step.description ? (
-                <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
+                <p className="mt-1 break-words text-sm text-muted-foreground">{step.description}</p>
               ) : null}
             </div>
           </li>
