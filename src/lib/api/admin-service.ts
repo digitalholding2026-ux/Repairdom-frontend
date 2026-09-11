@@ -173,8 +173,8 @@ export interface CatalogProblem {
   description: string | null;
   isActive: boolean;
   sortOrder: number;
-  brand?: { id: string; name: string };
-  model?: { id: string; name: string };
+  brand?: { id: string; name: string } | null;
+  model?: { id: string; name: string } | null;
   _count?: { diagnostics: number };
 }
 
