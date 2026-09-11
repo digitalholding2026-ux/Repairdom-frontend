@@ -270,3 +270,32 @@ export async function getAdminMissionFinance(demandeId: string): Promise<AdminMi
     `/admin/finances/missions/${encodeURIComponent(demandeId)}`,
   );
 }
+
+/* ── Crédit initial simulateur (ADMIN uniquement) ─────────────── */
+
+export interface TestCreditTransaction {
+  id: string;
+  amount: number;
+  reference: string;
+  createdAt: string;
+}
+
+export interface TestCreditResult {
+  userId: string;
+  created: boolean;
+  alreadyCredited: boolean;
+  transaction: TestCreditTransaction;
+  balance: number;
+}
+
+/** Crédite un compte client de test (simulation). Idempotent côté backend. */
+export async function createTestCredit(
+  userId: string,
+  amount: number,
+): Promise<TestCreditResult> {
+  return apiFetch<TestCreditResult>('/admin/dev/test-credit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, amount }),
+  });
+}

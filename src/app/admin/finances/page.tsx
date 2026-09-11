@@ -12,9 +12,11 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   getAdminFinanceSummary,
   getAdminMissionFinance,
+  createTestCredit,
   type AdminFinanceMission,
   type AdminFinanceModeResult,
   type AdminFinanceSummary,
@@ -22,6 +24,7 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
+import { searchAdminClients, type AdminClientUser } from '@/lib/api/admin-service';
 
 const MODES: FinancialMode[] = ['SIMULATION', 'REAL'];
 
@@ -38,6 +41,9 @@ const ADMIN_TXN_LABELS: Record<string, string> = {
 function txnLabel(type: string): string {
   return ADMIN_TXN_LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase();
 }
+
+const DEFAULT_TEST_CREDIT_AMOUNT = 50_000;
+const MAX_TEST_CREDIT_AMOUNT = 1_000_000;
 
 export default function AdminFinancesPage() {
   const [data, setData] = useState<AdminFinanceSummary | null>(null);
@@ -217,6 +223,8 @@ export default function AdminFinancesPage() {
           })}
         </div>
       ) : null}
+
+      <TestCreditSection />
     </div>
   );
 }
@@ -485,5 +493,190 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         )}
       </div>
     </div>
+  );
+}
+
+function TestCreditSection() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<AdminClientUser[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<AdminClientUser | null>(null);
+  const [amount, setAmount] = useState<string>(String(DEFAULT_TEST_CREDIT_AMOUNT));
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setSearchError(null);
+      return () => { cancelled = true; };
+    }
+
+    setSearchLoading(true);
+    const timer = setTimeout(() => {
+      searchAdminClients(q)
+        .then((res) => {
+          if (!cancelled) {
+            setResults(res.items);
+            setSearchError(null);
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) {
+            setSearchError(err instanceof Error ? err.message : 'Erreur de recherche.');
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const selectedAmount = Math.floor(Number(amount));
+  const amountValid = Number.isFinite(selectedAmount) && selectedAmount >= 1 && selectedAmount <= MAX_TEST_CREDIT_AMOUNT;
+
+  const openConfirm = () => {
+    if (!selected || !amountValid || submitting) return;
+    setError(null);
+    setNotice(null);
+    setConfirmOpen(true);
+  };
+
+  const submitCredit = async () => {
+    if (!selected || !amountValid) return;
+    setSubmitting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await createTestCredit(selected.id, selectedAmount);
+      if (result.created) {
+        setNotice(`Compte crédité de ${formatCurrency(result.transaction.amount, 'XAF')}.`);
+      } else {
+        setNotice('Ce compte a déjà été crédité (crédit initial unique SIMULATION).');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors du crédit du compte.');
+    } finally {
+      setSubmitting(false);
+      setConfirmOpen(false);
+    }
+  };
+
+  return (
+    <section className="space-y-3">
+      <SectionHeader
+        title={
+          <span className="flex items-center gap-2">
+            Créditer un compte de test
+            <Badge variant="warning">SIMULATION</Badge>
+          </span>
+        }
+      />
+
+      <Card>
+        <CardContent className="space-y-4">
+          {notice ? <Alert variant="success" icon="check-circle">{notice}</Alert> : null}
+          {error ? <Alert variant="error">{error}</Alert> : null}
+
+          <Field htmlFor="clientSearch" label="Rechercher un client">
+            <Input
+              id="clientSearch"
+              placeholder="Nom, prénom ou email…"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSelected(null);
+                setNotice(null);
+                setError(null);
+              }}
+              maxLength={80}
+            />
+            {searchError ? <p className="mt-1 text-xs text-error-ink">{searchError}</p> : null}
+          </Field>
+
+          {results.length > 0 ? (
+            <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border bg-card p-1">
+              {results.map((user) => (
+                <label
+                  key={user.id}
+                  className={`flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors ${
+                    selected?.id === user.id ? 'bg-primary/10' : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="testCreditClient"
+                    className="h-4 w-4 shrink-0 border-border text-primary focus:ring-primary"
+                    checked={selected?.id === user.id}
+                    onChange={() => setSelected(user)}
+                  />
+                  <span className="min-w-0 truncate">
+                    {fullName(user.firstName, user.lastName)}
+                    <span className="ml-2 text-xs text-muted-foreground">{user.email}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : query.trim().length >= 2 && !searchLoading && !searchError ? (
+            <p className="text-sm text-muted-foreground">Aucun client trouvé pour « {query.trim()} ».</p>
+          ) : null}
+
+          {selected ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Client sélectionné : <span className="font-medium text-foreground">{fullName(selected.firstName, selected.lastName)}</span> ({selected.email})
+              </p>
+              <Field htmlFor="creditAmount" label="Montant à créditer (XAF)">
+                <Input
+                  id="creditAmount"
+                  type="number"
+                  min={1}
+                  max={MAX_TEST_CREDIT_AMOUNT}
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                />
+                {!amountValid ? (
+                  <p className="mt-1 text-xs text-error-ink">
+                    Montant invalide : doit être un entier compris entre 1 et 1 000 000 XAF.
+                  </p>
+                ) : null}
+              </Field>
+              <Button
+                onClick={openConfirm}
+                disabled={!amountValid || submitting}
+                isLoading={submitting}
+              >
+                Créditer le compte
+              </Button>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirmer le crédit de test"
+        description={
+          selected && amountValid
+            ? `Vous êtes sur le point d'ajouter ${formatCurrency(selectedAmount, 'XAF')} au solde de simulation de ce compte client (${fullName(selected.firstName, selected.lastName)}).`
+            : ''
+        }
+        confirmLabel={submitting ? 'Créditation en cours…' : 'Créditer le compte'}
+        cancelLabel="Annuler"
+        loading={submitting}
+        onConfirm={submitCredit}
+        onCancel={() => { if (!submitting) setConfirmOpen(false); }}
+      />
+    </section>
   );
 }

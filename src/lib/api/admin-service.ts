@@ -414,6 +414,25 @@ export function seedSmartphoneDomain(): Promise<{ message: string; domainId: str
   return catalogFetch<{ message: string; domainId: string; problemsCount?: number }>('/admin/catalog/seed/smartphone', { method: 'POST' });
 }
 
+/* ── Recherche de comptes clients (simulateur financier) ──────── */
+
+export interface AdminClientUser {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+}
+
+export interface AdminClientUserSearch {
+  items: AdminClientUser[];
+}
+
+export function searchAdminClients(q: string): Promise<AdminClientUserSearch> {
+  const params = new URLSearchParams();
+  if (q.trim()) params.set('q', q.trim());
+  return catalogFetch<AdminClientUserSearch>(`/admin/users/clients?${params.toString()}`);
+}
+
 /* ── Supervision des missions (Sprint 8.6.5) ──────────────────── */
 
 export interface SupervisedMissionEvent {
