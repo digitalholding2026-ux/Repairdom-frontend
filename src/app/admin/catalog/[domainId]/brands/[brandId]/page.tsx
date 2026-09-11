@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { Modal } from '@/components/ui/modal';
 import {
   getBrand,
   createModel,
+  createProblem,
   updateBrand,
   updateModel,
   type CatalogBrandDetail,
@@ -24,6 +25,7 @@ import {
 
 export default function AdminBrandPage() {
   const params = useParams<{ domainId: string; brandId: string }>();
+  const router = useRouter();
   const [brand, setBrand] = useState<CatalogBrandDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +34,11 @@ export default function AdminBrandPage() {
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [showCreateProblem, setShowCreateProblem] = useState(false);
+  const [creatingProblem, setCreatingProblem] = useState(false);
+  const [newProblemName, setNewProblemName] = useState('');
+  const [newProblemSlug, setNewProblemSlug] = useState('');
+  const [newProblemDesc, setNewProblemDesc] = useState('');
 
   async function load(quiet = false) {
     if (!params?.brandId) return;
@@ -74,6 +81,36 @@ export default function AdminBrandPage() {
     }
   };
 
+  // Sprint 8.7 — création ancrée à la marque courante (brandId), modelId = null.
+  // Un problème créé ici n'est PAS un problème générique du domaine : il reste
+  // rattaché à la marque et peut ensuite être décliné par modèle via la page
+  // du modèle (ou rester valable pour toute la marque).
+  const handleCreateProblem = async () => {
+    if (!params?.brandId || !brand) return;
+    const name = newProblemName.trim();
+    const slug = newProblemSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (!name) return;
+    setCreatingProblem(true);
+    try {
+      const problem = await createProblem({
+        domainId: brand.domain?.id ?? params.domainId,
+        brandId: params.brandId,
+        name,
+        slug,
+        description: newProblemDesc.trim() || undefined,
+      });
+      setShowCreateProblem(false);
+      setNewProblemName('');
+      setNewProblemSlug('');
+      setNewProblemDesc('');
+      router.push(`/admin/catalog/${brand.domain?.id ?? params.domainId}/${problem.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+    } finally {
+      setCreatingProblem(false);
+    }
+  };
+
   const handleToggleBrandActive = async (active: boolean) => {
     if (!params?.brandId) return;
     try {
@@ -107,7 +144,18 @@ export default function AdminBrandPage() {
           { label: brand.name },
         ]}
       />
-      <PageHeader title={brand.name} description="Modèles de cette marque." />
+      <PageHeader
+        title={brand.name}
+        description="Modèles et problèmes de cette marque."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowCreateProblem(true)}>
+              <Icon name="plus" size="3.5" />
+              Nouveau problème
+            </Button>
+          </div>
+        }
+      />
 
       <Card>
         <CardContent className="space-y-3 pt-4">
@@ -167,6 +215,31 @@ export default function AdminBrandPage() {
           ))}
         </div>
       )}
+
+      <Modal
+        open={showCreateProblem}
+        onClose={() => setShowCreateProblem(false)}
+        title="Nouveau problème"
+        description={`Rattaché à la marque ${brand.name} (et non au domaine). Vous pourrez le décliner par modèle depuis sa page modèle.`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowCreateProblem(false)} disabled={creatingProblem}>Annuler</Button>
+            <Button onClick={handleCreateProblem} isLoading={creatingProblem} disabled={!newProblemName.trim()}>Créer</Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Field label="Nom" htmlFor="brandProblemName" required>
+            <Input id="brandProblemName" value={newProblemName} onChange={(e) => setNewProblemName(e.target.value)} placeholder="Ex. : Vibrations anormales" />
+          </Field>
+          <Field label="Slug" htmlFor="brandProblemSlug" hint="Généré automatiquement si vide">
+            <Input id="brandProblemSlug" value={newProblemSlug} onChange={(e) => setNewProblemSlug(e.target.value)} />
+          </Field>
+          <Field label="Description" htmlFor="brandProblemDesc">
+            <Textarea id="brandProblemDesc" value={newProblemDesc} onChange={(e) => setNewProblemDesc(e.target.value)} rows={2} maxLength={1000} />
+          </Field>
+        </div>
+      </Modal>
 
       <Modal
         open={showCreate}

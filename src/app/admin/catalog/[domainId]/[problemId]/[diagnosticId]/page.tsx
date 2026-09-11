@@ -20,10 +20,40 @@ import {
   createPricing,
   updatePricing,
   getPricing,
+  updateIntervention,
   type CatalogDiagnosticDetail,
   type CatalogIntervention,
   type CatalogPricing,
+  type CatalogPricingHistory,
 } from '@/lib/api/admin-service';
+
+const PRICING_HISTORY_FIELDS = [
+  'minPrice',
+  'referencePrice',
+  'maxPrice',
+  'travelFee',
+  'serviceFee',
+  'currency',
+  'priceMode',
+  'isActive',
+] as const;
+
+function pricingDiffLines(h: CatalogPricingHistory): string[] {
+  const lines: string[] = [];
+  for (const field of PRICING_HISTORY_FIELDS) {
+    const prev = h.previousValues?.[field];
+    const next = h.newValues?.[field];
+    if (prev === next) continue;
+    const fmt = (v: unknown) => (v === null || v === undefined ? '—' : String(v));
+    lines.push(`${field}: ${fmt(prev)} → ${fmt(next)}`);
+  }
+  return lines;
+}
+
+function pricingAuthorName(h: CatalogPricingHistory): string {
+  if (!h.admin) return 'Admin';
+  return [h.admin.firstName, h.admin.lastName].filter(Boolean).join(' ') || 'Admin';
+}
 
 export default function AdminDiagnosticPage() {
   const params = useParams<{ domainId: string; problemId: string; diagnosticId: string }>();
@@ -48,6 +78,8 @@ export default function AdminDiagnosticPage() {
   const [maxPrice, setMaxPrice] = useState('');
   const [travelFee, setTravelFee] = useState('');
   const [serviceFee, setServiceFee] = useState('');
+  const [pricingActive, setPricingActive] = useState(true);
+  const [priceReason, setPriceReason] = useState('');
   const [savingPricing, setSavingPricing] = useState(false);
 
   async function load(quiet = false) {
@@ -107,6 +139,15 @@ export default function AdminDiagnosticPage() {
     }
   };
 
+  const handleToggleIntervention = async (interventionId: string, active: boolean) => {
+    try {
+      await updateIntervention(interventionId, { isActive: active });
+      await load(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur.');
+    }
+  };
+
   const handleOpenPricing = async (intervention: CatalogIntervention) => {
     setPricingInterventionId(intervention.id);
     setLoadingPricing(true);
@@ -116,6 +157,8 @@ export default function AdminDiagnosticPage() {
     setMaxPrice('');
     setTravelFee('');
     setServiceFee('');
+    setPricingActive(true);
+    setPriceReason('');
     try {
       const pricing = await getPricing(intervention.id);
       setPricingData(pricing);
@@ -124,6 +167,7 @@ export default function AdminDiagnosticPage() {
       setMaxPrice(pricing.maxPrice?.toString() ?? '');
       setTravelFee(pricing.travelFee?.toString() ?? '');
       setServiceFee(pricing.serviceFee?.toString() ?? '');
+      setPricingActive(pricing.isActive);
     } catch {
       // no existing pricing — form stays empty
     } finally {
@@ -142,7 +186,8 @@ export default function AdminDiagnosticPage() {
         maxPrice?: number;
         travelFee?: number;
         serviceFee?: number;
-      } = { interventionId: pricingInterventionId };
+        isActive: boolean;
+      } = { interventionId: pricingInterventionId, isActive: pricingActive };
       if (minPrice) payload.minPrice = parseFloat(minPrice);
       if (refPrice) payload.referencePrice = parseFloat(refPrice);
       if (maxPrice) payload.maxPrice = parseFloat(maxPrice);
@@ -151,12 +196,17 @@ export default function AdminDiagnosticPage() {
 
       if (pricingData) {
         const { interventionId: _ignored, ...rest } = payload;
-        await updatePricing(pricingInterventionId, rest as Record<string, unknown>);
+        // Sprint 8.7 — motif de modification transmis au backend (null quand vide).
+        await updatePricing(pricingInterventionId, {
+          ...(rest as Record<string, unknown>),
+          reason: priceReason.trim() ? priceReason.trim() : null,
+        });
       } else {
         await createPricing(payload);
       }
       setPricingInterventionId(null);
       setPricingData(null);
+      setPriceReason('');
       await load(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur sauvegarde tarif.');
@@ -225,10 +275,15 @@ export default function AdminDiagnosticPage() {
                       {intervention.needsParts ? <Badge variant="warning">Pièces requises</Badge> : null}
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Badge variant={intervention.isActive ? 'success' : 'neutral'}>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
                       {intervention.isActive ? 'Actif' : 'Inactif'}
-                    </Badge>
+                    </span>
+                    <Switch
+                      aria-label={`Activer ou désactiver ${intervention.name}`}
+                      checked={intervention.isActive}
+                      onCheckedChange={(active) => handleToggleIntervention(intervention.id, active)}
+                    />
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -302,12 +357,23 @@ export default function AdminDiagnosticPage() {
             ) : (
               <div className="space-y-3">
                 {pricingData?.history?.length ? (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Dernières modifications :</p>
-                    {pricingData.history.slice(0, 3).map((h) => (
-                      <p key={h.id} className="text-xs text-muted-foreground">
-                        {new Date(h.createdAt).toLocaleDateString('fr-FR')} — raison : {h.reason || '—'}
-                      </p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">Historique des modifications :</p>
+                    {pricingData.history.map((h) => (
+                      <div key={h.id} className="rounded-md border p-2">
+                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">{pricingAuthorName(h)}</span>
+                          <span>{new Date(h.createdAt).toLocaleString('fr-FR')}</span>
+                          {h.reason ? <span className="italic">— {h.reason}</span> : null}
+                        </div>
+                        {pricingDiffLines(h).length > 0 ? (
+                          <ul className="mt-1 list-inside list-disc text-xs text-muted-foreground">
+                            {pricingDiffLines(h).map((line) => (
+                              <li key={line}>{line}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                 ) : null}
@@ -328,6 +394,25 @@ export default function AdminDiagnosticPage() {
                     <Input id="pService" type="number" step="1" value={serviceFee} onChange={(e) => setServiceFee(e.target.value)} placeholder="0" />
                   </Field>
                 </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium">Tarif actif</span>
+                  <Switch checked={pricingActive} onCheckedChange={setPricingActive} />
+                </div>
+                {pricingData ? (
+                  <Field
+                    label="Motif de modification"
+                    htmlFor="pReason"
+                    hint="Ex. : Hausse du prix des pièces, nouveau tarif fournisseur, correction tarifaire"
+                  >
+                    <Textarea
+                      id="pReason"
+                      value={priceReason}
+                      onChange={(e) => setPriceReason(e.target.value)}
+                      rows={2}
+                      maxLength={500}
+                    />
+                  </Field>
+                ) : null}
                 <Button onClick={handleSavePricing} isLoading={savingPricing} className="w-full">
                   {pricingData ? 'Modifier le tarif' : 'Créer le tarif'}
                 </Button>

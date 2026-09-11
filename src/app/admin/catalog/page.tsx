@@ -94,13 +94,17 @@ export default function AdminCatalogPage() {
       {seedResult ? <Alert variant="success">{seedResult}</Alert> : null}
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={handleSeed} isLoading={seedBusy}>
-          <Icon name="sparkles" size="3.5" />
-          Seed Smartphone
-        </Button>
-        <p className="text-xs text-muted-foreground">Données initiales de démonstration</p>
-      </div>
+      {/* Sprint 8.7 — le seed est réservé au développement/initialisation :
+          il est masqué en production (le backend le refuse également). */}
+      {process.env.NODE_ENV !== 'production' ? (
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={handleSeed} isLoading={seedBusy}>
+            <Icon name="sparkles" size="3.5" />
+            Seed Smartphone
+          </Button>
+          <p className="text-xs text-muted-foreground">Données initiales de démonstration</p>
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-20">

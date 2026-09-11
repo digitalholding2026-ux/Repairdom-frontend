@@ -226,6 +226,7 @@ export interface CatalogPricingHistory {
   id: string;
   pricingId: string;
   adminId: string;
+  admin: { id: string; firstName: string; lastName: string | null } | null;
   previousValues: Record<string, unknown>;
   newValues: Record<string, unknown>;
   reason: string | null;
@@ -400,7 +401,7 @@ export function getPricing(interventionId: string): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>(`/admin/catalog/interventions/${encodeURIComponent(interventionId)}/pricing`);
 }
 
-export function createPricing(data: { interventionId: string; minPrice?: number; referencePrice?: number; maxPrice?: number; travelFee?: number; serviceFee?: number }): Promise<CatalogPricing> {
+export function createPricing(data: { interventionId: string; minPrice?: number; referencePrice?: number; maxPrice?: number; travelFee?: number; serviceFee?: number; isActive?: boolean }): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>('/admin/catalog/pricing', jsonBody(data));
 }
 
