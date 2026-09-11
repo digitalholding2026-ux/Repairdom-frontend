@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format';
-import { logout } from '@/lib/api/auth-service';
+import { logoutAndGoHome } from '@/lib/api/auth-service';
 import {
   getAdminKycFolders,
   type AdminKycFolder,
@@ -53,8 +53,7 @@ export default function AdminKycPage() {
   }, [status, reloadKey]);
 
   const handleLogout = async () => {
-    await logout();
-    window.location.href = '/';
+    await logoutAndGoHome();
   };
 
   return (

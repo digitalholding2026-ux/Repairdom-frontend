@@ -11,7 +11,7 @@ import { Icon } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
-import { getMe, logout, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
+import { getMe, logoutAndGoHome, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
   listMyDemandeHistory,
@@ -130,8 +130,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   );
 
   const handleLogout = async () => {
-    await logout();
-    window.location.href = '/client/connexion';
+    await logoutAndGoHome();
   };
 
   if (loading) {

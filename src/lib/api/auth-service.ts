@@ -120,6 +120,14 @@ export async function logout(): Promise<void> {
   await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
 }
 
+export async function logoutAndGoHome(): Promise<void> {
+  try {
+    await logout();
+  } finally {
+    window.location.href = '/';
+  }
+}
+
 export async function verifyEmail(token: string): Promise<AuthSession> {
   return apiFetch<AuthSession>('/auth/verify-email', {
     method: 'POST',

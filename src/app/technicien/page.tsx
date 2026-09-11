@@ -13,7 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
-import { getMe, logout } from '@/lib/api/auth-service';
+import { getMe, logoutAndGoHome } from '@/lib/api/auth-service';
 import {
   listAvailableDemandes,
   listMyDemandes,
@@ -76,8 +76,7 @@ export default function TechnicianDashboardPage() {
   }, []);
 
   const handleLogout = async () => {
-    await logout();
-    window.location.href = '/technicien/connexion';
+    await logoutAndGoHome();
   };
 
   const handleToggleAvailability = async () => {
