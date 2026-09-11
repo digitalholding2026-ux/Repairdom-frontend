@@ -9,7 +9,8 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
-import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole, safeRedirect } from '@/lib/api/auth-service';
+import { useAuth } from '@/components/auth/auth-provider';
 
 export type ClientAuthMode = 'signup' | 'signin';
 
@@ -19,6 +20,7 @@ interface ClientAuthFormProps {
 
 export function ClientAuthForm({ mode }: ClientAuthFormProps) {
   const router = useRouter();
+  const { refresh } = useAuth();
   const isSignUp = mode === 'signup';
 
   const [firstName, setFirstName] = useState('');
@@ -73,13 +75,15 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
         if (session.user.emailVerified === false) {
           router.push(`/client/verification?email=${encodeURIComponent(session.user.email)}`);
         } else {
-          router.push(homePathForRole(session.user.role));
+          await refresh();
+          router.push(safeRedirect(window.location.search, '/client', homePathForRole(session.user.role)));
         }
         return;
       }
 
       await signIn({ email: email.trim(), password });
-      router.push('/client');
+      await refresh();
+      router.push(safeRedirect(window.location.search, '/client', '/client'));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);

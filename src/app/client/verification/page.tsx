@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
-import { verifyEmail, resendVerification, signIn, homePathForRole } from '@/lib/api/auth-service';
+import { verifyEmail, resendVerification, homePathForRole } from '@/lib/api/auth-service';
+import { useAuth } from '@/components/auth/auth-provider';
 
 export default function VerificationPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const { refresh } = useAuth();
   const token = params.get('token');
   const emailParam = params.get('email');
 
@@ -32,7 +34,7 @@ export default function VerificationPage() {
         const session = await verifyEmail(token);
         if (cancelled) return;
         setVerified(true);
-        // Auto-login : le cookie vient d'être posé.
+        await refresh();
         router.replace(homePathForRole(session.user.role));
       } catch (err) {
         if (cancelled) return;

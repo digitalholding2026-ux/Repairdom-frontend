@@ -8,7 +8,8 @@ import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
-import { signIn, signUp, homePathForRole } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole, safeRedirect } from '@/lib/api/auth-service';
+import { useAuth } from '@/components/auth/auth-provider';
 import { cn } from '@/lib/cn';
 
 export type TechnicianAuthMode = 'signup' | 'signin';
@@ -21,6 +22,7 @@ const MIN_PASSWORD_LENGTH = 6;
 
 export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
   const router = useRouter();
+  const { refresh } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -65,7 +67,8 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             categories,
           })
         : await signIn({ email: email.trim(), password });
-      router.push(homePathForRole(session.user.role));
+      await refresh();
+      router.push(safeRedirect(window.location.search, '/technicien', homePathForRole(session.user.role)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
       setIsSubmitting(false);

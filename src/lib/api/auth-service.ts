@@ -116,6 +116,23 @@ export function homePathForRole(role: string | undefined): string {
   return '/client';
 }
 
+export function safeRedirect(search: string, allowedPrefix: string, fallback: string): string {
+  try {
+    const target = new URLSearchParams(search).get('redirect');
+    if (
+      target &&
+      target.startsWith(allowedPrefix) &&
+      !target.startsWith('//') &&
+      !target.includes('\\')
+    ) {
+      return target;
+    }
+  } catch {
+    // paramètre invalide : on retombe sur l'habitat du rôle
+  }
+  return fallback;
+}
+
 export async function logout(): Promise<void> {
   await apiFetch<{ success: boolean }>('/auth/logout', { method: 'POST' });
 }
