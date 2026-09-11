@@ -117,6 +117,7 @@ export interface AdminFinanceMission {
   technician: AdminFinancePerson | null;
   repair: number;
   travel: number;
+  clientDebit: number;
   clientFee: number;
   technicianFee: number;
   technicianNet: number;
