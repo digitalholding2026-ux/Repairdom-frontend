@@ -155,6 +155,7 @@ export interface CatalogModel {
   description: string | null;
   isActive: boolean;
   sortOrder: number;
+  _count?: { problems: number };
 }
 
 export interface CatalogBrandDetail extends CatalogBrand {
@@ -165,11 +166,15 @@ export interface CatalogBrandDetail extends CatalogBrand {
 export interface CatalogProblem {
   id: string;
   domainId: string;
+  brandId: string | null;
+  modelId: string | null;
   name: string;
   slug: string;
   description: string | null;
   isActive: boolean;
   sortOrder: number;
+  brand?: { id: string; name: string };
+  model?: { id: string; name: string };
   _count?: { diagnostics: number };
 }
 
@@ -232,8 +237,14 @@ export interface CatalogDomainDetail extends CatalogDomain {
   brands: CatalogBrand[];
 }
 
+export interface CatalogModelDetail extends CatalogModel {
+  brand: CatalogBrand & { domain: CatalogDomain };
+}
+
 export interface CatalogProblemDetail extends CatalogProblem {
   domain: CatalogDomain;
+  brand?: CatalogBrand | null;
+  model?: CatalogModel | null;
   diagnostics: CatalogDiagnostic[];
 }
 
@@ -284,15 +295,31 @@ export function updateDomain(id: string, data: Record<string, unknown>): Promise
 }
 
 /* Problems */
-export function listProblems(domainId: string): Promise<CatalogProblem[]> {
-  return catalogFetch<CatalogProblem[]>(`/admin/catalog/domains/${encodeURIComponent(domainId)}/problems`);
+export function listProblems(
+  domainId: string,
+  opts?: { brandId?: string; modelId?: string },
+): Promise<CatalogProblem[]> {
+  const params = new URLSearchParams();
+  if (opts?.brandId) params.set('brandId', opts.brandId);
+  if (opts?.modelId) params.set('modelId', opts.modelId);
+  const query = params.toString();
+  return catalogFetch<CatalogProblem[]>(
+    `/admin/catalog/domains/${encodeURIComponent(domainId)}/problems${query ? `?${query}` : ''}`,
+  );
 }
 
 export function getProblem(id: string): Promise<CatalogProblemDetail> {
   return catalogFetch<CatalogProblemDetail>(`/admin/catalog/problems/${encodeURIComponent(id)}`);
 }
 
-export function createProblem(data: { domainId: string; name: string; slug: string; description?: string }): Promise<CatalogProblem> {
+export function createProblem(data: {
+  domainId: string;
+  brandId?: string;
+  modelId?: string;
+  name: string;
+  slug: string;
+  description?: string;
+}): Promise<CatalogProblem> {
   return catalogFetch<CatalogProblem>('/admin/catalog/problems', jsonBody(data));
 }
 
@@ -320,6 +347,10 @@ export function updateBrand(id: string, data: Record<string, unknown>): Promise<
 /* Models */
 export function listModels(brandId: string): Promise<CatalogModel[]> {
   return catalogFetch<CatalogModel[]>(`/admin/catalog/brands/${encodeURIComponent(brandId)}/models`);
+}
+
+export function getModel(id: string): Promise<CatalogModelDetail> {
+  return catalogFetch<CatalogModelDetail>(`/admin/catalog/models/${encodeURIComponent(id)}`);
 }
 
 export function createModel(data: { brandId: string; name: string; slug: string; description?: string }): Promise<CatalogModel> {
@@ -380,4 +411,99 @@ export function updatePricing(interventionId: string, data: Record<string, unkno
 /* Seed */
 export function seedSmartphoneDomain(): Promise<{ message: string; domainId: string; problemsCount?: number }> {
   return catalogFetch<{ message: string; domainId: string; problemsCount?: number }>('/admin/catalog/seed/smartphone', { method: 'POST' });
+}
+
+/* ── Supervision des missions (Sprint 8.6.5) ──────────────────── */
+
+export interface SupervisedMissionEvent {
+  id: string;
+  type: string;
+  label: string;
+  fromStatus: string | null;
+  toStatus: string | null;
+  createdAt: string;
+  actor: { firstName: string; lastName: string | null } | null;
+}
+
+export interface SupervisedMission {
+  reference: string;
+  status: string;
+  category: string;
+  description: string;
+  contact: {
+    city: string;
+    neighborhood: string | null;
+    address: string | null;
+    landmark: string | null;
+    contactPhone: string | null;
+  };
+  device: {
+    domain: { id: string; name: string } | null;
+    brand: { id: string; name: string } | null;
+    model: { id: string; name: string } | null;
+    problem: { id: string; name: string } | null;
+  };
+  client: { id: string; firstName: string; lastName: string | null; phone: string | null } | null;
+  technician: {
+    id: string;
+    firstName: string;
+    lastName: string | null;
+    phone: string | null;
+    city: string | null;
+    kycVerified: boolean;
+  } | null;
+  request: {
+    requestedMode: string;
+    requestedAt: string | null;
+    scheduledAt: string | null;
+    negotiationRequestedAt: string | null;
+  };
+  finalAmount: number | null;
+  diagnostics: {
+    id: string;
+    mode: string;
+    content: string;
+    recommendation: string | null;
+    proposedIntervention: string | null;
+    justification: string | null;
+    notes: string | null;
+    createdAt: string;
+    technician: { id: string; firstName: string; lastName: string | null } | null;
+    catalogDiagnostic: { id: string; name: string } | null;
+    catalogIntervention: { id: string; name: string } | null;
+  }[];
+  quotes: {
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    source: string;
+    description: string;
+    createdAt: string;
+    technician: { id: string; firstName: string; lastName: string | null } | null;
+    diagnostic: {
+      id: string;
+      mode: string;
+      content: string;
+      proposedIntervention: string | null;
+      justification: string | null;
+      notes: string | null;
+    } | null;
+    catalogDiagnostic: { id: string; name: string } | null;
+    catalogIntervention: { id: string; name: string } | null;
+    breakdown: {
+      referencePrice: number;
+      travelFee: number | null;
+      serviceFee: number | null;
+    } | null;
+  }[];
+  events: SupervisedMissionEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function getAdminMissionByReference(reference: string): Promise<SupervisedMission> {
+  return catalogFetch<SupervisedMission>(
+    `/admin/demandes/reference/${encodeURIComponent(reference.trim().toUpperCase())}`,
+  );
 }

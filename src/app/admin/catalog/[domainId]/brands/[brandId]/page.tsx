@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
@@ -99,7 +100,14 @@ export default function AdminBrandPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={brand.name} backHref={`/admin/catalog/${domainId}`} />
+      <Breadcrumbs
+        items={[
+          { label: 'Catalogue', href: '/admin/catalog' },
+          { label: brand.domain?.name ?? 'Domaine', href: `/admin/catalog/${domainId}` },
+          { label: brand.name },
+        ]}
+      />
+      <PageHeader title={brand.name} description="Modèles de cette marque." />
 
       <Card>
         <CardContent className="space-y-3 pt-4">
@@ -130,18 +138,26 @@ export default function AdminBrandPage() {
           {brand.models.map((model) => (
             <Card key={model.id}>
               <CardContent className="flex items-center justify-between gap-3 pt-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold">{model.name}</p>
-                    <Badge variant={model.isActive ? 'success' : 'neutral'}>
-                      {model.isActive ? 'Actif' : 'Inactif'}
-                    </Badge>
+                <Link
+                  href={`/admin/catalog/${domainId}/brands/${brand.id}/models/${model.id}`}
+                  className="min-w-0 flex-1"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{model.name}</p>
+                      <Badge variant={model.isActive ? 'success' : 'neutral'}>
+                        {model.isActive ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {model.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{model.description}</p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {model._count?.problems ?? 0}{' '}
+                      problème{model._count?.problems !== 1 ? 's' : ''}
+                    </p>
                   </div>
-                  {model.description ? (
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{model.description}</p>
-                  ) : null}
-                  <p className="mt-0.5 text-xs text-muted-foreground">Slug : {model.slug}</p>
-                </div>
+                </Link>
                 <Switch
                   checked={model.isActive}
                   onCheckedChange={(active) => handleToggleModelActive(model.id, active)}

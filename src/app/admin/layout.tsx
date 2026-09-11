@@ -32,6 +32,10 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             <Icon name="badge-check" size="sm" />
             KYC
           </Link>
+          <Link href="/admin/missions" className="flex flex-col items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <Icon name="search" size="sm" />
+            Missions
+          </Link>
           <Link href="/admin/catalog" className="flex flex-col items-center gap-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
             <Icon name="wrench" size="sm" />
             Catalogue

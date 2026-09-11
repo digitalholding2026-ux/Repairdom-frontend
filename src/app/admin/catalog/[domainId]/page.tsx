@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
@@ -109,7 +110,10 @@ export default function AdminDomainPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title={domain.name} backHref="/admin/catalog" />
+      <Breadcrumbs
+        items={[{ label: 'Catalogue', href: '/admin/catalog' }, { label: domain.name }]}
+      />
+      <PageHeader title={domain.name} description="Marques et problèmes du domaine." />
 
       <Card>
         <CardContent className="space-y-3 pt-4">
@@ -170,7 +174,13 @@ export default function AdminDomainPage() {
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Problèmes ({domain.problems.length})</h2>
+        <div>
+          <h2 className="text-sm font-semibold">Problèmes génériques ({domain.problems.length})</h2>
+          <p className="text-xs text-muted-foreground">
+            Problèmes valables pour tout appareil du domaine. Les problèmes
+            spécifiques marque/modèle se gèrent depuis chaque marque.
+          </p>
+        </div>
         <Button size="sm" onClick={() => setShowCreate(true)}>
           <Icon name="plus" size="3.5" />
           Problème
@@ -180,7 +190,7 @@ export default function AdminDomainPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {domain.problems.length === 0 ? (
-        <EmptyState icon="file" title="Aucun problème" description="Ajoutez un problème pour ce domaine." />
+        <EmptyState icon="file" title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
       ) : (
         <div className="space-y-2">
           {domain.problems.map((problem) => (

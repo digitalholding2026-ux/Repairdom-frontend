@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
@@ -92,14 +93,40 @@ export default function AdminProblemPage() {
   if (!problem) return <EmptyState title="Problème introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   const domainId = problem.domain?.id ?? params?.domainId;
+  const brand = problem.brand;
+  const model = problem.model;
+
+  const breadcrumbs: { label: string; href?: string }[] = [
+    { label: 'Catalogue', href: '/admin/catalog' },
+    { label: problem.domain?.name ?? 'Domaine', href: `/admin/catalog/${domainId}` },
+  ];
+  if (brand) {
+    breadcrumbs.push({
+      label: brand.name,
+      href: `/admin/catalog/${domainId}/brands/${brand.id}`,
+    });
+    if (model) {
+      breadcrumbs.push({
+        label: model.name,
+        href: `/admin/catalog/${domainId}/brands/${brand.id}/models/${model.id}`,
+      });
+    }
+  }
+  breadcrumbs.push({ label: problem.name });
 
   return (
     <div className="space-y-4">
-      <PageHeader title={problem.name} backHref={`/admin/catalog/${domainId}`} />
+      <Breadcrumbs items={breadcrumbs} />
+      <PageHeader title={problem.name} description="Diagnostics et tarifs de ce problème." />
 
       <Card>
         <CardContent className="space-y-3 pt-4">
-          <Badge variant="outline">{problem.domain?.name}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{problem.domain?.name}</Badge>
+            {brand ? <Badge variant="info">Marque : {brand.name}</Badge> : null}
+            {model ? <Badge variant="info">Modèle : {model.name}</Badge> : null}
+            {!brand && !model ? <Badge variant="neutral">Générique</Badge> : null}
+          </div>
           {problem.description ? <p className="text-sm text-muted-foreground">{problem.description}</p> : null}
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">Actif</span>
