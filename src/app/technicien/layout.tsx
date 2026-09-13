@@ -63,7 +63,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
           items={[
             { href: '/technicien', label: 'Accueil', icon: 'home' },
             { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
-            { href: '/technicien/revenus', label: 'Revenus', icon: 'badge-check' },
+            { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
             { href: '/technicien/profil', label: 'Profil', icon: 'user' },
           ]}
         />

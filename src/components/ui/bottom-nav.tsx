@@ -17,6 +17,11 @@ export interface BottomNavProps {
   className?: string;
 }
 
+/**
+ * Barre de navigation flottante (« floating pill bar »).
+ * Avec un `primaryHref`, l'action centrale surélevée organise les onglets en 2 + FAB + 2.
+ * Sans lui, les onglets sont uniformément répartis et centrés.
+ */
 export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
   const pathname = usePathname();
   const isActive = (href: string) =>
@@ -26,32 +31,45 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
     <nav
       aria-label="Navigation principale"
       className={cn(
-        'safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur',
+        'fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]',
         className,
       )}
     >
-      <div className="mx-auto grid w-full max-w-lg grid-cols-[1fr_auto_1fr] px-2 pb-1 pt-1.5">
-        <span className="flex items-center justify-around gap-1">
-          {items.slice(0, 1).map((item) => (
+      <div
+        className={cn(
+          'mx-auto w-full max-w-lg rounded-2xl border border-border bg-card/90 shadow-float backdrop-blur',
+          primaryHref
+            ? 'grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1.5'
+            : 'grid grid-cols-4 items-center px-1 py-1.5',
+        )}
+      >
+        {primaryHref ? (
+          <>
+            <span className="flex items-center justify-around gap-1">
+              {items.slice(0, 1).map((item) => (
+                <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
+              ))}
+            </span>
+            <span className="flex justify-center">
+              <Link
+                href={primaryHref.href}
+                aria-label={primaryHref.label}
+                className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform hover:scale-105 active:scale-95"
+              >
+                <Icon name={primaryHref.icon} size="lg" strokeWidth={2.2} />
+              </Link>
+            </span>
+            <span className="flex items-center justify-around gap-1">
+              {items.slice(1).map((item) => (
+                <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
+              ))}
+            </span>
+          </>
+        ) : (
+          items.map((item) => (
             <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))}
-        </span>
-        <span className="flex justify-center">
-          {primaryHref ? (
-            <Link
-              href={primaryHref.href}
-              aria-label={primaryHref.label}
-              className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform hover:scale-105 active:scale-95"
-            >
-              <Icon name={primaryHref.icon} size="lg" strokeWidth={2.2} />
-            </Link>
-          ) : null}
-        </span>
-        <span className="flex items-center justify-around gap-1">
-          {items.slice(1).map((item) => (
-            <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))}
-        </span>
+          ))
+        )}
       </div>
     </nav>
   );
@@ -62,13 +80,29 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
     <Link
       href={item.href}
       aria-current={active ? 'page' : undefined}
-      className={cn(
-        'flex flex-col items-center justify-center gap-0.5 rounded-lg py-1 px-2 text-[11px] font-medium transition-colors',
-        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
-      )}
+      className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-0.5 text-[10px] font-medium transition-transform active:scale-95"
     >
-      <Icon name={item.icon} strokeWidth={active ? 2.3 : 1.8} />
-      {item.label}
+      <span
+        className={cn(
+          'flex h-7 items-center justify-center rounded-full transition-all duration-300',
+          active ? 'bg-primary/10 px-4 text-primary' : 'px-2 text-muted-foreground hover:text-foreground',
+        )}
+      >
+        <Icon
+          name={item.icon}
+          size="md"
+          strokeWidth={active ? 2.4 : 1.9}
+          className={cn('transition-transform duration-300', active && 'scale-110')}
+        />
+      </span>
+      <span
+        className={cn(
+          'leading-none transition-colors duration-300',
+          active ? 'text-primary' : 'text-muted-foreground',
+        )}
+      >
+        {item.label}
+      </span>
     </Link>
   );
 }
