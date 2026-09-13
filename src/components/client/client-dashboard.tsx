@@ -3,28 +3,53 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
+import { BalanceCard } from '@/components/client/dashboard/balance-card';
+import { QuickActions } from '@/components/client/dashboard/quick-actions';
+import { LiveMissionCard } from '@/components/client/dashboard/live-mission-card';
+import {
+  ActivityFeed,
+  type ActivityItem,
+  type ActivityTone,
+} from '@/components/client/dashboard/activity-feed';
+import { RewardsCard } from '@/components/client/dashboard/rewards-card';
 import { getMe, logoutAndGoHome, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
   listMyDemandeHistory,
   type DemandeListItem,
 } from '@/lib/api/request-service';
-import { formatRequestedTiming } from '@/lib/request-timing';
+import { demandeStatusConfig } from '@/lib/request-status';
 import { cn } from '@/lib/cn';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
-import { formatCurrency } from '@/lib/format';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
 const ACTIVE_STATUSES = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
+
+const STATUS_FEED_ICONS: Record<string, IconName> = {
+  SUBMITTED: 'search',
+  PENDING: 'clock',
+  ACCEPTED: 'users',
+  SCHEDULED: 'calendar',
+  IN_PROGRESS: 'truck',
+  COMPLETED: 'check-circle',
+  CONFIRMED: 'badge-check',
+  CANCELED: 'x',
+};
+
+const TX_STATUS_SHORT: Record<string, string> = {
+  VALIDATED: 'Validé',
+  PENDING: 'En attente',
+  REVERSED: 'Annulé',
+  FAILED: 'Échoué',
+};
 
 function MissionTabs({ current }: { current: 'missions' | 'history' }) {
   const tabs = [
@@ -108,7 +133,6 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     };
   }, [router, variant]);
 
-  const activeCount = demandes.length;
   const doneCount = useMemo(
     () => historique.filter((d) => d.status === 'CONFIRMED').length,
     [historique],
@@ -121,13 +145,55 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     return active[0] ?? null;
   }, [demandes]);
 
-  const recent = useMemo(
-    () =>
-      [...demandes]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 3),
-    [demandes],
-  );
+  const activities = useMemo<ActivityItem[]>(() => {
+    const items: ActivityItem[] = [];
+
+    for (const d of demandes) {
+      const config = demandeStatusConfig(d.status, 'client');
+      const tone: ActivityTone = d.status === 'IN_PROGRESS' ? 'primary' : 'info';
+      items.push({
+        id: `d-${d.id}`,
+        icon: STATUS_FEED_ICONS[d.status] ?? 'wrench',
+        tone,
+        title: `Demande ${d.reference}`,
+        subtitle: `${config.label} · ${d.categoryLabel}`,
+        createdAt: d.createdAt,
+        href: `/client/demandes/${d.id}`,
+      });
+    }
+
+    for (const d of historique) {
+      const config = demandeStatusConfig(d.status, 'history');
+      items.push({
+        id: `h-${d.id}`,
+        icon: d.status === 'CONFIRMED' ? 'badge-check' : 'x',
+        tone: d.status === 'CONFIRMED' ? 'success' : 'warning',
+        title: `Mission ${d.reference}`,
+        subtitle: `${config.label} · ${d.categoryLabel}`,
+        createdAt: d.createdAt,
+        href: '/client/demandes/historique',
+      });
+    }
+
+    for (const t of balance?.transactions ?? []) {
+      if (t.status === 'FAILED') continue;
+      const credit = t.direction === 'CREDIT';
+      items.push({
+        id: `t-${t.id}`,
+        icon: credit ? 'check-circle' : 'clock',
+        tone: credit ? 'success' : 'info',
+        title: credit ? 'Crédit reçu' : 'Paiement mission',
+        subtitle: `${t.reference} · ${TX_STATUS_SHORT[t.status] ?? t.status}`,
+        amount: credit ? t.amount : -t.amount,
+        currency: balance?.currency,
+        createdAt: t.createdAt,
+      });
+    }
+
+    return items
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 6);
+  }, [demandes, historique, balance]);
 
   const handleLogout = async () => {
     await logoutAndGoHome();
@@ -237,71 +303,21 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         </Link>
       </section>
 
-      {/* Solde */}
+      {/* Solde — carte dégradée façon Revolut */}
       {balance ? (
         <section>
-          <Link href="/client/solde" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="space-y-3 py-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-muted-foreground">Solde disponible</p>
-                    <p className="mt-0.5 text-2xl font-bold tracking-tight">
-                      {formatCurrency(balance.balance, balance.currency)}
-                    </p>
-                    {balance.mode === 'SIMULATION' ? (
-                      <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-ink">
-                        <Icon name="sparkles" size="3.5" />
-                        Simulation
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
-                    Voir le solde
-                    <Icon name="chevron-right" size="sm" />
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" className="pointer-events-none flex-1 opacity-60" tabIndex={-1}>
-                    <Icon name="plus" size="sm" />
-                    Recharger
-                  </Button>
-                  <Button variant="secondary" size="sm" className="pointer-events-none flex-1 opacity-60" tabIndex={-1}>
-                    Retirer
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+          <BalanceCard balance={balance} />
         </section>
       ) : null}
 
-      {/* Niveau 2 — Interventions en cours */}
+      {/* Quick actions */}
+      <QuickActions />
+
+      {/* Intervention en cours — carte « live » animée */}
       {currentMission ? (
         <section className="space-y-3">
           <SectionHeader title="Intervention en cours" />
-          <Link href={`/client/demandes/${currentMission.id}`} className="block">
-            <Card className="overflow-hidden transition-colors hover:bg-muted/50">
-              <div className="border-t-2 border-primary">
-                <CardContent className="space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="font-mono text-sm font-semibold text-primary">
-                      {currentMission.reference}
-                    </span>
-                    <Badge variant="outline">Suivre</Badge>
-                  </div>
-                  <p className="text-sm font-medium">{currentMission.categoryLabel}</p>
-                  <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {currentMission.description}
-                  </p>
-                  <p className="text-xs font-medium text-foreground">
-                    {currentMission.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'}:{' '}
-                    {formatRequestedTiming(currentMission.requestedMode, currentMission.requestedAt)}
-                  </p>
-                </CardContent>
-              </div>
-            </Card>
-          </Link>
+          <LiveMissionCard mission={currentMission} />
         </section>
       ) : demandes.length === 0 ? (
         <EmptyState
@@ -315,64 +331,16 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         />
       ) : null}
 
-      {/* Résumé rapide : missions + historique */}
-      <section className="grid grid-cols-2 gap-3">
-        <Link href="/client/demandes" className="block">
-          <Card className="transition-colors hover:bg-muted/50">
-            <CardContent className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon name="clock" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xl font-bold leading-none">{activeCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">En cours</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/client/demandes/historique" className="block">
-          <Card className="transition-colors hover:bg-muted/50">
-            <CardContent className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Icon name="check-circle" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xl font-bold leading-none">{doneCount}</p>
-                <p className="mt-1 text-xs text-muted-foreground">Terminées</p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </section>
-
-      {/* Niveau 3 — Avantages */}
+      {/* Feed d'activité */}
       <section className="space-y-3">
-        <SectionHeader title="Mes avantages" />
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/client/parrainage" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="users" />
-                </span>
-                <p className="text-sm font-semibold">Parrainage</p>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/client/recompenses" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="sparkles" />
-                </span>
-                <p className="text-sm font-semibold">Récompenses</p>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+        <SectionHeader title="Activité récente" />
+        <ActivityFeed items={activities} />
       </section>
 
-      {/* Niveau 4 — Mon compte */}
+      {/* Gamification — récompenses */}
+      <RewardsCard completedCount={doneCount} />
+
+      {/* Mon compte */}
       <section className="space-y-3">
         <SectionHeader title="Mon compte" />
         <div className="space-y-2">
