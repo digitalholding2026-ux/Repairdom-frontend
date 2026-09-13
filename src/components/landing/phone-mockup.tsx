@@ -72,7 +72,7 @@ export function PhoneMockup() {
                   Solde disponible
                 </p>
                 <div className="mt-0.5 flex items-end justify-between">
-                  <p className="text-xl font-bold tracking-tight">240,00&nbsp;€</p>
+                  <p className="text-xl font-bold tracking-tight">15&nbsp;000&nbsp;FCFA</p>
                   <span className="flex size-6 items-center justify-center rounded-full bg-white/20">
                     <Icon name="arrow-right" size="3.5" />
                   </span>
