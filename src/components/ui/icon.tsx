@@ -7,6 +7,7 @@ export const ICON_NAMES = [
   'clock', 'calendar', 'phone', 'pin', 'logout', 'user', 'users', 'shield',
   'shield-check', 'plus', 'search', 'file', 'alert', 'info', 'x', 'menu',
   'truck', 'badge-check', 'send', 'sparkles', 'settings', 'briefcase',
+  'zap', 'droplet', 'thermometer', 'cpu',
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -195,6 +196,25 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
       <rect width="20" height="14" x="2" y="6" rx="2" />
+    </>
+  ),
+  zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />,
+  droplet: (
+    <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5S12.5 5.5 12 3c-.5 2.5-2 4.9-4 6.5S5 13 5 15a7 7 0 0 0 7 7z" />
+  ),
+  thermometer: <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />,
+  cpu: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <path d="M9 1v3" />
+      <path d="M15 1v3" />
+      <path d="M9 20v3" />
+      <path d="M15 20v3" />
+      <path d="M1 9h3" />
+      <path d="M1 15h3" />
+      <path d="M20 9h3" />
+      <path d="M20 15h3" />
     </>
   ),
 };
