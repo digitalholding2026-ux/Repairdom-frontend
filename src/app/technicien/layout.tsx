@@ -3,12 +3,12 @@
 import { type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { ScrollToTop } from '@/components/ui/scroll-to-top';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/components/auth/auth-provider';
 import { siteConfig } from '@/lib/site-config';
 
@@ -22,6 +22,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
           <Link
@@ -37,10 +38,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
             {loading ? (
               <span className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" aria-hidden />
             ) : showPrivateChrome ? (
-              <>
-                <NotificationBell href="/technicien/notifications" />
-                <Badge variant="outline">Espace technicien</Badge>
-              </>
+              <UserAvatar href="/technicien/profil" />
             ) : (
               <Link href="/technicien/connexion">
                 <Button variant="ghost" size="sm">
@@ -53,9 +51,11 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
       </header>
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 pb-28">
-        <RoleGuard expectedRole="TECHNICIAN" publicPaths={TECHNICIAN_PUBLIC_PATHS}>
-          {children}
-        </RoleGuard>
+        <div key={pathname} className="animate-slide-up">
+          <RoleGuard expectedRole="TECHNICIAN" publicPaths={TECHNICIAN_PUBLIC_PATHS}>
+            {children}
+          </RoleGuard>
+        </div>
       </main>
 
       {showPrivateChrome && !isPublicPath ? (
@@ -64,6 +64,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
             { href: '/technicien', label: 'Accueil', icon: 'home' },
             { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
             { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
+            { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
             { href: '/technicien/profil', label: 'Profil', icon: 'user' },
           ]}
         />

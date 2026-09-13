@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from './icon';
+import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
 
 export interface BottomNavItem {
   href: string;
   label: string;
   icon: IconName;
+  notifications?: boolean;
 }
 
 export interface BottomNavProps {
@@ -29,6 +31,11 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
   const split = Math.ceil(items.length / 2);
   const leftItems = items.slice(0, split);
   const rightItems = items.slice(split);
+  const gridCols = primaryHref
+    ? 'grid-cols-[1fr_auto_1fr]'
+    : items.length > 4
+      ? 'grid-cols-5'
+      : 'grid-cols-4';
 
   return (
     <nav
@@ -43,7 +50,8 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
           'mx-auto w-full max-w-lg rounded-2xl border border-border bg-card/90 shadow-float backdrop-blur',
           primaryHref
             ? 'grid grid-cols-[1fr_auto_1fr] items-center px-2 py-1.5'
-            : 'grid grid-cols-4 items-center px-1 py-1.5',
+            : 'grid items-center px-1 py-1.5',
+          gridCols,
         )}
       >
         {primaryHref ? (
@@ -87,7 +95,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
     >
       <span
         className={cn(
-          'flex h-7 items-center justify-center rounded-full transition-all duration-300',
+          'relative flex h-7 items-center justify-center rounded-full transition-all duration-300',
           active ? 'bg-primary/10 px-4 text-primary' : 'px-2 text-muted-foreground hover:text-foreground',
         )}
       >
@@ -97,10 +105,11 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
           strokeWidth={active ? 2.4 : 1.9}
           className={cn('transition-transform duration-300', active && 'scale-110')}
         />
+        {item.notifications ? <NotificationTabBadge /> : null}
       </span>
       <span
         className={cn(
-          'leading-none transition-colors duration-300',
+          'max-w-full truncate leading-none transition-colors duration-300',
           active ? 'text-primary' : 'text-muted-foreground',
         )}
       >

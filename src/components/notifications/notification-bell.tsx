@@ -1,12 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
-import { getNotificationUnreadCount } from '@/lib/api/notifications-service';
-
-const POLL_INTERVAL_MS = 15000;
+import { useUnreadNotifications } from '@/lib/use-unread-notifications';
 
 export interface NotificationBellProps {
   href: string;
@@ -14,27 +11,7 @@ export interface NotificationBellProps {
 
 /** Cloche de notifications (compteur non lues, polling silencieux). */
 export function NotificationBell({ href }: NotificationBellProps) {
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-
-    async function refresh() {
-      try {
-        const res = await getNotificationUnreadCount();
-        if (active) setUnreadCount(res.unreadCount);
-      } catch {
-        if (active) setUnreadCount(0);
-      }
-    }
-
-    refresh();
-    const timer = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, []);
+  const unreadCount = useUnreadNotifications();
 
   return (
     <Link
