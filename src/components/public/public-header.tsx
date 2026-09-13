@@ -1,18 +1,39 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from './brand-logo';
 import { useAuth } from '@/components/auth/auth-provider';
 import { homePathForRole } from '@/lib/api/auth-service';
-import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/cn';
 
 export function PublicHeader() {
   const { user, authenticated, loading } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 16);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-      <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between gap-3 px-4">
+    <header
+      className={cn(
+        'sticky top-0 z-20 border-b backdrop-blur transition-all duration-300 safe-top',
+        scrolled
+          ? 'border-border bg-background/95 shadow-card'
+          : 'border-transparent bg-background/70',
+      )}
+    >
+      <div
+        className={cn(
+          'mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-4 transition-all duration-300',
+          scrolled ? 'h-12' : 'h-14',
+        )}
+      >
         <BrandLogo href="/" />
         <nav className="flex items-center gap-2" aria-label="Navigation principale">
           {loading ? (

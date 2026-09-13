@@ -1,7 +1,6 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { PhoneMockup } from './phone-mockup';
+import { HeroActions } from './hero-actions';
 
 const LINE_A = ['Une', 'panne', '?'];
 const LINE_B = ['On', "s'occupe", 'du', 'reste.'];
@@ -63,26 +62,7 @@ export function Hero() {
             l&apos;intervention. Déposez votre panne en 2 minutes.
           </p>
 
-          <div className="mt-1 flex w-full flex-col gap-2.5 sm:flex-row sm:items-center">
-            <Link href="/client/inscription" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                className="w-full bg-white font-semibold text-[#4338ca] shadow-pop hover:bg-white/90 active:scale-[0.98] sm:w-auto"
-              >
-                J&apos;ai besoin d&apos;un dépannage
-                <Icon name="arrow-right" size="sm" />
-              </Button>
-            </Link>
-            <Link href="/devenir-technicien" className="w-full sm:w-auto">
-              <Button
-                variant="ghost"
-                size="lg"
-                className="w-full border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 sm:w-auto"
-              >
-                Devenir technicien
-              </Button>
-            </Link>
-          </div>
+          <HeroActions />
 
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/75">
             <span className="inline-flex items-center gap-1.5">

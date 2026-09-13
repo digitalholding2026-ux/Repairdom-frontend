@@ -7,6 +7,9 @@ import { Hero } from '@/components/landing/hero';
 import { CategoryMarquee } from '@/components/landing/category-marquee';
 import { TrustStrip } from '@/components/landing/trust-strip';
 import { Reveal } from '@/components/landing/reveal';
+import { StatsBand } from '@/components/landing/stats-band';
+import { Testimonials } from '@/components/landing/testimonials';
+import { Faq } from '@/components/landing/faq';
 
 const steps: Array<{ icon: IconName; title: string; text: string }> = [
   {
@@ -67,9 +70,23 @@ export default function HomePage() {
       <main className="flex-1">
         <Hero />
 
-        <div className="mx-auto w-full max-w-lg px-4 pb-16">
+        <div className="relative mx-auto w-full max-w-lg px-4 pb-16">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-24 right-0 -z-10 size-64 rounded-full bg-primary/10 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 -left-20 -z-10 size-72 rounded-full bg-accent/10 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-1/4 right-0 -z-10 size-64 rounded-full bg-secondary/50 blur-3xl"
+          />
+
           <CategoryMarquee />
           <TrustStrip />
+          <StatsBand />
 
           <section className="mt-14" aria-labelledby="how-title">
             <Reveal>
@@ -109,6 +126,8 @@ export default function HomePage() {
             </ol>
           </section>
 
+          <Testimonials />
+
           <section className="mt-14" aria-labelledby="trust-title">
             <Reveal>
               <p className="px-1 text-xs font-semibold uppercase tracking-wider text-primary">
@@ -133,6 +152,8 @@ export default function HomePage() {
             </div>
           </section>
 
+          <Faq />
+
           <section
             className="mt-14 overflow-hidden rounded-3xl shadow-float"
             aria-labelledby="cta-title"
@@ -151,7 +172,11 @@ export default function HomePage() {
                 </p>
                 <div className="mt-5 flex flex-col gap-2.5">
                   <Link href="/client/inscription">
-                    <Button size="lg" className="w-full bg-white font-semibold text-[#4338ca] shadow-pop hover:bg-white/90">
+                    <Button
+                      size="lg"
+                      className="group relative w-full overflow-hidden bg-white font-semibold text-[#4338ca] shadow-pop hover:bg-white/90 hover:-translate-y-0.5"
+                    >
+                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#c7d2fe]/60 to-transparent" />
                       J&apos;ai besoin d&apos;un dépannage
                     </Button>
                   </Link>
