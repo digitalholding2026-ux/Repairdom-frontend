@@ -18,7 +18,8 @@ export function HeroActions() {
           <Link href={home} className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group relative w-full overflow-hidden bg-white font-semibold text-[#4338ca] shadow-pop hover:bg-white/90 hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+              className="group relative w-full overflow-hidden font-semibold shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+              style={{ backgroundColor: '#ffffff', color: '#4338ca' }}
             >
               <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#c7d2fe]/60 to-transparent" />
               Continuer ma mission
@@ -50,7 +51,8 @@ export function HeroActions() {
         <Link href="/client/inscription" className="w-full sm:w-auto">
           <Button
             size="lg"
-            className="group relative w-full overflow-hidden bg-white font-semibold text-[#4338ca] shadow-pop hover:bg-white/90 hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+            className="group relative w-full overflow-hidden font-semibold shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+            style={{ backgroundColor: '#ffffff', color: '#4338ca' }}
           >
             <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#c7d2fe]/60 to-transparent" />
             J&apos;ai besoin d&apos;un dépannage
