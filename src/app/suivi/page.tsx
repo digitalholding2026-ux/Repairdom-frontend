@@ -8,75 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
-import { Timeline, type TimelineStep } from '@/components/ui/timeline';
+import { Timeline } from '@/components/ui/timeline';
+import { MissionStepper } from '@/components/mission/mission-stepper';
+import { TrackingHero } from '@/components/mission/tracking-hero';
+import { Celebration } from '@/components/mission/celebration';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
 import { trackByReference, type PublicTracking } from '@/lib/api/tracking-service';
+import { STATUS_PROGRESS } from '@/lib/mission-progress';
+import { demandeStatusConfig } from '@/lib/request-status';
 import { formatDateTime } from '@/lib/format';
-
-const stepsFor = (tracking: PublicTracking): TimelineStep[] => {
-  const status = tracking.status;
-  const assigned = tracking.technicianAssigned;
-
-  const state = (index: number): 'done' | 'current' | 'pending' => {
-    if (status === 'SUBMITTED' || status === 'PENDING') {
-      if (!assigned) return index < 1 ? 'done' : index === 1 ? 'current' : 'pending';
-      return index < 2 ? 'done' : index === 2 ? 'current' : 'pending';
-    }
-    if (status === 'ACCEPTED') return index < 3 ? 'done' : index === 3 ? 'current' : 'pending';
-    if (status === 'SCHEDULED') return index < 4 ? 'done' : index === 4 ? 'current' : 'pending';
-    if (status === 'IN_PROGRESS') return index < 5 ? 'done' : index === 5 ? 'current' : 'pending';
-    if (status === 'COMPLETED' || status === 'CONFIRMED') return index < 6 ? 'done' : 'pending';
-    return 'pending';
-  };
-
-  return [
-    {
-      id: 'requested',
-      title: 'Demande reçue',
-      icon: 'file',
-      state: state(0),
-      timestamp: tracking.submittedAt ? formatDateTime(tracking.submittedAt) : undefined,
-    },
-    {
-      id: 'assigned',
-      title: 'Technicien affecté',
-      icon: 'users',
-      state: state(1),
-    },
-    {
-      id: 'quote',
-      title: 'Tarif accepté',
-      icon: 'badge-check',
-      state: state(2),
-    },
-    {
-      id: 'scheduled',
-      title: 'Rendez-vous confirmé',
-      icon: 'calendar',
-      state: state(3),
-      timestamp: tracking.scheduledAt ? formatDateTime(tracking.scheduledAt) : undefined,
-    },
-    {
-      id: 'upcoming',
-      title: 'Intervention à venir',
-      icon: 'clock',
-      state: state(4),
-    },
-    {
-      id: 'inprogress',
-      title: 'Intervention en cours',
-      icon: 'wrench',
-      state: state(5),
-    },
-    {
-      id: 'completed',
-      title: 'Intervention terminée',
-      icon: 'check-circle',
-      state: state(6),
-    },
-  ];
-};
 
 export default function SuiviPage() {
   const [reference, setReference] = useState('');
@@ -151,54 +92,90 @@ export default function SuiviPage() {
         </Card>
 
         {tracking ? (
-          <Card>
-            <CardHeader>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="font-mono text-base font-semibold text-primary">
-                  {tracking.reference}
-                </CardTitle>
-                <DemandeStatusBadge status={tracking.status} context="client" />
-              </div>
-              <p className="text-sm text-muted-foreground">{tracking.category}</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {(tracking.device.domain ||
-                tracking.device.brand ||
-                tracking.device.model ||
-                tracking.device.problem) ? (
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-                  <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
-                  <p className="text-sm">
-                    {[
-                      tracking.device.domain?.name,
-                      tracking.device.brand?.name,
-                      tracking.device.model?.name,
-                      tracking.device.problem?.name,
-                    ]
-                      .filter(Boolean)
-                      .join(' — ')}
-                  </p>
-                </div>
-              ) : null}
-              <div>
-                <p className="text-sm font-medium">Avancement</p>
-                {tracking.timeline && tracking.timeline.length > 0 ? (
-                  <Timeline
-                    steps={tracking.timeline.map((entry, index) => ({
-                      id: `${entry.type}-${index}`,
-                      title: entry.label,
-                      state: 'done',
-                      icon: 'check',
-                      timestamp: entry.date ? formatDateTime(entry.date) : undefined,
-                    }))}
-                    className="mt-3"
+          <div className="space-y-4">
+            {(() => {
+              const status = tracking.status;
+              const config = demandeStatusConfig(status, 'client');
+              const success = status === 'COMPLETED' || status === 'CONFIRMED';
+              const canceled = status === 'CANCELED';
+              const live = !success && !canceled;
+              const lastEntry = tracking.timeline[tracking.timeline.length - 1] ?? null;
+
+              return (
+                <>
+                  <TrackingHero
+                    badge={<DemandeStatusBadge status={status} context="client" />}
+                    reference={tracking.reference}
+                    title={tracking.category}
+                    subtitle={
+                      [
+                        tracking.device.domain?.name,
+                        tracking.device.brand?.name,
+                        tracking.device.model?.name,
+                        tracking.device.problem?.name,
+                      ]
+                        .filter(Boolean)
+                        .join(' — ') || undefined
+                    }
+                    progress={STATUS_PROGRESS[status] ?? 0}
+                    live={live}
+                    canceled={canceled}
+                    statusLabel={lastEntry?.label ?? config.label}
+                    technician={
+                      tracking.technicianAssigned
+                        ? { label: 'Technicien', verified: tracking.technicianVerified }
+                        : null
+                    }
                   />
-                ) : (
-                  <Timeline steps={stepsFor(tracking)} className="mt-3" />
-                )}
-              </div>
-            </CardContent>
-          </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Icon name="clock" size="sm" className="text-muted-foreground" />
+                        Étapes de la mission
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <MissionStepper
+                        status={status}
+                        currentHint={lastEntry?.label}
+                      />
+                    </CardContent>
+                  </Card>
+
+                  {tracking.timeline && tracking.timeline.length > 0 ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Icon name="file" size="sm" className="text-muted-foreground" />
+                          Journal des événements
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Timeline
+                          steps={tracking.timeline.map((entry, index) => ({
+                            id: `${entry.type}-${index}`,
+                            title: entry.label,
+                            state: 'done',
+                            icon: 'check',
+                            timestamp: entry.date ? formatDateTime(entry.date) : undefined,
+                          }))}
+                          className="mt-3"
+                        />
+                      </CardContent>
+                    </Card>
+                  ) : null}
+
+                  {success ? (
+                    <Celebration
+                      title={status === 'CONFIRMED' ? 'Mission confirmée' : 'Intervention terminée'}
+                      subtitle="Un récapitulatif vous a été envoyé. Merci pour votre confiance !"
+                    />
+                  ) : null}
+                </>
+              );
+            })()}
+          </div>
         ) : null}
       </main>
 

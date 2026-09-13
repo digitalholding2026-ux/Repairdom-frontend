@@ -4,17 +4,7 @@ import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import type { DemandeListItem } from '@/lib/api/request-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
 import { formatDate, fullName, initials } from '@/lib/format';
-
-const STATUS_PROGRESS: Record<string, number> = {
-  SUBMITTED: 15,
-  PENDING: 30,
-  ACCEPTED: 50,
-  SCHEDULED: 65,
-  IN_PROGRESS: 82,
-  COMPLETED: 100,
-  CONFIRMED: 100,
-  CANCELED: 0,
-};
+import { STATUS_PROGRESS } from '@/lib/mission-progress';
 
 export function LiveMissionCard({ mission }: { mission: DemandeListItem }) {
   const progress = STATUS_PROGRESS[mission.status] ?? 15;

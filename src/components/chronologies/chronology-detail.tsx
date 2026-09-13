@@ -9,11 +9,15 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
-import { DemandeProgress } from '@/components/mission/demande-progress';
+import { MissionStepper } from '@/components/mission/mission-stepper';
+import { TrackingHero } from '@/components/mission/tracking-hero';
+import { Celebration } from '@/components/mission/celebration';
 import { getMissionSummary, type MissionSummary } from '@/lib/api/summary-service';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
+import { STATUS_PROGRESS } from '@/lib/mission-progress';
 import { demandeStatusConfig } from '@/lib/request-status';
 import type { StatusContext } from '@/lib/request-status';
+import { fullName } from '@/lib/format';
 
 export interface ChronologyDetailProps {
   missionId?: string;
@@ -21,8 +25,8 @@ export interface ChronologyDetailProps {
   badgeContext: StatusContext;
 }
 
-/** Chronologie complète d'une mission (réutilise DemandeEvent via
- *  listMissionEvents + summary existant, legacy → DemandeProgress). */
+/** Chronologie complète d'une mission, présentée en « suivi en direct »
+ *  (hero + stepper animé + confettis de fin), avec le détail des événements. */
 export function ChronologyDetail({ missionId, backHref, badgeContext }: ChronologyDetailProps) {
   const [summary, setSummary] = useState<MissionSummary | null>(null);
   const [events, setEvents] = useState<MissionEvent[]>([]);
@@ -77,35 +81,39 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
         .join(' — ')
     : '';
   const lastEvent = events[events.length - 1] ?? null;
-  const lastActivityLabel = lastEvent
-    ? lastEvent.label
-    : summary
-      ? demandeStatusConfig(summary.status, badgeContext).label
-      : '—';
+  const status = summary?.status ?? '';
+  const statusConfig = demandeStatusConfig(summary?.status, badgeContext);
+  const progress = STATUS_PROGRESS[status] ?? 0;
+  const live = !['COMPLETED', 'CONFIRMED', 'CANCELED'].includes(status);
+  const canceled = status === 'CANCELED';
+  const success = status === 'COMPLETED' || status === 'CONFIRMED';
+  const lastActivityLabel = lastEvent ? lastEvent.label : statusConfig.label;
 
   return (
     <div className="space-y-4">
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {summary ? (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-base font-semibold text-primary">
-                {summary.reference}
-              </span>
-              <DemandeStatusBadge status={summary.status} context={badgeContext} />
-            </div>
-            {deviceLabel ? (
-              <p className="mt-1 text-sm text-muted-foreground">{deviceLabel}</p>
-            ) : null}
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Dernière activité : <span className="font-medium text-foreground">{lastActivityLabel}</span>
-            </p>
-          </CardContent>
-        </Card>
+        <TrackingHero
+          badge={<DemandeStatusBadge status={summary.status} context={badgeContext} />}
+          reference={summary.reference}
+          title={deviceLabel || summary.category}
+          subtitle={summary.category}
+          progress={progress}
+          live={live}
+          canceled={canceled}
+          statusLabel={lastActivityLabel}
+          technician={
+            summary.technician
+              ? {
+                  firstName: summary.technician.firstName,
+                  lastName: summary.technician.lastName,
+                  label: fullName(summary.technician.firstName, summary.technician.lastName),
+                  verified: true,
+                }
+              : null
+          }
+        />
       ) : null}
 
       <Card>
@@ -116,18 +124,11 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {events.length > 0 ? (
-            <MissionTimeline events={events} />
-          ) : summary ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Cette mission ne dispose pas d&apos;événements détaillés : nous affichons son
-                avancement selon son statut actuel.
-              </p>
-              <div className="rounded-xl border border-border bg-card p-4">
-                <DemandeProgress status={summary.status} />
-              </div>
-            </div>
+          {summary ? (
+            <MissionStepper
+              status={summary.status}
+              currentHint={live ? `En attente : ${lastActivityLabel}` : lastActivityLabel}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               Chronologie indisponible pour cette mission.
@@ -135,6 +136,37 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
           )}
         </CardContent>
       </Card>
+
+      {events.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="file" size="sm" className="text-muted-foreground" />
+              Journal des événements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MissionTimeline events={events} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {success ? (
+        <Celebration
+          title={status === 'CONFIRMED' ? 'Mission confirmée' : 'Intervention terminée'}
+          subtitle="Votre technicien a terminé l’intervention. Merci pour votre confiance !"
+        >
+          <Link
+            href={`/${badgeContext === 'technician' ? 'technicien' : 'client'}/demandes/${missionId}`}
+            className="inline-block"
+          >
+            <Button size="lg" className="w-full sm:w-auto">
+              Voir le récapitulatif
+              <Icon name="chevron-right" size="sm" />
+            </Button>
+          </Link>
+        </Celebration>
+      ) : null}
 
       <Link href={backHref} className="inline-block">
         <Button variant="secondary" size="sm">
