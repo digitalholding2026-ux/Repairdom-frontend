@@ -20,6 +20,7 @@ export interface Toast {
 }
 
 interface ToastContextValue {
+  toasts: Toast[];
   toast: (input: Omit<Toast, 'id'> & { id?: string }) => string;
   dismiss: (id: string) => void;
 }
@@ -33,7 +34,7 @@ function nextId(): string {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const setToasts = useState<Toast[]>([])[1];
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismiss = useCallback((id: string) => {
@@ -62,7 +63,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <ToastContext.Provider value={{ toast, dismiss }}>{children}</ToastContext.Provider>
+    <ToastContext.Provider value={{ toasts, toast, dismiss }}>{children}</ToastContext.Provider>
   );
 }
 
