@@ -26,6 +26,9 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const split = Math.ceil(items.length / 2);
+  const leftItems = items.slice(0, split);
+  const rightItems = items.slice(split);
 
   return (
     <nav
@@ -46,7 +49,7 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
         {primaryHref ? (
           <>
             <span className="flex items-center justify-around gap-1">
-              {items.slice(0, 1).map((item) => (
+              {leftItems.map((item) => (
                 <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
               ))}
             </span>
@@ -60,7 +63,7 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
               </Link>
             </span>
             <span className="flex items-center justify-around gap-1">
-              {items.slice(1).map((item) => (
+              {rightItems.map((item) => (
                 <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
               ))}
             </span>
