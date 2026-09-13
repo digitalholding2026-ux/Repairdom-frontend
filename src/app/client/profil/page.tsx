@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
@@ -94,8 +93,13 @@ export default function ClientProfilPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }

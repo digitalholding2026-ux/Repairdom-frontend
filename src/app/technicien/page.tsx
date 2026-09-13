@@ -9,9 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
-import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
 import { getMe, logoutAndGoHome } from '@/lib/api/auth-service';
 import {
@@ -24,7 +23,6 @@ import {
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
-import { formatDate } from '@/lib/format';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
 
@@ -112,8 +110,14 @@ export default function TechnicianDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }

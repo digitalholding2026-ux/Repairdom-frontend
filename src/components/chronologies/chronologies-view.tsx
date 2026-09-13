@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { Spinner } from '@/components/ui/spinner';
+import { SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { PROGRESS_STEPS } from '@/components/mission/demande-progress';
 import {
@@ -135,8 +135,11 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
       {error ? (
         <Alert variant="error">{error}</Alert>
       ) : missions === null ? (
-        <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Spinner size="md" />
+        <div className="space-y-3" role="status">
+          <span className="sr-only">Chargement…</span>
+          <SkeletonRow />
+          <SkeletonRow />
+          <SkeletonRow />
         </div>
       ) : missions.length === 0 ? (
         <Card>

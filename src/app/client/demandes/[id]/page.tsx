@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
@@ -170,8 +170,14 @@ export default function ClientDemandeDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }

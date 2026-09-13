@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
@@ -73,8 +73,14 @@ export default function ClientTechnicianProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }

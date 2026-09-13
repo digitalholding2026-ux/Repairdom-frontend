@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { Spinner } from '@/components/ui/spinner';
+import { SkeletonRow } from '@/components/ui/skeleton';
+import { useToast } from '@/lib/toast-context';
+import { triggerHaptic } from '@/lib/haptics';
+import { notificationMeta, NOTIFICATION_VARIANT_CLASSES } from '@/lib/notification-meta';
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -24,6 +27,7 @@ export interface NotificationsCenterProps {
 /** Centre de notifications (historique read-only + gestion du lu). */
 export function NotificationsCenter({ detailHref }: NotificationsCenterProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -50,18 +54,23 @@ export function NotificationsCenter({ detailHref }: NotificationsCenterProps) {
   const handleMarkAllRead = async () => {
     setBusy(true);
     setError(null);
+    triggerHaptic();
     try {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setUnreadCount(0);
+      toast({ title: 'Tout est marqué comme lu', variant: 'success' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour.';
+      setError(message);
+      toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {
       setBusy(false);
     }
   };
 
   const handleOpen = async (notification: AppNotification) => {
+    triggerHaptic();
     if (!notification.read) {
       try {
         await markNotificationRead(notification.id);
@@ -80,8 +89,12 @@ export function NotificationsCenter({ detailHref }: NotificationsCenterProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Spinner size="md" />
+      <div className="space-y-3" role="status">
+        <span className="sr-only">Chargement…</span>
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }
@@ -112,33 +125,48 @@ export function NotificationsCenter({ detailHref }: NotificationsCenterProps) {
               Tout marquer comme lu
             </Button>
           ) : null}
-          {notifications.map((notification) => (
-            <button
-              key={notification.id}
-              type="button"
-              onClick={() => void handleOpen(notification)}
-              className={cn(
-                'w-full rounded-xl border p-3 text-left transition-colors',
-                notification.read
-                  ? 'border-border bg-card'
-                  : 'border-primary/40 bg-primary/5',
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 text-sm font-semibold">{notification.title}</p>
-                {!notification.read ? (
-                  <span
-                    aria-label="Non lue"
-                    className="mt-1 size-2 shrink-0 rounded-full bg-primary"
-                  />
-                ) : null}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatDateTime(notification.createdAt)}
-              </p>
-            </button>
-          ))}
+          {notifications.map((notification) => {
+            const meta = notificationMeta(notification.type);
+            return (
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => void handleOpen(notification)}
+                className={cn(
+                  'flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-all duration-150 active:scale-[0.98]',
+                  notification.read
+                    ? 'border-border bg-card'
+                    : 'border-primary/40 bg-primary/5',
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex size-9 shrink-0 items-center justify-center rounded-full',
+                    NOTIFICATION_VARIANT_CLASSES[meta.variant],
+                  )}
+                >
+                  <Icon name={meta.icon} size="sm" strokeWidth={2} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 text-sm font-semibold">{notification.title}</span>
+                    {!notification.read ? (
+                      <span
+                        aria-label="Non lue"
+                        className="mt-1 size-2 shrink-0 rounded-full bg-primary"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    {notification.message}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {formatDateTime(notification.createdAt)}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

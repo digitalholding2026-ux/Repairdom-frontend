@@ -40,7 +40,7 @@ export function NotificationBell({ href }: NotificationBellProps) {
     <Link
       href={href}
       aria-label="Notifications"
-      className="relative inline-flex items-center justify-center rounded-full"
+      className="relative inline-flex items-center justify-center rounded-full transition-transform active:scale-95"
     >
       <span className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted">
         <Icon name="bell" size="md" strokeWidth={1.8} />

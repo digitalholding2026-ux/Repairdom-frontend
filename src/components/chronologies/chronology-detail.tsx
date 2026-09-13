@@ -6,7 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
-import { Spinner } from '@/components/ui/spinner';
+import { SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { MissionStepper } from '@/components/mission/mission-stepper';
@@ -64,8 +64,11 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }

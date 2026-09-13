@@ -1,5 +1,6 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, MouseEvent } from 'react';
 import { cn } from '@/lib/cn';
+import { triggerHaptic } from '@/lib/haptics';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
@@ -12,7 +13,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const base =
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium ' +
-  'transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 ' +
+  'transition-[transform,background-color,color,border-color,opacity] duration-150 ' +
+  'focus-visible:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ' +
   'disabled:pointer-events-none disabled:opacity-50 select-none active:scale-[0.98]';
 
@@ -38,12 +40,18 @@ export function Button({
   isLoading = false,
   disabled,
   children,
+  onClick,
   ...props
 }: ButtonProps) {
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    if (!disabled && !isLoading) triggerHaptic();
+    onClick?.(e);
+  };
   return (
     <button
       className={cn(base, variants[variant], sizes[size], className)}
       disabled={disabled || isLoading}
+      onClick={handleClick}
       {...props}
     >
       {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : null}

@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
-import { Spinner } from '@/components/ui/spinner';
+import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
 import { BalanceCard } from '@/components/client/dashboard/balance-card';
 import { QuickActions } from '@/components/client/dashboard/quick-actions';
@@ -201,8 +201,14 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="space-y-4 py-2" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Skeleton className="h-8 w-1/2" />
+        <Skeleton className="h-4 w-3/5" />
+        <SkeletonCard />
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
       </div>
     );
   }
