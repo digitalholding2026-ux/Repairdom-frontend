@@ -4,16 +4,19 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
 import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
 import { AvailabilityCard } from '@/components/technician/dashboard/availability-card';
 import { QuickActions } from '@/components/technician/dashboard/quick-actions';
 import { TechnicianLiveMissionCard } from '@/components/technician/dashboard/live-mission-card';
 import { InterventionsCard } from '@/components/technician/dashboard/interventions-card';
+import { RevenueCard } from '@/components/technician/dashboard/revenue-card';
+import { DaySummary } from '@/components/technician/dashboard/day-summary';
+import { AccountSection } from '@/components/technician/dashboard/account-section';
+import { DashboardSkeleton } from '@/components/technician/dashboard/dashboard-skeleton';
 import {
   ActivityFeed,
   type ActivityItem,
@@ -29,6 +32,7 @@ import {
   type TechnicianDemande,
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
+import { getTechnicianFinanceSummary, type TechnicianFinanceSummary } from '@/lib/api/finance-service';
 import { demandeStatusConfig } from '@/lib/request-status';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
@@ -42,11 +46,19 @@ const STATUS_FEED_ICONS: Record<string, IconName> = {
   CANCELED: 'x',
 };
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Bonjour';
+  if (hour < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
+
 export default function TechnicianDashboardPage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
   const [available, setAvailable] = useState<TechnicianDemande[]>([]);
   const [mine, setMine] = useState<TechnicianDemande[]>([]);
   const [history, setHistory] = useState<TechnicianDemande[]>([]);
+  const [finance, setFinance] = useState<TechnicianFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availabilityBusy, setAvailabilityBusy] = useState(false);
@@ -76,6 +88,9 @@ export default function TechnicianDashboardPage() {
           setMine(myList);
           setHistory(historyList);
         }
+        getTechnicianFinanceSummary()
+          .then((f) => { if (!cancelled) setFinance(f); })
+          .catch(() => undefined);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
       } finally {
@@ -122,6 +137,14 @@ export default function TechnicianDashboardPage() {
   const activeCount = mine.filter((d) => ACTIVE_STATUSES.includes(d.status)).length;
   const doneCount = history.filter((d) => d.status === 'CONFIRMED').length;
 
+  const completedToday = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return history.filter(
+      (d) => d.status === 'CONFIRMED' && new Date(d.createdAt) >= today,
+    ).length;
+  }, [history]);
+
   const activities = useMemo<ActivityItem[]>(() => {
     const items: ActivityItem[] = [];
 
@@ -159,19 +182,7 @@ export default function TechnicianDashboardPage() {
       .slice(0, 6);
   }, [mine, history]);
 
-  if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
+  if (loading) return <DashboardSkeleton />;
 
   if (error) {
     return (
@@ -188,36 +199,53 @@ export default function TechnicianDashboardPage() {
   }
 
   const firstName = profile?.user.firstName ?? null;
+  const greeting = getGreeting();
 
   return (
     <div className="space-y-6">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            Bonjour{firstName ? `, ${firstName}` : ''} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Voici les nouvelles demandes autour de chez vous.
-          </p>
-        </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <Icon name="logout" size="sm" />
-          <span className="ml-1 hidden sm:inline">Déconnexion</span>
-        </Button>
-      </section>
-
-      {/* Niveau 1 — CTA principal (action immédiate dominante) */}
-      <section>
-        <Link href="#nouvelles-demandes" className="block">
-          <Button size="lg" className="w-full gap-2 text-base">
-            <Icon name="search" size="md" strokeWidth={2} />
-            Voir les nouvelles demandes
+      {/* ── Hero: salut + stats inline ─────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              {greeting}{firstName ? `, ${firstName}` : ''} 👋
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {profile?.isAvailable
+                ? 'Vous êtes en ligne. Les demandes de votre zone vous sont proposées.'
+                : 'Activez votre disponibilité pour recevoir de nouvelles demandes.'}
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Icon name="logout" size="sm" />
+            <span className="ml-1 hidden sm:inline">Déconnexion</span>
           </Button>
-        </Link>
+        </div>
+
+        {/* Stats inline */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <StatCard
+            icon="search"
+            label="Disponibles"
+            value={available.length}
+            href="#nouvelles-demandes"
+          />
+          <StatCard
+            icon="truck"
+            label="En cours"
+            value={activeCount}
+          />
+          <StatCard
+            icon="check-circle"
+            label="Terminées"
+            value={doneCount}
+            href="/technicien/historique"
+          />
+        </div>
       </section>
 
-      {/* Disponibilité — carte dégradée façon « live » */}
-      <section>
+      {/* ── Disponibilité ──────────────────────────────────────── */}
+      <section id="disponibilite" className="scroll-mt-20">
         <AvailabilityCard
           isAvailable={profile?.isAvailable ?? false}
           busy={availabilityBusy}
@@ -226,22 +254,20 @@ export default function TechnicianDashboardPage() {
         />
       </section>
 
-      {/* Quick actions */}
-      <QuickActions />
-
-      {/* Statistiques rapides */}
-      <section className="grid grid-cols-3 gap-3">
-        <StatBlock icon="users" label="Nouvelles" value={available.length} />
-        <StatBlock icon="clock" label="En cours" value={activeCount} />
-        <StatBlock
-          icon="check-circle"
-          label="Terminées"
-          value={doneCount}
-          href="/technicien/historique"
-        />
+      {/* ── Revenus ────────────────────────────────────────────── */}
+      <section>
+        <RevenueCard finance={finance} completedToday={completedToday} />
       </section>
 
-      {/* Intervention en cours — carte « live » animée */}
+      {/* ── Quick actions (contextuelles, pas de doublon BottomNav) */}
+      <section>
+        <QuickActions />
+      </section>
+
+      {/* ── Ma journée ─────────────────────────────────────────── */}
+      <DaySummary activeMissions={mine.filter((d) => ACTIVE_STATUSES.includes(d.status))} completedToday={completedToday} />
+
+      {/* ── Intervention en cours ──────────────────────────────── */}
       {currentMission ? (
         <section className="space-y-3">
           <SectionHeader title="Intervention en cours" />
@@ -249,7 +275,7 @@ export default function TechnicianDashboardPage() {
         </section>
       ) : null}
 
-      {/* Nouvelles demandes */}
+      {/* ── Nouvelles demandes ─────────────────────────────────── */}
       <section id="nouvelles-demandes" className="space-y-3 scroll-mt-20">
         <SectionHeader
           title="Nouvelles demandes"
@@ -262,7 +288,7 @@ export default function TechnicianDashboardPage() {
         {available.length === 0 ? (
           <EmptyState
             title="Aucune demande disponible"
-            description="Il n’y a pas de demande correspondant à votre profil et votre zone pour le moment."
+            description="Il n'y a pas de demande correspondant à votre profil et votre zone pour le moment."
           />
         ) : (
           <div className="space-y-3">
@@ -277,14 +303,14 @@ export default function TechnicianDashboardPage() {
         )}
       </section>
 
-      {/* Mes interventions */}
-      {mine.length > 0 ? (
+      {/* ── Mes interventions ──────────────────────────────────── */}
+      {mineList.length > 0 ? (
         <section className="space-y-3">
           <SectionHeader
             title="Mes interventions"
             action={
               <Badge variant="success">
-                {mine.length} intervention{mine.length !== 1 ? 's' : ''}
+                {mineList.length} intervention{mineList.length !== 1 ? 's' : ''}
               </Badge>
             }
           />
@@ -300,76 +326,20 @@ export default function TechnicianDashboardPage() {
         </section>
       ) : null}
 
-      {/* Feed d'activité */}
+      {/* ── Activité récente ───────────────────────────────────── */}
       <section className="space-y-3">
         <SectionHeader title="Activité récente" />
         <ActivityFeed items={activities} />
       </section>
 
-      {/* Gamification — interventions terminées */}
+      {/* ── Gamification ───────────────────────────────────────── */}
       <InterventionsCard completedCount={doneCount} />
 
-      {/* Mon compte */}
+      {/* ── Mon compte ─────────────────────────────────────────── */}
       <section className="space-y-3">
         <SectionHeader title="Mon compte" />
-        <div className="space-y-2">
-          <Link href="/technicien/profil" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="user" />
-                </span>
-                <p className="text-sm font-semibold">Profil</p>
-                <span className="ml-auto">
-                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/conditions-utilisation" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="file" />
-                </span>
-                <p className="text-sm font-semibold">Conditions d&apos;utilisation</p>
-                <span className="ml-auto">
-                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+        {profile ? <AccountSection profile={profile} /> : null}
       </section>
     </div>
-  );
-}
-
-function StatBlock({
-  icon,
-  label,
-  value,
-  href,
-}: {
-  icon: 'users' | 'clock' | 'check-circle';
-  label: string;
-  value: number;
-  href?: string;
-}) {
-  const content = (
-    <Card className={href ? 'transition-colors hover:bg-muted/50' : undefined}>
-      <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
-        <Icon name={icon} className="text-primary" />
-        <p className="text-2xl font-bold leading-none">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
-      </CardContent>
-    </Card>
-  );
-  return href ? (
-    <Link href={href} className="block">
-      {content}
-    </Link>
-  ) : (
-    content
   );
 }
