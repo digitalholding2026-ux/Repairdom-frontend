@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field } from '@/components/ui/field';
-import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { formatDate, formatDateTime, formatFileSize, fullName } from '@/lib/format';
+import { AdminInfoRow } from '@/components/admin/info-row';
+import { KycDetailSkeleton } from '@/components/admin/kyc/kyc-detail-skeleton';
 import {
   getAdminKycFolder,
   getAdminKycDocumentUrl,
@@ -124,11 +125,7 @@ export default function AdminKycFolderPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <KycDetailSkeleton />;
   }
 
   if (!detail) {
@@ -149,7 +146,7 @@ export default function AdminKycFolderPage() {
   const name = fullName(technician.firstName, technician.lastName);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader title="Examen du dossier" backHref="/admin/kyc" />
 
       <Card>
@@ -171,24 +168,12 @@ export default function AdminKycFolderPage() {
             </div>
           </div>
 
-          <dl className="grid gap-2 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Téléphone</dt>
-              <dd className="font-medium">{technician.phone ?? '—'}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Disponibilité</dt>
-              <dd className="font-medium">{technician.isAvailable ? 'Disponible' : 'Indisponible'}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Interventions confirmées</dt>
-              <dd className="font-medium">{technician.completedInterventions}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt className="text-muted-foreground">Inscrit le</dt>
-              <dd className="font-medium">{formatDate(technician.registeredAt)}</dd>
-            </div>
-          </dl>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <AdminInfoRow label="Téléphone" value={technician.phone ?? '—'} />
+            <AdminInfoRow label="Disponibilité" value={technician.isAvailable ? 'Disponible' : 'Indisponible'} />
+            <AdminInfoRow label="Interventions confirmées" value={`${technician.completedInterventions}`} />
+            <AdminInfoRow label="Inscrit le" value={formatDate(technician.registeredAt)} />
+          </div>
 
           {technician.categories.length > 0 ? (
             <div>
@@ -249,148 +234,142 @@ export default function AdminKycFolderPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Icon name="file" size="sm" className="text-muted-foreground" />
-            Documents ({detail.documents.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {detail.documents.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun document envoyé.</p>
-          ) : (
-            detail.documents.map((document) => {
-              const url = documentUrls[document.id];
-              return (
-                <div key={document.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{kycDocumentTypeLabel(document.type)}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {document.originalName} · {formatFileSize(document.size)} · {formatDateTime(document.createdAt)}
-                      </p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => handleOpenDocument(document.id)}
-                      disabled={fetchingUrlId === document.id}
-                    >
-                      <Icon name="file" size="3.5" />
-                      {fetchingUrlId === document.id ? 'Génération…' : 'Consulter le document'}
-                    </Button>
-                  </div>
-                  {url ? (
-                    <div className="overflow-hidden rounded-lg border border-border">
-                      {document.mimeType.startsWith('image/') ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={url} alt={document.originalName} className="max-h-96 w-full bg-muted object-contain" />
-                      ) : (
-                        <iframe title={document.originalName} src={url} className="h-96 w-full bg-muted" />
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          )}
-          <p className="text-xs text-muted-foreground">
-            Les documents sont consultables via un lien temporaire signé de 5 minutes, jamais exposés publiquement.
-          </p>
-        </CardContent>
-      </Card>
-
-      {detail.reviews.length > 0 ? (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Documents (${detail.documents.length})`}
+          icon="file"
+        />
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="clock" size="sm" className="text-muted-foreground" />
-              Historique des décisions
-            </CardTitle>
-          </CardHeader>
           <CardContent className="space-y-3">
-            {detail.reviews.map((review) => (
-              <div key={review.createdAt} className="rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium">
-                    {review.previousStatus} → {review.newStatus}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{formatDateTime(review.createdAt)}</p>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Par {review.reviewerName || review.reviewerId}</p>
-                {review.reason ? (
-                  <p className="mt-1 text-sm text-muted-foreground">Motif : {review.reason}</p>
-                ) : null}
-              </div>
-            ))}
+            {detail.documents.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun document envoyé.</p>
+            ) : (
+              detail.documents.map((document) => {
+                const url = documentUrls[document.id];
+                return (
+                  <div key={document.id} className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{kycDocumentTypeLabel(document.type)}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {document.originalName} · {formatFileSize(document.size)} · {formatDateTime(document.createdAt)}
+                        </p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="shrink-0"
+                        onClick={() => handleOpenDocument(document.id)}
+                        disabled={fetchingUrlId === document.id}
+                      >
+                        <Icon name="file" size="3.5" />
+                        {fetchingUrlId === document.id ? 'Génération…' : 'Consulter le document'}
+                      </Button>
+                    </div>
+                    {url ? (
+                      <div className="overflow-hidden rounded-lg border border-border">
+                        {document.mimeType.startsWith('image/') ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt={document.originalName} className="max-h-96 w-full bg-muted object-contain" />
+                        ) : (
+                          <iframe title={document.originalName} src={url} className="h-96 w-full bg-muted" />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
+            <p className="text-xs text-muted-foreground">
+              Les documents sont consultables via un lien temporaire signé de 5 minutes, jamais exposés publiquement.
+            </p>
           </CardContent>
         </Card>
+      </section>
+
+      {detail.reviews.length > 0 ? (
+        <section className="space-y-3">
+          <SectionHeader title="Historique des décisions" icon="clock" />
+          <Card>
+            <CardContent className="space-y-3">
+              {detail.reviews.map((review) => (
+                <div key={review.createdAt} className="rounded-lg border border-border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">
+                      {review.previousStatus} → {review.newStatus}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(review.createdAt)}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Par {review.reviewerName || review.reviewerId}</p>
+                  {review.reason ? (
+                    <p className="mt-1 text-sm text-muted-foreground">Motif : {review.reason}</p>
+                  ) : null}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
       ) : null}
 
       {technician.kycStatus === 'PENDING' ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="shield-check" size="sm" className="text-muted-foreground" />
-              Décision de vérification
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {actionSuccess ? <Alert variant="success">{actionSuccess}</Alert> : null}
-            {actionError ? <Alert variant="error">{actionError}</Alert> : null}
+        <section className="space-y-3">
+          <SectionHeader title="Décision de vérification" icon="shield-check" />
+          <Card>
+            <CardContent className="space-y-4">
+              {actionSuccess ? <Alert variant="success">{actionSuccess}</Alert> : null}
+              {actionError ? <Alert variant="error">{actionError}</Alert> : null}
 
-            {showReject ? (
-              <div className="space-y-3">
-                <Field htmlFor="rejectReason" label="Motif du rejet">
-                  <Textarea
-                    id="rejectReason"
-                    value={rejectReason}
-                    onChange={(event) => setRejectReason(event.target.value)}
-                    placeholder="Expliquez au technicien ce qui doit être corrigé…"
-                    rows={3}
-                    maxLength={500}
-                  />
-                </Field>
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleReject} isLoading={actionBusy} disabled={!rejectReason.trim()}>
-                    Confirmer le rejet
+              {showReject ? (
+                <div className="space-y-3">
+                  <Field htmlFor="rejectReason" label="Motif du rejet">
+                    <Textarea
+                      id="rejectReason"
+                      value={rejectReason}
+                      onChange={(event) => setRejectReason(event.target.value)}
+                      placeholder="Expliquez au technicien ce qui doit être corrigé…"
+                      rows={3}
+                      maxLength={500}
+                    />
+                  </Field>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={handleReject} isLoading={actionBusy} disabled={!rejectReason.trim()}>
+                      Confirmer le rejet
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowReject(false);
+                        setRejectReason('');
+                        setActionError(null);
+                      }}
+                      disabled={actionBusy}
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button onClick={handleValidate} isLoading={actionBusy}>
+                    <Icon name="check" size="sm" />
+                    Valider le profil
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="destructive"
                     onClick={() => {
-                      setShowReject(false);
-                      setRejectReason('');
                       setActionError(null);
+                      setShowReject(true);
                     }}
                     disabled={actionBusy}
                   >
-                    Annuler
+                    <Icon name="x" size="sm" />
+                    Rejeter le dossier
                   </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button onClick={handleValidate} isLoading={actionBusy}>
-                  <Icon name="check" size="sm" />
-                  Valider le profil
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setActionError(null);
-                    setShowReject(true);
-                  }}
-                  disabled={actionBusy}
-                >
-                  <Icon name="x" size="sm" />
-                  Rejeter le dossier
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       ) : null}
 
       <ConfirmDialog

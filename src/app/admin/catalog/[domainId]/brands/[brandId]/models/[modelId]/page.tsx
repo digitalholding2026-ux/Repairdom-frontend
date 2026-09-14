@@ -6,14 +6,16 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { autoSlug } from '@/lib/slug';
+import { extractErrorMessage } from '@/lib/errors';
 import {
   getModel,
   listProblems,
@@ -71,7 +73,7 @@ export default function AdminModelPage() {
   const handleCreateProblem = async () => {
     if (!params?.domainId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -89,20 +91,20 @@ export default function AdminModelPage() {
       setNewDesc('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreating(false);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading) return <CatalogSkeleton />;
   if (!model) return <EmptyState title="Modèle introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   const domainId = model.brand.domain?.id ?? params?.domainId;
   const brandId = params?.brandId ?? model.brandId;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Breadcrumbs
         items={[
           { label: 'Catalogue', href: '/admin/catalog' },
@@ -113,30 +115,31 @@ export default function AdminModelPage() {
       />
       <PageHeader title={model.name} description={`Modèle : ${model.brand.name}`} />
 
-      <Card>
-        <CardContent className="space-y-3 pt-4">
-          <Badge variant="outline">{model.brand.name}</Badge>
-          {model.description ? <p className="text-sm text-muted-foreground">{model.description}</p> : null}
-          <p className="text-xs text-muted-foreground">Slug : {model.slug}</p>
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <SectionHeader title="Informations" icon="info" />
+        <Card>
+          <CardContent className="space-y-3 pt-4">
+            <Badge variant="outline">{model.brand.name}</Badge>
+            {model.description ? <p className="text-sm text-muted-foreground">{model.description}</p> : null}
+            <p className="text-xs text-muted-foreground">Slug : {model.slug}</p>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">Problèmes de ce modèle ({problems.length})</h2>
-          <p className="text-xs text-muted-foreground">
-            Problèmes génériques, de la marque et spécifiques à ce modèle.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Icon name="plus" size="3.5" />
-          Problème
-        </Button>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-
-      {problems.length === 0 ? (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Problèmes de ce modèle (${problems.length})`}
+          icon="file"
+          description="Problèmes génériques, de la marque et spécifiques à ce modèle."
+          action={
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Icon name="plus" size="3.5" />
+              Problème
+            </Button>
+          }
+        />
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {problems.length === 0 ? (
         <EmptyState icon="file" title="Aucun problème" description="Ajoutez un problème pour ce modèle." />
       ) : (
         <div className="space-y-2">
@@ -163,6 +166,7 @@ export default function AdminModelPage() {
           ))}
         </div>
       )}
+      </section>
 
       <Modal
         open={showCreate}

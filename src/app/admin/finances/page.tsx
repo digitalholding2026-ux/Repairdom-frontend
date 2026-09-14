@@ -4,15 +4,15 @@ import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Field } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { FinancesSkeleton } from '@/components/admin/finances/finances-skeleton';
 import {
   getAdminFinanceSummary,
   getAdminMissionFinance,
@@ -197,10 +197,7 @@ export default function AdminFinancesPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </div>
+        <FinancesSkeleton />
       ) : data ? (
         <div className="space-y-6">
           {MODES.map((m) => {
@@ -363,6 +360,8 @@ function MissionRow({
         <button
           type="button"
           onClick={onToggle}
+          aria-expanded={expanded}
+          aria-controls={`finance-detail-${mission.demandeId}`}
           className="flex w-full items-center justify-between gap-3 text-left"
         >
           <div className="min-w-0">
@@ -402,7 +401,7 @@ function MissionRow({
         </div>
 
         {expanded ? (
-          <div className="space-y-3">
+          <div id={`finance-detail-${mission.demandeId}`} className="space-y-3">
             {detailLoading ? (
               <div className="flex items-center justify-center py-6">
                 <Spinner />
@@ -411,7 +410,13 @@ function MissionRow({
               <Alert variant="error">{detailError}</Alert>
             ) : detail ? (
               <AdminMissionDetail detail={detail} currency={currency} />
-            ) : null}
+            ) : (
+              <EmptyState
+                icon="info"
+                title="Aucune donnée"
+                description="Aucun détail financier disponible pour cette mission."
+              />
+            )}
           </div>
         ) : null}
       </CardContent>
@@ -470,7 +475,11 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
           Écritures du grand livre
         </p>
         {detail.transactions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune écriture enregistrée.</p>
+          <EmptyState
+            icon="file"
+            title="Aucune écriture"
+            description="Aucune écriture enregistrée pour cette mission."
+          />
         ) : (
           detail.transactions.map((t) => {
             const credit = t.direction === 'CREDIT';
@@ -628,7 +637,11 @@ function TestCreditSection() {
               ))}
             </div>
           ) : query.trim().length >= 2 && !searchLoading && !searchError ? (
-            <p className="text-sm text-muted-foreground">Aucun client trouvé pour « {query.trim()} ».</p>
+            <EmptyState
+              icon="users"
+              title="Aucun client trouvé"
+              description={`Aucun résultat pour « ${query.trim()} ».`}
+            />
           ) : null}
 
           {selected ? (

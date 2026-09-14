@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import {
   listDomains,
   createDomain,
@@ -31,6 +32,7 @@ export default function AdminCatalogPage() {
   const [newDesc, setNewDesc] = useState('');
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
+  const [confirmSeedOpen, setConfirmSeedOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +64,7 @@ export default function AdminCatalogPage() {
   };
 
   const handleSeed = async () => {
-    if (!window.confirm('Créer le domaine Smartphone avec les données initiales ?')) return;
+    setConfirmSeedOpen(false);
     setSeedBusy(true);
     setSeedResult(null);
     try {
@@ -77,7 +79,7 @@ export default function AdminCatalogPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <PageHeader
         title="Catalogue"
         description="Gérez les domaines, problèmes, diagnostics et tarifs RepairDom."
@@ -94,11 +96,9 @@ export default function AdminCatalogPage() {
       {seedResult ? <Alert variant="success">{seedResult}</Alert> : null}
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      {/* Sprint 8.7 — le seed est réservé au développement/initialisation :
-          il est masqué en production (le backend le refuse également). */}
       {process.env.NODE_ENV !== 'production' ? (
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={handleSeed} isLoading={seedBusy}>
+          <Button variant="secondary" size="sm" onClick={() => setConfirmSeedOpen(true)} isLoading={seedBusy}>
             <Icon name="sparkles" size="3.5" />
             Seed Smartphone
           </Button>
@@ -107,9 +107,7 @@ export default function AdminCatalogPage() {
       ) : null}
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Spinner size="lg" />
-        </div>
+        <CatalogSkeleton />
       ) : domains.length === 0 ? (
         <EmptyState
           icon="wrench"
@@ -168,6 +166,15 @@ export default function AdminCatalogPage() {
           </Field>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={confirmSeedOpen}
+        onCancel={() => setConfirmSeedOpen(false)}
+        onConfirm={handleSeed}
+        title="Seed Smartphone"
+        description="Créer le domaine Smartphone avec les données initiales ?"
+        confirmLabel="Lancer le seed"
+      />
     </div>
   );
 }

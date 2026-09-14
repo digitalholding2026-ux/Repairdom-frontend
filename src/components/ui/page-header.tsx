@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
-import { Icon } from './icon';
+import { Icon, type IconName } from './icon';
 
 export interface PageHeaderProps {
   title: ReactNode;
@@ -39,14 +39,24 @@ export function PageHeader({ title, description, actions, backHref, className }:
 export interface SectionHeaderProps {
   title: ReactNode;
   action?: ReactNode;
+  description?: ReactNode;
+  icon?: IconName;
   className?: string;
 }
 
-export function SectionHeader({ title, action, className }: SectionHeaderProps) {
+export function SectionHeader({ title, action, description, icon, className }: SectionHeaderProps) {
   return (
-    <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
-      <h2 className="text-base font-semibold tracking-tight sm:text-lg">{title}</h2>
-      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+    <div className={cn('space-y-1', className)}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight sm:text-lg">
+          {icon ? (
+            <Icon name={icon} size="sm" className="text-muted-foreground" />
+          ) : null}
+          {title}
+        </h2>
+        {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+      </div>
+      {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
     </div>
   );
 }

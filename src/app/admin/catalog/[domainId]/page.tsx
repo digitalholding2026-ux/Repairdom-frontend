@@ -6,21 +6,22 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { autoSlug } from '@/lib/slug';
+import { extractErrorMessage } from '@/lib/errors';
 import {
   getDomain,
   createProblem,
   createBrand,
   updateDomain,
   type CatalogDomainDetail,
-  type CatalogProblem,
 } from '@/lib/api/admin-service';
 
 export default function AdminDomainPage() {
@@ -58,7 +59,7 @@ export default function AdminDomainPage() {
   const handleCreateProblem = async () => {
     if (!params?.domainId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -69,7 +70,7 @@ export default function AdminDomainPage() {
       setNewDesc('');
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreating(false);
     }
@@ -88,7 +89,7 @@ export default function AdminDomainPage() {
   const handleCreateBrand = async () => {
     if (!params?.domainId) return;
     const name = newBrandName.trim();
-    const slug = newBrandSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newBrandSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreatingBrand(true);
     try {
@@ -99,99 +100,103 @@ export default function AdminDomainPage() {
       setNewBrandDesc('');
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création de la marque.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création de la marque.'));
     } finally {
       setCreatingBrand(false);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading) return <CatalogSkeleton />;
   if (!domain) return <EmptyState title="Domaine introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Breadcrumbs
         items={[{ label: 'Catalogue', href: '/admin/catalog' }, { label: domain.name }]}
       />
       <PageHeader title={domain.name} description="Marques et problèmes du domaine." />
 
-      <Card>
-        <CardContent className="space-y-3 pt-4">
-          {domain.description ? <p className="text-sm text-muted-foreground">{domain.description}</p> : null}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Actif</span>
-            <Switch checked={domain.isActive} onCheckedChange={handleToggleActive} />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Slug : {domain.slug}
-            {domain.category ? ` — Catégorie : ${domain.category}` : ''}
-          </p>
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <SectionHeader title="Informations" icon="info" />
+        <Card>
+          <CardContent className="space-y-3 pt-4">
+            {domain.description ? <p className="text-sm text-muted-foreground">{domain.description}</p> : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Actif</span>
+              <Switch checked={domain.isActive} onCheckedChange={handleToggleActive} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Slug : {domain.slug}
+              {domain.category ? ` — Catégorie : ${domain.category}` : ''}
+            </p>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Marques ({domain.brands.length})</h2>
-        <Button size="sm" onClick={() => setShowCreateBrand(true)}>
-          <Icon name="plus" size="3.5" />
-          Marque
-        </Button>
-      </div>
-
-      {domain.brands.length === 0 ? (
-        <EmptyState icon="briefcase" title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
-      ) : (
-        <div className="space-y-2">
-          {domain.brands.map((brand) => (
-            <Link
-              key={brand.id}
-              href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
-              className="block"
-            >
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-3 pt-4">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold">{brand.name}</p>
-                      <Badge variant={brand.isActive ? 'success' : 'neutral'}>
-                        {brand.isActive ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </div>
-                    {brand.description ? (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                        {brand.description}
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Marques (${domain.brands.length})`}
+          icon="briefcase"
+          action={
+            <Button size="sm" onClick={() => setShowCreateBrand(true)}>
+              <Icon name="plus" size="3.5" />
+              Marque
+            </Button>
+          }
+        />
+        {domain.brands.length === 0 ? (
+          <EmptyState icon="briefcase" title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
+        ) : (
+          <div className="space-y-2">
+            {domain.brands.map((brand) => (
+              <Link
+                key={brand.id}
+                href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
+                className="block"
+              >
+                <Card className="transition-colors hover:bg-muted/50">
+                  <CardContent className="flex items-center justify-between gap-3 pt-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-semibold">{brand.name}</p>
+                        <Badge variant={brand.isActive ? 'success' : 'neutral'}>
+                          {brand.isActive ? 'Actif' : 'Inactif'}
+                        </Badge>
+                      </div>
+                      {brand.description ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {brand.description}
+                        </p>
+                      ) : null}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {brand._count?.models ?? 0} modèle{(brand._count?.models ?? 0) !== 1 ? 's' : ''}
                       </p>
-                    ) : null}
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {brand._count?.models ?? 0} modèle{(brand._count?.models ?? 0) !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+                    </div>
+                    <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">Problèmes génériques ({domain.problems.length})</h2>
-          <p className="text-xs text-muted-foreground">
-            Problèmes valables pour tout appareil du domaine. Les problèmes
-            spécifiques marque/modèle se gèrent depuis chaque marque.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Icon name="plus" size="3.5" />
-          Problème
-        </Button>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-
-      {domain.problems.length === 0 ? (
-        <EmptyState icon="file" title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
-      ) : (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Problèmes génériques (${domain.problems.length})`}
+          icon="file"
+          description="Problèmes valables pour tout appareil du domaine. Les problèmes spécifiques marque/modèle se gèrent depuis chaque marque."
+          action={
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Icon name="plus" size="3.5" />
+              Problème
+            </Button>
+          }
+        />
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {domain.problems.length === 0 ? (
+          <EmptyState icon="file" title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
+        ) : (
         <div className="space-y-2">
           {domain.problems.map((problem) => (
             <Link key={problem.id} href={`/admin/catalog/${domain.id}/${problem.id}`} className="block">
@@ -218,6 +223,7 @@ export default function AdminDomainPage() {
           ))}
         </div>
       )}
+      </section>
 
       <Modal
         open={showCreateBrand}

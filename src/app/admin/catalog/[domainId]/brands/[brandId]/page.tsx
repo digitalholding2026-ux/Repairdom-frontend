@@ -6,14 +6,16 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { autoSlug } from '@/lib/slug';
+import { extractErrorMessage } from '@/lib/errors';
 import {
   getBrand,
   createModel,
@@ -59,7 +61,7 @@ export default function AdminBrandPage() {
   const handleCreateModel = async () => {
     if (!params?.brandId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -75,7 +77,7 @@ export default function AdminBrandPage() {
       setNewDesc('');
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreating(false);
     }
@@ -88,7 +90,7 @@ export default function AdminBrandPage() {
   const handleCreateProblem = async () => {
     if (!params?.brandId || !brand) return;
     const name = newProblemName.trim();
-    const slug = newProblemSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newProblemSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreatingProblem(true);
     try {
@@ -105,7 +107,7 @@ export default function AdminBrandPage() {
       setNewProblemDesc('');
       router.push(`/admin/catalog/${brand.domain?.id ?? params.domainId}/${problem.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreatingProblem(false);
     }
@@ -130,13 +132,13 @@ export default function AdminBrandPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading) return <CatalogSkeleton />;
   if (!brand) return <EmptyState title="Marque introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   const domainId = brand.domain?.id ?? params?.domainId;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Breadcrumbs
         items={[
           { label: 'Catalogue', href: '/admin/catalog' },
@@ -157,29 +159,34 @@ export default function AdminBrandPage() {
         }
       />
 
-      <Card>
-        <CardContent className="space-y-3 pt-4">
-          <Badge variant="outline">{brand.domain?.name}</Badge>
-          {brand.description ? <p className="text-sm text-muted-foreground">{brand.description}</p> : null}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Actif</span>
-            <Switch checked={brand.isActive} onCheckedChange={handleToggleBrandActive} />
-          </div>
-          <p className="text-xs text-muted-foreground">Slug : {brand.slug}</p>
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <SectionHeader title="Informations" icon="info" />
+        <Card>
+          <CardContent className="space-y-3 pt-4">
+            <Badge variant="outline">{brand.domain?.name}</Badge>
+            {brand.description ? <p className="text-sm text-muted-foreground">{brand.description}</p> : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Actif</span>
+              <Switch checked={brand.isActive} onCheckedChange={handleToggleBrandActive} />
+            </div>
+            <p className="text-xs text-muted-foreground">Slug : {brand.slug}</p>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Modèles ({brand.models.length})</h2>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Icon name="plus" size="3.5" />
-          Modèle
-        </Button>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-
-      {brand.models.length === 0 ? (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Modèles (${brand.models.length})`}
+          icon="briefcase"
+          action={
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Icon name="plus" size="3.5" />
+              Modèle
+            </Button>
+          }
+        />
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {brand.models.length === 0 ? (
         <EmptyState icon="briefcase" title="Aucun modèle" description="Ajoutez un modèle pour cette marque." />
       ) : (
         <div className="space-y-2">
@@ -215,6 +222,7 @@ export default function AdminBrandPage() {
           ))}
         </div>
       )}
+      </section>
 
       <Modal
         open={showCreateProblem}

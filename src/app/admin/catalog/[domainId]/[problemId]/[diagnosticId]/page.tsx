@@ -8,11 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { autoSlug } from '@/lib/slug';
+import { extractErrorMessage } from '@/lib/errors';
 import {
   getDiagnostic,
   createIntervention,
@@ -101,7 +105,7 @@ export default function AdminDiagnosticPage() {
   const handleCreateIntervention = async () => {
     if (!params?.diagnosticId) return;
     const name = intName.trim();
-    const slug = intSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = intSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreatingInt(true);
     try {
@@ -123,7 +127,7 @@ export default function AdminDiagnosticPage() {
       setIntNeedsParts(false);
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(extractErrorMessage(err, 'Erreur.'));
     } finally {
       setCreatingInt(false);
     }
@@ -215,7 +219,7 @@ export default function AdminDiagnosticPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading) return <CatalogSkeleton />;
   if (!diagnostic) return <EmptyState title="Diagnostic introuvable" action={<Link href="/admin/catalog"><Button>Retour</Button></Link>} />;
 
   const { domainId, problemId } = (() => {
@@ -223,42 +227,55 @@ export default function AdminDiagnosticPage() {
     return { domainId: prob?.domain?.id ?? params?.domainId, problemId: prob?.id ?? params?.problemId };
   })();
 
+  const breadcrumbs = [
+    { label: 'Catalogue', href: '/admin/catalog' },
+    { label: diagnostic.problem?.domain?.name ?? 'Domaine', href: `/admin/catalog/${domainId}` },
+    { label: diagnostic.problem?.name ?? 'Problème', href: `/admin/catalog/${domainId}/${problemId}` },
+    { label: diagnostic.name },
+  ];
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <Breadcrumbs items={breadcrumbs} />
       <PageHeader title={diagnostic.name} backHref={`/admin/catalog/${domainId}/${problemId}`} />
 
-      <Card>
-        <CardContent className="space-y-3 pt-4">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">{diagnostic.problem?.domain?.name}</Badge>
-            <Badge variant="outline">{diagnostic.problem?.name}</Badge>
-          </div>
-          {diagnostic.description ? <p className="text-sm text-muted-foreground">{diagnostic.description}</p> : null}
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            {diagnostic.difficulty ? <span>Difficulté : {diagnostic.difficulty}</span> : null}
-            {diagnostic.estimatedTime ? <span>Durée : {diagnostic.estimatedTime}</span> : null}
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Actif</span>
-            <Switch checked={diagnostic.isActive} onCheckedChange={handleToggleDiagnostic} />
-          </div>
-          <p className="text-xs text-muted-foreground">Slug : {diagnostic.slug}</p>
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <SectionHeader title="Informations" icon="info" />
+        <Card>
+          <CardContent className="space-y-3 pt-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{diagnostic.problem?.domain?.name}</Badge>
+              <Badge variant="outline">{diagnostic.problem?.name}</Badge>
+            </div>
+            {diagnostic.description ? <p className="text-sm text-muted-foreground">{diagnostic.description}</p> : null}
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              {diagnostic.difficulty ? <span>Difficulté : {diagnostic.difficulty}</span> : null}
+              {diagnostic.estimatedTime ? <span>Durée : {diagnostic.estimatedTime}</span> : null}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Actif</span>
+              <Switch checked={diagnostic.isActive} onCheckedChange={handleToggleDiagnostic} />
+            </div>
+            <p className="text-xs text-muted-foreground">Slug : {diagnostic.slug}</p>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Interventions ({diagnostic.interventions.length})</h2>
-        <Button size="sm" onClick={() => setShowCreateInt(true)}>
-          <Icon name="plus" size="3.5" />
-          Intervention
-        </Button>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-
-      {diagnostic.interventions.length === 0 ? (
-        <EmptyState icon="wrench" title="Aucune intervention" description="Ajoutez une intervention pour ce diagnostic." />
-      ) : (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Interventions (${diagnostic.interventions.length})`}
+          icon="wrench"
+          action={
+            <Button size="sm" onClick={() => setShowCreateInt(true)}>
+              <Icon name="plus" size="3.5" />
+              Intervention
+            </Button>
+          }
+        />
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {diagnostic.interventions.length === 0 ? (
+          <EmptyState icon="wrench" title="Aucune intervention" description="Ajoutez une intervention pour ce diagnostic." />
+        ) : (
         <div className="space-y-2">
           {diagnostic.interventions.map((intervention) => (
             <Card key={intervention.id}>
@@ -302,6 +319,7 @@ export default function AdminDiagnosticPage() {
           ))}
         </div>
       )}
+      </section>
 
       {/* Create Intervention Modal */}
       <Modal
@@ -342,7 +360,7 @@ export default function AdminDiagnosticPage() {
 
       {/* Inline Pricing Editor (bottom of page) */}
       {pricingInterventionId ? (
-        <Card className="border-primary/30">
+        <Card id="pricing-editor" className="scroll-mt-20 border-primary/30">
           <CardContent className="space-y-3 pt-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">

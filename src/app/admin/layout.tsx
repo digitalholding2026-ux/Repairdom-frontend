@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Icon } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
 import { siteConfig } from '@/lib/site-config';
@@ -28,7 +29,10 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>
           {loading ? null : showChrome ? (
-            <Badge variant="info">Back-office</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="info">Back-office</Badge>
+              <UserAvatar href="/admin/kyc" />
+            </div>
           ) : null}
         </div>
       </header>

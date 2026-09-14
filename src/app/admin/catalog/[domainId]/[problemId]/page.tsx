@@ -6,14 +6,16 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PageHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { autoSlug } from '@/lib/slug';
+import { extractErrorMessage } from '@/lib/errors';
 import {
   getProblem,
   createDiagnostic,
@@ -53,7 +55,7 @@ export default function AdminProblemPage() {
   const handleCreateDiagnostic = async () => {
     if (!params?.problemId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -73,7 +75,7 @@ export default function AdminProblemPage() {
       setNewEstTime('');
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(extractErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreating(false);
     }
@@ -89,7 +91,7 @@ export default function AdminProblemPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading) return <CatalogSkeleton />;
   if (!problem) return <EmptyState title="Problème introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   const domainId = problem.domain?.id ?? params?.domainId;
@@ -115,40 +117,45 @@ export default function AdminProblemPage() {
   breadcrumbs.push({ label: problem.name });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
       <PageHeader title={problem.name} description="Diagnostics et tarifs de ce problème." />
 
-      <Card>
-        <CardContent className="space-y-3 pt-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{problem.domain?.name}</Badge>
-            {brand ? <Badge variant="info">Marque : {brand.name}</Badge> : null}
-            {model ? <Badge variant="info">Modèle : {model.name}</Badge> : null}
-            {!brand && !model ? <Badge variant="neutral">Générique</Badge> : null}
-          </div>
-          {problem.description ? <p className="text-sm text-muted-foreground">{problem.description}</p> : null}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">Actif</span>
-            <Switch checked={problem.isActive} onCheckedChange={handleToggleActive} />
-          </div>
-          <p className="text-xs text-muted-foreground">Slug : {problem.slug}</p>
-        </CardContent>
-      </Card>
+      <section className="space-y-3">
+        <SectionHeader title="Informations" icon="info" />
+        <Card>
+          <CardContent className="space-y-3 pt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{problem.domain?.name}</Badge>
+              {brand ? <Badge variant="info">Marque : {brand.name}</Badge> : null}
+              {model ? <Badge variant="info">Modèle : {model.name}</Badge> : null}
+              {!brand && !model ? <Badge variant="neutral">Générique</Badge> : null}
+            </div>
+            {problem.description ? <p className="text-sm text-muted-foreground">{problem.description}</p> : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Actif</span>
+              <Switch checked={problem.isActive} onCheckedChange={handleToggleActive} />
+            </div>
+            <p className="text-xs text-muted-foreground">Slug : {problem.slug}</p>
+          </CardContent>
+        </Card>
+      </section>
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Diagnostics ({problem.diagnostics.length})</h2>
-        <Button size="sm" onClick={() => setShowCreate(true)}>
-          <Icon name="plus" size="3.5" />
-          Diagnostic
-        </Button>
-      </div>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
-
-      {problem.diagnostics.length === 0 ? (
-        <EmptyState icon="badge-check" title="Aucun diagnostic" description="Ajoutez un diagnostic pour ce problème." />
-      ) : (
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Diagnostics (${problem.diagnostics.length})`}
+          icon="badge-check"
+          action={
+            <Button size="sm" onClick={() => setShowCreate(true)}>
+              <Icon name="plus" size="3.5" />
+              Diagnostic
+            </Button>
+          }
+        />
+        {error ? <Alert variant="error">{error}</Alert> : null}
+        {problem.diagnostics.length === 0 ? (
+          <EmptyState icon="badge-check" title="Aucun diagnostic" description="Ajoutez un diagnostic pour ce problème." />
+        ) : (
         <div className="space-y-2">
           {problem.diagnostics.map((diag) => (
             <Link key={diag.id} href={`/admin/catalog/${domainId}/${params?.problemId}/${diag.id}`} className="block">
@@ -177,6 +184,7 @@ export default function AdminProblemPage() {
           ))}
         </div>
       )}
+      </section>
 
       <Modal
         open={showCreate}
