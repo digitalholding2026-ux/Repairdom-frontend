@@ -9,15 +9,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import {
   getClientFinanceSummary,
-  type ClientFinanceMission,
   type ClientFinanceSummary,
   type ClientFinanceTransaction,
+  type ClientFinanceMission,
 } from '@/lib/api/finance-service';
-import { formatDateTime, formatCurrency, formatCurrencySigned } from '@/lib/format';
+import { formatCurrency, formatCurrencySigned, formatDateTime } from '@/lib/format';
+import { SoldeOverview } from '@/components/client/solde/solde-overview';
+import { UpcomingBanner } from '@/components/client/solde/upcoming-banner';
+import { SpendChart } from '@/components/client/solde/spend-chart';
+import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
@@ -52,25 +56,16 @@ export default function ClientSoldePage() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
+  if (loading) return <SoldeSkeleton />;
 
   if (error) {
     return (
       <div className="space-y-4">
         <Alert variant="error">{error}</Alert>
         <Link href="/client">
-          <span className="text-sm font-medium text-primary hover:underline">Retour à l&apos;accueil</span>
+          <span className="text-sm font-medium text-primary hover:underline">
+            Retour à l&apos;accueil
+          </span>
         </Link>
       </div>
     );
@@ -79,6 +74,8 @@ export default function ClientSoldePage() {
   if (!summary) return null;
 
   const simulation = summary.mode === 'SIMULATION';
+  const missionCount = summary.missions.length;
+  const avgPerMission = missionCount > 0 ? summary.totals.debit / missionCount : 0;
 
   return (
     <div className="space-y-5">
@@ -91,81 +88,62 @@ export default function ClientSoldePage() {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardContent className="space-y-3 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Solde disponible</p>
-              <p className="mt-1 text-3xl font-bold tracking-tight">
-                {formatCurrency(summary.balance, summary.currency)}
-              </p>
-            </div>
-            {simulation ? <Badge variant="warning">SIMULATION</Badge> : null}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Crédits reçus</p>
-              <p className="mt-0.5 font-semibold text-success">
-                {formatCurrency(summary.totals.credit, summary.currency)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Débits</p>
-              <p className="mt-0.5 font-semibold text-error">
-                {formatCurrency(summary.totals.debit, summary.currency)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Hero gradient */}
+      <SoldeOverview summary={summary} />
 
-      {/* Recharger / Retirer */}
-      <section className="grid grid-cols-2 gap-3">
-        <Card className="overflow-hidden">
-          <CardContent className="space-y-2 py-4 text-center">
-            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon name="plus" />
-            </span>
-            <p className="text-sm font-semibold">Recharger mon solde</p>
-            <p className="text-xs text-muted-foreground">
-              Cette fonctionnalité sera bientôt disponible.
-            </p>
-            <Button variant="secondary" size="sm" disabled className="w-full opacity-60">
-              Recharger
-            </Button>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardContent className="space-y-2 py-4 text-center">
-            <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Icon name="arrow-right" />
-            </span>
-            <p className="text-sm font-semibold">Retirer</p>
-            <p className="text-xs text-muted-foreground">
-              Les retraits seront disponibles prochainement.
-            </p>
-            <Button variant="secondary" size="sm" disabled className="w-full opacity-60">
-              Retirer
-            </Button>
+      {/* Bandeau recharge / retrait */}
+      <UpcomingBanner />
+
+      {/* Stats rapides */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <StatCard
+          icon="briefcase"
+          label="Dépense moy. / mission"
+          value={missionCount > 0 ? formatCurrency(avgPerMission, summary.currency) : '—'}
+          variant="revenue"
+        />
+        <StatCard
+          icon="check-circle"
+          label="Missions débitées"
+          value={missionCount}
+          href="/client/demandes/historique"
+        />
+      </div>
+
+      {/* Évolution dépenses */}
+      <section className="space-y-3">
+        <SectionHeader title="Évolution des dépenses" />
+        <Card>
+          <CardContent className="py-4">
+            <SpendChart
+              transactions={summary.transactions}
+              currency={summary.currency}
+            />
           </CardContent>
         </Card>
       </section>
 
+      {/* Dépenses par mission */}
       <section className="space-y-3">
         <SectionHeader
           title="Dépenses par mission"
           action={
-            summary.missions.length > 0 ? (
-              <Badge variant={summary.missions.length > 0 ? 'outline' : 'neutral'}>
-                {summary.missions.length} mission{summary.missions.length !== 1 ? 's' : ''}
+            missionCount > 0 ? (
+              <Badge variant="outline">
+                {missionCount} mission{missionCount !== 1 ? 's' : ''}
               </Badge>
             ) : undefined
           }
         />
-        {summary.missions.length === 0 ? (
+        {missionCount === 0 ? (
           <EmptyState
             title="Aucune dépense enregistrée"
             description="Vos interventions débitées de votre solde apparaîtront ici."
+            action={
+              <Link href="/client/demandes">
+                <Button>Voir mes missions</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -176,12 +154,18 @@ export default function ClientSoldePage() {
         )}
       </section>
 
-      <section className="space-y-3">
-        <SectionHeader title="Historique des mouvements" />
+      {/* Détail des mouvements */}
+      <section id="mouvements" className="space-y-3 scroll-mt-20">
+        <SectionHeader title="Détail des mouvements" />
         {summary.transactions.length === 0 ? (
           <EmptyState
             title="Aucun mouvement"
             description="Vos crédits et débits apparaîtront ici au fil des interventions."
+            action={
+              <Link href="/client/demandes">
+                <Button variant="outline">Voir mes missions</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-2">
@@ -226,12 +210,16 @@ function MissionDebitCard({
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Frais RepairDom (client)</span>
-              <span className="font-medium">{formatCurrency(mission.fee, currency)}</span>
+              <span className="font-medium text-muted-foreground">
+                {formatCurrency(mission.fee, currency)}
+              </span>
             </div>
             <div className="my-1 h-px bg-border" />
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold">Total débité</span>
-              <span className="font-semibold">{formatCurrency(mission.totalDebit, currency)}</span>
+              <span className="font-semibold text-error-ink">
+                {formatCurrency(mission.totalDebit, currency)}
+              </span>
             </div>
           </div>
           {mission.scheduledAt ? (
