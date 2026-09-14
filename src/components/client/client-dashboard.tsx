@@ -4,21 +4,22 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
 import { BalanceCard } from '@/components/client/dashboard/balance-card';
 import { QuickActions } from '@/components/client/dashboard/quick-actions';
 import { LiveMissionCard } from '@/components/client/dashboard/live-mission-card';
+import { RewardsCard } from '@/components/client/dashboard/rewards-card';
+import { ClientAccountSection } from '@/components/client/dashboard/client-account-section';
+import { ClientDashboardSkeleton } from '@/components/client/dashboard/client-dashboard-skeleton';
 import {
   ActivityFeed,
   type ActivityItem,
   type ActivityTone,
 } from '@/components/client/dashboard/activity-feed';
-import { RewardsCard } from '@/components/client/dashboard/rewards-card';
 import { getMe, logoutAndGoHome, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
@@ -50,6 +51,13 @@ const TX_STATUS_SHORT: Record<string, string> = {
   REVERSED: 'Annulé',
   FAILED: 'Échoué',
 };
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Bonjour';
+  if (hour < 18) return 'Bon après-midi';
+  return 'Bonsoir';
+}
 
 function MissionTabs({ current }: { current: 'missions' | 'history' }) {
   const tabs = [
@@ -138,6 +146,11 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     [historique],
   );
 
+  const activeCount = useMemo(
+    () => demandes.filter((d) => ACTIVE_STATUSES.includes(d.status)).length,
+    [demandes],
+  );
+
   const currentMission = useMemo(() => {
     const active = demandes
       .filter((d) => ACTIVE_STATUSES.includes(d.status))
@@ -200,17 +213,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   };
 
   if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-3/5" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
+    return <ClientDashboardSkeleton />;
   }
 
   if (error) {
@@ -286,20 +289,40 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
 
   return (
     <div className="space-y-6">
-      <section className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-            Bonjour{firstName ? `, ${firstName}` : ''} 👋
-          </h1>
-          <p className="text-sm text-muted-foreground">Que pouvons-nous réparer pour vous ?</p>
+      {/* ── Hero: salut + stats inline ─────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+              {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
+            </h1>
+            <p className="text-sm text-muted-foreground">Que pouvons-nous réparer pour vous ?</p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Icon name="logout" size="sm" />
+            <span className="ml-1 hidden sm:inline">Déconnexion</span>
+          </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <Icon name="logout" size="sm" />
-          <span className="ml-1 hidden sm:inline">Déconnexion</span>
-        </Button>
+
+        {/* Stats inline */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <StatCard icon="truck" label="En cours" value={activeCount} />
+          <StatCard
+            icon="check-circle"
+            label="Terminées"
+            value={doneCount}
+            href="/client/demandes/historique"
+          />
+          <StatCard
+            icon="sparkles"
+            label="Récompense"
+            value={`${doneCount}/5`}
+            href="/client/recompenses"
+          />
+        </div>
       </section>
 
-      {/* Niveau 1 — CTA principal (action immédiate dominante) */}
+      {/* CTA principal (action immédiate dominante) */}
       <section>
         <Link href="/client/demande" className="block">
           <Button size="lg" className="w-full gap-2 text-base">
@@ -309,7 +332,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         </Link>
       </section>
 
-      {/* Solde — carte dégradée façon Revolut */}
+      {/* Solde — carte dégradée */}
       {balance ? (
         <section>
           <BalanceCard balance={balance} />
@@ -329,11 +352,6 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         <EmptyState
           title="Vous n\u2019avez encore aucune demande"
           description="Décrivez votre panne et nous trouvons le technicien adapté près de chez vous."
-          action={
-            <Link href="/client/demande">
-              <Button>Déposer une panne</Button>
-            </Link>
-          }
         />
       ) : null}
 
@@ -349,34 +367,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       {/* Mon compte */}
       <section className="space-y-3">
         <SectionHeader title="Mon compte" />
-        <div className="space-y-2">
-          <Link href="/client/profil" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="user" />
-                </span>
-                <p className="text-sm font-semibold">Profil</p>
-                <span className="ml-auto">
-                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/conditions-utilisation" className="block">
-            <Card className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name="file" />
-                </span>
-                <p className="text-sm font-semibold">Conditions d&apos;utilisation</p>
-                <span className="ml-auto">
-                  <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
+        {user ? <ClientAccountSection user={user} /> : null}
       </section>
     </div>
   );

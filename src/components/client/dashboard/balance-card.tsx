@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/format';
 export function BalanceCard({ balance }: { balance: ClientFinanceSummary }) {
   return (
     <Link href="/client/solde" className="block active:scale-[0.99] transition-transform">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#4f46e5] via-[#6d28d9] to-[#8b5cf6] p-5 text-white shadow-pop">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-5 text-white shadow-pop">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/20 blur-2xl"
@@ -41,14 +41,28 @@ export function BalanceCard({ balance }: { balance: ClientFinanceSummary }) {
           ) : null}
         </div>
 
-        <div className="mt-5 flex gap-2.5">
-          <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/15 py-2.5 text-sm font-medium backdrop-blur-sm">
-            <Icon name="plus" size="sm" />
-            Recharger
-          </span>
-          <span className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-white/15 py-2.5 text-sm font-medium backdrop-blur-sm">
-            Retirer
-          </span>
+        <div className="relative mt-5 grid grid-cols-2 gap-2.5">
+          <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+            <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+              Crédits reçus
+            </p>
+            <p className="font-mono text-base font-bold">
+              {formatCurrency(balance.totals.credit, balance.currency)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
+            <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+              Débits
+            </p>
+            <p className="font-mono text-base font-bold">
+              {formatCurrency(balance.totals.debit, balance.currency)}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-3 flex items-center justify-end gap-1 text-xs font-medium text-white/80">
+          Voir mon solde
+          <Icon name="chevron-right" size="sm" />
         </div>
       </div>
     </Link>
