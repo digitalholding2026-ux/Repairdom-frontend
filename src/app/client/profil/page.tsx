@@ -7,19 +7,19 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
-import { Avatar } from '@/components/ui/avatar';
-import { PageHeader } from '@/components/ui/page-header';
-import { Icon } from '@/components/ui/icon';
+import { Select } from '@/components/ui/select';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { ProfilHero } from '@/components/client/profil/profil-hero';
+import { AvatarUpload } from '@/components/client/profil/avatar-upload';
+import { ProfilSkeleton } from '@/components/client/profil/profil-skeleton';
 import {
   getMe,
   homePathForRole,
   updateMe,
-  uploadClientAvatar,
+  logoutAndGoHome,
   type AuthUser,
 } from '@/lib/api/auth-service';
 import { listCities, type City } from '@/lib/api/cities-service';
-import { Select } from '@/components/ui/select';
 
 export default function ClientProfilPage() {
   const router = useRouter();
@@ -35,6 +35,7 @@ export default function ClientProfilPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [loggedOut, setLoggedOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,27 +82,13 @@ export default function ClientProfilPage() {
     }
   };
 
-  const handleAvatar = async (files: FileList | null) => {
-    if (!files?.length) return;
-    try {
-      const updated = await uploadClientAvatar(files[0]);
-      setUser(updated);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\u2019upload de la photo.');
-    }
+  const handleLogout = async () => {
+    setLoggedOut(true);
+    await logoutAndGoHome();
   };
 
   if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
+    return <ProfilSkeleton />;
   }
 
   if (!user) return null;
@@ -110,69 +97,93 @@ export default function ClientProfilPage() {
     <div className="space-y-6">
       <PageHeader title="Mon profil" description="Gérez vos informations personnelles." backHref="/client" />
 
-      <div className="flex items-center gap-4">
-        <Avatar
-          size="xl"
-          firstName={user.firstName ?? ''}
-          lastName={user.lastName}
-          src={user.avatarUrl ?? undefined}
-        />
-        <div>
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted/50">
-            <Icon name="settings" size="sm" />
-            Modifier la photo
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => handleAvatar(e.target.files)}
-            />
-          </label>
-          <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ou WEBP – max 5 Mo</p>
+      <ProfilHero user={user} />
+
+      {user.emailVerified === false ? (
+        <Alert variant="warning" dense title="Email non vérifié">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="flex-1">
+              Votre adresse email n&apos;est pas encore confirmée.
+            </span>
+            <Link
+              href="/client/verification"
+              className="shrink-0 text-sm font-medium text-warning-ink underline underline-offset-2"
+            >
+              Vérifier mon email
+            </Link>
+          </div>
+        </Alert>
+      ) : null}
+
+      <div className="space-y-3">
+        <AvatarUpload user={user} onUpdated={setUser} />
+      </div>
+
+      <div className="space-y-4">
+        <SectionHeader title="Coordonnées" />
+        <div className="space-y-4">
+          <Field label="Prénom" htmlFor="profil-firstName" required>
+            <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </Field>
+          <Field label="Nom" htmlFor="profil-lastName" required>
+            <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </Field>
+          <Field label="Ville" htmlFor="profil-city">
+            <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
+              <option value="">Sélectionnez votre ville</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Adresse précise" htmlFor="profil-address">
+            <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} />
+          </Field>
         </div>
       </div>
 
       <div className="space-y-4">
-        <Field label="Prénom" htmlFor="profil-firstName" required>
-          <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-        </Field>
-        <Field label="Nom" htmlFor="profil-lastName" required>
-          <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-        </Field>
-        <Field label="Email" htmlFor="profil-email">
+        <SectionHeader title="Contact" />
+        <div className="space-y-4">
+          <Field label="Téléphone" htmlFor="profil-phone">
+            <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+          </Field>
+          <Field label="WhatsApp" htmlFor="profil-whatsapp" hint="WhatsApp de préférence">
+            <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" />
+          </Field>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <SectionHeader title="Compte" />
+        <Field label="Email" htmlFor="profil-email" hint="L'email sert à la connexion et aux notifications.">
           <Input id="profil-email" value={user.email} disabled className="opacity-60" />
-        </Field>
-        <Field label="Téléphone" htmlFor="profil-phone">
-          <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
-        </Field>
-        <Field label="WhatsApp" htmlFor="profil-whatsapp" hint="WhatsApp de préférence">
-          <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" />
-        </Field>
-        <Field label="Ville" htmlFor="profil-city">
-          <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
-            <option value="">Sélectionnez votre ville</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Adresse précise" htmlFor="profil-address">
-          <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
       </div>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {saved ? <Alert variant="success" dense>Profil mis à jour.</Alert> : null}
 
-      <Button onClick={handleSave} className="w-full" size="lg" isLoading={saving} disabled={!firstName.trim()}>
+      <Button
+        onClick={handleSave}
+        className="w-full"
+        size="lg"
+        isLoading={saving}
+        disabled={!firstName.trim()}
+      >
         Enregistrer les modifications
       </Button>
 
-      <Link href="/client" className="block">
-        <Button variant="secondary" className="w-full">
-          Retour à l&apos;accueil
+      <div className="flex flex-col gap-2 pt-2">
+        <Link href="/client/demandes" className="block">
+          <Button variant="secondary" className="w-full">
+            Voir mes missions
+          </Button>
+        </Link>
+        <Button variant="ghost" className="w-full text-error-ink hover:bg-error-soft" onClick={handleLogout} isLoading={loggedOut}>
+          Se déconnecter
         </Button>
-      </Link>
+      </div>
     </div>
   );
 }
