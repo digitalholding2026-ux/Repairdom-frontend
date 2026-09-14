@@ -1,57 +1,31 @@
 'use client';
 
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Avatar } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { Badge } from '@/components/ui/badge';
+import { ProfilHero } from '@/components/technician/profil/profil-hero';
+import { AvatarUpload } from '@/components/technician/profil/avatar-upload';
+import { ProfilSkeleton } from '@/components/technician/profil/profil-skeleton';
+import { KycSection } from '@/components/technician/profil/kyc-section';
 import { cn } from '@/lib/cn';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import {
   getTechnicianProfile,
   updateTechnicianProfile,
-  uploadTechnicianAvatar,
   getTechnicianKyc,
-  uploadTechnicianKycDocument,
-  deleteTechnicianKycDocument,
   type TechnicianProfile,
   type TechnicianKycOverview,
 } from '@/lib/api/technician-service';
-import {
-  kycStatusLabel,
-  kycVariantFor,
-  kycDocumentTypeLabel,
-} from '@/lib/technician-profile';
-
-const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
-
-const ALLOWED_KYC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
-const MAX_KYC_SIZE = 10 * 1024 * 1024;
-
-function formatFileSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
-  return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
-}
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
+import { kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
+import { logoutAndGoHome } from '@/lib/api/auth-service';
 
 export default function TechnicianProfilePage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
@@ -67,21 +41,11 @@ export default function TechnicianProfilePage() {
   const [serviceDescription, setServiceDescription] = useState('');
   const [bio, setBio] = useState('');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadingName, setUploadingName] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [photoUploaded, setPhotoUploaded] = useState(false);
-
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [kyc, setKyc] = useState<TechnicianKycOverview | null>(null);
   const [kycLoading, setKycLoading] = useState(true);
   const [kycError, setKycError] = useState<string | null>(null);
-  const [kycSuccess, setKycSuccess] = useState<string | null>(null);
-  const [showKycForm, setShowKycForm] = useState(false);
-  const [uploadingKycType, setUploadingKycType] = useState<string | null>(null);
-  const [deletingKycId, setDeletingKycId] = useState<string | null>(null);
-  const identityInputRef = useRef<HTMLInputElement>(null);
-  const professionalInputRef = useRef<HTMLInputElement>(null);
+  const [loggedOut, setLoggedOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,6 +55,7 @@ export default function TechnicianProfilePage() {
         const [p, k] = await Promise.all([getTechnicianProfile(), getTechnicianKyc()]);
         if (cancelled) return;
         setProfile(p);
+        setAvatarUrl(p.avatarUrl);
         setKyc(k);
         setCity(p.city);
         setCategories(p.categories);
@@ -137,101 +102,22 @@ export default function TechnicianProfilePage() {
           .filter(Boolean),
       });
       setProfile(updated);
+      setAvatarUrl(updated.avatarUrl);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\u2019enregistrement.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAvatarFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    setUploadError(null);
-    setPhotoUploaded(false);
-
-    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      setUploadError('Format non supporté. Choisissez une image JPG, PNG ou WEBP.');
-      return;
-    }
-    if (file.size > MAX_AVATAR_SIZE) {
-      setUploadError('Le fichier dépasse 5 Mo.');
-      return;
-    }
-
-    setUploading(true);
-    setUploadingName(`${file.name} (${formatFileSize(file.size)})`);
-    try {
-      const updated = await uploadTechnicianAvatar(file);
-      setProfile(updated);
-      setPhotoUploaded(true);
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Erreur lors de l’envoi de la photo.');
-    } finally {
-      setUploading(false);
-      setUploadingName(null);
-    }
-  };
-
-  const handleKycFileChange = async (type: string, event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    setKycError(null);
-    setKycSuccess(null);
-
-    if (!ALLOWED_KYC_TYPES.includes(file.type)) {
-      setKycError('Format non supporté. Formats acceptés : PDF, JPG, PNG, WEBP.');
-      return;
-    }
-    if (file.size > MAX_KYC_SIZE) {
-      setKycError('Le fichier dépasse 10 Mo.');
-      return;
-    }
-
-    setUploadingKycType(type);
-    try {
-      const overview = await uploadTechnicianKycDocument(file, type);
-      setKyc(overview);
-      setKycSuccess(`${file.name} a bien été envoyé.`);
-    } catch (err) {
-      setKycError(err instanceof Error ? err.message : 'Erreur lors de l’envoi du document.');
-    } finally {
-      setUploadingKycType(null);
-    }
-  };
-
-  const handleKycDelete = async (id: string) => {
-    if (!kyc) return;
-    setKycError(null);
-    setKycSuccess(null);
-    setDeletingKycId(id);
-    try {
-      const overview = await deleteTechnicianKycDocument(id);
-      setKyc(overview);
-      setKycSuccess('Document retiré.');
-    } catch (err) {
-      setKycError(err instanceof Error ? err.message : 'Erreur lors de la suppression.');
-    } finally {
-      setDeletingKycId(null);
-    }
+  const handleLogout = async () => {
+    setLoggedOut(true);
+    await logoutAndGoHome();
   };
 
   if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
+    return <ProfilSkeleton />;
   }
 
   if (!profile) {
@@ -245,78 +131,51 @@ export default function TechnicianProfilePage() {
     );
   }
 
-  const currentAvatar = profile.avatarUrl;
-
   return (
-    <div className="space-y-4">
-      <Link
-        href="/technicien"
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-      >
-        <Icon name="arrow-left" size="sm" />
-        Retour au tableau de bord
-      </Link>
+    <div className="space-y-6">
+      <PageHeader title="Mon profil" description="Gérez votre profil professionnel." backHref="/technicien" />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Mon profil professionnel</CardTitle>
-          <CardDescription>
-            Ces informations sont visibles par les clients lorsqu’ils consultent votre profil.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-start gap-4">
-            <Avatar
-              src={currentAvatar}
-              firstName={profile.user.firstName}
-              lastName={profile.user.lastName}
-              size="xl"
-              alt="Photo de profil"
+      <ProfilHero profile={profile} />
+
+      <div className="space-y-4">
+        <SectionHeader title="Photo de profil" />
+        <div className="flex items-start gap-4">
+          <Avatar
+            src={avatarUrl}
+            firstName={profile.user.firstName}
+            lastName={profile.user.lastName}
+            size="xl"
+            alt="Photo de profil"
+          />
+          <div className="flex-1">
+            <AvatarUpload
+              avatarUrl={avatarUrl}
+              onUpdated={(url) => {
+                setAvatarUrl(url);
+                setProfile((prev) => (prev ? { ...prev, avatarUrl: url } : prev));
+              }}
             />
-            <div className="flex-1 space-y-2"><input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={handleAvatarFileChange}
-              />
-              {uploading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Spinner size="sm" />
-                  <span className="truncate">Envoi de {uploadingName ?? 'la photo'}…</span>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant={currentAvatar ? 'secondary' : 'primary'}
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {currentAvatar ? 'Modifier la photo' : 'Ajouter une photo'}
-                </Button>
-              )}
-              {!uploading && !uploadError && !photoUploaded ? (
-                <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP · 5 Mo maximum.</p>
-              ) : null}
-              {photoUploaded ? <Alert variant="success" dense>Photo mise à jour.</Alert> : null}
-              {uploadError ? <Alert variant="error" dense>{uploadError}</Alert> : null}
-            </div>
           </div>
+        </div>
+      </div>
 
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Ville / zone d’intervention *</span>
-              <Input
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-                placeholder="Ex. : Douala"
-                maxLength={120}
-              />
-            </label>
-          </div>
+      <div className="space-y-4">
+        <SectionHeader title="Informations professionnelles" />
+        <div className="space-y-5">
+          <Field label="Ville / zone d'intervention" htmlFor="profil-ville" required>
+            <Input
+              id="profil-ville"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Ex. : Douala"
+              maxLength={120}
+            />
+          </Field>
 
-          <div className="space-y-2">
-            <span className="block text-sm font-medium">Compétences *</span>
+          <div>
+            <span className="mb-1.5 block text-sm font-medium">
+              Compétences <span className="ml-0.5 text-error" aria-hidden>*</span>
+            </span>
             <div className="grid gap-2" role="group" aria-label="Compétences">
               {REQUEST_CATEGORIES.map((category) => {
                 const selected = categories.includes(category.id);
@@ -342,235 +201,124 @@ export default function TechnicianProfilePage() {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Spécialités (séparées par des virgules)</span>
-              <Input
-                value={specialties}
-                onChange={(event) => setSpecialties(event.target.value)}
-                placeholder="Ex. : Smartphones, Ordinateurs, Tablettes"
-                maxLength={400}
-              />
-            </label>
-          </div>
+          <Field
+            label="Spécialités"
+            htmlFor="profil-specialites"
+            hint="Séparées par des virgules."
+          >
+            <Input
+              id="profil-specialites"
+              value={specialties}
+              onChange={(e) => setSpecialties(e.target.value)}
+              placeholder="Ex. : Smartphones, Ordinateurs, Tablettes"
+              maxLength={400}
+            />
+          </Field>
+        </div>
+      </div>
 
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Expérience</span>
-              <Textarea
-                value={experience}
-                onChange={(event) => setExperience(event.target.value)}
-                placeholder="Ex. : 5 ans d’expérience dans la réparation des smartphones…"
-                rows={3}
-                maxLength={2000}
-              />
-            </label>
-          </div>
+      <div className="space-y-4">
+        <SectionHeader title="Présentation" />
+        <div className="space-y-4">
+          <Field label="Bio" htmlFor="profil-bio">
+            <Textarea
+              id="profil-bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Parlez de vous, de vos méthodes…"
+              rows={3}
+              maxLength={2000}
+            />
+          </Field>
+          <Field label="Expérience" htmlFor="profil-experience">
+            <Textarea
+              id="profil-experience"
+              value={experience}
+              onChange={(e) => setExperience(e.target.value)}
+              placeholder="Ex. : 5 ans d’expérience dans la réparation des smartphones…"
+              rows={3}
+              maxLength={2000}
+            />
+          </Field>
+          <Field label="Description des services" htmlFor="profil-services">
+            <Textarea
+              id="profil-services"
+              value={serviceDescription}
+              onChange={(e) => setServiceDescription(e.target.value)}
+              placeholder="Ex. : remplacement d’écran, réparation de carte mère…"
+              rows={3}
+              maxLength={2000}
+            />
+          </Field>
+        </div>
+      </div>
 
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Description des services</span>
-              <Textarea
-                value={serviceDescription}
-                onChange={(event) => setServiceDescription(event.target.value)}
-                placeholder="Ex. : remplacement d’écran, réparation de carte mère…"
-                rows={3}
-                maxLength={2000}
-              />
-            </label>
-          </div>
-
-          <div className="space-y-1">
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium">Présentation</span>
-              <Textarea
-                value={bio}
-                onChange={(event) => setBio(event.target.value)}
-                placeholder="Parlez de vous, de vos méthodes…"
-                rows={3}
-                maxLength={2000}
-              />
-            </label>
-          </div>
-
-          {error ? <Alert variant="error">{error}</Alert> : null}
-
-          {saved ? <Alert variant="success">Profil enregistré.</Alert> : null}
-
-          <Button onClick={handleSave} isLoading={saving} disabled={!canSave} className="w-full" size="lg">
-            Enregistrer le profil
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Statut de votre profil</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <div className="space-y-4">
+        <SectionHeader title="Statut du compte" />
+        <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Identité</span>
-            <Badge variant={kycVariantFor(profile.kycStatus)}>{kycStatusLabel(profile.kycStatus)}</Badge>
+            <Badge variant={kycVariantFor(profile.kycStatus)}>
+              {kycStatusLabel(profile.kycStatus)}
+            </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Vérifiée manuellement par RepairDom. Ce statut ne peut pas être modifié vous-même.
+          <p className="mt-1 text-xs text-muted-foreground">
+            Vérifiée manuellement par RepairDom. Ce statut peut être complété via la section ci-dessous.
           </p>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">Interventions réalisées</span>
-            <span className="text-sm font-semibold">{profile.completedInterventions}</span>
-          </div>
-          <Link href={`/client/technicien/${profile.id}`} className="block">
+          <Link href={`/client/technicien/${profile.id}`} className="mt-3 block">
             <Button variant="secondary" className="w-full">
               Voir mon profil public
             </Button>
           </Link>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Vérification de votre profil</CardTitle>
-          <CardDescription>RepairDom vérifie manuellement votre identité.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="space-y-4">
+        <SectionHeader title="Vérification de votre profil" />
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="mb-4 text-sm text-muted-foreground">
+            RepairDom vérifie manuellement votre identité.
+          </p>
           {kycLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner size="sm" /> Chargement…
             </div>
           ) : kyc ? (
-            <>
-              <div>
-                <Badge variant={kycVariantFor(kyc.status)}>{kycStatusLabel(kyc.status)}</Badge>
-              </div>
-
-              <p className="text-sm text-muted-foreground">
-                {kyc.status === 'NOT_SUBMITTED'
-                  ? 'Votre identité n’est pas encore vérifiée. Envoyez vos justificatifs pour permettre à RepairDom de vérifier votre profil.'
-                  : kyc.status === 'PENDING'
-                    ? 'Votre dossier est en cours de vérification par RepairDom.'
-                    : kyc.status === 'VERIFIED'
-                      ? 'Profil vérifié par RepairDom.'
-                      : 'Votre dossier a été rejeté.'}
-              </p>
-
-              {kyc.status === 'REJECTED' && kyc.kycRejectionReason ? (
-                <Alert variant="warning" title="Motif du rejet">
-                  {kyc.kycRejectionReason}
-                </Alert>
-              ) : null}
-
-              {kyc.documents.length > 0 ? (
-                <div className="space-y-2">
-                  <span className="block text-sm font-medium">Documents envoyés</span>
-                  <ul className="space-y-2">
-                    {kyc.documents.map((document) => (
-                      <li
-                        key={document.id}
-                        className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {kycDocumentTypeLabel(document.type)}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {document.originalName} · {formatDate(document.createdAt)}
-                          </p>
-                        </div>
-                        {kyc.status === 'VERIFIED' ? (
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            Conservé par RepairDom
-                          </span>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleKycDelete(document.id)}
-                            disabled={deletingKycId === document.id || uploadingKycType !== null}
-                            className="shrink-0"
-                          >
-                            {deletingKycId === document.id ? 'Suppression…' : 'Retirer'}
-                          </Button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-
-              {kyc.status === 'VERIFIED' ? null : !showKycForm ? (
-                <Button className="w-full" onClick={() => setShowKycForm(true)} disabled={uploadingKycType !== null}>
-                  {kyc.status === 'NOT_SUBMITTED'
-                    ? 'Commencer la vérification'
-                    : kyc.status === 'REJECTED'
-                      ? 'Soumettre à nouveau'
-                      : 'Ajouter un document'}
-                </Button>
-              ) : (
-                <div className="space-y-3 rounded-lg border border-border p-3">
-                  <p className="text-sm font-medium">Envoyer un justificatif</p>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">Pièce d’identité</p>
-                        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, WEBP · 10 Mo max.</p>
-                      </div>
-                      <input
-                        ref={identityInputRef}
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={(event) => handleKycFileChange('IDENTITY', event)}
-                      />
-                      {uploadingKycType === 'IDENTITY' ? (
-                        <span className="shrink-0 text-sm text-muted-foreground">Envoi…</span>
-                      ) : (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="shrink-0"
-                          onClick={() => identityInputRef.current?.click()}
-                        >
-                          Choisir un fichier
-                        </Button>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">Justificatif professionnel</p>
-                        <p className="text-xs text-muted-foreground">PDF, JPG, PNG, WEBP · 10 Mo max.</p>
-                      </div>
-                      <input
-                        ref={professionalInputRef}
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png,image/webp"
-                        className="hidden"
-                        onChange={(event) => handleKycFileChange('PROFESSIONAL', event)}
-                      />
-                      {uploadingKycType === 'PROFESSIONAL' ? (
-                        <span className="shrink-0 text-sm text-muted-foreground">Envoi…</span>
-                      ) : (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="shrink-0"
-                          onClick={() => professionalInputRef.current?.click()}
-                        >
-                          Choisir un fichier
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {kycError ? <Alert variant="error" dense>{kycError}</Alert> : null}
-              {kycSuccess ? <Alert variant="success" dense>{kycSuccess}</Alert> : null}
-            </>
+            <KycSection
+              kyc={kyc}
+              onUpdated={(overview) => {
+                setKyc(overview);
+                setProfile((prev) => (prev ? { ...prev, kycStatus: overview.status } : prev));
+              }}
+            />
           ) : (
             <Alert variant="error">{kycError ?? 'Impossible de charger votre dossier.'}</Alert>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {saved ? <Alert variant="success" dense>Profil enregistré.</Alert> : null}
+
+      <Button onClick={handleSave} isLoading={saving} disabled={!canSave} className="w-full" size="lg">
+        Enregistrer le profil
+      </Button>
+
+      <div className="flex flex-col gap-2 pt-2">
+        <Link href="/technicien" className="block">
+          <Button variant="secondary" className="w-full">
+            Retour au tableau de bord
+          </Button>
+        </Link>
+        <Button
+          variant="ghost"
+          className="w-full text-error-ink hover:bg-error-soft"
+          onClick={handleLogout}
+          isLoading={loggedOut}
+        >
+          Se déconnecter
+        </Button>
+      </div>
     </div>
   );
 }
