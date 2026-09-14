@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
-import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
@@ -139,24 +138,13 @@ export default function TechnicianProfilePage() {
 
       <div className="space-y-4">
         <SectionHeader title="Photo de profil" />
-        <div className="flex items-start gap-4">
-          <Avatar
-            src={avatarUrl}
-            firstName={profile.user.firstName}
-            lastName={profile.user.lastName}
-            size="xl"
-            alt="Photo de profil"
-          />
-          <div className="flex-1">
-            <AvatarUpload
-              avatarUrl={avatarUrl}
-              onUpdated={(url) => {
-                setAvatarUrl(url);
-                setProfile((prev) => (prev ? { ...prev, avatarUrl: url } : prev));
-              }}
-            />
-          </div>
-        </div>
+        <AvatarUpload
+          avatarUrl={avatarUrl}
+          onUpdated={(url) => {
+            setAvatarUrl(url);
+            setProfile((prev) => (prev ? { ...prev, avatarUrl: url } : prev));
+          }}
+        />
       </div>
 
       <div className="space-y-4">
