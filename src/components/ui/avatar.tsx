@@ -33,7 +33,7 @@ export function Avatar({
 }: AvatarProps) {
   const { box, text } = sizeClasses[size];
   return (
-    <span className={cn('relative inline-flex shrink-0', className)}>
+    <span className={cn('relative inline-flex shrink-0 rounded-full', className)}>
       {src ? (
         <img
           src={src}
