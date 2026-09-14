@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Icon } from '@/components/ui/icon';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatRequestedTiming } from '@/lib/request-timing';
 
 export const metadata: Metadata = {
@@ -28,6 +29,11 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        title="Demande envoyée"
+        description="Récapitulatif de votre nouvelle demande."
+        backHref="/client/demande"
+      />
       <section className="flex flex-col items-center gap-3 text-center">
         <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
           <Icon name="check-circle" size="xl" filled />

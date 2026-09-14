@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
 import { Avatar } from '@/components/ui/avatar';
 import { formatTime } from '@/lib/format';
+import { cn } from '@/lib/cn';
 import { getMe } from '@/lib/api/auth-service';
 import {
   listDemandeMessages,
@@ -79,15 +81,22 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
   };
 
   return (
-    <div className="space-y-3">
+    <div className="flex max-h-[26rem] flex-col gap-3">
       <div
         ref={listRef}
-        className="max-h-80 space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3"
+        className="flex-1 space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3"
       >
         {messages.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Aucun message pour le moment. Échangez avec {canSend ? 'l\'autre partie' : 'votre interlocuteur'} ici.
-          </p>
+          <div className="flex flex-col items-center gap-2 py-10 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Icon name="chat" size="md" />
+            </span>
+            <p className="text-sm font-medium">Aucun message pour le moment</p>
+            <p className="max-w-xs text-xs text-muted-foreground">
+              Échangez avec {canSend ? 'l&apos;autre partie' : 'votre interlocuteur'} ici en attendant
+              votre intervention.
+            </p>
+          </div>
         ) : (
           messages.map((message) => {
             const isMine = message.senderId === currentUserId;
@@ -95,20 +104,29 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
               .filter(Boolean)
               .join(' ');
             return (
-              <div key={message.id} className={`flex gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+              <div
+                key={message.id}
+                className={cn('flex gap-2', isMine ? 'justify-end' : 'justify-start')}
+              >
                 {!isMine ? (
                   <Avatar size="sm" firstName={message.sender.firstName} lastName={message.sender.lastName} />
                 ) : null}
                 <div
-                  className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-sm ${
+                  className={cn(
+                    'max-w-[80%] rounded-2xl px-3.5 py-2 text-sm',
                     isMine
                       ? 'rounded-br-md bg-primary text-primary-foreground'
-                      : 'rounded-bl-md border border-border bg-background'
-                  }`}
+                      : 'rounded-bl-md border border-border bg-background',
+                  )}
                 >
-                  <div className={`flex items-baseline gap-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={cn(
+                      'flex items-baseline gap-2',
+                      isMine ? 'justify-end' : 'justify-start',
+                    )}
+                  >
                     <p className="text-xs font-medium opacity-80">{isMine ? 'Vous' : senderName}</p>
-                    <p className={`text-[10px] ${isMine ? 'opacity-70' : 'text-muted-foreground'}`}>
+                    <p className={cn('text-[10px]', isMine ? 'opacity-70' : 'text-muted-foreground')}>
                       {formatTime(message.createdAt)}
                     </p>
                   </div>
@@ -131,12 +149,12 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
           }}
           className="flex items-center gap-2"
         >
-          <input
+          <Input
             value={content}
             onChange={(event) => setContent(event.target.value)}
             maxLength={2000}
             placeholder="Votre message…"
-            className="w-full rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+            className="h-11 flex-1 rounded-full"
           />
           <Button
             type="submit"

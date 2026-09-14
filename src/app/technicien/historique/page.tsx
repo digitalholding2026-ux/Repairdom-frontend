@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
 import { TechnicianHistoryDemandeCard } from '@/components/technician/technician-demande-card';
 import { getMe } from '@/lib/api/auth-service';
 import { listMyDemandeHistory, type TechnicianDemande } from '@/lib/api/technician-service';
+import { TechnicianHistorySkeleton } from '@/components/technician/historique/technician-history-skeleton';
 
 export default function TechnicianHistoriquePage() {
   const [history, setHistory] = useState<TechnicianDemande[]>([]);
@@ -46,18 +47,7 @@ export default function TechnicianHistoriquePage() {
   const doneCount = history.filter((d) => d.status === 'CONFIRMED').length;
   const canceledCount = history.filter((d) => d.status === 'CANCELED').length;
 
-  if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
+  if (loading) return <TechnicianHistorySkeleton />;
 
   if (error) {
     return (
@@ -79,17 +69,18 @@ export default function TechnicianHistoriquePage() {
         title="Historique des missions"
         description="Vos interventions terminées et annulées."
         backHref="/technicien"
-        actions={
-          <Badge variant="neutral">
-            {history.length} mission{history.length !== 1 ? 's' : ''}
-          </Badge>
-        }
       />
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <StatCard icon="briefcase" label="Missions terminées" value={doneCount} />
+        <StatCard icon="x" label="Missions annulées" value={canceledCount} />
+      </div>
 
       {history.length === 0 ? (
         <EmptyState
           title="Votre historique est vide"
           description="Les interventions confirmées et annulées apparaîtront ici."
+          icon={<Icon name="briefcase" size="md" />}
         />
       ) : (
         <div className="space-y-3">

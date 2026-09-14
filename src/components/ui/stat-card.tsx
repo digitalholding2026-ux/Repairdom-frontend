@@ -58,7 +58,7 @@ export function StatCard({
           <Icon
             name={trend.value >= 0 ? 'chevron-right' : 'chevron-left'}
             size="3.5"
-            style={{ transform: trend.value >= 0 ? 'rotate(-90deg)' : 'rotate(90deg)' }}
+            className={trend.value >= 0 ? 'rotate-90' : '-rotate-90'}
           />
           {Math.abs(trend.value)}% {trend.label}
         </span>

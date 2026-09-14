@@ -12,6 +12,7 @@ export default function DemandePage() {
       <PageHeader
         title="Nouvelle demande"
         description="Décrivez votre panne : nous nous occupons du reste."
+        backHref="/client/demandes"
       />
       <DemandeWizard />
     </div>

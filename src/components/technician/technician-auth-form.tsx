@@ -20,6 +20,16 @@ interface TechnicianAuthFormProps {
 
 const MIN_PASSWORD_LENGTH = 6;
 
+const CATEGORY_ICON: Record<string, import('@/components/ui/icon').IconName> = {
+  electricite: 'zap',
+  plomberie: 'droplet',
+  climatisation: 'thermometer',
+  electromenager: 'settings',
+  serrurerie: 'shield',
+  informatique: 'cpu',
+  autre: 'wrench',
+};
+
 export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
   const router = useRouter();
   const { refresh } = useAuth();
@@ -29,6 +39,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [city, setCity] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,14 +136,38 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
       </Field>
 
       <Field label="Mot de passe *" htmlFor="tech-password">
-        <Input
-          id="tech-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
-          autoComplete={isSignUp ? 'new-password' : 'current-password'}
-        />
+        <div className="relative">
+          <Input
+            id="tech-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type={showPassword ? 'text' : 'password'}
+            placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+          >
+            {showPassword ? (
+              <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                <line x1="1" y1="1" x2="23" y2="23" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        </div>
       </Field>
 
       {isSignUp ? (
@@ -174,7 +209,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
                   )}
                 >
                   <Icon
-                    name="wrench"
+                    name={CATEGORY_ICON[cat.id] ?? 'wrench'}
                     className={cn('size-4 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')}
                   />
                   <span className="min-w-0">

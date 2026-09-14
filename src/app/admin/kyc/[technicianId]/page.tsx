@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatDate, formatDateTime, formatFileSize, fullName } from '@/lib/format';
@@ -38,6 +39,7 @@ export default function AdminKycFolderPage() {
   const [fetchingUrlId, setFetchingUrlId] = useState<string | null>(null);
 
   const [showReject, setShowReject] = useState(false);
+  const [showConfirmValidate, setShowConfirmValidate] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -78,7 +80,12 @@ export default function AdminKycFolderPage() {
 
   const handleValidate = async () => {
     if (!params?.technicianId) return;
-    if (!window.confirm('Valider le profil de ce technicien ?')) return;
+    setShowConfirmValidate(true);
+  };
+
+  const confirmValidate = async () => {
+    if (!params?.technicianId) return;
+    setShowConfirmValidate(false);
     setActionBusy(true);
     setActionError(null);
     setActionSuccess(null);
@@ -385,6 +392,15 @@ export default function AdminKycFolderPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <ConfirmDialog
+        open={showConfirmValidate}
+        onCancel={() => setShowConfirmValidate(false)}
+        onConfirm={confirmValidate}
+        title="Valider le profil"
+        description="Confirmer la validation du profil de ce technicien ?"
+        confirmLabel="Valider"
+      />
     </div>
   );
 }

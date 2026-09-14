@@ -120,7 +120,7 @@ export function TrackingHero({
           {!canceled ? (
             <span
               aria-hidden
-              className="absolute -top-[9px] flex size-7 items-center justify-center rounded-full border-2 border-background bg-white text-primary shadow-pop transition-[left] duration-1000 ease-out"
+              className="absolute -top-[9px] flex size-7 items-center justify-center rounded-full border-2 border-background bg-background text-primary shadow-pop transition-[left] duration-1000 ease-out"
               style={{ left: `calc(${clampedProgress}% - 14px)` }}
             >
               {technicianName ? (

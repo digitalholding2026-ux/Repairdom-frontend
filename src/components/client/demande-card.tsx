@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { DemandeListItem } from '@/lib/api/request-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
-import { formatDate, fullName } from '@/lib/format';
+import { formatCurrency, formatDate, fullName } from '@/lib/format';
 
 export interface DemandeCardProps {
   demande: DemandeListItem;
@@ -21,21 +23,34 @@ function deviceLabelFor(demande: DemandeListItem): string {
     .join(' — ');
 }
 
-function formatPrice(value: number | null | undefined): string {
-  return value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
-}
-
 export function DemandeCard({ demande }: DemandeCardProps) {
+  const deviceLabel = deviceLabelFor(demande);
+  const scheduled = demande.requestedMode === 'SCHEDULED';
   return (
-    <Card className="transition-colors hover:bg-muted/50">
+    <Card className="transition-colors hover:border-primary/40 hover:bg-muted/50">
       <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <span className="font-mono text-sm font-semibold text-primary">{demande.reference}</span>
           <DemandeStatusBadge status={demande.status} />
         </div>
-        <p className="mt-2 text-sm font-medium">{demande.categoryLabel}</p>
-        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{demande.description}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+
+        <div className="mt-3 flex items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Icon name="wrench" size="sm" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{demande.categoryLabel}</p>
+            {deviceLabel ? (
+              <p className="truncate text-xs text-muted-foreground">{deviceLabel}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {demande.description ? (
+          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{demande.description}</p>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Icon name="pin" size="3.5" />
             {demande.city}
@@ -44,11 +59,13 @@ export function DemandeCard({ demande }: DemandeCardProps) {
             <Icon name="calendar" size="3.5" />
             {formatDate(demande.createdAt)}
           </span>
+          <span className="inline-flex items-center gap-1">
+            <Icon name={scheduled ? 'calendar' : 'clock'} size="3.5" />
+            {scheduled
+              ? formatRequestedTiming(demande.requestedMode, demande.requestedAt)
+              : 'Intervention dès que possible'}
+          </span>
         </div>
-        <p className="mt-2 text-xs font-medium text-foreground">
-          {demande.requestedMode === 'SCHEDULED' ? 'Intervention souhaitée' : 'Intervention'} :{' '}
-          {formatRequestedTiming(demande.requestedMode, demande.requestedAt)}
-        </p>
       </div>
     </Card>
   );
@@ -57,9 +74,18 @@ export function DemandeCard({ demande }: DemandeCardProps) {
 export function DemandesList({ demandes, emptyHref }: { demandes: DemandeListItem[]; emptyHref: string }) {
   if (demandes.length === 0) {
     return (
-      <Link href={emptyHref} className="block">
-        <DemandeCardEmpty />
-      </Link>
+      <Card className="border-dashed">
+        <EmptyState
+          title="Aucune demande dans cette catégorie"
+          description="Changer de filtre ou en déposer une nouvelle."
+          icon={<Icon name="briefcase" size="md" />}
+          action={
+            <Link href={emptyHref}>
+              <Button size="sm">Nouvelle demande</Button>
+            </Link>
+          }
+        />
+      </Card>
     );
   }
   return (
@@ -73,20 +99,6 @@ export function DemandesList({ demandes, emptyHref }: { demandes: DemandeListIte
   );
 }
 
-function DemandeCardEmpty() {
-  return (
-    <Card className="border-dashed">
-      <div className="flex flex-col items-center gap-2 px-4 py-12 text-center">
-        <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Icon name="briefcase" size="lg" />
-        </span>
-        <p className="text-sm font-medium">Aucune demande dans cette catégorie</p>
-        <p className="text-sm text-muted-foreground">Changer de filtre ou en déposer une nouvelle.</p>
-      </div>
-    </Card>
-  );
-}
-
 /** Carte d'historique (missions confirmées / annulées) côté client :
  *  référence, appareil (domaine/marque/modèle/problème), date, statut
  *  (Terminée/Annulée), technicien assigné et montant final. */
@@ -97,18 +109,30 @@ export function HistoryDemandeCard({
 }) {
   const deviceLabel = deviceLabelFor(demande);
   return (
-    <Card className="transition-colors hover:bg-muted/50">
+    <Card className="transition-colors hover:border-primary/40 hover:bg-muted/50">
       <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <span className="font-mono text-sm font-semibold text-primary">{demande.reference}</span>
           <DemandeStatusBadge status={demande.status} context="history" />
         </div>
-        <p className="mt-2 text-sm font-medium">{demande.categoryLabel}</p>
-        {deviceLabel ? (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{deviceLabel}</p>
+
+        <div className="mt-3 flex items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Icon name="wrench" size="sm" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{demande.categoryLabel}</p>
+            {deviceLabel ? (
+              <p className="truncate text-xs text-muted-foreground">{deviceLabel}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {demande.description ? (
+          <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{demande.description}</p>
         ) : null}
-        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{demande.description}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Icon name="pin" size="3.5" />
             {demande.city}
@@ -118,16 +142,19 @@ export function HistoryDemandeCard({
             {formatDate(demande.createdAt)}
           </span>
         </div>
+
         {demande.technician ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2">
-            <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-muted-foreground">
-              <Icon name="user" size="3.5" />
-              <span className="truncate">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/20 px-3.5 py-2.5">
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Icon name="user" size="3.5" />
+              </span>
+              <span className="truncate font-medium text-foreground">
                 {fullName(demande.technician.firstName, demande.technician.lastName)}
               </span>
             </span>
-            <span className="shrink-0 text-sm font-semibold text-foreground">
-              {formatPrice(demande.finalAmount)}
+            <span className="shrink-0 font-mono text-sm font-semibold text-foreground">
+              {formatCurrency(demande.finalAmount)}
             </span>
           </div>
         ) : null}

@@ -7,6 +7,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
+import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { Timeline } from '@/components/ui/timeline';
 import { MissionStepper } from '@/components/mission/mission-stepper';
@@ -60,12 +61,11 @@ export default function SuiviPage() {
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 space-y-5">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Suivre une intervention</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l&apos;avancement de votre mission.
-          </p>
-        </div>
+        <PageHeader
+          title="Suivre une intervention"
+          description="Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l'avancement de votre mission."
+          backHref="/"
+        />
 
         <Card>
           <CardContent className="space-y-3">
@@ -91,7 +91,16 @@ export default function SuiviPage() {
           </CardContent>
         </Card>
 
-        {tracking ? (
+        {loading ? (
+          <div className="space-y-4" role="status">
+            <span className="sr-only">Recherche de la demande…</span>
+            <div className="h-44 rounded-3xl bg-muted/50" />
+            <div className="h-32 rounded-2xl bg-muted/50" />
+            <div className="h-32 rounded-2xl bg-muted/50" />
+          </div>
+        ) : null}
+
+        {!loading && tracking ? (
           <div className="space-y-4">
             {(() => {
               const status = tracking.status;
