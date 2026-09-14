@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
-import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import {
   getTechnicianFinanceSummary,
@@ -16,12 +16,20 @@ import {
   type TechnicianFinanceTransaction,
   type TechnicianMissionFinance,
 } from '@/lib/api/finance-service';
+import { listMyDemandes, type TechnicianDemande } from '@/lib/api/technician-service';
 import {
   formatCurrency,
   formatCurrencySigned,
   formatDateTime,
   fullName,
 } from '@/lib/format';
+import { RevenueOverview } from '@/components/technician/revenus/revenue-overview';
+import { RevenueChart } from '@/components/technician/revenus/revenue-chart';
+import { TopMissions } from '@/components/technician/revenus/top-missions';
+import { PendingMissionsBanner } from '@/components/technician/revenus/pending-missions-banner';
+import { RevenusSkeleton } from '@/components/technician/revenus/revenus-skeleton';
+
+const PENDING_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 
 const TECH_TXN_LABELS: Record<string, string> = {
   TECHNICIAN_REPAIR_REVENUE: 'Gain réparation',
@@ -35,38 +43,36 @@ function txnLabel(type: string): string {
 
 export default function TechnicianRevenusPage() {
   const [summary, setSummary] = useState<TechnicianFinanceSummary | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getTechnicianFinanceSummary()
-      .then((data) => {
-        if (!cancelled) setSummary(data);
-      })
-      .catch((err) => {
+
+    async function load() {
+      try {
+        const [fin, mine] = await Promise.all([
+          getTechnicianFinanceSummary(),
+          listMyDemandes().catch(() => [] as TechnicianDemande[]),
+        ]);
+        if (cancelled) return;
+        setSummary(fin);
+        setPendingCount(mine.filter((d) => PENDING_STATUSES.includes(d.status)).length);
+      } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    }
+
+    load();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="space-y-4 py-2" role="status">
-        <span className="sr-only">Chargement…</span>
-        <Skeleton className="h-8 w-1/2" />
-        <Skeleton className="h-4 w-2/3" />
-        <SkeletonCard />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
+  if (loading) return <RevenusSkeleton />;
 
   if (error) {
     return (
@@ -96,51 +102,37 @@ export default function TechnicianRevenusPage() {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardContent className="space-y-3 py-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Gain net (missions confirmées)</p>
-              <p className="mt-1 text-3xl font-bold tracking-tight">
-                {formatCurrency(summary.netRevenue, summary.currency)}
-              </p>
-            </div>
-            {simulation ? <Badge variant="warning">SIMULATION</Badge> : null}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Revenu brut</p>
-              <p className="mt-0.5 font-semibold">
-                {formatCurrency(summary.grossRevenue, summary.currency)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Frais RepairDom</p>
-              <p className="mt-0.5 font-semibold text-error-ink">
-                {formatCurrency(summary.platformFees, summary.currency)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Dont réparation</p>
-              <p className="mt-0.5 font-semibold">
-                {formatCurrency(summary.repairRevenue, summary.currency)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="text-xs text-muted-foreground">Dont déplacement</p>
-              <p className="mt-0.5 font-semibold">
-                {formatCurrency(summary.travelRevenue, summary.currency)}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Hero gradient */}
+      <RevenueOverview summary={summary} />
+
+      {/* Pipeline */}
+      <PendingMissionsBanner count={pendingCount} href="/technicien/chronologies" />
 
       <Alert variant="neutral" dense icon="info">
         Une intervention n&apos;est comptabilisée qu&apos;une fois confirmée par le client. Les
         interventions en attente ou annulées ne génèrent aucun gain.
       </Alert>
 
+      {/* Évolution mensuelle */}
+      <section className="space-y-3">
+        <SectionHeader title="Évolution des revenus" />
+        <Card>
+          <CardContent className="py-4">
+            <RevenueChart
+              transactions={summary.transactions}
+              currency={summary.currency}
+            />
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Top missions */}
+      <section className="space-y-3">
+        <SectionHeader title="Vos meilleurs gains" />
+        <TopMissions missions={summary.missions} currency={summary.currency} />
+      </section>
+
+      {/* Gains par mission */}
       <section className="space-y-3">
         <SectionHeader
           title="Gains par mission"
@@ -156,6 +148,11 @@ export default function TechnicianRevenusPage() {
           <EmptyState
             title="Aucun gain enregistré"
             description="Confirmez vos interventions réglées pour voir vos gains apparaître ici."
+            action={
+              <Link href="/technicien/historique">
+                <Button>Voir mes interventions</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-3">
@@ -166,12 +163,18 @@ export default function TechnicianRevenusPage() {
         )}
       </section>
 
-      <section className="space-y-3">
+      {/* Détail des écritures */}
+      <section id="ecritures" className="space-y-3 scroll-mt-20">
         <SectionHeader title="Détail des écritures" />
         {summary.transactions.length === 0 ? (
           <EmptyState
             title="Aucune écriture"
             description="Vos gains et frais apparaîtront ici au fil des missions confirmées."
+            action={
+              <Link href="/technicien/historique">
+                <Button variant="outline">Voir mes interventions</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-2">
@@ -211,12 +214,16 @@ function MissionEarningCard({
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Frais RepairDom (technicien)</span>
-              <span className="font-medium text-error-ink">{formatCurrency(mission.fees, currency)}</span>
+              <span className="font-medium text-muted-foreground">
+                {formatCurrency(mission.fees, currency)}
+              </span>
             </div>
             <div className="my-1 h-px bg-border" />
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold">Gain net</span>
-              <span className="font-semibold text-success-ink">{formatCurrency(mission.net, currency)}</span>
+              <span className="font-semibold text-success-ink">
+                {formatCurrency(mission.net, currency)}
+              </span>
             </div>
           </div>
           {mission.settledAt ? (
@@ -254,7 +261,9 @@ function TransactionRow({
           <p className="truncate text-xs text-muted-foreground">
             {formatDateTime(txn.createdAt)}
             {txn.demande?.reference ? ` · ${txn.demande.reference}` : ''}
-            {txn.demande?.client ? ` · ${fullName(txn.demande.client.firstName, txn.demande.client.lastName)}` : ''}
+            {txn.demande?.client
+              ? ` · ${fullName(txn.demande.client.firstName, txn.demande.client.lastName)}`
+              : ''}
             {txn.reversalOfId ? ' · contrepassé' : ''}
           </p>
           {txn.demande?.status ? (
