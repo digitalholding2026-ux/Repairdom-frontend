@@ -1,21 +1,29 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Icon } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
+import { logoutAndGoHome } from '@/lib/api/auth-service';
 import { siteConfig } from '@/lib/site-config';
 
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
   const { authenticated, user, loading } = useAuth();
   const showChrome = authenticated && user?.role === 'ADMIN';
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    await logoutAndGoHome();
+  };
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -28,10 +36,25 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             </span>
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>
-          {loading ? null : showChrome ? (
+          {loading ? (
+            <span
+              className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground"
+              aria-hidden
+            />
+          ) : showChrome ? (
             <div className="flex items-center gap-2">
               <Badge variant="info">Back-office</Badge>
               <UserAvatar href="/admin/kyc" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                onClick={handleLogout}
+                isLoading={loggingOut}
+                aria-label="Se déconnecter"
+              >
+                <Icon name="logout" size="sm" />
+              </Button>
             </div>
           ) : null}
         </div>
