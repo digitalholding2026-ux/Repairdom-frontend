@@ -439,7 +439,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         <Metric label="Frais technicien" value={formatCurrency(f.technicianFee, currency)} />
         <Metric label="Net technicien" value={formatCurrency(f.netTechnician, currency)} />
         <Metric label="Relio (attendu)" value={formatCurrency(f.repairDomRevenue, currency)} />
-        <Metric label="Relio attendu" value={formatCurrency(f.expectedRelioRevenue, currency)} />
+        <Metric label="Relio attendu" value={formatCurrency(f.expectedRepairDomRevenue, currency)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
