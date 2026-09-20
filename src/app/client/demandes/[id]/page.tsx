@@ -446,7 +446,7 @@ export default function ClientDemandeDetailPage() {
                       <>
                         <div className="my-1 h-px bg-border" />
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Frais RepairDom (client)</span>
+                          <span className="text-muted-foreground">Frais Relio (client)</span>
                           <span className="font-medium">{formatPrice(latestQuote.clientFee)}</span>
                         </div>
                       </>

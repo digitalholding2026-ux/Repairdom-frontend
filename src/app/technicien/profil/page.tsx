@@ -251,7 +251,7 @@ export default function TechnicianProfilePage() {
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Vérifiée manuellement par RepairDom. Ce statut peut être complété via la section ci-dessous.
+            Vérifiée manuellement par Relio. Ce statut peut être complété via la section ci-dessous.
           </p>
           <Link href={`/client/technicien/${profile.id}`} className="mt-3 block">
             <Button variant="secondary" className="w-full">
@@ -265,7 +265,7 @@ export default function TechnicianProfilePage() {
         <SectionHeader title="Vérification de votre profil" />
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="mb-4 text-sm text-muted-foreground">
-            RepairDom vérifie manuellement votre identité.
+            Relio vérifie manuellement votre identité.
           </p>
           {kycLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

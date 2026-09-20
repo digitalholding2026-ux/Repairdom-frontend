@@ -59,7 +59,7 @@ export function PhoneMockup() {
                 <span className="flex size-5 items-center justify-center rounded-md bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to">
                   <Icon name="wrench" size="3.5" strokeWidth={2.2} />
                 </span>
-                RepairDom
+                Relio
               </span>
               <span className="flex items-center justify-center">
                 <Icon name="bell" size="sm" className="text-white/70" />
@@ -67,7 +67,7 @@ export function PhoneMockup() {
             </div>
 
             <div className="space-y-3 px-3.5 pb-4 pt-3">
-              <div className="rounded-2xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-3.5 shadow-lg">
+              <div className="rounded-2xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-3.5 shadow-lg">
                 <p className="text-[0.6rem] font-medium uppercase tracking-wider text-white/70">
                   Solde disponible
                 </p>

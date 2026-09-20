@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 
 export function ParrainageOverview({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-5 text-white shadow-pop">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-5 text-white shadow-pop">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"
@@ -23,7 +23,7 @@ export function ParrainageOverview({ code, copied, onCopy }: { code: string; cop
           <p className="mt-1 font-mono text-3xl font-bold tracking-wider">{code}</p>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">
             <Icon name="users" size="3.5" />
-            Partagez-le et faites découvrir RepairDom.
+            Partagez-le et faites découvrir Relio.
           </p>
         </div>
         <span className="flex shrink-0 items-center justify-center rounded-2xl bg-white/20 p-2 text-white shadow-float">

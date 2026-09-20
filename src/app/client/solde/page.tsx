@@ -26,7 +26,7 @@ import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
   CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
-  CLIENT_FEE: 'Frais RepairDom',
+  CLIENT_FEE: 'Frais Relio',
   REVERSAL: 'Remboursement',
 };
 
@@ -79,7 +79,7 @@ export default function ClientSoldePage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Mon solde" description="Suivi de votre portefeuille RepairDom." backHref="/client" />
+      <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
 
       {simulation ? (
         <Alert variant="info" icon="sparkles">
@@ -209,7 +209,7 @@ function MissionDebitCard({
               <span className="font-medium">{formatCurrency(mission.travel, currency)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Frais RepairDom (client)</span>
+              <span className="text-muted-foreground">Frais Relio (client)</span>
               <span className="font-medium text-muted-foreground">
                 {formatCurrency(mission.fee, currency)}
               </span>

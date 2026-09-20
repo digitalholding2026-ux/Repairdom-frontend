@@ -7,7 +7,7 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
   const simulation = summary.mode === 'SIMULATION';
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-indigo-600 to-violet-600 p-5 text-white shadow-pop">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-brand-gradient-via to-brand-gradient-to p-5 text-white shadow-pop">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"
@@ -71,7 +71,7 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
           <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
-            Frais RepairDom
+            Frais Relio
           </p>
           <p className="font-mono text-base font-bold text-white/85">
             {formatCurrency(summary.platformFees, summary.currency)}

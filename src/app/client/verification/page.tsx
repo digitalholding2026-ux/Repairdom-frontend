@@ -89,7 +89,7 @@ export default function VerificationPage() {
       description={
         error
           ? undefined
-          : 'Un email de confirmation vous a été envoyé. Ouvrez le lien pour activer votre compte RepairDom.'
+          : 'Un email de confirmation vous a été envoyé. Ouvrez le lien pour activer votre compte Relio.'
       }
     >
       {error ? (

@@ -3,7 +3,7 @@ import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 export const KYC_LABELS: Record<string, string> = {
   NOT_SUBMITTED: 'Identité non vérifiée',
   PENDING: 'Vérification en cours',
-  VERIFIED: 'Identité vérifiée par RepairDom',
+  VERIFIED: 'Identité vérifiée par Relio',
   REJECTED: 'Vérification à compléter',
 };
 

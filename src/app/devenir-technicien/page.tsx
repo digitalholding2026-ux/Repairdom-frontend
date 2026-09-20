@@ -50,7 +50,7 @@ const requirements: Array<{ icon: IconName; label: string }> = [
   { icon: 'user', label: 'Un compte technicien' },
   { icon: 'file', label: 'Un profil professionnel complet (zone et compétences)' },
   { icon: 'phone', label: 'Vos informations professionnelles (téléphone, ville, catégories)' },
-  { icon: 'shield-check', label: 'Une vérification d\u2019identité (KYC) par l\u2019équipe RepairDom' },
+  { icon: 'shield-check', label: 'Une vérification d\u2019identité (KYC) par l\u2019équipe Relio' },
 ];
 
 const framework: Array<{ icon: IconName; label: string }> = [
@@ -75,7 +75,7 @@ export default function DevenirTechnicienPage() {
               Espace professionnel
             </span>
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance sm:text-3xl">
-              Devenez technicien RepairDom
+              Devenez technicien Relio
             </h1>
             <p className="text-base leading-relaxed text-white/85">
               Rejoignez la plateforme qui met en relation les clients ayant besoin d&apos;un
@@ -130,7 +130,7 @@ export default function DevenirTechnicienPage() {
         {/* POURQUOI REJOINDRE */}
         <section className="mt-12" aria-labelledby="benefits-title">
           <h2 id="benefits-title" className="text-xl font-bold tracking-tight sm:text-2xl">
-            Pourquoi rejoindre RepairDom ?
+            Pourquoi rejoindre Relio ?
           </h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {benefits.map((item) => (
@@ -161,7 +161,7 @@ export default function DevenirTechnicienPage() {
             ))}
           </ul>
           <p className="mt-4 text-sm text-muted-foreground">
-            Une fois votre compte créé, votre dossier est revu par l&apos;équipe RepairDom avant que
+            Une fois votre compte créé, votre dossier est revu par l&apos;équipe Relio avant que
             vous receviez vos premières demandes.
           </p>
         </section>
@@ -189,7 +189,7 @@ export default function DevenirTechnicienPage() {
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Icon name="sparkles" size="lg" />
           </span>
-          <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à rejoindre RepairDom ?</h2>
+          <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à rejoindre Relio ?</h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
             Créez votre compte technicien et commencez votre profil dès maintenant.
           </p>

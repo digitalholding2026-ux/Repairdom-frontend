@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AuthCard } from '@/components/auth/auth-card';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
+import { BrandLogo } from '@/components/public/brand-logo';
 
 export const metadata: Metadata = {
   title: 'Créer un compte',
@@ -10,6 +11,9 @@ export const metadata: Metadata = {
 export default function InscriptionPage() {
   return (
     <div className="space-y-4">
+      <div className="flex justify-center pt-2">
+        <BrandLogo href="/" />
+      </div>
       <AuthCard
         icon="wrench"
         title="Créer un compte client"

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Icon } from '@/components/ui/icon';
+import Image from 'next/image';
 import { cn } from '@/lib/cn';
 import { siteConfig } from '@/lib/site-config';
 
@@ -9,21 +9,24 @@ interface BrandLogoProps {
   className?: string;
 }
 
-export function BrandLogo({ href = '/', showText = true, className }: BrandLogoProps) {
+/* Identité Relio : logotype officiel (public/brand/relio-logo.png, copié de
+ * logo/Relio.png sans modification). `showText` est conservé pour la
+ * compatibilité des appelants ; le visuel contient déjà le nom de marque. */
+export function BrandLogo({ href = '/', className }: BrandLogoProps) {
   return (
     <Link
       href={href}
-      className={cn('flex items-center gap-2', className)}
+      className={cn('flex items-center', className)}
       aria-label={`${siteConfig.name} — retour à l’accueil`}
     >
-      <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Icon name="wrench" size="sm" strokeWidth={2.2} />
-      </span>
-      {showText ? (
-        <span className="hidden text-base font-bold tracking-tight min-[400px]:inline">
-          {siteConfig.name}
-        </span>
-      ) : null}
+      <Image
+        src="/brand/relio-logo.png"
+        alt={siteConfig.name}
+        width={96}
+        height={64}
+        className="h-9 w-auto"
+        priority
+      />
     </Link>
   );
 }

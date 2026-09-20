@@ -11,7 +11,7 @@ export function ProfilHero({ user }: ProfilHeroProps) {
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Mon profil';
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-6 text-white shadow-pop sm:p-8">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-6 text-white shadow-pop sm:p-8">
       <div className="relative z-10 flex items-center gap-5">
         <Avatar
           src={user.avatarUrl}

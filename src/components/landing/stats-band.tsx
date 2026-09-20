@@ -60,7 +60,7 @@ export function StatsBand() {
   return (
     <section className="mt-14" aria-labelledby="stats-title">
       <p id="stats-title" className="sr-only">
-        RepairDom en chiffres
+        Relio en chiffres
       </p>
       <div className="grid grid-cols-2 gap-3">
         {STATS.map((stat, index) => (

@@ -125,7 +125,7 @@ export function MissionSummaryCard({ demandeId, title = 'Récapitulatif de la mi
             {summary.quote && summary.quote.source === 'CATALOG' ? (
               <SummaryRow
                 icon="badge-check"
-                label="Détail du tarif RepairDom"
+                label="Détail du tarif Relio"
                 value={formatCatalogBreakdown(summary.quote)}
               />
             ) : null}

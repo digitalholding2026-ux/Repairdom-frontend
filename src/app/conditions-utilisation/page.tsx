@@ -22,8 +22,8 @@ export default function ConditionsPage() {
         <div className="mt-8 space-y-8 text-sm leading-relaxed text-foreground">
           <Section title="1. Objet">
             <p>
-              Les présentes conditions régissent l&apos;utilisation de la plateforme RepairDom, mise à
-              disposition sous forme d&apos;application web mobile-first. En utilisant RepairDom, chaque
+              Les présentes conditions régissent l&apos;utilisation de la plateforme Relio, mise à
+              disposition sous forme d&apos;application web mobile-first. En utilisant Relio, chaque
               utilisateur (client ou technicien) reconnaît avoir pris connaissance et accepté les
               présentes conditions.
             </p>
@@ -31,16 +31,16 @@ export default function ConditionsPage() {
 
           <Section title="2. Création de compte">
             <p>
-              L&apos;utilisation de RepairDom nécessite la création d&apos;un compte. Le client doit
+              L&apos;utilisation de Relio nécessite la création d&apos;un compte. Le client doit
               renseigner des informations exactes (nom, adresse e-mail, téléphone, ville et adresse
               précise). L&apos;inscription du technicien est soumise à une vérification préalable par
-              l&apos;équipe RepairDom.
+              l&apos;équipe Relio.
             </p>
           </Section>
 
           <Section title="3. Usage de la plateforme">
             <p>
-              RepairDom est une plateforme de mise en relation entre des clients ayant un besoin de
+              Relio est une plateforme de mise en relation entre des clients ayant un besoin de
               dépannage et des techniciens qualifiés. La plateforme ne réalise aucun acte technique
               directement ; elle facilite la coordination, le suivi et le règlement des interventions.
             </p>
@@ -48,7 +48,7 @@ export default function ConditionsPage() {
 
           <Section title="4. Techniciens et vérification">
             <p>
-              Les techniciens inscrits sur RepairDom font l&apos;objet d&apos;une vérification
+              Les techniciens inscrits sur Relio font l&apos;objet d&apos;une vérification
               d&apos;identité et de qualifications par l&apos;équipe. Cette vérification ne constitue
               pas une garantie absolue sur la qualité des prestations. Les clients évaluent les
               techniciens après chaque intervention.
@@ -83,7 +83,7 @@ export default function ConditionsPage() {
 
           <Section title="8. Finances et solde">
             <p>
-              Le solde RepairDom est un portefeuille de simulation permettant d&apos;expérimenter le
+              Le solde Relio est un portefeuille de simulation permettant d&apos;expérimenter le
               parcours client. Les montants affichés sont fictifs et n&apos;impliquent aucun
               débit réel, encaissement ou frais. Le paiement réel des interventions fera l&apos;objet
               d&apos;une mise à jour ultérieure de la plateforme.
@@ -100,15 +100,15 @@ export default function ConditionsPage() {
 
           <Section title="10. Responsabilité">
             <p>
-              RepairDom agit en qualité d&apos;intermédiaire technique. La responsabilité de la
-              bonne exécution des prestations incombe au technicien. RepairDom ne saurait être tenu
+              Relio agit en qualité d&apos;intermédiaire technique. La responsabilité de la
+              bonne exécution des prestations incombe au technicien. Relio ne saurait être tenu
               responsable des dommages résultant d&apos;une intervention.
             </p>
           </Section>
 
           <Section title="11. Modification des conditions">
             <p>
-              RepairDom se réserve le droit de modifier les présentes conditions. Les utilisateurs
+              Relio se réserve le droit de modifier les présentes conditions. Les utilisateurs
               seront informés de tout changement significatif lors de leur prochaine connexion.
             </p>
           </Section>
@@ -116,7 +116,7 @@ export default function ConditionsPage() {
           <Section title="12. Contact">
             <p>
               Pour toute question relative aux présentes conditions, vous pouvez contacter
-              l&apos;équipe RepairDom via l&apos;adresse e-mail ou le numéro de téléphone indiqués
+              l&apos;équipe Relio via l&apos;adresse e-mail ou le numéro de téléphone indiqués
               dans l&apos;application.
             </p>
           </Section>

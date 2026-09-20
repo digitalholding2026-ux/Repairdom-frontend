@@ -42,6 +42,7 @@
   --color-info-foreground: var(--info-foreground);
 
   --color-brand-gradient-from: var(--brand-gradient-from);
+  --color-brand-gradient-via: var(--brand-gradient-via);
   --color-brand-gradient-to: var(--brand-gradient-to);
 
   --radius-sm: 0.375rem;
@@ -57,22 +58,26 @@
 :root {
   --background: #f6f7f9;
   --foreground: #0f172a;
-  --primary: #4f46e5;
+  /* Identité Relio : primaire #007BFF (CTA, liens, actifs, focus). */
+  --primary: #007bff;
   --primary-foreground: #ffffff;
-  --secondary: #eef2ff;
-  --secondary-foreground: #3730a3;
+  --secondary: #eff6ff;
+  --secondary-foreground: #1e40af;
   --muted: #eef0f3;
   --muted-foreground: #64748b;
-  --accent: #0ea5e9;
+  /* Accent aligné sur le gradient Relio (utilisé en stops décoratifs). */
+  --accent: #00aeef;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
-  --ring: #4f46e5;
+  --ring: #007bff;
 
-  --brand-gradient-from: #4f46e5;
-  --brand-gradient-to: #7c3aed;
+  /* Gradient officiel Relio (#00AEEF → #8A2BE2), accent secondaire #8E1BFF. */
+  --brand-gradient-from: #00aeef;
+  --brand-gradient-via: #8e1bff;
+  --brand-gradient-to: #8a2be2;
 
   --success: #059669;
   --success-soft: #ecfdf5;
@@ -103,22 +108,25 @@
   :root {
     --background: #0b1120;
     --foreground: #e2e8f0;
-    --primary: #818cf8;
+    /* Sombre : primaire = #00AEEF (palette officielle, contraste ~7:1 sur
+     * #0b1120 en texte comme en fond de CTA avec texte #0f172a). */
+    --primary: #00aeef;
     --primary-foreground: #0f172a;
     --secondary: #1e293b;
-    --secondary-foreground: #c7d2fe;
+    --secondary-foreground: #bfdbfe;
     --muted: #151d2d;
     --muted-foreground: #94a3b8;
-    --accent: #38bdf8;
+    --accent: #00aeef;
     --accent-foreground: #0f172a;
     --destructive: #f87171;
     --card: #131c2e;
     --card-foreground: #e2e8f0;
     --border: #24334a;
-    --ring: #818cf8;
+    --ring: #00aeef;
 
-    --brand-gradient-from: #6366f1;
-    --brand-gradient-to: #8b5cf6;
+    --brand-gradient-from: #00aeef;
+    --brand-gradient-via: #8e1bff;
+    --brand-gradient-to: #8a2be2;
 
     --success: #34d399;
     --success-soft: #0b2b1e;
@@ -275,7 +283,7 @@
 }
 
 .hero-gradient {
-  background-image: linear-gradient(120deg, #4f46e5, #7c3aed 35%, #0ea5e9 70%, #4f46e5);
+  background-image: linear-gradient(135deg, #00aeef, #8a2be2);
   background-size: 280% 280%;
   animation: gradient-pan 16s ease-in-out infinite;
 }

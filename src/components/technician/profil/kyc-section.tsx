@@ -80,11 +80,11 @@ export function KycSection({ kyc, onUpdated }: KycSectionProps) {
 
       <p className="mt-2 text-sm text-muted-foreground">
         {kyc.status === 'NOT_SUBMITTED'
-          ? 'Votre identité n\u2019est pas encore vérifiée. Envoyez vos justificatifs pour permettre à RepairDom de vérifier votre profil.'
+          ? 'Votre identité n\u2019est pas encore vérifiée. Envoyez vos justificatifs pour permettre à Relio de vérifier votre profil.'
           : kyc.status === 'PENDING'
-            ? 'Votre dossier est en cours de vérification par RepairDom.'
+            ? 'Votre dossier est en cours de vérification par Relio.'
             : kyc.status === 'VERIFIED'
-              ? 'Profil vérifié par RepairDom.'
+              ? 'Profil vérifié par Relio.'
               : 'Votre dossier a été rejeté.'}
       </p>
 
@@ -113,7 +113,7 @@ export function KycSection({ kyc, onUpdated }: KycSectionProps) {
                 </div>
                 {kyc.status === 'VERIFIED' ? (
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    Conservé par RepairDom
+                    Conservé par Relio
                   </span>
                 ) : (
                   <Button

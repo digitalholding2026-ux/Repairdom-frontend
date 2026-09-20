@@ -45,7 +45,7 @@ export default function ClientParrainagePage() {
   const code = buildReferralCode(user.id);
   const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://repairdom.vercel.app';
   const shareText = encodeURIComponent(
-    `Rejoins RepairDom avec mon lien et bénéficie d'un dépannage vérifié !\n${shareUrl}?parrain=${code}`,
+    `Rejoins Relio avec mon lien et bénéficie d'un dépannage vérifié !\n${shareUrl}?parrain=${code}`,
   );
 
   const handleCopy = async () => {
@@ -61,7 +61,7 @@ export default function ClientParrainagePage() {
     <div className="space-y-5">
       <PageHeader
         title="Parrainer un ami"
-        description="Invitez vos proches sur RepairDom et partagez votre code uniquement."
+        description="Invitez vos proches sur Relio et partagez votre code uniquement."
         backHref="/client"
       />
 

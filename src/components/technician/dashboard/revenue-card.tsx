@@ -19,7 +19,7 @@ export function RevenueCard({ finance, completedToday }: RevenueCardProps) {
       <div
         className={cn(
           'relative overflow-hidden rounded-3xl p-5 text-white shadow-pop',
-          'bg-gradient-to-br from-primary via-indigo-600 to-violet-600',
+          'bg-gradient-to-br from-primary via-brand-gradient-via to-brand-gradient-to',
         )}
       >
         <div

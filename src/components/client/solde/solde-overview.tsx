@@ -11,7 +11,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
   const totalFees = summary.missions.reduce((acc, m) => acc + m.fee, 0);
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-5 text-white shadow-pop">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-5 text-white shadow-pop">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"
@@ -78,7 +78,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
           <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
-            Frais RepairDom
+            Frais Relio
           </p>
           <p className="font-mono text-base font-bold text-white/85">
             {formatCurrency(totalFees, summary.currency)}

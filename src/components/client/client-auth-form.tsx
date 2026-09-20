@@ -253,7 +253,7 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
             <Link href="/conditions-utilisation" className="font-medium text-primary underline-offset-2 hover:underline">
               Conditions d&apos;utilisation
             </Link>{' '}
-            de RepairDom.
+            de Relio.
           </span>
         </label>
       ) : null}

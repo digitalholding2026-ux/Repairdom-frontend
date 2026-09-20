@@ -558,7 +558,7 @@ export default function TechnicianDemandeDetailPage() {
                 ) : !suggestionsOpen ? (
                   <p className="text-sm text-muted-foreground">
                     Choisissez un diagnostic du catalogue pour envoyer automatiquement le tarif
-                    RepairDom au client, ou déclarez un diagnostic non référencé ci-dessous.
+                    Relio au client, ou déclarez un diagnostic non référencé ci-dessous.
                   </p>
                 ) : suggestions.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
@@ -672,7 +672,7 @@ export default function TechnicianDemandeDetailPage() {
             {demande.domain ? (
               <p className="text-xs text-muted-foreground">
                 La sélection d&apos;un diagnostic du catalogue envoie automatiquement le tarif
-                RepairDom au client.
+                Relio au client.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -779,7 +779,7 @@ export default function TechnicianDemandeDetailPage() {
         <CardContent className="space-y-3">
           {catalogFlow && !negotiationUnlocked ? (
             <Alert variant="info" dense icon="info">
-              Le tarif automatique RepairDom est en attente de la décision du client (acceptation ou
+              Le tarif automatique Relio est en attente de la décision du client (acceptation ou
               demande de négociation).
             </Alert>
           ) : null}
@@ -824,7 +824,7 @@ export default function TechnicianDemandeDetailPage() {
               ) : null}
               {demande.status === 'CONFIRMED' && latestQuote ? (
                 <Alert variant="info" dense icon="info">
-                  Frais RepairDom (technicien) : 150 XAF sur ce tarif. Votre gain net pour cette
+                  Frais Relio (technicien) : 150 XAF sur ce tarif. Votre gain net pour cette
                   intervention apparaît dans l&apos;onglet Revenus.
                 </Alert>
               ) : null}

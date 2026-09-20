@@ -82,7 +82,7 @@ export default function AdminCatalogPage() {
     <div className="space-y-5">
       <PageHeader
         title="Catalogue"
-        description="Gérez les domaines, problèmes, diagnostics et tarifs RepairDom."
+        description="Gérez les domaines, problèmes, diagnostics et tarifs Relio."
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(true)}>
@@ -146,7 +146,7 @@ export default function AdminCatalogPage() {
         open={showCreate}
         onClose={() => setShowCreate(false)}
         title="Nouveau domaine"
-        description="Ajoutez un nouveau domaine au catalogue RepairDom."
+        description="Ajoutez un nouveau domaine au catalogue Relio."
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Annuler</Button>

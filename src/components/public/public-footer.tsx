@@ -18,9 +18,9 @@ export function PublicFooter() {
             </p>
           </div>
 
-          <nav aria-label="Liens RepairDom" className="text-sm">
+          <nav aria-label="Liens Relio" className="text-sm">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              RepairDom
+              Relio
             </p>
             <ul className="mt-2 space-y-2">
               <li>

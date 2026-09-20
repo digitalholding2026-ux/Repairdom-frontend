@@ -14,7 +14,7 @@ interface PublicTechnicianHeroProps {
 export function PublicTechnicianHero({ profile, rating, reviewCount, available }: PublicTechnicianHeroProps) {
   const name = fullName(profile.firstName, profile.lastName) || 'Technicien';
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-[#6d28d9] to-brand-gradient-to p-5 text-white shadow-pop sm:p-6">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-5 text-white shadow-pop sm:p-6">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"

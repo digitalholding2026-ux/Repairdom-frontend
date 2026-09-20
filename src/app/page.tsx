@@ -43,7 +43,7 @@ const trust: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'badge-check',
     title: 'Identité vérifiée',
-    text: 'Chaque technicien est vérifié manuellement par RepairDom avant de rejoindre la plateforme.',
+    text: 'Chaque technicien est vérifié manuellement par Relio avant de rejoindre la plateforme.',
   },
   {
     icon: 'file',
@@ -131,7 +131,7 @@ export default function HomePage() {
           <section className="mt-14" aria-labelledby="trust-title">
             <Reveal>
               <p className="px-1 text-xs font-semibold uppercase tracking-wider text-primary">
-                Pourquoi RepairDom
+                Pourquoi Relio
               </p>
               <h2 id="trust-title" className="mt-1 px-1 text-xl font-bold tracking-tight sm:text-2xl">
                 Le dépannage en confiance
@@ -158,7 +158,7 @@ export default function HomePage() {
             className="mt-14 overflow-hidden rounded-3xl shadow-float"
             aria-labelledby="cta-title"
           >
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#4f46e5] to-[#7c3aed] p-6 text-center text-white">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 text-center text-white">
               <div aria-hidden className="animate-float absolute -right-10 -top-12 size-36 rounded-full bg-white/15 blur-2xl" />
               <div className="relative">
                 <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-float">
@@ -175,9 +175,9 @@ export default function HomePage() {
                     <Button
                       size="lg"
                       className="group relative w-full overflow-hidden font-semibold shadow-pop hover:-translate-y-0.5"
-                      style={{ backgroundColor: '#ffffff', color: '#4338ca' }}
+                       style={{ backgroundColor: '#ffffff', color: '#1e40af' }}
                     >
-                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#c7d2fe]/60 to-transparent" />
+                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#bfdbfe]/60 to-transparent" />
                       J&apos;ai besoin d&apos;un dépannage
                     </Button>
                   </Link>

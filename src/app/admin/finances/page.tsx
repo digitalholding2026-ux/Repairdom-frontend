@@ -31,10 +31,10 @@ const MODES: FinancialMode[] = ['SIMULATION', 'REAL'];
 const ADMIN_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial',
   CLIENT_MISSION_DEBIT: 'Prélèvement client',
-  CLIENT_FEE: 'Frais RepairDom (client)',
+  CLIENT_FEE: 'Frais Relio (client)',
   TECHNICIAN_REPAIR_REVENUE: 'Réparation technicien',
   TECHNICIAN_TRAVEL_REVENUE: 'Déplacement technicien',
-  TECHNICIAN_FEE: 'Frais RepairDom (technicien)',
+  TECHNICIAN_FEE: 'Frais Relio (technicien)',
   REVERSAL: 'Remboursement / contrepassation',
 };
 
@@ -117,7 +117,7 @@ export default function AdminFinancesPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Finances RepairDom"
+        title="Finances Relio"
         description="Supervision des frais par mission (client + technicien)."
       />
 
@@ -270,7 +270,7 @@ function ModeSection({
       <Card>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <Metric label="Revenu RepairDom" value={formatCurrency(result.totals.repairDomRevenue, currency)} />
+            <Metric label="Revenu Relio" value={formatCurrency(result.totals.repairDomRevenue, currency)} />
             <Metric label="Dont frais clients" value={formatCurrency(result.totals.clientFees, currency)} />
             <Metric label="Dont frais techniciens" value={formatCurrency(result.totals.technicianFees, currency)} />
             <Metric label="Débité sur les clients" value={formatCurrency(result.totals.clientDebits, currency)} />
@@ -396,7 +396,7 @@ function MissionRow({
           <Metric label="Net technicien" value={formatCurrency(mission.technicianNet, currency)} />
           <Metric label="Client" value={formatCurrency(mission.clientFee, currency)} />
           <Metric label="Technicien" value={formatCurrency(mission.technicianFee, currency)} />
-          <Metric label="RepairDom" value={formatCurrency(mission.repairDomRevenue, currency)} />
+          <Metric label="Relio" value={formatCurrency(mission.repairDomRevenue, currency)} />
           <Metric label="Réparation / déplacement" value={formatCurrency(mission.repair + mission.travel, currency)} />
         </div>
 
@@ -438,8 +438,8 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         <Metric label="Déplacement technicien" value={formatCurrency(f.technicianTravel, currency)} />
         <Metric label="Frais technicien" value={formatCurrency(f.technicianFee, currency)} />
         <Metric label="Net technicien" value={formatCurrency(f.netTechnician, currency)} />
-        <Metric label="RepairDom (attendu)" value={formatCurrency(f.repairDomRevenue, currency)} />
-        <Metric label="RepairDom attendu" value={formatCurrency(f.expectedRepairDomRevenue, currency)} />
+        <Metric label="Relio (attendu)" value={formatCurrency(f.repairDomRevenue, currency)} />
+        <Metric label="Relio attendu" value={formatCurrency(f.expectedRelioRevenue, currency)} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

@@ -7,18 +7,18 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'RepairDom — Dépannage à domicile, en confiance',
-    template: '%s · RepairDom',
+    default: 'Relio — Dépannage à domicile, en confiance',
+    template: '%s · Relio',
   },
   description:
     "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
-  applicationName: 'RepairDom',
+  applicationName: 'Relio',
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#4f46e5',
+  themeColor: '#007bff',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

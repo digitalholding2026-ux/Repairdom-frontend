@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AuthCard } from '@/components/auth/auth-card';
 import { TechnicianAuthForm } from '@/components/technician/technician-auth-form';
+import { BrandLogo } from '@/components/public/brand-logo';
 
 export const metadata: Metadata = {
   title: 'Connexion technicien',
@@ -10,6 +11,9 @@ export const metadata: Metadata = {
 export default function TechnicianConnexionPage() {
   return (
     <div className="space-y-4">
+      <div className="flex justify-center pt-2">
+        <BrandLogo href="/" />
+      </div>
       <AuthCard
         icon="briefcase"
         title="Connexion technicien"
