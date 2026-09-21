@@ -116,7 +116,7 @@ export default function ClientDemandeDetailPage() {
     if (action === 'accept') {
       const quote = quotes.find((q) => q.id === quoteId);
       if (quote && balance) {
-        const totalToDebit = quote.totalToDebit ?? (quote.amount + (quote.clientFee ?? 0));
+        const totalToDebit = quote.totalToDebit ?? (quote.amount + (quote.travel ?? 0));
         if (balance.balance < totalToDebit) {
           setInsufficientBalance({ deficit: totalToDebit - balance.balance });
           setActionBusy(null);
@@ -426,7 +426,7 @@ export default function ClientDemandeDetailPage() {
                 </div>
                 <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
 
-                {latestQuote.repair != null || latestQuote.travel != null || latestQuote.clientFee != null ? (
+                {latestQuote.repair != null || latestQuote.travel != null ? (
                   <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
                     {latestQuote.catalogDiagnostic?.name ? (
                       <div className="flex items-center justify-between gap-3">
@@ -451,20 +451,11 @@ export default function ClientDemandeDetailPage() {
                       <span className="text-muted-foreground">Déplacement</span>
                       <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
                     </div>
-                    {latestQuote.clientFee != null ? (
-                      <>
-                        <div className="my-1 h-px bg-border" />
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Frais Relio (client)</span>
-                          <span className="font-medium">{formatPrice(latestQuote.clientFee)}</span>
-                        </div>
-                      </>
-                    ) : null}
                     <div className="my-1 h-px bg-border" />
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">Total débité</span>
+                      <span className="font-semibold">Total à payer</span>
                       <span className="font-semibold">
-                        {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.clientFee ?? 0)))}
+                        {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">Montant débité de votre solde après acceptation.</p>

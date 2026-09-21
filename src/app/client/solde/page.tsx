@@ -26,7 +26,7 @@ import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
   CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
-  CLIENT_FEE: 'Frais Relio',
+  CLIENT_FEE: 'Frais Relio (historique)',
   REVERSAL: 'Remboursement',
 };
 
@@ -208,12 +208,14 @@ function MissionDebitCard({
               <span className="text-muted-foreground">Déplacement</span>
               <span className="font-medium">{formatCurrency(mission.travel, currency)}</span>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Frais Relio (client)</span>
-              <span className="font-medium text-muted-foreground">
-                {formatCurrency(mission.fee, currency)}
-              </span>
-            </div>
+            {mission.fee > 0 ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Frais Relio (client, historique)</span>
+                <span className="font-medium text-muted-foreground">
+                  {formatCurrency(mission.fee, currency)}
+                </span>
+              </div>
+            ) : null}
             <div className="my-1 h-px bg-border" />
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold">Total débité</span>

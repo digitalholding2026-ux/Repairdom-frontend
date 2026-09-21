@@ -34,7 +34,7 @@ const PENDING_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 const TECH_TXN_LABELS: Record<string, string> = {
   TECHNICIAN_REPAIR_REVENUE: 'Gain réparation',
   TECHNICIAN_TRAVEL_REVENUE: 'Gain déplacement',
-  TECHNICIAN_FEE: 'Frais Relio',
+  TECHNICIAN_FEE: 'Commission Relio (2 %)',
 };
 
 function txnLabel(type: string): string {
@@ -213,7 +213,7 @@ function MissionEarningCard({
               <span className="font-medium">{formatCurrency(mission.travel, currency)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Frais Relio (technicien)</span>
+              <span className="text-muted-foreground">Commission Relio (2 %)</span>
               <span className="font-medium text-muted-foreground">
                 {formatCurrency(mission.fees, currency)}
               </span>

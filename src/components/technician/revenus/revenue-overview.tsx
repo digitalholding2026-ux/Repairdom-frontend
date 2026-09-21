@@ -71,7 +71,7 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
           <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
-            Frais Relio
+            Commission Relio (2 %)
           </p>
           <p className="font-mono text-base font-bold text-white/85">
             {formatCurrency(summary.platformFees, summary.currency)}

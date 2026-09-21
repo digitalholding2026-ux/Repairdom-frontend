@@ -859,14 +859,14 @@ export default function TechnicianDemandeDetailPage() {
                   </div>
                   <div className="my-1 h-px bg-border" />
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">TOTAL TTC</span>
-                    <span className="font-semibold">{formatPrice(latestQuote.amount)}</span>
+                    <span className="font-semibold">Total client (brut)</span>
+                    <span className="font-semibold">{formatPrice(latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0)))}</span>
                   </div>
                 </div>
               ) : null}
               {demande.status === 'CONFIRMED' && latestQuote ? (
                 <Alert variant="info" dense icon="info">
-                  Frais Relio (technicien) : 150 XAF sur ce tarif. Votre gain net pour cette
+                  Commission Relio (2 % du brut) prélevée sur ce tarif. Votre gain net pour cette
                   intervention apparaît dans l&apos;onglet Revenus.
                 </Alert>
               ) : null}

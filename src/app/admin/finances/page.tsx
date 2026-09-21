@@ -31,10 +31,10 @@ const MODES: FinancialMode[] = ['SIMULATION', 'REAL'];
 const ADMIN_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial',
   CLIENT_MISSION_DEBIT: 'Prélèvement client',
-  CLIENT_FEE: 'Frais Relio (client)',
+  CLIENT_FEE: 'Frais client (historique)',
   TECHNICIAN_REPAIR_REVENUE: 'Réparation technicien',
   TECHNICIAN_TRAVEL_REVENUE: 'Déplacement technicien',
-  TECHNICIAN_FEE: 'Frais Relio (technicien)',
+  TECHNICIAN_FEE: 'Commission Relio (2 %)',
   REVERSAL: 'Remboursement / contrepassation',
 };
 
@@ -240,7 +240,14 @@ function ModeSection({
   mode: FinancialMode;
   result: AdminFinanceModeResult;
   currency: string;
-  expectedPerMission: { clientFee: number; technicianFee: number; total: number };
+  expectedPerMission: {
+    transport: number;
+    commissionRateNumerator: number;
+    commissionRateDenominator: number;
+    clientFee: number;
+    technicianFee: number;
+    total: number;
+  };
   expanded: Record<string, boolean>;
   detail: Record<string, AdminMissionFinance>;
   detailLoading: Record<string, boolean>;
@@ -271,8 +278,8 @@ function ModeSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Metric label="Revenu Relio" value={formatCurrency(result.totals.repairDomRevenue, currency)} />
-            <Metric label="Dont frais clients" value={formatCurrency(result.totals.clientFees, currency)} />
-            <Metric label="Dont frais techniciens" value={formatCurrency(result.totals.technicianFees, currency)} />
+            <Metric label="Commissions techniciens (2 %)" value={formatCurrency(result.totals.technicianFees, currency)} />
+            <Metric label="Frais clients (historique)" value={formatCurrency(result.totals.clientFees, currency)} />
             <Metric label="Débité sur les clients" value={formatCurrency(result.totals.clientDebits, currency)} />
             <Metric label="Net techniciens" value={formatCurrency(result.totals.technicianNet, currency)} />
             <Metric label="Réparation + déplacement" value={formatCurrency(result.totals.repair + result.totals.travel, currency)} />
@@ -295,9 +302,9 @@ function ModeSection({
                 : `${reconciliation.reconciledMissions} mission(s) conforme(s) · ${reconciliation.mismatchMissions} écart(s).`}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Attendu par mission : client {formatCurrency(expectedPerMission.clientFee, currency)} +{' '}
-              technicien {formatCurrency(expectedPerMission.technicianFee, currency)} ={' '}
-              {formatCurrency(expectedPerMission.total, currency)}.
+              Règle Relio : transport standard {formatCurrency(expectedPerMission.transport, currency)} · commission
+              {' '}{expectedPerMission.commissionRateNumerator} % du brut (missions antérieures : forfait{' '}
+              {formatCurrency(expectedPerMission.total, currency)}).
             </p>
           </div>
         </CardContent>
@@ -395,8 +402,8 @@ function MissionRow({
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Débité au client" value={formatCurrency(mission.clientDebit, currency)} />
           <Metric label="Net technicien" value={formatCurrency(mission.technicianNet, currency)} />
-          <Metric label="Client" value={formatCurrency(mission.clientFee, currency)} />
-          <Metric label="Technicien" value={formatCurrency(mission.technicianFee, currency)} />
+          <Metric label="Commission client (hist.)" value={formatCurrency(mission.clientFee, currency)} />
+          <Metric label="Commission Relio (2 %)" value={formatCurrency(mission.technicianFee, currency)} />
           <Metric label="Relio" value={formatCurrency(mission.repairDomRevenue, currency)} />
           <Metric label="Réparation / déplacement" value={formatCurrency(mission.repair + mission.travel, currency)} />
         </div>
@@ -434,12 +441,12 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
       {simulation ? <Badge variant="warning">SIMULATION</Badge> : null}
       <div className="grid grid-cols-2 gap-3">
         <Metric label="Débité au client" value={formatCurrency(f.clientMissionDebit, currency)} />
-        <Metric label="Frais client" value={formatCurrency(f.clientFee, currency)} />
+        <Metric label="Frais client (historique)" value={formatCurrency(f.clientFee, currency)} />
         <Metric label="Réparation technicien" value={formatCurrency(f.technicianRepair, currency)} />
         <Metric label="Déplacement technicien" value={formatCurrency(f.technicianTravel, currency)} />
-        <Metric label="Frais technicien" value={formatCurrency(f.technicianFee, currency)} />
+        <Metric label="Commission Relio (2 %)" value={formatCurrency(f.technicianFee, currency)} />
         <Metric label="Net technicien" value={formatCurrency(f.netTechnician, currency)} />
-        <Metric label="Relio (attendu)" value={formatCurrency(f.repairDomRevenue, currency)} />
+        <Metric label="Relio (réel)" value={formatCurrency(f.repairDomRevenue, currency)} />
         <Metric label="Relio attendu" value={formatCurrency(f.expectedRepairDomRevenue, currency)} />
       </div>
 
@@ -465,8 +472,8 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
           </div>
           <div className="my-1 h-px bg-border" />
           <div className="flex items-center justify-between gap-3">
-            <span className="font-semibold">Montant total</span>
-            <span className="font-semibold">{formatCurrency(detail.quote.amount, currency)}</span>
+            <span className="font-semibold">Brut client (réparation + déplacement)</span>
+            <span className="font-semibold">{formatCurrency(detail.quote.repair + detail.quote.travel, currency)}</span>
           </div>
         </div>
       ) : null}

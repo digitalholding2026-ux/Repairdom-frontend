@@ -147,13 +147,25 @@ export interface AdminFinanceModeResult {
     reconciledMissions: number;
     mismatchMissions: number;
     ok: boolean | null;
-    expectedPerMission: number;
+    expectedPerMission: {
+      transport: number;
+      commissionRateNumerator: number;
+      commissionRateDenominator: number;
+      legacyTotal: number;
+    };
   };
 }
 
 export interface AdminFinanceSummary {
   currency: string;
-  expectedPerMission: { clientFee: number; technicianFee: number; total: number };
+  expectedPerMission: {
+    transport: number;
+    commissionRateNumerator: number;
+    commissionRateDenominator: number;
+    clientFee: number;
+    technicianFee: number;
+    total: number;
+  };
   results: Record<FinancialMode, AdminFinanceModeResult>;
 }
 
