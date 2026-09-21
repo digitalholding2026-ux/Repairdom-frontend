@@ -286,6 +286,33 @@ export default function TechnicianDemandeDetailPage() {
   }
 
   if (error && !demande) {
+    // Diagnostic réel « technicien non KYC VERIFIED » : le profil est chargé
+    // et non vérifié au moment de l’échec. Le backend répond 404
+    // « Demande introuvable » (mission déjà attribuée, statut changé ou
+    // inéligible) sans distinguer ce cas côté lecture — volontairement, pour
+    // ne pas exposer l’existence des missions. On affiche donc ici un message
+    // métier actionnable au lieu d’une erreur serveur trompeuse. Tout autre
+    // cas (profil vérifié ou inconnu) garde le comportement inchangé.
+    if (technicianProfile !== null && !kycVerified) {
+      return (
+        <div className="space-y-4">
+          <Alert variant="info" title="Vérification d’identité requise">
+            Désolé, vous ne pouvez pas accepter de mission sans avoir vérifié votre identité.
+            Merci de vous rendre sur l’onglet Profil afin de terminer votre KYC.
+          </Alert>
+          <Link href="/technicien/profil" className="block">
+            <Button className="w-full" size="lg">
+              Terminer mon KYC
+            </Button>
+          </Link>
+          <Link href="/technicien/demandes" className="block">
+            <Button variant="secondary" className="w-full">
+              Retour aux missions
+            </Button>
+          </Link>
+        </div>
+      );
+    }
     return (
       <div className="space-y-4">
         <Alert variant="error">{error}</Alert>
