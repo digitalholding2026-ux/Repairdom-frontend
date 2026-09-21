@@ -18,12 +18,11 @@ import {
   listCatalogDomains,
   listCatalogBrands,
   listCatalogModels,
-  listCatalogProblems,
   type CatalogDomainLite,
   type CatalogBrandLite,
   type CatalogModelLite,
-  type CatalogProblemLite,
 } from '@/lib/api/catalog-service';
+import { getMe } from '@/lib/api/auth-service';
 
 const STEPS = ['Votre appareil', 'Votre problème', 'Où et quand ?', 'Vérifiez et envoyez'];
 
@@ -97,10 +96,8 @@ export function DemandeWizard() {
   const [domainName, setDomainName] = useState('');
   const [brandId, setBrandId] = useState('');
   const [modelId, setModelId] = useState('');
-  const [problemId, setProblemId] = useState('');
   const [brands, setBrands] = useState<CatalogBrandLite[]>([]);
   const [models, setModels] = useState<CatalogModelLite[]>([]);
-  const [problems, setProblems] = useState<CatalogProblemLite[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -120,6 +117,23 @@ export function DemandeWizard() {
     };
   }, []);
 
+  /* Préremplissage depuis le profil (ville, téléphone) : uniquement si le
+   * champ est encore vide — ne JAMAIS écraser une saisie manuelle. Échec
+   * silencieux : le formulaire reste utilisable sans profil. */
+  useEffect(() => {
+    let active = true;
+    getMe()
+      .then((me) => {
+        if (!active) return;
+        if (me.city) setCity((prev) => prev.trim() !== '' ? prev : me.city ?? '');
+        if (me.phone) setContactPhone((prev) => prev.trim() !== '' ? prev : me.phone ?? '');
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const minRequestedAt = useMemo(() => nowLocalValue(), []);
   const requestedAtIso = useMemo(
     () => (requestedMode === 'SCHEDULED' && requestedAt ? new Date(requestedAt).toISOString() : null),
@@ -133,10 +147,8 @@ export function DemandeWizard() {
     if (brand) parts.push(brand.name);
     const model = models.find((m) => m.id === modelId);
     if (model) parts.push(model.name);
-    const problem = problems.find((p) => p.id === problemId);
-    if (problem) parts.push(problem.name);
     return parts.join(' — ');
-  }, [domainName, brands, brandId, models, modelId, problems, problemId]);
+  }, [domainName, brands, brandId, models, modelId]);
 
   const locationLabel = useMemo(
     () => [city.trim(), neighborhood.trim(), address.trim(), landmark.trim()].filter(Boolean).join(' — '),
@@ -150,21 +162,40 @@ export function DemandeWizard() {
     return true;
   }, [step, domainId, description, city, requestedMode, requestedAt]);
 
-  const loadProblems = async (newBrandId: string, newModelId: string) => {
-    if (!domainId) {
-      setProblems([]);
+  const handleDomainChange = (id: string) => {
+    setDomainId(id);
+    setBrandId('');
+    setModelId('');
+    setBrands([]);
+    setModels([]);
+    if (id === OTHER_DOMAIN) {
+      setDomainName('');
+      setCategoryId('autre');
       return;
     }
-    try {
-      const list = await listCatalogProblems(
-        domainId,
-        newBrandId || undefined,
-        newModelId || undefined,
-      );
-      setProblems(list);
-    } catch {
-      setProblems([]);
+    const domain = domains.find((d) => d.id === id);
+    setDomainName(domain?.name ?? '');
+    setCategoryId(domain?.category ?? 'autre');
+    if (id) {
+      listCatalogBrands(id)
+        .then(setBrands)
+        .catch(() => setBrands([]));
     }
+  };
+
+  const handleBrandChange = (id: string) => {
+    setBrandId(id);
+    setModelId('');
+    setModels([]);
+    if (id) {
+      listCatalogModels(id)
+        .then(setModels)
+        .catch(() => setModels([]));
+    }
+  };
+
+  const handleModelChange = (id: string) => {
+    setModelId(id);
   };
 
   const photosRef = useRef<WizardPhoto[]>([]);
@@ -221,49 +252,6 @@ export function DemandeWizard() {
     });
   };
 
-  const handleDomainChange = (id: string) => {
-    setDomainId(id);
-    setBrandId('');
-    setModelId('');
-    setProblemId('');
-    setBrands([]);
-    setModels([]);
-    setProblems([]);
-    if (id === OTHER_DOMAIN) {
-      setDomainName('');
-      setCategoryId('autre');
-      return;
-    }
-    const domain = domains.find((d) => d.id === id);
-    setDomainName(domain?.name ?? '');
-    setCategoryId(domain?.category ?? 'autre');
-    if (id) {
-      listCatalogBrands(id)
-        .then(setBrands)
-        .catch(() => setBrands([]));
-      loadProblems(id, '');
-    }
-  };
-
-  const handleBrandChange = (id: string) => {
-    setBrandId(id);
-    setModelId('');
-    setProblemId('');
-    setModels([]);
-    if (id) {
-      listCatalogModels(id)
-        .then(setModels)
-        .catch(() => setModels([]));
-    }
-    void loadProblems(id, '');
-  };
-
-  const handleModelChange = (id: string) => {
-    setModelId(id);
-    setProblemId('');
-    void loadProblems(brandId, id);
-  };
-
   const goNext = () => {
     setError(null);
     if (step < STEPS.length - 1) setStep((s) => s + 1);
@@ -302,7 +290,6 @@ export function DemandeWizard() {
         domainId: hasDevice && domainId ? domainId : undefined,
         brandId: hasDevice && brandId ? brandId : undefined,
         modelId: hasDevice && modelId ? modelId : undefined,
-        problemId: hasDevice && problemId ? problemId : undefined,
       });
       router.push(
         `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
@@ -411,22 +398,10 @@ export function DemandeWizard() {
                         empty={{
                           icon: 'file',
                           title: 'Aucun modèle répertorié',
-                          description: 'Passez au problème directement, le technicien s’en occupera.',
+                          description: 'Décrivez votre panne à l’étape suivante, le technicien s’en occupera.',
                         }}
                       />
                     ) : null}
-
-                    <DeviceChips
-                      label="Quel est votre problème ?"
-                      chips={problems.map((problem) => ({ id: problem.id, label: problem.name }))}
-                      selectedId={problemId}
-                      onSelect={setProblemId}
-                      empty={{
-                        icon: 'search',
-                        title: 'Aucun problème répertorié',
-                        description: 'Décrivez votre panne à l’étape suivante, le technicien la verra directement.',
-                      }}
-                    />
                   </div>
                 ) : null}
 
