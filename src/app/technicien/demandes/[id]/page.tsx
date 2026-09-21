@@ -398,13 +398,14 @@ export default function TechnicianDemandeDetailPage() {
             <div className="space-y-3">
               <Alert variant="warning" title="Vérification requise">
                 <p>
-                  Votre compte technicien doit être vérifié avant de pouvoir accepter une mission
+                  Cette mission est disponible, mais votre compte doit être validé avant de
+                  pouvoir l’accepter
                   (statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}).
                 </p>
               </Alert>
               <Link href="/technicien/profil">
                 <Button variant="secondary" className="w-full" size="lg">
-                  Compléter ma vérification
+                  Compléter mon KYC
                 </Button>
               </Link>
             </div>
