@@ -31,6 +31,17 @@ export function RoleGuard({ expectedRole, publicPaths, children }: RoleGuardProp
         router.replace('/client/verification');
         return;
       }
+      // Symétrie TECHNICIEN : sans effet tant que le backend vérifie les
+      // techniciens à la création, mais bloque tout accès si un compte
+      // technicien non vérifié obtient un jour une session.
+      if (
+        user?.role === 'TECHNICIAN' &&
+        user.emailVerified === false &&
+        pathname !== '/technicien/verification'
+      ) {
+        router.replace('/technicien/verification');
+        return;
+      }
       if ((user?.role ?? '') !== expectedRole || isPublicPath) {
         router.replace(homePathForRole(user?.role));
         return;
@@ -54,7 +65,12 @@ export function RoleGuard({ expectedRole, publicPaths, children }: RoleGuardProp
         user?.role === 'CLIENT' &&
         user.emailVerified === false &&
         pathname !== '/client/verification';
-      showContent = !unverifiedClientGated;
+      const unverifiedTechnicianGated =
+        expectedRole === 'TECHNICIAN' &&
+        user?.role === 'TECHNICIAN' &&
+        user.emailVerified === false &&
+        pathname !== '/technicien/verification';
+      showContent = !unverifiedClientGated && !unverifiedTechnicianGated;
     }
   }
 

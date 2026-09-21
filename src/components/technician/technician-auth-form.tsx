@@ -8,7 +8,7 @@ import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
-import { signIn, signUp, homePathForRole, safeRedirect } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
 import { useAuth } from '@/components/auth/auth-provider';
 import { cn } from '@/lib/cn';
 
@@ -18,7 +18,8 @@ interface TechnicianAuthFormProps {
   mode: TechnicianAuthMode;
 }
 
-const MIN_PASSWORD_LENGTH = 6;
+// Aligné sur le contrat backend (@MinLength(8) sur le mot de passe).
+const MIN_PASSWORD_LENGTH = 8;
 
 const CATEGORY_ICON: Record<string, import('@/components/ui/icon').IconName> = {
   electricite: 'zap',
@@ -78,10 +79,29 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             categories,
           })
         : await signIn({ email: email.trim(), password });
+      // Symétrie CLIENT : un compte non vérifié reste sur la vérification
+      // (sans effet tant que le backend vérifie les techniciens à la création).
+      if (isSignUp && session.user.emailVerified === false) {
+        setIsSubmitting(false);
+        router.push(`/technicien/verification?email=${encodeURIComponent(session.user.email)}`);
+        return;
+      }
       await refresh();
       router.push(safeRedirect(window.location.search, '/technicien', homePathForRole(session.user.role)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.';
+      const attemptedEmail = email.trim();
+      if (isSignUp && err instanceof ApiError && err.status === 409 && attemptedEmail) {
+        setIsSubmitting(false);
+        router.push(`/technicien/verification?email=${encodeURIComponent(attemptedEmail)}`);
+        return;
+      }
+      if (!isSignUp && message === EMAIL_VERIFICATION_REQUIRED_MESSAGE && attemptedEmail) {
+        setIsSubmitting(false);
+        router.push(`/technicien/verification?email=${encodeURIComponent(attemptedEmail)}`);
+        return;
+      }
+      setError(message);
       setIsSubmitting(false);
     }
   };

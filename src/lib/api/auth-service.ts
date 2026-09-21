@@ -47,6 +47,16 @@ export class ApiError extends Error {
   }
 }
 
+/* Messages backend (contrats stables, utilisés pour orienter le parcours) :
+ * - login d'un CLIENT non vérifié → 401 EMAIL_VERIFICATION_REQUIRED_MESSAGE ;
+ * - lien invalide/expiré → 400 VERIFICATION_LINK_INVALID_MESSAGE ;
+ * - lien déjà utilisé → 400 EMAIL_ALREADY_VERIFIED_MESSAGE. */
+export const EMAIL_VERIFICATION_REQUIRED_MESSAGE =
+  'Votre adresse email doit être vérifiée avant de pouvoir accéder à Relio.';
+export const VERIFICATION_LINK_INVALID_MESSAGE =
+  'Ce lien de vérification est invalide ou a expiré. Demandez un nouveau lien.';
+export const EMAIL_ALREADY_VERIFIED_MESSAGE = 'Cette adresse email est déjà vérifiée.';
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',

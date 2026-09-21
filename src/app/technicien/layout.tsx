@@ -12,7 +12,7 @@ import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
 import { siteConfig } from '@/lib/site-config';
 
-const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscription'];
+const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscription', '/technicien/verification'];
 
 export default function TechnicianLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';

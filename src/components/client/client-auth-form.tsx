@@ -9,7 +9,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
-import { signIn, signUp, homePathForRole, safeRedirect } from '@/lib/api/auth-service';
+import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
 import { useAuth } from '@/components/auth/auth-provider';
 
 export type ClientAuthMode = 'signup' | 'signin';
@@ -85,7 +85,25 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
       await refresh();
       router.push(safeRedirect(window.location.search, '/client', '/client'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.';
+      const attemptedEmail = email.trim();
+      // Compte existant (inscription sur email déjà pris) : orienter vers la
+      // page de vérification de CETTE adresse (le renvoi y est possible si le
+      // compte n’est pas vérifié, silencieux sinon — sans fuite supplémentaire,
+      // le 409 révélant déjà l’existence).
+      if (isSignUp && err instanceof ApiError && err.status === 409 && attemptedEmail) {
+        setIsSubmitting(false);
+        router.push(`/client/verification?email=${encodeURIComponent(attemptedEmail)}`);
+        return;
+      }
+      // Compte non vérifié : le backend refuse le login (401). Reboucler vers
+      // la vérification plutôt qu’afficher une impasse.
+      if (!isSignUp && message === EMAIL_VERIFICATION_REQUIRED_MESSAGE && attemptedEmail) {
+        setIsSubmitting(false);
+        router.push(`/client/verification?email=${encodeURIComponent(attemptedEmail)}`);
+        return;
+      }
+      setError(message);
       setIsSubmitting(false);
     }
   };
