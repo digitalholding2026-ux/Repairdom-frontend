@@ -3,6 +3,9 @@ import { siteConfig } from '@/lib/site-config';
 export interface TechnicianProfile {
   id: string;
   city: string;
+  /* Rattachement structuré (renvoyé par GET/PATCH /technician/profile).
+   * Null quand le texte de ville ne correspond à aucune ServiceCity. */
+  cityId: string | null;
   categories: string[];
   isAvailable: boolean;
   avatarUrl: string | null;
@@ -137,6 +140,28 @@ export async function updateTechnicianAvailability(isAvailable: boolean): Promis
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isAvailable }),
+  });
+}
+
+/* Zones couvertes (Sprint 8.8.2) : le technicien ne touche que sa propre
+ * couverture. PUT remplace l’intégralité de la liste (idempotent). */
+export interface TechnicianCoverage {
+  zoneId: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  city: { id: string; name: string; slug: string };
+}
+
+export async function getTechnicianCoverage(): Promise<TechnicianCoverage[]> {
+  return apiFetch<TechnicianCoverage[]>('/technician/coverage');
+}
+
+export async function updateTechnicianCoverage(zoneIds: string[]): Promise<TechnicianCoverage[]> {
+  return apiFetch<TechnicianCoverage[]>('/technician/coverage', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zoneIds }),
   });
 }
 

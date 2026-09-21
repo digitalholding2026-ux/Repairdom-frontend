@@ -527,3 +527,66 @@ export function getAdminMissionByReference(reference: string): Promise<Supervise
     `/admin/demandes/reference/${encodeURIComponent(reference.trim().toUpperCase())}`,
   );
 }
+
+/* ── Référentiel géographique admin (ServiceCity / Zone) ────────
+ * Contrats backend : GET/POST/PATCH /admin/catalog/cities,
+ * GET /admin/catalog/cities/:cityId/zones, POST/PATCH /admin/catalog/zones.
+ * Pas de suppression : une entrée se désactive via isActive. La liste des
+ * villes ne fournit aucun compteur de zones (aucune requête N+1 ici : les
+ * zones sont chargées uniquement pour la ville sélectionnée). */
+
+export interface ServiceCity {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ServiceZone {
+  id: string;
+  cityId: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function listAdminCities(): Promise<ServiceCity[]> {
+  return catalogFetch<ServiceCity[]>('/admin/catalog/cities');
+}
+
+export function createAdminCity(data: {
+  name: string;
+  slug: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}): Promise<ServiceCity> {
+  return catalogFetch<ServiceCity>('/admin/catalog/cities', jsonBody(data));
+}
+
+export function updateAdminCity(id: string, data: Record<string, unknown>): Promise<ServiceCity> {
+  return catalogFetch<ServiceCity>(`/admin/catalog/cities/${encodeURIComponent(id)}`, patchBody(data));
+}
+
+export function listAdminZones(cityId: string): Promise<ServiceZone[]> {
+  return catalogFetch<ServiceZone[]>(`/admin/catalog/cities/${encodeURIComponent(cityId)}/zones`);
+}
+
+export function createAdminZone(data: {
+  cityId: string;
+  name: string;
+  slug: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}): Promise<ServiceZone> {
+  return catalogFetch<ServiceZone>('/admin/catalog/zones', jsonBody(data));
+}
+
+export function updateAdminZone(id: string, data: Record<string, unknown>): Promise<ServiceZone> {
+  return catalogFetch<ServiceZone>(`/admin/catalog/zones/${encodeURIComponent(id)}`, patchBody(data));
+}

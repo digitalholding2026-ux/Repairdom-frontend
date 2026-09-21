@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
@@ -23,8 +24,17 @@ import {
   type TechnicianProfile,
   type TechnicianKycOverview,
 } from '@/lib/api/technician-service';
+import { listCities, type City } from '@/lib/api/cities-service';
 import { kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
 import { logoutAndGoHome } from '@/lib/api/auth-service';
+
+function normalizeCityName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
 export default function TechnicianProfilePage() {
   const [profile, setProfile] = useState<TechnicianProfile | null>(null);
@@ -34,6 +44,9 @@ export default function TechnicianProfilePage() {
   const [saved, setSaved] = useState(false);
 
   const [city, setCity] = useState('');
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [citiesError, setCitiesError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [specialties, setSpecialties] = useState('');
   const [experience, setExperience] = useState('');
@@ -72,7 +85,24 @@ export default function TechnicianProfilePage() {
       }
     }
 
+    async function loadCities() {
+      try {
+        const list = await listCities();
+        if (!cancelled) {
+          setCities(list);
+          setCitiesError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCitiesError(err instanceof Error ? err.message : 'Impossible de charger les villes.');
+        }
+      } finally {
+        if (!cancelled) setCitiesLoading(false);
+      }
+    }
+
     load();
+    loadCities();
     return () => {
       cancelled = true;
     };
@@ -82,7 +112,15 @@ export default function TechnicianProfilePage() {
     setCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   };
 
-  const canSave = city.trim() !== '' && categories.length > 0;
+  /* Ville issue du référentiel ServiceCity (GET /cities, source d’autorité).
+   * Le contrat PATCH /technician/profile n’accepte que le texte `city`
+   * (pas de `cityId`) : on envoie le nom EXACT sélectionné, que le backend
+   * rattache à la ville (resolveCityId). Aucune saisie libre. */
+  const matchedCity = cities.find(
+    (candidate) => normalizeCityName(candidate.name) === normalizeCityName(city),
+  ) ?? null;
+  const cityMismatch = city.trim() !== '' && !citiesLoading && !citiesError && !matchedCity;
+  const canSave = matchedCity !== null && categories.length > 0;
 
   const handleSave = async () => {
     setError(null);
@@ -90,7 +128,7 @@ export default function TechnicianProfilePage() {
     setSaving(true);
     try {
       const updated = await updateTechnicianProfile({
-        city: city.trim(),
+        city: matchedCity ? matchedCity.name : city.trim(),
         categories,
         bio: bio.trim() || null,
         experience: experience.trim() || null,
@@ -150,14 +188,35 @@ export default function TechnicianProfilePage() {
       <div className="space-y-4">
         <SectionHeader title="Informations professionnelles" />
         <div className="space-y-5">
-          <Field label="Ville / zone d'intervention" htmlFor="profil-ville" required>
-            <Input
+          <Field
+            label="Ville d’intervention"
+            htmlFor="profil-ville"
+            required
+            hint={
+              citiesError
+                ? 'Villes indisponibles pour le moment — réessayez plus tard.'
+                : profile.cityId && matchedCity
+                  ? `Rattachée au référentiel : ${matchedCity.name}.`
+                  : 'Choisissez votre ville dans le référentiel Relio.'
+            }
+            error={cityMismatch ? `« ${city.trim()} » ne figure pas au référentiel — sélectionnez une ville ci-dessous.` : null}
+          >
+            <Select
               id="profil-ville"
-              value={city}
+              value={matchedCity ? matchedCity.name : ''}
               onChange={(e) => setCity(e.target.value)}
-              placeholder="Ex. : Douala"
-              maxLength={120}
-            />
+              disabled={citiesLoading || cities.length === 0}
+              required
+            >
+              <option value="">
+                {citiesLoading ? 'Chargement des villes…' : 'Sélectionnez votre ville'}
+              </option>
+              {cities.map((candidate) => (
+                <option key={candidate.id} value={candidate.name}>
+                  {candidate.name}
+                </option>
+              ))}
+            </Select>
           </Field>
 
           <div>
@@ -203,6 +262,18 @@ export default function TechnicianProfilePage() {
             />
           </Field>
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <SectionHeader
+          title="Zones couvertes"
+          description="Indiquez les zones de votre ville où vous souhaitez être pris en compte pour les nouvelles missions."
+        />
+        <Link href="/technicien/zones" className="block">
+          <Button variant="secondary" className="w-full" size="lg">
+            Gérer mes zones couvertes
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">

@@ -1,8 +1,16 @@
 import { siteConfig } from '@/lib/site-config';
 
+export interface CityZone {
+  id: string;
+  name: string;
+}
+
 export interface City {
   id: string;
   name: string;
+  /* Zones actives de la ville (fournies par GET /cities). Absent des
+   * anciennes réponses : toujours lire via `city.zones ?? []`. */
+  zones?: CityZone[];
 }
 
 /** Liste publique des villes de service (require ?? require no auth). */

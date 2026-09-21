@@ -85,6 +85,12 @@ export default function AdminCatalogPage() {
         description="Gérez les domaines, problèmes, diagnostics et tarifs Relio."
         actions={
           <div className="flex gap-2">
+            <Link href="/admin/catalog/villes">
+              <Button variant="secondary" size="sm">
+                <Icon name="pin" size="3.5" />
+                Villes et zones
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
               Domaine
