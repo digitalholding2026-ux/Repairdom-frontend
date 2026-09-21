@@ -284,7 +284,7 @@ export default function AdminVillesPage() {
                       onClick={() => setSelectedCityId(selected ? null : city.id)}
                       aria-pressed={selected}
                       aria-label={`Voir les zones de ${city.name}`}
-                      className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-semibold">{city.name}</p>

@@ -114,14 +114,17 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1" role="tablist" aria-label="Période des missions">
         {(['active', 'history'] as ChronologyScope[]).map((value) => (
           <button
             key={value}
             type="button"
+            role="tab"
+            aria-selected={scope === value}
             onClick={() => setScope(value)}
             className={cn(
               'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               scope === value
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground',

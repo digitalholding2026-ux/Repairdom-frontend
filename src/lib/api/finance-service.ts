@@ -100,7 +100,7 @@ export interface TechnicianFinanceSummary {
   transactions: TechnicianFinanceTransaction[];
 }
 
-/* ── Back-office « Finances RepairDom » ──────────────────────── */
+/* ── Back-office « Finances Relio » ─────────────────────────── */
 
 export interface AdminFinancePerson {
   id: string;

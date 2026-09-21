@@ -52,37 +52,13 @@ export default function ClientDemandeDetailPage() {
   const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
   const [insufficientBalance, setInsufficientBalance] = useState<{ deficit: number } | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      if (!params?.id) return;
-      try {
-        const [d, ev] = await Promise.all([
-          getDemande(params.id),
-          listMissionEvents(params.id).catch(() => []),
-        ]);
-        if (!cancelled) {
-          setDemande(d);
-          setEvents(ev);
-        }
-        getClientFinanceSummary().then((b) => { if (!cancelled) setBalance(b); }).catch(() => undefined);
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-  }, [params?.id]);
-
+  /* Chargement unique : premier passage complet (erreur affichée), puis
+   * rafraîchissement silencieux toutes les 5 s (un seul timer). */
   useEffect(() => {
     if (!params?.id) return;
     let active = true;
 
-    const load = async () => {
+    const load = async (initial: boolean) => {
       try {
         const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
           getDemande(params.id!),
@@ -90,19 +66,26 @@ export default function ClientDemandeDetailPage() {
           listDemandeQuotes(params.id!),
           listMissionEvents(params.id!).catch(() => []),
         ]);
-        if (active) {
-          setDemande(d);
-          setDiagnostics(diagnosticsList);
-          setQuotes(quotesList);
-          setEvents(eventsList);
+        if (!active) return;
+        setDemande(d);
+        setDiagnostics(diagnosticsList);
+        setQuotes(quotesList);
+        setEvents(eventsList);
+        if (initial) {
+          getClientFinanceSummary()
+            .then((b) => { if (active) setBalance(b); })
+            .catch(() => undefined);
         }
-      } catch {
+      } catch (err) {
+        if (initial && active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
         // Erreur silencieuse en rafraîchissement périodique.
+      } finally {
+        if (initial && active) setLoading(false);
       }
     };
 
-    load();
-    const timer = setInterval(load, POLL_INTERVAL_MS);
+    load(true);
+    const timer = setInterval(() => load(false), POLL_INTERVAL_MS);
     return () => {
       active = false;
       clearInterval(timer);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -94,10 +95,10 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
         className="flex-1 space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3"
       >
         {!loaded ? (
-          <div className="flex flex-col items-center gap-2 py-10 text-center" role="status">
+          <div className="space-y-2 py-2" role="status">
             <span className="sr-only">Chargement des messages…</span>
-            <span className="size-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" aria-hidden />
-            <p className="text-sm text-muted-foreground">Chargement des messages…</p>
+            <SkeletonRow />
+            <SkeletonRow />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">

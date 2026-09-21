@@ -22,7 +22,7 @@ interface AdminNavItem {
 }
 
 const ADMIN_NAV: AdminNavItem[] = [
-  { href: '/admin', label: 'Dashboard', icon: 'home' },
+  { href: '/admin', label: 'Tableau de bord', icon: 'home' },
   { href: '/admin/missions', label: 'Missions', icon: 'search' },
   { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
   { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
@@ -64,12 +64,11 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             />
           ) : showChrome ? (
             <div className="flex items-center gap-2">
-              <Badge variant="info">Back-office</Badge>
+              <Badge variant="info">Espace admin</Badge>
               <UserAvatar href="/admin" />
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-9"
                 onClick={handleLogout}
                 isLoading={loggingOut}
                 aria-label="Se déconnecter"

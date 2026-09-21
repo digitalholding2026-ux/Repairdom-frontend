@@ -93,6 +93,7 @@ export function RatingForm({
         maxLength={REVIEW_COMMENT_MAX_LENGTH}
         rows={3}
         placeholder="Votre commentaire (facultatif)"
+        aria-label="Votre commentaire (facultatif)"
       />
       <p className="text-right text-xs text-muted-foreground">
         {comment.length}/{REVIEW_COMMENT_MAX_LENGTH}

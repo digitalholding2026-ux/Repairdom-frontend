@@ -171,7 +171,7 @@ export default function AdminFinancesPage() {
               <Field htmlFor="finReference" label="Référence mission">
                 <Input
                   id="finReference"
-                  placeholder="RD-…"
+                  placeholder="Ex. : RD-AB12CD"
                   value={reference}
                   onChange={(event) => setReference(event.target.value)}
                   maxLength={12}
@@ -362,7 +362,8 @@ function MissionRow({
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={`finance-detail-${mission.demandeId}`}
-          className="flex w-full items-center justify-between gap-3 text-left"
+          aria-label={`${expanded ? 'Masquer' : 'Voir'} le détail de la mission ${mission.reference ?? mission.demandeId}`}
+          className="flex w-full items-center justify-between gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -625,7 +626,7 @@ function TestCreditSection() {
                   <input
                     type="radio"
                     name="testCreditClient"
-                    className="h-4 w-4 shrink-0 border-border text-primary focus:ring-primary"
+                    className="h-5 w-5 shrink-0 border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
                     checked={selected?.id === user.id}
                     onChange={() => setSelected(user)}
                   />

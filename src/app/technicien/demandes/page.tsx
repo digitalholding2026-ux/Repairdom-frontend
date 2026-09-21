@@ -20,18 +20,18 @@ import {
 type SortKey = 'RELEVANT' | 'NEWEST' | 'OLDEST' | 'REQUESTED';
 
 const SORT_LABELS: Record<SortKey, string> = {
-  RELEVANT: 'Pertinence (dÃ¨s que possible dâ€™abord)',
-  NEWEST: 'Plus rÃ©centes',
+  RELEVANT: 'Pertinence (dès que possible d’abord)',
+  NEWEST: 'Plus récentes',
   OLDEST: 'Plus anciennes',
-  REQUESTED: 'Date dâ€™intervention',
+  REQUESTED: 'Date d’intervention',
 };
 
 function isAsap(demande: TechnicianDemande): boolean {
   return demande.requestedMode === 'ASAP';
 }
 
-/* Tri Â« pertinence Â» : miroir de la prioritÃ© backend (dÃ¨s que possible
- * dâ€™abord, puis plus rÃ©cent dâ€™abord). Tri 100 % client : lâ€™API
+/* Tri « pertinence » : miroir de la priorité backend (dès que possible
+ * d’abord, puis plus récent d’abord). Tri 100 % client : l’API
  * GET /technician/available ne supporte ni pagination ni tri serveur. */
 function compareRelevant(a: TechnicianDemande, b: TechnicianDemande): number {
   const aAsap = isAsap(a);
@@ -88,8 +88,8 @@ export default function TechnicienMissionsDisponiblesPage() {
     void load();
   }, []);
 
-  /* Options construites UNIQUEMENT Ã  partir des donnÃ©es rÃ©ellement reÃ§ues
-   * (aucune catÃ©gorie/ville supposÃ©e cÃ´tÃ© frontend). */
+  /* Options construites UNIQUEMENT à partir des données réellement reçues
+   * (aucune catégorie/ville supposée côté frontend). */
   const categories = useMemo(() => {
     const byId = new Map<string, string>();
     for (const mission of missions) {
@@ -137,7 +137,7 @@ export default function TechnicienMissionsDisponiblesPage() {
   if (loading) {
     return (
       <div className="space-y-4" role="status">
-        <span className="sr-only">Chargement des missions disponiblesâ€¦</span>
+        <span className="sr-only">Chargement des missions disponibles…</span>
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
@@ -149,7 +149,7 @@ export default function TechnicienMissionsDisponiblesPage() {
     <div className="space-y-4">
       <PageHeader
         title="Missions disponibles"
-        description="Missions correspondant Ã  votre profil, votre ville et vos zones couvertes. Les dÃ©tails du client restent masquÃ©s avant acceptation."
+        description="Missions correspondant à votre profil, votre ville et vos zones couvertes. Les détails du client restent masqués avant acceptation."
         backHref="/technicien"
         actions={
           <Badge variant={filtered.length > 0 ? 'info' : 'neutral'}>
@@ -162,7 +162,7 @@ export default function TechnicienMissionsDisponiblesPage() {
         <div className="space-y-3">
           <Alert variant="error">{error}</Alert>
           <Button variant="secondary" className="w-full" onClick={() => void load()}>
-            RÃ©essayer
+            Réessayer
           </Button>
         </div>
       ) : null}
@@ -171,10 +171,10 @@ export default function TechnicienMissionsDisponiblesPage() {
         <EmptyState
           icon={<Icon name="search" size="lg" />}
           title="Aucune mission disponible"
-          description="Il nâ€™y a pas de mission correspondant Ã  votre profil et votre zone pour le moment. Pensez Ã  vÃ©rifier votre disponibilitÃ©."
+          description="Il n’y a pas de mission correspondant à votre profil et votre zone pour le moment. Pensez à vérifier votre disponibilité."
           action={
             <Link href="/technicien#disponibilite">
-              <Button variant="secondary">GÃ©rer ma disponibilitÃ©</Button>
+              <Button variant="secondary">Gérer ma disponibilité</Button>
             </Link>
           }
         />
@@ -182,7 +182,7 @@ export default function TechnicienMissionsDisponiblesPage() {
 
       {!error && missions.length > 0 ? (
         <>
-          {/* â”€â”€ Filtres (donnÃ©es rÃ©elles uniquement) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ── Filtres (données réelles uniquement) ─────────────── */}
           <section aria-label="Filtres des missions" className="space-y-3">
             <div>
               <label htmlFor="missions-search" className="mb-1.5 block text-xs font-medium text-muted-foreground">
@@ -191,7 +191,7 @@ export default function TechnicienMissionsDisponiblesPage() {
               <Input
                 id="missions-search"
                 type="search"
-                placeholder="RÃ©fÃ©rence, mot-clÃ©, villeâ€¦"
+                placeholder="Référence, mot-clé, ville…"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 autoComplete="off"
@@ -200,14 +200,14 @@ export default function TechnicienMissionsDisponiblesPage() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="missions-category" className="mb-1.5 block text-xs font-medium text-muted-foreground">
-                  CatÃ©gorie
+                  Catégorie
                 </label>
                 <Select
                   id="missions-category"
                   value={categoryId}
                   onChange={(event) => setCategoryId(event.target.value)}
                 >
-                  <option value="ALL">Toutes les catÃ©gories</option>
+                  <option value="ALL">Toutes les catégories</option>
                   {categories.map(([id, label]) => (
                     <option key={id} value={id}>
                       {label}
@@ -242,8 +242,8 @@ export default function TechnicienMissionsDisponiblesPage() {
                   onChange={(event) => setMode(event.target.value)}
                 >
                   <option value="ALL">Toutes</option>
-                  <option value="ASAP">DÃ¨s que possible</option>
-                  <option value="SCHEDULED">PlanifiÃ©e</option>
+                  <option value="ASAP">Dès que possible</option>
+                  <option value="SCHEDULED">Planifiée</option>
                 </Select>
               </div>
               <div>
@@ -266,20 +266,20 @@ export default function TechnicienMissionsDisponiblesPage() {
             {hasActiveFilters ? (
               <Button variant="ghost" size="sm" onClick={resetFilters}>
                 <Icon name="x" size="sm" />
-                <span className="ml-1">RÃ©initialiser les filtres</span>
+                <span className="ml-1">Réinitialiser les filtres</span>
               </Button>
             ) : null}
           </section>
 
-          {/* â”€â”€ RÃ©sultats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+          {/* ── Résultats ────────────────────────────────────────── */}
           {filtered.length === 0 ? (
             <EmptyState
               icon={<Icon name="search" size="lg" />}
-              title="Aucun rÃ©sultat"
-              description="Aucune mission ne correspond Ã  ces filtres. Essayez dâ€™Ã©largir votre recherche."
+              title="Aucun résultat"
+              description="Aucune mission ne correspond à ces filtres. Essayez d’élargir votre recherche."
               action={
                 <Button variant="secondary" onClick={resetFilters}>
-                  RÃ©initialiser les filtres
+                  Réinitialiser les filtres
                 </Button>
               }
             />

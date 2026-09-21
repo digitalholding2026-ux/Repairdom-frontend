@@ -17,7 +17,7 @@ export function PageHeader({ title, description, actions, backHref, className }:
       {backHref ? (
         <Link
           href={backHref}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon name="arrow-left" size="sm" />
           Retour

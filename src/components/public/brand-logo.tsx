@@ -18,7 +18,10 @@ export function BrandLogo({ href = '/', className }: BrandLogoProps) {
   return (
     <Link
       href={href}
-      className={cn('flex items-center', className)}
+      className={cn(
+        'flex items-center rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        className,
+      )}
       aria-label={`${siteConfig.name} — retour à l’accueil`}
     >
       <Image

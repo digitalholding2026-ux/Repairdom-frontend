@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
@@ -94,10 +95,18 @@ export default function SuiviPage() {
         {loading ? (
           <div className="space-y-4" role="status">
             <span className="sr-only">Recherche de la demande…</span>
-            <div className="h-44 rounded-3xl bg-muted/50" />
-            <div className="h-32 rounded-2xl bg-muted/50" />
-            <div className="h-32 rounded-2xl bg-muted/50" />
+            <div className="h-44 animate-pulse rounded-3xl bg-muted/50" />
+            <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
+            <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
           </div>
+        ) : null}
+
+        {!loading && !tracking && !error ? (
+          <EmptyState
+            icon={<Icon name="search" size="lg" />}
+            title="Suivez votre intervention"
+            description="Saisissez ci-dessus le numéro reçu lors de votre demande pour voir son avancement en temps réel."
+          />
         ) : null}
 
         {!loading && tracking ? (

@@ -350,8 +350,13 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         </section>
       ) : demandes.length === 0 ? (
         <EmptyState
-          title="Vous n\u2019avez encore aucune demande"
+          title="Vous n’avez encore aucune demande"
           description="Décrivez votre panne et nous trouvons le technicien adapté près de chez vous."
+          action={
+            <Link href="/client/demande">
+              <Button>Déposer une demande</Button>
+            </Link>
+          }
         />
       ) : null}
 

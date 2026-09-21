@@ -1,8 +1,5 @@
-import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import type { DemandeListItem } from '@/lib/api/request-service';
 import { formatRequestedTiming } from '@/lib/request-timing';
@@ -68,34 +65,6 @@ export function DemandeCard({ demande }: DemandeCardProps) {
         </div>
       </div>
     </Card>
-  );
-}
-
-export function DemandesList({ demandes, emptyHref }: { demandes: DemandeListItem[]; emptyHref: string }) {
-  if (demandes.length === 0) {
-    return (
-      <Card className="border-dashed">
-        <EmptyState
-          title="Aucune demande dans cette catégorie"
-          description="Changer de filtre ou en déposer une nouvelle."
-          icon={<Icon name="briefcase" size="md" />}
-          action={
-            <Link href={emptyHref}>
-              <Button size="sm">Nouvelle demande</Button>
-            </Link>
-          }
-        />
-      </Card>
-    );
-  }
-  return (
-    <div className="space-y-3">
-      {demandes.map((d) => (
-        <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
-          <DemandeCard demande={d} />
-        </Link>
-      ))}
-    </div>
   );
 }
 

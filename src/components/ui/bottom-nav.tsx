@@ -65,7 +65,7 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
               <Link
                 href={primaryHref.href}
                 aria-label={primaryHref.label}
-                className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform hover:scale-105 active:scale-95"
+                className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-float transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:scale-105 active:scale-95"
               >
                 <Icon name={primaryHref.icon} size="lg" strokeWidth={2.2} />
               </Link>
@@ -91,7 +91,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
     <Link
       href={item.href}
       aria-current={active ? 'page' : undefined}
-      className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-0.5 text-[10px] font-medium transition-transform active:scale-95"
+      className="flex flex-col items-center justify-center gap-0.5 rounded-xl py-0.5 text-[10px] font-medium transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95"
     >
       <span
         className={cn(

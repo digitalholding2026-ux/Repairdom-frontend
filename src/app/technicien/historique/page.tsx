@@ -81,6 +81,11 @@ export default function TechnicianHistoriquePage() {
           title="Votre historique est vide"
           description="Les interventions confirmées et annulées apparaîtront ici."
           icon={<Icon name="briefcase" size="md" />}
+          action={
+            <Link href="/technicien/demandes">
+              <Button variant="secondary">Voir les missions disponibles</Button>
+            </Link>
+          }
         />
       ) : (
         <div className="space-y-3">

@@ -292,6 +292,11 @@ export default function TechnicianDashboardPage() {
           <EmptyState
             title="Aucune demande disponible"
             description="Il n'y a pas de demande correspondant à votre profil et votre zone pour le moment."
+            action={
+              <Link href="/technicien/demandes">
+                <Button variant="secondary" size="sm">Voir les missions</Button>
+              </Link>
+            }
           />
         ) : (
           <div className="space-y-3">
