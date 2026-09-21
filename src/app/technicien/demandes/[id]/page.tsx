@@ -59,6 +59,7 @@ export default function TechnicianDemandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [kycVerified, setKycVerified] = useState(true);
   const [technicianProfile, setTechnicianProfile] = useState<{ kycStatus: string } | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [events, setEvents] = useState<MissionEvent[]>([]);
@@ -76,8 +77,31 @@ export default function TechnicianDemandeDetailPage() {
   const [manualJustification, setManualJustification] = useState('');
   const [manualNotes, setManualNotes] = useState('');
 
-  /* Chargement unique : premier passage complet (erreur affichée, profil KYC
-   * inclus), puis rafraîchissement silencieux toutes les 5 s (un seul timer). */
+  /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d’échec de
+   * `getTechnicianDemande` (404 backend), le diagnostic « non VERIFIED » doit
+   * rester disponible pour afficher le message métier au lieu de
+   * « Demande introuvable ». Un fetch chaîné après succès mission ne couvre
+   * jamais le cas d’erreur (cause du correctif précédent inopérant). */
+  useEffect(() => {
+    if (!params?.id) return;
+    let active = true;
+    getTechnicianProfile()
+      .then((profile) => {
+        if (!active) return;
+        setTechnicianProfile(profile);
+        if (profile) setKycVerified(profile.kycStatus === 'VERIFIED');
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) setProfileLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [params?.id]);
+
+  /* Chargement unique : premier passage complet (erreur affichée), puis
+   * rafraîchissement silencieux toutes les 5 s (un seul timer). */
   useEffect(() => {
     if (!params?.id) return;
     let active = true;
@@ -95,15 +119,6 @@ export default function TechnicianDemandeDetailPage() {
         setDiagnostics(diagnosticsList);
         setQuotes(quotesList);
         setEvents(eventsList);
-        if (initial) {
-          getTechnicianProfile()
-            .then((profile) => {
-              if (!active) return;
-              setTechnicianProfile(profile);
-              if (profile) setKycVerified(profile.kycStatus === 'VERIFIED');
-            })
-            .catch(() => undefined);
-        }
       } catch (err) {
         if (initial && active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
         // Erreur silencieuse en rafraîchissement périodique.
@@ -310,6 +325,16 @@ export default function TechnicianDemandeDetailPage() {
               Retour aux missions
             </Button>
           </Link>
+        </div>
+      );
+    }
+    // Profil pas encore résolu : ne pas flasher l’erreur générique avant de
+    // savoir si le cas KYC s’applique.
+    if (!profileLoaded) {
+      return (
+        <div className="space-y-4 py-2" role="status">
+          <span className="sr-only">Chargement…</span>
+          <SkeletonCard />
         </div>
       );
     }
