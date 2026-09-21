@@ -112,7 +112,7 @@ export async function getMe(): Promise<AuthUser> {
 
 export function homePathForRole(role: string | undefined): string {
   if (role === 'TECHNICIAN') return '/technicien';
-  if (role === 'ADMIN') return '/admin/kyc';
+  if (role === 'ADMIN') return '/admin';
   return '/client';
 }
 

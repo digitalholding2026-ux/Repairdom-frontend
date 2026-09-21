@@ -6,13 +6,34 @@ import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/ui/bottom-nav';
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
 import { logoutAndGoHome } from '@/lib/api/auth-service';
 import { siteConfig } from '@/lib/site-config';
+import { cn } from '@/lib/cn';
+
+interface AdminNavItem {
+  href: string;
+  label: string;
+  icon: IconName;
+}
+
+const ADMIN_NAV: AdminNavItem[] = [
+  { href: '/admin', label: 'Dashboard', icon: 'home' },
+  { href: '/admin/missions', label: 'Missions', icon: 'search' },
+  { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
+  { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
+  { href: '/admin/catalog/villes', label: 'Villes & zones', icon: 'pin' },
+  { href: '/admin/finances', label: 'Finances', icon: 'file' },
+];
+
+function isNavActive(pathname: string, href: string): boolean {
+  if (href === '/admin') return pathname === '/admin';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
@@ -29,8 +50,8 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
-          <Link href="/admin/kyc" className="flex items-center gap-2">
+        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 lg:px-6">
+          <Link href="/admin" className="flex items-center gap-2">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Icon name="shield" size="sm" strokeWidth={2.2} />
             </span>
@@ -44,7 +65,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
           ) : showChrome ? (
             <div className="flex items-center gap-2">
               <Badge variant="info">Back-office</Badge>
-              <UserAvatar href="/admin/kyc" />
+              <UserAvatar href="/admin" />
               <Button
                 variant="ghost"
                 size="icon"
@@ -60,23 +81,54 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 pb-28">
-        <div key={pathname} className="animate-slide-up">
-          <RoleGuard expectedRole="ADMIN" publicPaths={[]}>
-            {children}
-          </RoleGuard>
-        </div>
-      </main>
+      <div className="mx-auto flex w-full max-w-6xl flex-1 items-start gap-8 px-4 py-6 lg:px-6">
+        {showChrome ? (
+          <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label="Navigation admin">
+            <nav className="space-y-1 rounded-2xl border border-border bg-card p-2">
+              {ADMIN_NAV.map((item) => {
+                const active = isNavActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      active
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
+                  >
+                    <Icon name={item.icon} size="sm" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        ) : null}
+
+        <main className="min-w-0 flex-1 pb-28 lg:pb-10">
+          <div key={pathname} className="animate-slide-up">
+            <RoleGuard expectedRole="ADMIN" publicPaths={[]}>
+              {children}
+            </RoleGuard>
+          </div>
+        </main>
+      </div>
 
       {showChrome ? (
-        <BottomNav
-          items={[
-            { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
-            { href: '/admin/missions', label: 'Missions', icon: 'search' },
-            { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
-            { href: '/admin/finances', label: 'Finances', icon: 'file' },
-          ]}
-        />
+        <div className="lg:hidden">
+          <BottomNav
+            items={[
+              { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
+              { href: '/admin/missions', label: 'Missions', icon: 'search' },
+              { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
+              { href: '/admin/finances', label: 'Finances', icon: 'file' },
+            ]}
+          />
+        </div>
       ) : null}
     </div>
   );

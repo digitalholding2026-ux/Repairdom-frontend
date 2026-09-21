@@ -74,7 +74,7 @@ export default function AdminMissionsPage() {
       <PageHeader
         title="Missions"
         description="Recherchez une mission par sa référence (RD-XXXXXX)."
-        backHref="/admin/kyc"
+        backHref="/admin"
       />
 
       <Card>

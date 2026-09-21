@@ -229,9 +229,7 @@ export default function AdminVillesPage() {
   };
 
   return (
-    /* Mise en page de supervision : élargissement limité à cette page
-     * (le layout admin reste max-w-lg pour les autres vues). */
-    <div className="space-y-5 lg:w-[42rem] lg:max-w-[calc(100vw-2rem)] lg:-translate-x-20">
+    <div className="space-y-5">
       <PageHeader
         title="Villes et zones"
         description="Référentiel géographique Relio : villes de service et leurs zones."
