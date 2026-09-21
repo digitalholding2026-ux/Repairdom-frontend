@@ -32,7 +32,7 @@ import {
   type MissionQuote,
 } from '@/lib/api/request-service';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatFileSize } from '@/lib/format';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -245,6 +245,28 @@ export default function ClientDemandeDetailPage() {
             scheduledAt={demande.scheduledAt}
           />
 
+          {demande.medias && demande.medias.length > 0 ? (
+            <div className="space-y-2">
+              <SectionHeader title={`Photos jointes (${demande.medias.length})`} />
+              <ul className="space-y-2">
+                {demande.medias.map((media) => (
+                  <li
+                    key={media.id}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon name="file" size="sm" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{media.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(media.sizeBytes)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {demande.status !== 'CANCELED' ? (
             <div className="space-y-3">
               <SectionHeader title="Avancement" />
@@ -340,7 +362,11 @@ export default function ClientDemandeDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
+            <ConversationSection
+              demandeId={demande.id}
+              canSend={canDiscuss}
+              peerName={fullName(demande.technician.firstName, demande.technician.lastName)}
+            />
           </CardContent>
         </Card>
       ) : null}
@@ -468,8 +494,11 @@ export default function ClientDemandeDetailPage() {
                     <p className="text-sm text-foreground">
                       Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'XAF')} pour valider cette intervention.
                     </p>
+                    <p className="text-sm text-muted-foreground">
+                      La recharge en ligne n’est pas encore disponible. Suivez votre solde depuis la page dédiée.
+                    </p>
                     <Link href="/client/solde">
-                      <Button className="w-full">Recharger mon solde</Button>
+                      <Button variant="secondary" className="w-full">Voir mon solde</Button>
                     </Link>
                   </div>
                 ) : null}

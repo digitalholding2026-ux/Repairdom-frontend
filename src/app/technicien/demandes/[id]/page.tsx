@@ -697,7 +697,11 @@ export default function TechnicianDemandeDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ConversationSection demandeId={demande.id} canSend={canDiscuss} />
+            <ConversationSection
+              demandeId={demande.id}
+              canSend={canDiscuss}
+              peerName={demande.client ? fullName(demande.client.firstName, demande.client.lastName) : null}
+            />
           </CardContent>
         </Card>
       ) : null}

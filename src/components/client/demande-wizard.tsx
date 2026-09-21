@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Icon, ICON_NAMES, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/cn';
+import { formatFileSize } from '@/lib/format';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
 import { createDemande } from '@/lib/api/request-service';
 import {
@@ -30,6 +31,20 @@ const MIN_DESCRIPTION_LENGTH = 10;
 const MAX_DESCRIPTION_LENGTH = 1000;
 
 const OTHER_DOMAIN = '__other__';
+
+/* Photos jointes : le backend (POST /demandes) accepte uniquement des
+ * métadonnées (kind, name, mimeType, sizeBytes) — aucun binaire n’est
+ * téléversé. Limites réelles du contrat : 5 fichiers max, 25 Mo / fichier. */
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+
+interface WizardPhoto {
+  key: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  preview: string;
+}
 
 const CATEGORY_ICONS: Record<string, IconName> = {
   electricite: 'zap',
@@ -70,6 +85,8 @@ export function DemandeWizard() {
   const [contactPhone, setContactPhone] = useState('');
   const [requestedMode, setRequestedMode] = useState<RequestTimingMode>('ASAP');
   const [requestedAt, setRequestedAt] = useState('');
+  const [photos, setPhotos] = useState<WizardPhoto[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,6 +167,60 @@ export function DemandeWizard() {
     }
   };
 
+  const photosRef = useRef<WizardPhoto[]>([]);
+  photosRef.current = photos;
+
+  // Libère les URL d’aperçu à la fermeture du wizard.
+  useEffect(
+    () => () => {
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.preview));
+    },
+    [],
+  );
+
+  const handlePhotoFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setPhotoError(null);
+    const room = MAX_PHOTOS - photos.length;
+    if (room <= 0) {
+      setPhotoError(`Maximum ${MAX_PHOTOS} photos par demande.`);
+      return;
+    }
+    const incoming = Array.from(files).slice(0, room);
+    if (files.length > room) {
+      setPhotoError(
+        `Maximum ${MAX_PHOTOS} photos par demande — seules les ${room} premières ont été ajoutées.`,
+      );
+    }
+    const next: WizardPhoto[] = [];
+    for (const file of incoming) {
+      if (!file.type.startsWith('image/')) {
+        setPhotoError(`« ${file.name} » n’est pas une image — ignorée.`);
+        continue;
+      }
+      if (file.size < 1 || file.size > MAX_PHOTO_BYTES) {
+        setPhotoError(`« ${file.name} » dépasse 25 Mo — ignorée.`);
+        continue;
+      }
+      next.push({
+        key: `${file.name}-${file.size}-${file.lastModified}-${next.length}`,
+        name: file.name,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        preview: URL.createObjectURL(file),
+      });
+    }
+    if (next.length > 0) setPhotos((prev) => [...prev, ...next]);
+  };
+
+  const removePhoto = (key: string) => {
+    setPhotos((prev) => {
+      const target = prev.find((photo) => photo.key === key);
+      if (target) URL.revokeObjectURL(target.preview);
+      return prev.filter((photo) => photo.key !== key);
+    });
+  };
+
   const handleDomainChange = (id: string) => {
     setDomainId(id);
     setBrandId('');
@@ -216,7 +287,11 @@ export function DemandeWizard() {
       const result = await createDemande({
         categoryId: categoryId || 'autre',
         description: description.trim(),
-        medias: [],
+        medias: photos.map((photo) => ({
+          name: photo.name,
+          type: photo.mimeType,
+          size: photo.sizeBytes,
+        })),
         city: city.trim(),
         neighborhood: neighborhood.trim() || undefined,
         address: address.trim() || undefined,
@@ -384,6 +459,67 @@ export function DemandeWizard() {
                     maxLength={MAX_DESCRIPTION_LENGTH}
                   />
                 </Field>
+
+                <Field
+                  label="Photos (facultatif)"
+                  htmlFor="demande-photos"
+                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Elles aident le technicien à comprendre le problème.`}
+                  error={photoError}
+                >
+                  <label
+                    htmlFor="demande-photos"
+                    className={cn(
+                      'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card px-4 text-sm font-medium',
+                      'transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      isSubmitting && 'pointer-events-none opacity-50',
+                    )}
+                  >
+                    <Icon name="plus" size="sm" />
+                    Ajouter des photos
+                  </label>
+                  <input
+                    id="demande-photos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      handlePhotoFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                    disabled={isSubmitting}
+                  />
+                  {photos.length > 0 ? (
+                    <ul className="mt-3 grid grid-cols-3 gap-2" aria-label="Photos sélectionnées">
+                      {photos.map((photo) => (
+                        <li
+                          key={photo.key}
+                          className="overflow-hidden rounded-xl border border-border bg-card"
+                        >
+                          <div className="relative">
+                            <img
+                              src={photo.preview}
+                              alt={photo.name}
+                              className="h-20 w-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removePhoto(photo.key)}
+                              aria-label={`Retirer ${photo.name}`}
+                              className="absolute right-1 top-1 flex size-8 items-center justify-center rounded-full bg-black/60 text-white transition-transform active:scale-95"
+                            >
+                              <Icon name="x" size="sm" />
+                            </button>
+                          </div>
+                          <p className="truncate px-1.5 pt-1 text-[10px] font-medium">{photo.name}</p>
+                          <p className="px-1.5 pb-1.5 text-[10px] text-muted-foreground">
+                            {formatFileSize(photo.sizeBytes)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </Field>
               </section>
             ) : null}
 
@@ -524,6 +660,16 @@ export function DemandeWizard() {
                     icon="file"
                     label="Description"
                     value={description.trim()}
+                    onEdit={() => jumpTo(1)}
+                  />
+                  <SummaryRow
+                    icon="file"
+                    label="Photos"
+                    value={
+                      photos.length > 0
+                        ? `${photos.length} photo${photos.length !== 1 ? 's' : ''} jointe${photos.length !== 1 ? 's' : ''}`
+                        : 'Aucune'
+                    }
                     onEdit={() => jumpTo(1)}
                   />
                   <SummaryRow

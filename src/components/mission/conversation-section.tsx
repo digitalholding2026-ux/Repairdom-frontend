@@ -19,11 +19,16 @@ const POLL_INTERVAL_MS = 5000;
 interface ConversationSectionProps {
   demandeId: string;
   canSend: boolean;
+  /* Nom de l’interlocuteur (déjà autorisé par le backend : technicien
+   * assigné côté client, client côté technicien). Affiché dans l’état vide
+   * au lieu d’un générique « l’autre partie ». */
+  peerName?: string | null;
 }
 
-export function ConversationSection({ demandeId, canSend }: ConversationSectionProps) {
+export function ConversationSection({ demandeId, canSend, peerName }: ConversationSectionProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +54,8 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
         if (active) setMessages(list);
       } catch {
         // Erreur silencieuse en rafraîchissement périodique.
+      } finally {
+        if (active) setLoaded(true);
       }
     };
     load();
@@ -86,15 +93,22 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
         ref={listRef}
         className="flex-1 space-y-3 overflow-y-auto rounded-xl border border-border bg-muted/20 p-3"
       >
-        {messages.length === 0 ? (
+        {!loaded ? (
+          <div className="flex flex-col items-center gap-2 py-10 text-center" role="status">
+            <span className="sr-only">Chargement des messages…</span>
+            <span className="size-5 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" aria-hidden />
+            <p className="text-sm text-muted-foreground">Chargement des messages…</p>
+          </div>
+        ) : messages.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
               <Icon name="chat" size="md" />
             </span>
             <p className="text-sm font-medium">Aucun message pour le moment</p>
             <p className="max-w-xs text-xs text-muted-foreground">
-              Échangez avec {canSend ? 'l&apos;autre partie' : 'votre interlocuteur'} ici en attendant
-              votre intervention.
+              {peerName
+                ? `Vous pourrez échanger avec ${peerName} ici concernant votre intervention.`
+                : 'Vous pourrez échanger avec votre interlocuteur ici concernant votre intervention.'}
             </p>
           </div>
         ) : (
@@ -154,6 +168,7 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
             onChange={(event) => setContent(event.target.value)}
             maxLength={2000}
             placeholder="Votre message…"
+            aria-label="Votre message"
             className="h-11 flex-1 rounded-full"
           />
           <Button
@@ -167,7 +182,11 @@ export function ConversationSection({ demandeId, canSend }: ConversationSectionP
             <Icon name="send" size="sm" />
           </Button>
         </form>
-      ) : null}
+      ) : (
+        <p className="rounded-lg border border-border bg-muted/20 px-3 py-2.5 text-xs text-muted-foreground">
+          La discussion est verrouillée pour cette mission : vous pouvez relire les messages ci-dessus.
+        </p>
+      )}
 
       {error ? <p className="text-sm text-error-ink">{error}</p> : null}
     </div>
