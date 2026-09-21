@@ -304,8 +304,8 @@ export default function TechnicianDemandeDetailPage() {
     return (
       <div className="space-y-4">
         <Alert variant="error">{error}</Alert>
-        <Link href="/technicien">
-          <Button variant="secondary">Retour aux demandes</Button>
+        <Link href="/technicien/demandes">
+          <Button variant="secondary">Retour aux missions</Button>
         </Link>
       </div>
     );

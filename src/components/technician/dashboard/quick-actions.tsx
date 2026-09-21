@@ -10,7 +10,7 @@ const ACTIONS: Array<{ label: string; href: string; icon: IconName; color: strin
   },
   {
     label: 'Nouvelles demandes',
-    href: '#nouvelles-demandes',
+    href: '/technicien/demandes',
     icon: 'search',
     color: 'bg-primary/10 text-primary',
   },

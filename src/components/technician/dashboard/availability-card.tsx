@@ -55,8 +55,8 @@ export function AvailabilityCard({ isAvailable, busy, error, onToggle }: Availab
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">
             <Icon name="shield-check" size="3.5" />
             {isAvailable
-              ? 'Les demandes de votre zone vous sont proposées en priorité.'
-              : 'Activez votre disponibilité pour recevoir de nouvelles demandes.'}
+              ? 'Vous êtes pris en compte pour les nouvelles missions de votre zone.'
+              : 'Passez disponible pour être pris en compte pour les nouvelles missions.'}
           </p>
         </div>
         <Switch

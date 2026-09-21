@@ -113,6 +113,9 @@ export default function TechnicianDashboardPage() {
     try {
       const updated = await updateTechnicianAvailability(!profile.isAvailable);
       setProfile(updated);
+      // La disponibilité conditionne l’éligibilité dispatch : recharger les
+      // missions proposées pour garder le compteur cohérent.
+      setAvailable(await listAvailableDemandes());
     } catch (err) {
       setAvailabilityError(
         err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la disponibilité.',
@@ -228,7 +231,7 @@ export default function TechnicianDashboardPage() {
             icon="search"
             label="Disponibles"
             value={available.length}
-            href="#nouvelles-demandes"
+            href="/technicien/demandes"
           />
           <StatCard
             icon="truck"
@@ -275,7 +278,7 @@ export default function TechnicianDashboardPage() {
         </section>
       ) : null}
 
-      {/* ── Nouvelles demandes ─────────────────────────────────── */}
+      {/* ── Nouvelles demandes (résumé compact → page complète) ── */}
       <section id="nouvelles-demandes" className="space-y-3 scroll-mt-20">
         <SectionHeader
           title="Nouvelles demandes"
@@ -292,13 +295,20 @@ export default function TechnicianDashboardPage() {
           />
         ) : (
           <div className="space-y-3">
-            {available.map((d) => (
+            {available.slice(0, 3).map((d) => (
               <TechnicianDemandeCard
                 key={d.id}
                 demande={d}
                 detailHref={`/technicien/demandes/${d.id}`}
               />
             ))}
+            {available.length > 3 ? (
+              <Link href="/technicien/demandes">
+                <Button variant="secondary" className="w-full">
+                  Voir les {available.length} missions disponibles
+                </Button>
+              </Link>
+            ) : null}
           </div>
         )}
       </section>

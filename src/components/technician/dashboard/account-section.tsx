@@ -12,7 +12,8 @@ export interface AccountSectionProps {
 
 export function AccountSection({ profile }: AccountSectionProps) {
   const { user } = profile;
-  const isKycVerified = profile.kycStatus === 'APPROVED';
+  // Statut backend : VERIFIED (cf. lib/technician-profile.ts, page détail).
+  const isKycVerified = profile.kycStatus === 'VERIFIED';
 
   return (
     <div className="space-y-3">

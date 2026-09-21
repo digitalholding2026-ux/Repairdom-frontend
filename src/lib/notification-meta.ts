@@ -7,6 +7,9 @@ export interface NotificationMeta {
 
 /** Correspondance type de notification backend → icône + variante de couleur. */
 const NOTIFICATION_META: Record<string, NotificationMeta> = {
+  // Dispatch V1 : nouvelle mission proposée au technicien (vagues 1/2).
+  // Titre/message fournis par le backend ; clic → détail de la mission.
+  MISSION_AVAILABLE: { icon: 'zap', variant: 'primary' },
   TECHNICIAN_ACCEPTED: { icon: 'check-circle', variant: 'success' },
   QUOTE_CREATED: { icon: 'briefcase', variant: 'info' },
   NEGOTIATION_REQUESTED: { icon: 'chat', variant: 'warning' },

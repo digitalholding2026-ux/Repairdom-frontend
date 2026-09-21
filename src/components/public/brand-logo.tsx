@@ -9,9 +9,11 @@ interface BrandLogoProps {
   className?: string;
 }
 
-/* Identité Relio : logotype officiel (public/brand/relio-logo.png, copié de
- * logo/Relio.png sans modification). `showText` est conservé pour la
- * compatibilité des appelants ; le visuel contient déjà le nom de marque. */
+/* Identité Relio : logotype officiel (public/brand/relio-logo.png, copie à
+ * l'octet de logo/Relio-removebg-preview.png, version transparente). Le PNG
+ * conservant son canal alpha, aucun fond ni pastille n'est ajouté :
+ * rendu propre en mode clair comme en dark-mode. `showText` est conservé
+ * pour la compatibilité des appelants ; le visuel contient déjà le nom. */
 export function BrandLogo({ href = '/', className }: BrandLogoProps) {
   return (
     <Link
