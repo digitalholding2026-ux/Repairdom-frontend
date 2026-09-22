@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
 import {
@@ -25,10 +26,14 @@ import {
   updatePricing,
   getPricing,
   updateIntervention,
+  deleteDiagnostic,
+  deleteIntervention,
+  deletePricing,
   type CatalogDiagnosticDetail,
   type CatalogIntervention,
   type CatalogPricing,
   type CatalogPricingHistory,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 const PRICING_HISTORY_FIELDS = [
@@ -61,9 +66,11 @@ function pricingAuthorName(h: CatalogPricingHistory): string {
 
 export default function AdminDiagnosticPage() {
   const params = useParams<{ domainId: string; problemId: string; diagnosticId: string }>();
+  const router = useRouter();
   const [diagnostic, setDiagnostic] = useState<CatalogDiagnosticDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [showCreateInt, setShowCreateInt] = useState(false);
   const [creatingInt, setCreatingInt] = useState(false);
@@ -238,6 +245,7 @@ export default function AdminDiagnosticPage() {
     <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
       <PageHeader title={diagnostic.name} backHref={`/admin/catalog/${domainId}/${problemId}`} />
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
         <SectionHeader title="Informations" icon="info" />
@@ -301,6 +309,15 @@ export default function AdminDiagnosticPage() {
                       checked={intervention.isActive}
                       onCheckedChange={(active) => handleToggleIntervention(intervention.id, active)}
                     />
+                    <DeleteCatalogItem
+                      itemLabel={intervention.name}
+                      onDelete={() => deleteIntervention(intervention.id)}
+                      onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                        if (err) setError(err);
+                        else if (outcome) setNotice(outcome.message);
+                        void load(true);
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="flex gap-2 pt-1">
@@ -319,6 +336,32 @@ export default function AdminDiagnosticPage() {
           ))}
         </div>
       )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader title="Zone dangereuse" icon="alert" />
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Supprimer ce diagnostic</p>
+              <p className="text-xs text-muted-foreground">
+                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+              </p>
+            </div>
+            <DeleteCatalogItem
+              itemLabel={diagnostic.name}
+              onDelete={() => deleteDiagnostic(diagnostic.id)}
+              onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                if (err) setError(err);
+                else if (outcome?.action === 'DELETED') router.push(`/admin/catalog/${domainId}/${problemId}`);
+                else if (outcome) {
+                  setNotice(outcome.message);
+                  void load(true);
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       {/* Create Intervention Modal */}
@@ -366,9 +409,24 @@ export default function AdminDiagnosticPage() {
               <h3 className="text-sm font-semibold">
                 Tarif — {diagnostic.interventions.find((i) => i.id === pricingInterventionId)?.name}
               </h3>
-              <Button variant="ghost" size="sm" onClick={() => { setPricingInterventionId(null); setPricingData(null); }}>
-                <Icon name="x" size="3.5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {pricingData ? (
+                  <DeleteCatalogItem
+                    itemLabel={`tarif ${diagnostic.interventions.find((i) => i.id === pricingInterventionId)?.name ?? ''}`}
+                    onDelete={() => deletePricing(pricingInterventionId)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      setPricingInterventionId(null);
+                      setPricingData(null);
+                      void load(true);
+                    }}
+                  />
+                ) : null}
+                <Button variant="ghost" size="sm" onClick={() => { setPricingInterventionId(null); setPricingData(null); }}>
+                  <Icon name="x" size="3.5" />
+                </Button>
+              </div>
             </div>
             {loadingPricing ? (
               <div className="flex items-center justify-center py-6"><Spinner /></div>

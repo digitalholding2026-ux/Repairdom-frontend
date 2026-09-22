@@ -14,6 +14,7 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
 import {
@@ -22,7 +23,10 @@ import {
   createProblem,
   updateBrand,
   updateModel,
+  deleteBrand,
+  deleteModel,
   type CatalogBrandDetail,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 export default function AdminBrandPage() {
@@ -41,6 +45,7 @@ export default function AdminBrandPage() {
   const [newProblemName, setNewProblemName] = useState('');
   const [newProblemSlug, setNewProblemSlug] = useState('');
   const [newProblemDesc, setNewProblemDesc] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function load(quiet = false) {
     if (!params?.brandId) return;
@@ -174,6 +179,8 @@ export default function AdminBrandPage() {
         </Card>
       </section>
 
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
       <section className="space-y-3">
         <SectionHeader
           title={`Modèles (${brand.models.length})`}
@@ -185,7 +192,6 @@ export default function AdminBrandPage() {
             </Button>
           }
         />
-        {error ? <Alert variant="error">{error}</Alert> : null}
         {brand.models.length === 0 ? (
         <EmptyState icon="briefcase" title="Aucun modèle" description="Ajoutez un modèle pour cette marque." />
       ) : (
@@ -217,11 +223,46 @@ export default function AdminBrandPage() {
                   checked={model.isActive}
                   onCheckedChange={(active) => handleToggleModelActive(model.id, active)}
                 />
+                <DeleteCatalogItem
+                  itemLabel={model.name}
+                  onDelete={() => deleteModel(model.id)}
+                  onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                    if (err) setError(err);
+                    else if (outcome) setNotice(outcome.message);
+                    void load(true);
+                  }}
+                />
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader title="Zone dangereuse" icon="alert" />
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Supprimer cette marque</p>
+              <p className="text-xs text-muted-foreground">
+                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+              </p>
+            </div>
+            <DeleteCatalogItem
+              itemLabel={brand.name}
+              onDelete={() => deleteBrand(brand.id)}
+              onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                if (err) setError(err);
+                else if (outcome?.action === 'DELETED') router.push(`/admin/catalog/${domainId}`);
+                else if (outcome) {
+                  setNotice(outcome.message);
+                  void load(true);
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <Modal

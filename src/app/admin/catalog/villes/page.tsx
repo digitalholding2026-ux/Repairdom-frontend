@@ -12,25 +12,30 @@ import { Field, Input } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { Switch } from '@/components/ui/switch';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { useToast } from '@/lib/toast-context';
 import {
   listAdminCities,
   createAdminCity,
   updateAdminCity,
+  deleteAdminCity,
   listAdminZones,
   createAdminZone,
   updateAdminZone,
+  deleteAdminZone,
   type ServiceCity,
   type ServiceZone,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 /* Référentiel géographique admin (ServiceCity / Zone).
- * Contrats : GET/POST/PATCH /admin/catalog/cities,
- * GET /admin/catalog/cities/:cityId/zones, POST/PATCH /admin/catalog/zones.
- * Limites backend (documentées, pas contournées) : aucune suppression
- * (désactivation via isActive), aucun compteur de zones par ville (les zones
- * sont chargées uniquement pour la ville sélectionnée, pas de requêtes N+1),
- * la ville d’une zone est fixée à la création. */
+ * Contrats : GET/POST/PATCH/DELETE /admin/catalog/cities,
+ * GET /admin/catalog/cities/:cityId/zones, POST/PATCH/DELETE /admin/catalog/zones.
+ * Suppression physique sans dépendance, désactivation (isActive) sinon —
+ * l'historique (demandes, comptes, couvertures) n'est jamais détruit. La liste
+ * des villes ne fournit aucun compteur de zones (aucune requête N+1 ici : les
+ * zones sont chargées uniquement pour la ville sélectionnée), la ville d'une
+ * zone est fixée à la création. */
 
 function slugify(name: string): string {
   return name
@@ -303,6 +308,19 @@ export default function AdminVillesPage() {
                       >
                         Modifier
                       </Button>
+                      <DeleteCatalogItem
+                        itemLabel={city.name}
+                        onDelete={() => deleteAdminCity(city.id)}
+                        onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                          if (err) {
+                            setError(err);
+                            toast({ title: 'Erreur', description: err, variant: 'error' });
+                          } else if (outcome) {
+                            toast({ title: outcome.action === 'DELETED' ? 'Ville supprimée' : 'Ville désactivée', description: outcome.message, variant: 'success' });
+                          }
+                          setReloadKey((k) => k + 1);
+                        }}
+                      />
                       <Icon name="chevron-right" size="sm" className="text-muted-foreground" />
                     </span>
                   </CardContent>
@@ -354,6 +372,19 @@ export default function AdminVillesPage() {
                         <Button variant="ghost" size="sm" onClick={() => openZoneEdit(zone)} aria-label={`Modifier ${zone.name}`}>
                           Modifier
                         </Button>
+                        <DeleteCatalogItem
+                          itemLabel={zone.name}
+                          onDelete={() => deleteAdminZone(zone.id)}
+                          onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                            if (err) {
+                              setZonesError(err);
+                              toast({ title: 'Erreur', description: err, variant: 'error' });
+                            } else if (outcome) {
+                              toast({ title: outcome.action === 'DELETED' ? 'Zone supprimée' : 'Zone désactivée', description: outcome.message, variant: 'success' });
+                            }
+                            setReloadKey((k) => k + 1);
+                          }}
+                        />
                       </CardContent>
                     </Card>
                   ))
@@ -365,8 +396,9 @@ export default function AdminVillesPage() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Pas de suppression : une ville ou une zone se désactive via son interrupteur. Une zone reste
-        toujours rattachée à sa ville de création.
+        Suppression physique sans dépendance, désactivation sinon : une ville ou une zone
+        référencée (demande, compte, couverture) reste conservée dans l&apos;historique. Une zone
+        reste toujours rattachée à sa ville de création.
       </p>
 
       <Modal

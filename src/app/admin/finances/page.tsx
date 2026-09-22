@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FinancesSkeleton } from '@/components/admin/finances/finances-skeleton';
+import { RelioFundsSection } from '@/components/admin/finances/relio-funds-section';
 import {
   getAdminFinanceSummary,
   getAdminMissionFinance,
@@ -118,7 +119,7 @@ export default function AdminFinancesPage() {
     <div className="space-y-5">
       <PageHeader
         title="Finances Relio"
-        description="Supervision des frais par mission (client + technicien)."
+        description="Supervision des missions, fonds Relio (commissions 2 %) et retraits."
       />
 
       {mode !== 'REAL' ? (
@@ -222,6 +223,8 @@ export default function AdminFinancesPage() {
       ) : null}
 
       <TestCreditSection />
+
+      <RelioFundsSection />
     </div>
   );
 }

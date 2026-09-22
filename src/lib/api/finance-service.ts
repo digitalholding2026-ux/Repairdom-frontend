@@ -283,6 +283,48 @@ export async function getAdminMissionFinance(demandeId: string): Promise<AdminMi
   );
 }
 
+/* ── Fonds Relio + retraits (Sprint ADMIN SUPER POWERS) ─────── */
+
+export interface RelioFundsSummary {
+  mode: FinancialMode;
+  currency: string;
+  acquired: number;
+  withdrawn: number;
+  available: number;
+  withdrawalsCount: number;
+}
+
+export interface RelioWithdrawal {
+  id: string;
+  reference: string;
+  amount: number;
+  note: string | null;
+  mode: FinancialMode;
+  status: string;
+  requestedBy: { id: string; firstName: string; lastName: string | null };
+  createdAt: string;
+}
+
+export interface RelioWithdrawalResult extends RelioWithdrawal {
+  availableAfter: number;
+}
+
+export async function getRelioFundsSummary(): Promise<RelioFundsSummary> {
+  return apiFetch<RelioFundsSummary>('/admin/finances/relio-funds/summary');
+}
+
+export async function listRelioWithdrawals(): Promise<{ items: RelioWithdrawal[] }> {
+  return apiFetch<{ items: RelioWithdrawal[] }>('/admin/finances/relio-funds/withdrawals');
+}
+
+export async function withdrawRelioFunds(amount: number, note?: string): Promise<RelioWithdrawalResult> {
+  return apiFetch<RelioWithdrawalResult>('/admin/finances/relio-funds/withdrawals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount, note: note?.trim() || undefined }),
+  });
+}
+
 /* ── Crédit initial simulateur (ADMIN uniquement) ─────────────── */
 
 export interface TestCreditTransaction {

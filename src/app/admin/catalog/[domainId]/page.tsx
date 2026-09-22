@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
 import {
@@ -21,14 +22,20 @@ import {
   createProblem,
   createBrand,
   updateDomain,
+  deleteDomain,
+  deleteBrand,
+  deleteProblem,
   type CatalogDomainDetail,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 export default function AdminDomainPage() {
   const params = useParams<{ domainId: string }>();
+  const router = useRouter();
   const [domain, setDomain] = useState<CatalogDomainDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -115,6 +122,8 @@ export default function AdminDomainPage() {
         items={[{ label: 'Catalogue', href: '/admin/catalog' }, { label: domain.name }]}
       />
       <PageHeader title={domain.name} description="Marques et problèmes du domaine." />
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
       <section className="space-y-3">
         <SectionHeader title="Informations" icon="info" />
@@ -149,13 +158,12 @@ export default function AdminDomainPage() {
         ) : (
           <div className="space-y-2">
             {domain.brands.map((brand) => (
-              <Link
-                key={brand.id}
-                href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
-                className="block"
-              >
-                <Card className="transition-colors hover:bg-muted/50">
-                  <CardContent className="flex items-center justify-between gap-3 pt-4">
+              <Card key={brand.id} className="transition-colors hover:bg-muted/50">
+                <CardContent className="flex items-center justify-between gap-3 pt-4">
+                  <Link
+                    href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
+                    className="min-w-0 flex-1"
+                  >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-semibold">{brand.name}</p>
@@ -172,10 +180,21 @@ export default function AdminDomainPage() {
                         {brand._count?.models ?? 0} modèle{(brand._count?.models ?? 0) !== 1 ? 's' : ''}
                       </p>
                     </div>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <DeleteCatalogItem
+                      itemLabel={brand.name}
+                      onDelete={() => deleteBrand(brand.id)}
+                      onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                        if (err) setError(err);
+                        else if (outcome) setNotice(outcome.message);
+                        void load(true);
+                      }}
+                    />
                     <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
@@ -199,9 +218,9 @@ export default function AdminDomainPage() {
         ) : (
         <div className="space-y-2">
           {domain.problems.map((problem) => (
-            <Link key={problem.id} href={`/admin/catalog/${domain.id}/${problem.id}`} className="block">
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <Card key={problem.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domain.id}/${problem.id}`} className="min-w-0 flex-1">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold">{problem.name}</p>
@@ -216,13 +235,50 @@ export default function AdminDomainPage() {
                       {problem._count?.diagnostics ?? 0} diagnostic{(problem._count?.diagnostics ?? 0) !== 1 ? 's' : ''}
                     </p>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={problem.name}
+                    onDelete={() => deleteProblem(problem.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load(true);
+                    }}
+                  />
                   <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader title="Zone dangereuse" icon="alert" />
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Supprimer ce domaine</p>
+              <p className="text-xs text-muted-foreground">
+                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+              </p>
+            </div>
+            <DeleteCatalogItem
+              itemLabel={domain.name}
+              onDelete={() => deleteDomain(domain.id)}
+              onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                if (err) setError(err);
+                else if (outcome?.action === 'DELETED') router.push('/admin/catalog');
+                else if (outcome) {
+                  setNotice(outcome.message);
+                  void load(true);
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <Modal

@@ -278,6 +278,10 @@ function patchBody(data: unknown): RequestInit {
   };
 }
 
+function deleteBody(): RequestInit {
+  return { method: 'DELETE' };
+}
+
 /* Domains */
 export function listDomains(): Promise<CatalogDomain[]> {
   return catalogFetch<CatalogDomain[]>('/admin/catalog/domains');
@@ -589,4 +593,117 @@ export function createAdminZone(data: {
 
 export function updateAdminZone(id: string, data: Record<string, unknown>): Promise<ServiceZone> {
   return catalogFetch<ServiceZone>(`/admin/catalog/zones/${encodeURIComponent(id)}`, patchBody(data));
+}
+
+/* ── Suppressions catalogue (Sprint ADMIN SUPER POWERS) ───────
+ * Le backend supprime physiquement l'élément sans dépendance, sinon le
+ * désactive (isActive = false) pour préserver l'historique. La réponse
+ * précise l'action effectuée ({ action: 'DELETED' | 'DEACTIVATED' }). */
+
+export interface CatalogDeleteOutcome {
+  id: string;
+  kind: string;
+  action: 'DELETED' | 'DEACTIVATED';
+  message: string;
+  blockers: Record<string, number>;
+}
+
+export function deleteDomain(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/domains/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteBrand(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/brands/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteModel(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/models/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteProblem(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/problems/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteDiagnostic(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/diagnostics/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteIntervention(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/interventions/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deletePricing(interventionId: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/interventions/${encodeURIComponent(interventionId)}/pricing`, deleteBody());
+}
+
+export function deleteAdminCity(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/cities/${encodeURIComponent(id)}`, deleteBody());
+}
+
+export function deleteAdminZone(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/zones/${encodeURIComponent(id)}`, deleteBody());
+}
+
+/* ── Gestion des comptes (Sprint ADMIN SUPER POWERS) ────────── */
+
+export interface AdminManagedUser {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+  isActive?: boolean;
+}
+
+export interface AdminUserSearch {
+  items: AdminManagedUser[];
+}
+
+export interface AdminUserAccount {
+  id: string;
+  role: string;
+  firstName: string;
+  lastName: string | null;
+  email: string;
+  phone: string | null;
+  isActive: boolean;
+  createdAt: string;
+  dependencies: Record<string, number>;
+  deletable: boolean;
+}
+
+export interface AdminUserDeleteOutcome {
+  id: string;
+  role: string;
+  action: 'DELETED' | 'DEACTIVATED';
+  message: string;
+  dependencies: Record<string, number>;
+}
+
+export function searchAdminTechnicians(q: string): Promise<AdminUserSearch> {
+  const params = new URLSearchParams();
+  if (q.trim()) params.set('q', q.trim());
+  return catalogFetch<AdminUserSearch>(`/admin/users/technicians?${params.toString()}`);
+}
+
+export function getAdminUserAccount(id: string): Promise<AdminUserAccount> {
+  return catalogFetch<AdminUserAccount>(`/admin/users/${encodeURIComponent(id)}`);
+}
+
+export function deleteAdminUserAccount(id: string): Promise<AdminUserDeleteOutcome> {
+  return catalogFetch<AdminUserDeleteOutcome>(`/admin/users/${encodeURIComponent(id)}`, deleteBody());
+}
+
+/* ── Message direct ADMIN → TECHNICIEN ──────────────────────── */
+
+export interface AdminTechnicianMessage {
+  id: string;
+  technician: { id: string; firstName: string; lastName: string | null; email: string };
+  createdAt: string;
+}
+
+export function sendAdminTechnicianMessage(email: string, message: string): Promise<AdminTechnicianMessage> {
+  return catalogFetch<AdminTechnicianMessage>(
+    '/admin/messages/technician',
+    jsonBody({ email: email.trim(), message: message.trim() }),
+  );
 }

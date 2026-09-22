@@ -27,6 +27,8 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
   { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
   { href: '/admin/catalog/villes', label: 'Villes & zones', icon: 'pin' },
+  { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
+  { href: '/admin/communication', label: 'Communication', icon: 'send' },
   { href: '/admin/finances', label: 'Finances', icon: 'file' },
 ];
 

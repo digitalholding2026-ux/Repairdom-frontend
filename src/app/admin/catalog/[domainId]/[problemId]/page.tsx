@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,20 +14,26 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
 import {
   getProblem,
   createDiagnostic,
   updateProblem,
+  deleteProblem,
+  deleteDiagnostic,
   type CatalogProblemDetail,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 export default function AdminProblemPage() {
   const params = useParams<{ domainId: string; problemId: string }>();
+  const router = useRouter();
   const [problem, setProblem] = useState<CatalogProblemDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -120,6 +126,7 @@ export default function AdminProblemPage() {
     <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
       <PageHeader title={problem.name} description="Diagnostics et tarifs de ce problème." />
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
         <SectionHeader title="Informations" icon="info" />
@@ -158,9 +165,9 @@ export default function AdminProblemPage() {
         ) : (
         <div className="space-y-2">
           {problem.diagnostics.map((diag) => (
-            <Link key={diag.id} href={`/admin/catalog/${domainId}/${params?.problemId}/${diag.id}`} className="block">
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <Card key={diag.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domainId}/${params?.problemId}/${diag.id}`} className="min-w-0 flex-1">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold">{diag.name}</p>
@@ -177,13 +184,50 @@ export default function AdminProblemPage() {
                       <span>{diag._count?.interventions ?? 0} intervention{(diag._count?.interventions ?? 0) !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={diag.name}
+                    onDelete={() => deleteDiagnostic(diag.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load(true);
+                    }}
+                  />
                   <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader title="Zone dangereuse" icon="alert" />
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Supprimer ce problème</p>
+              <p className="text-xs text-muted-foreground">
+                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+              </p>
+            </div>
+            <DeleteCatalogItem
+              itemLabel={problem.name}
+              onDelete={() => deleteProblem(problem.id)}
+              onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                if (err) setError(err);
+                else if (outcome?.action === 'DELETED') router.push(`/admin/catalog/${domainId}`);
+                else if (outcome) {
+                  setNotice(outcome.message);
+                  void load(true);
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <Modal

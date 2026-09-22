@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,14 +14,18 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
 import {
   getModel,
   listProblems,
   createProblem,
+  deleteModel,
+  deleteProblem,
   type CatalogModelDetail,
   type CatalogProblem,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 function ProblemScopeBadge({ problem }: { problem: CatalogProblem }) {
@@ -36,10 +40,12 @@ function ProblemScopeBadge({ problem }: { problem: CatalogProblem }) {
 
 export default function AdminModelPage() {
   const params = useParams<{ domainId: string; brandId: string; modelId: string }>();
+  const router = useRouter();
   const [model, setModel] = useState<CatalogModelDetail | null>(null);
   const [problems, setProblems] = useState<CatalogProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -114,6 +120,7 @@ export default function AdminModelPage() {
         ]}
       />
       <PageHeader title={model.name} description={`Modèle : ${model.brand.name}`} />
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
         <SectionHeader title="Informations" icon="info" />
@@ -144,9 +151,9 @@ export default function AdminModelPage() {
       ) : (
         <div className="space-y-2">
           {problems.map((problem) => (
-            <Link key={problem.id} href={`/admin/catalog/${domainId}/${problem.id}`} className="block">
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <Card key={problem.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domainId}/${problem.id}`} className="min-w-0 flex-1">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="truncate text-sm font-semibold">{problem.name}</p>
@@ -159,13 +166,50 @@ export default function AdminModelPage() {
                       {problem._count?.diagnostics ?? 0} diagnostic{(problem._count?.diagnostics ?? 0) !== 1 ? 's' : ''}
                     </p>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={problem.name}
+                    onDelete={() => deleteProblem(problem.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load();
+                    }}
+                  />
                   <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader title="Zone dangereuse" icon="alert" />
+        <Card>
+          <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">Supprimer ce modèle</p>
+              <p className="text-xs text-muted-foreground">
+                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+              </p>
+            </div>
+            <DeleteCatalogItem
+              itemLabel={model.name}
+              onDelete={() => deleteModel(model.id)}
+              onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                if (err) setError(err);
+                else if (outcome?.action === 'DELETED') router.push(`/admin/catalog/${domainId}/brands/${brandId}`);
+                else if (outcome) {
+                  setNotice(outcome.message);
+                  void load();
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
       </section>
 
       <Modal

@@ -139,6 +139,18 @@ export default function AdminDashboardPage() {
               value="Par référence"
               href="/admin/missions"
             />
+            <StatCard
+              icon="users"
+              label="Comptes clients & techniciens"
+              value="Gestion"
+              href="/admin/utilisateurs"
+            />
+            <StatCard
+              icon="send"
+              label="Message aux techniciens"
+              value="Communication"
+              href="/admin/communication"
+            />
           </div>
           <p className="text-xs text-muted-foreground">
             « Missions tracées » et « Revenu Relio » proviennent de la synthèse financière

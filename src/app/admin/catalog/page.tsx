@@ -13,11 +13,14 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import {
   listDomains,
   createDomain,
+  deleteDomain,
   seedSmartphoneDomain,
   type CatalogDomain,
+  type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 
 export default function AdminCatalogPage() {
@@ -33,6 +36,7 @@ export default function AdminCatalogPage() {
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [confirmSeedOpen, setConfirmSeedOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,6 +104,7 @@ export default function AdminCatalogPage() {
       />
 
       {seedResult ? <Alert variant="success">{seedResult}</Alert> : null}
+      {notice ? <Alert variant="success">{notice}</Alert> : null}
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {process.env.NODE_ENV !== 'production' ? (
@@ -123,9 +128,9 @@ export default function AdminCatalogPage() {
       ) : (
         <div className="space-y-3">
           {domains.map((domain) => (
-            <Link key={domain.id} href={`/admin/catalog/${domain.id}`} className="block">
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-3 pt-4">
+            <Card key={domain.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domain.id}`} className="min-w-0 flex-1">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold">{domain.name}</p>
@@ -140,10 +145,21 @@ export default function AdminCatalogPage() {
                       {domain._count?.problems ?? 0} problème{(domain._count?.problems ?? 0) !== 1 ? 's' : ''}
                     </p>
                   </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={domain.name}
+                    onDelete={() => deleteDomain(domain.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      setReloadKey((k) => k + 1);
+                    }}
+                  />
                   <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            </Link>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
