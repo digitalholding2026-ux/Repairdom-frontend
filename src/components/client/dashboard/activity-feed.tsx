@@ -58,7 +58,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
                   {formatCurrencySigned(item.amount, item.currency)}
                 </span>
               ) : null}
-              <span className="text-[0.68rem] text-muted-foreground">
+              <span className="text-2xs text-muted-foreground">
                 {formatRelative(item.createdAt)}
               </span>
             </div>

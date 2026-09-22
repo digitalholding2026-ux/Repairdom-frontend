@@ -55,7 +55,7 @@ export function PhoneMockup() {
                 <span className="size-2 rounded-full bg-amber-300/80" />
                 <span className="size-2 rounded-full bg-emerald-400/80" />
               </div>
-              <span className="flex items-center gap-1.5 text-[0.65rem] font-semibold text-white/80">
+              <span className="flex items-center gap-1.5 text-2xs font-semibold text-white/80">
                 <span className="flex size-5 items-center justify-center rounded-md bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to">
                   <Icon name="wrench" size="3.5" strokeWidth={2.2} />
                 </span>
@@ -68,7 +68,7 @@ export function PhoneMockup() {
 
             <div className="space-y-3 px-3.5 pb-4 pt-3">
               <div className="rounded-2xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-3.5 shadow-lg">
-                <p className="text-[0.6rem] font-medium uppercase tracking-wider text-white/70">
+                <p className="text-2xs font-medium uppercase tracking-wider text-white/70">
                   Solde disponible
                 </p>
                 <div className="mt-0.5 flex items-end justify-between">
@@ -84,26 +84,26 @@ export function PhoneMockup() {
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3.5">
                 <div className="flex items-center justify-between">
-                  <p className="text-[0.6rem] font-medium uppercase tracking-wider text-white/60">
+                  <p className="text-2xs font-medium uppercase tracking-wider text-white/60">
                     Mission en cours
                   </p>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-2 py-0.5 text-[0.6rem] font-semibold text-emerald-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-2 py-0.5 text-2xs font-semibold text-emerald-300">
                     <span className="size-1.5 animate-pulse-dot rounded-full bg-emerald-400" />
                     En route
                   </span>
                 </div>
                 <p className="mt-1.5 text-xs font-bold">Réparation lave-linge</p>
-                <p className="text-[0.65rem] text-white/55">Plomberie · Aujourd\u2019hui à 14h</p>
+                <p className="text-2xs text-white/55">Plomberie · Aujourd\u2019hui à 14h</p>
                 <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-300" />
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-white/15 text-[0.6rem] font-bold">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-white/15 text-2xs font-bold">
                     A
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[0.65rem] font-medium leading-none">Amadou Diallo</p>
-                    <p className="mt-0.5 text-[0.6rem] text-white/50">Arrivée ~ 12 min</p>
+                    <p className="text-2xs font-medium leading-none">Amadou Diallo</p>
+                    <p className="mt-0.5 text-2xs text-white/50">Arrivée ~ 12 min</p>
                   </div>
                   <span className="flex items-center gap-0.5 text-amber-300">
                     {Array.from({ length: 5 }).map((_, i) => (

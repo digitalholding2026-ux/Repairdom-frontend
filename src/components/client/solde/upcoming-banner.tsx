@@ -12,7 +12,7 @@ export function UpcomingBanner() {
           Les recharges et retraits seront disponibles prochainement.
         </p>
       </div>
-      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[0.65rem] font-medium text-muted-foreground">
+      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-2xs font-medium text-muted-foreground">
         À venir
       </span>
     </div>

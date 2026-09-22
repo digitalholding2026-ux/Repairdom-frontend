@@ -124,7 +124,7 @@ export function TrackingHero({
               style={{ left: `calc(${clampedProgress}% - 14px)` }}
             >
               {technicianName ? (
-                <span className="text-[10px] font-extrabold">{technicianName}</span>
+                <span className="text-2xs font-extrabold">{technicianName}</span>
               ) : (
                 <Icon name="users" size="sm" />
               )}

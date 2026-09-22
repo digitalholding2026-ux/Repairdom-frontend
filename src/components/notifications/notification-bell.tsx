@@ -25,7 +25,7 @@ export function NotificationBell({ href }: NotificationBellProps) {
       {unreadCount > 0 ? (
         <Badge
           variant="danger"
-          className="absolute -right-0.5 -top-0.5 min-w-5 h-5 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+          className="absolute -right-0.5 -top-0.5 min-w-5 h-5 items-center justify-center rounded-full px-1 text-2xs font-bold leading-none"
         >
           {unreadCount > 99 ? '99+' : unreadCount}
         </Badge>

@@ -1,9 +1,23 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from '@/components/ui/toast';
 import { ToastProvider } from '@/lib/toast-context';
 import './globals.css';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  display: 'swap',
+  weight: ['500', '600', '700', '800'],
+});
 
 export const metadata: Metadata = {
   title: {
@@ -18,12 +32,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#007bff',
+  themeColor: '#0062cc',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh font-sans antialiased">
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>

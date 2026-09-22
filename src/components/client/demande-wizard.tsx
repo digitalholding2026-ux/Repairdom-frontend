@@ -486,8 +486,8 @@ export function DemandeWizard() {
                               <Icon name="x" size="sm" />
                             </button>
                           </div>
-                          <p className="truncate px-1.5 pt-1 text-[10px] font-medium">{photo.name}</p>
-                          <p className="px-1.5 pb-1.5 text-[10px] text-muted-foreground">
+                          <p className="truncate px-1.5 pt-1 text-2xs font-medium">{photo.name}</p>
+                          <p className="px-1.5 pb-1.5 text-2xs text-muted-foreground">
                             {formatFileSize(photo.sizeBytes)}
                           </p>
                         </li>
@@ -818,7 +818,7 @@ function StepProgress({ current, labels }: { current: number; labels: string[] }
           <li
             key={label}
             className={cn(
-              'text-[10px] font-medium sm:text-xs',
+              'text-2xs font-medium sm:text-xs',
               index <= current ? 'text-primary' : 'text-muted-foreground',
             )}
           >
@@ -850,7 +850,7 @@ function StickyRecap({ device, description, location, timing, onEdit }: StickyRe
       <Card className="overflow-hidden shadow-float">
         <div className="flex items-center justify-between border-b border-border bg-muted/40 px-3.5 py-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Récap</p>
-          <span className="text-[10px] text-muted-foreground">mis à jour en direct</span>
+          <span className="text-2xs text-muted-foreground">mis à jour en direct</span>
         </div>
         <div className="divide-y divide-border/70 px-3.5 py-1">
           {rows.map((row) => (

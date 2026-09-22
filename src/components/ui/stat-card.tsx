@@ -51,7 +51,7 @@ export function StatCard({
       {trend ? (
         <span
           className={cn(
-            'mt-1 inline-flex items-center gap-0.5 text-[0.65rem] font-medium',
+            'mt-1 inline-flex items-center gap-0.5 text-2xs font-medium',
             trend.value >= 0 ? 'text-success-ink' : 'text-error-ink',
           )}
         >

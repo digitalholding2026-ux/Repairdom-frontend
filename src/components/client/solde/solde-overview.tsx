@@ -53,7 +53,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
 
       <div className="relative mt-4 grid grid-cols-2 gap-2.5">
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-          <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+          <p className="text-2xs font-medium uppercase tracking-wider text-white/85">
             Crédits reçus
           </p>
           <p className="font-mono text-base font-bold">
@@ -61,7 +61,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
           </p>
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-          <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+          <p className="text-2xs font-medium uppercase tracking-wider text-white/85">
             Débits
           </p>
           <p className="font-mono text-base font-bold">
@@ -69,7 +69,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
           </p>
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-          <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+          <p className="text-2xs font-medium uppercase tracking-wider text-white/85">
             Remboursements
           </p>
           <p className="font-mono text-base font-bold">
@@ -77,7 +77,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
           </p>
         </div>
         <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-          <p className="text-[0.65rem] font-medium uppercase tracking-wider text-white/60">
+          <p className="text-2xs font-medium uppercase tracking-wider text-white/85">
             Frais Relio
           </p>
           <p className="font-mono text-base font-bold text-white/85">

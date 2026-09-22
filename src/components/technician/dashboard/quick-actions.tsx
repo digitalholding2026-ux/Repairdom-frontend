@@ -42,7 +42,7 @@ export function QuickActions() {
           >
             <Icon name={action.icon} size="md" strokeWidth={1.9} />
           </span>
-          <span className="text-center text-[0.65rem] font-medium leading-tight text-muted-foreground">
+          <span className="text-center text-2xs font-medium leading-tight text-muted-foreground">
             {action.label}
           </span>
         </Link>

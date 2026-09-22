@@ -85,7 +85,7 @@ export function SpendChart({
             </div>
             <span
               className={cn(
-                'text-[0.6rem] capitalize',
+                'text-2xs capitalize',
                 isCurrent ? 'font-semibold text-foreground' : 'text-muted-foreground',
               )}
             >

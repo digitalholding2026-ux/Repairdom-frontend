@@ -141,7 +141,7 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
                     )}
                   >
                     <p className="text-xs font-medium opacity-80">{isMine ? 'Vous' : senderName}</p>
-                    <p className={cn('text-[10px]', isMine ? 'opacity-70' : 'text-muted-foreground')}>
+                    <p className={cn('text-2xs', isMine ? 'opacity-70' : 'text-muted-foreground')}>
                       {formatTime(message.createdAt)}
                     </p>
                   </div>

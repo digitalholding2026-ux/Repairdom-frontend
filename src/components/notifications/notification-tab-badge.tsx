@@ -13,7 +13,7 @@ export function NotificationTabBadge() {
     <span className="absolute -right-1 -top-1">
       <Badge
         variant="danger"
-        className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none"
+        className="flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-2xs font-bold leading-none"
       >
         {count > 99 ? '99+' : count}
       </Badge>
