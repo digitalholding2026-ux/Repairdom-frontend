@@ -236,6 +236,7 @@ export default function TechnicianDashboardPage() {
             icon="truck"
             label="En cours"
             value={activeCount}
+            href={currentMission ? `/technicien/demandes/${currentMission.id}` : undefined}
           />
           <StatCard
             icon="check-circle"
@@ -246,32 +247,9 @@ export default function TechnicianDashboardPage() {
         </div>
       </section>
 
-      {/* ── Disponibilité ──────────────────────────────────────── */}
-      <section id="disponibilite" className="scroll-mt-20">
-        <AvailabilityCard
-          isAvailable={profile?.isAvailable ?? false}
-          busy={availabilityBusy}
-          error={availabilityError}
-          onToggle={() => void handleToggleAvailability()}
-        />
-      </section>
-
-      {/* ── Revenus ────────────────────────────────────────────── */}
-      <section>
-        <RevenueCard finance={finance} completedToday={completedToday} />
-      </section>
-
-      {/* ── Quick actions (contextuelles, pas de doublon BottomNav) */}
-      <section>
-        <QuickActions />
-      </section>
-
-      {/* ── Ma journée ─────────────────────────────────────────── */}
-      <DaySummary activeMissions={mine.filter((d) => ACTIVE_STATUSES.includes(d.status))} completedToday={completedToday} />
-
-      {/* ── Intervention en cours ──────────────────────────────── */}
+      {/* ── Mode mission : l'intervention en cours d'abord ─────── */}
       {currentMission ? (
-        <section className="space-y-3">
+        <section id="intervention-en-cours" className="space-y-3 scroll-mt-20">
           <SectionHeader title="Intervention en cours" />
           <TechnicianLiveMissionCard mission={currentMission} />
         </section>
@@ -315,6 +293,32 @@ export default function TechnicianDashboardPage() {
             ) : null}
           </div>
         )}
+      </section>
+
+      {/* ── Disponibilité ──────────────────────────────────────── */}
+      <section id="disponibilite" className="scroll-mt-20">
+        <AvailabilityCard
+          isAvailable={profile?.isAvailable ?? false}
+          busy={availabilityBusy}
+          error={availabilityError}
+          onToggle={() => void handleToggleAvailability()}
+        />
+      </section>
+
+      {/* ── Revenus ────────────────────────────────────────────── */}
+      <section>
+        <RevenueCard finance={finance} completedToday={completedToday} />
+      </section>
+
+      {/* ── Quick actions (contextuelles, pas de doublon BottomNav) */}
+      <section>
+        <QuickActions />
+      </section>
+
+      {/* ── Ma journée ─────────────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader title="Ma journée" />
+        <DaySummary activeMissions={mine.filter((d) => ACTIVE_STATUSES.includes(d.status))} completedToday={completedToday} />
       </section>
 
       {/* ── Mes interventions ──────────────────────────────────── */}

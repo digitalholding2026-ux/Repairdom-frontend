@@ -246,6 +246,16 @@ export default function ClientDemandeDetailPage() {
             scheduledAt={demande.scheduledAt}
           />
 
+          {/* Phase C : avancement d'abord (lecture unique), photos ensuite. */}
+          {demande.status !== 'CANCELED' ? (
+            <div className="space-y-3">
+              <SectionHeader title="Avancement" />
+              <div className="rounded-xl border border-border bg-card p-4">
+                <DemandeProgress status={demande.status} />
+              </div>
+            </div>
+          ) : null}
+
           {demande.medias && demande.medias.length > 0 ? (
             <div className="space-y-2">
               <SectionHeader title={`Photos jointes (${demande.medias.length})`} />
@@ -265,15 +275,6 @@ export default function ClientDemandeDetailPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-          ) : null}
-
-          {demande.status !== 'CANCELED' ? (
-            <div className="space-y-3">
-              <SectionHeader title="Avancement" />
-              <div className="rounded-xl border border-border bg-card p-4">
-                <DemandeProgress status={demande.status} />
-              </div>
             </div>
           ) : null}
 
@@ -352,24 +353,6 @@ export default function ClientDemandeDetailPage() {
 
       {demande.technician ? (
         <MissionSummaryCard demandeId={demande.id} />
-      ) : null}
-
-      {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="chat" size="sm" className="text-muted-foreground" />
-              Discussion avec votre technicien
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConversationSection
-              demandeId={demande.id}
-              canSend={canDiscuss}
-              peerName={fullName(demande.technician.firstName, demande.technician.lastName)}
-            />
-          </CardContent>
-        </Card>
       ) : null}
 
       {demande.technician ? (
@@ -560,6 +543,25 @@ export default function ClientDemandeDetailPage() {
                 Le technicien n&apos;a pas encore proposé de tarif.
               </p>
             )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Phase C : discussion juste après le devis (négociation au même endroit). */}
+      {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Icon name="chat" size="sm" className="text-muted-foreground" />
+              Discussion avec votre technicien
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ConversationSection
+              demandeId={demande.id}
+              canSend={canDiscuss}
+              peerName={fullName(demande.technician.firstName, demande.technician.lastName)}
+            />
           </CardContent>
         </Card>
       ) : null}

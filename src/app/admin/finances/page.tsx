@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { Input, Select, Field } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -115,6 +117,16 @@ export default function AdminFinancesPage() {
 
   const modeFilterApplied = mode !== 'ALL';
 
+  /* Phase C — synthèse agrégée (tous modes visibles) : le cockpit s'ouvre
+   * sur 3 chiffres au lieu d'empiler d'emblée les deux ModeSection. */
+  const visibleModes = MODES.filter((m) => !modeFilterApplied || mode === m);
+  const totalRevenue = visibleModes.reduce((acc, m) => acc + (data?.results[m].totals.repairDomRevenue ?? 0), 0);
+  const totalMissions = visibleModes.reduce((acc, m) => acc + (data?.results[m].totals.missionsCount ?? 0), 0);
+  const totalMismatches = visibleModes.reduce(
+    (acc, m) => acc + (data?.results[m].reconciliation.mismatchMissions ?? 0),
+    0,
+  );
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -129,6 +141,23 @@ export default function AdminFinancesPage() {
           écritures réelles.
         </Alert>
       ) : null}
+
+      <nav aria-label="Sections finances" className="flex flex-wrap gap-2">
+        {[
+          { href: '#synthese', label: 'Synthèse' },
+          { href: '#missions', label: 'Missions' },
+          { href: '#credit-test', label: 'Crédit test' },
+          { href: '#fonds-relio', label: 'Fonds Relio' },
+        ].map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="rounded-full bg-secondary px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
 
       <Card>
         <CardContent className="space-y-3">
@@ -201,6 +230,21 @@ export default function AdminFinancesPage() {
         <FinancesSkeleton />
       ) : data ? (
         <div className="space-y-6">
+          <section id="synthese" aria-label="Synthèse" className="grid grid-cols-3 gap-2.5 scroll-mt-20">
+            <StatCard
+              icon="file"
+              label="Revenu Relio"
+              value={formatCurrency(totalRevenue, data.currency)}
+              variant="revenue"
+            />
+            <StatCard icon="briefcase" label="Missions" value={totalMissions} />
+            <StatCard
+              icon="check-circle"
+              label="Écarts"
+              value={totalMismatches}
+            />
+          </section>
+          <div id="missions" className="space-y-6 scroll-mt-20">
           {MODES.map((m) => {
             if (modeFilterApplied && mode !== m) return null;
             const result = data.results[m];
@@ -219,12 +263,15 @@ export default function AdminFinancesPage() {
               />
             );
           })}
+          </div>
         </div>
       ) : null}
 
       <TestCreditSection />
 
-      <RelioFundsSection />
+      <div id="fonds-relio" className="scroll-mt-20">
+        <RelioFundsSection />
+      </div>
     </div>
   );
 }
@@ -593,7 +640,7 @@ function TestCreditSection() {
   };
 
   return (
-    <section className="space-y-3">
+    <section id="credit-test" className="space-y-3 scroll-mt-20">
       <SectionHeader
         title={
           <span className="flex items-center gap-2">
