@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { cn } from '@/lib/cn';
+import { Tabs } from '@/components/ui/tabs';
 import { formatDate } from '@/lib/format';
 import {
   getAdminKycFolders,
@@ -60,29 +60,12 @@ export default function AdminKycPage() {
       />
 
       <section className="space-y-3" aria-label="Statuts des dossiers">
-        <div className="flex items-center gap-2" role="tablist" aria-label="Statuts des dossiers">
-          {STATUS_TABS.map((tab) => {
-            const active = tab.id === status;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setStatus(tab.id)}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  active
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:opacity-90',
-                )}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <Tabs
+          label="Statuts des dossiers"
+          value={status}
+          onChange={(id) => setStatus(id as 'PENDING' | 'VERIFIED' | 'REJECTED')}
+          items={STATUS_TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+        />
 
         {loading ? (
           <KycListSkeleton />
@@ -98,7 +81,7 @@ export default function AdminKycPage() {
           />
         ) : folders.length === 0 ? (
           <EmptyState
-            icon="shield-check"
+            icon={<Icon name="shield-check" size="md" />}
             title="Aucun dossier"
             description={`Aucun dossier ${STATUS_TABS.find((t) => t.id === status)?.label.toLowerCase()} pour le moment.`}
           />

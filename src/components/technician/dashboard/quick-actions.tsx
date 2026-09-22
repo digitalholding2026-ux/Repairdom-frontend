@@ -6,7 +6,7 @@ const ACTIONS: Array<{ label: string; href: string; icon: IconName; color: strin
     label: 'Disponibilité',
     href: '#disponibilite',
     icon: 'shield-check',
-    color: 'bg-emerald-50 text-emerald-600',
+    color: 'bg-success-soft text-success-ink',
   },
   {
     label: 'Nouvelles demandes',

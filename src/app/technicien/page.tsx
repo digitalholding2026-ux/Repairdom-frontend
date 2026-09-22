@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
+import { DashboardHero } from '@/components/ui/app-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
 import { AvailabilityCard } from '@/components/technician/dashboard/availability-card';
@@ -208,22 +209,20 @@ export default function TechnicianDashboardPage() {
     <div className="space-y-6">
       {/* ── Hero: salut + stats inline ─────────────────────────── */}
       <section className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-              {greeting}{firstName ? `, ${firstName}` : ''} 👋
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {profile?.isAvailable
-                ? 'Vous êtes en ligne. Les demandes de votre zone vous sont proposées.'
-                : 'Activez votre disponibilité pour recevoir de nouvelles demandes.'}
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <Icon name="logout" size="sm" />
-            <span className="ml-1 hidden sm:inline">Déconnexion</span>
-          </Button>
-        </div>
+        <DashboardHero
+          title={
+            <>
+              {greeting}
+              {firstName ? `, ${firstName}` : ''} 👋
+            </>
+          }
+          subtitle={
+            profile?.isAvailable
+              ? 'Vous êtes en ligne. Les demandes de votre zone vous sont proposées.'
+              : 'Activez votre disponibilité pour recevoir de nouvelles demandes.'
+          }
+          onLogout={handleLogout}
+        />
 
         {/* Stats inline */}
         <div className="grid grid-cols-3 gap-2.5">

@@ -174,10 +174,11 @@ export default function HomePage() {
                   <Link href="/client/inscription">
                     <Button
                       size="lg"
-                      className="group relative w-full overflow-hidden font-semibold shadow-pop hover:-translate-y-0.5"
-                       style={{ backgroundColor: '#ffffff', color: '#1e40af' }}
+                      className="group relative w-full overflow-hidden bg-white font-semibold text-blue-700 shadow-pop hover:-translate-y-0.5"
                     >
-                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-[#bfdbfe]/60 to-transparent" />
+                      {/* Contraste volontairement fixe : bouton blanc sur hero gradient
+                        (inchangé en sombre) — un token adaptatif casserait le ratio. */}
+                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
                       J&apos;ai besoin d&apos;un dépannage
                     </Button>
                   </Link>

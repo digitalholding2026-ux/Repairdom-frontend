@@ -30,7 +30,7 @@ export function RatingStars({ value, size = 'md', showValue = false, className }
                 className="absolute inset-0 overflow-hidden"
                 style={{ width: `${fill * 100}%` }}
               >
-                <Icon name="star" filled className={cn('text-amber-500', starSizes[size])} />
+                <Icon name="star" filled className={cn('text-warning', starSizes[size])} />
               </span>
             </span>
           );

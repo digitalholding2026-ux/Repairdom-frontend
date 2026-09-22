@@ -33,3 +33,13 @@ export { Switch, type SwitchProps } from './switch';
 export { Spinner, type SpinnerProps } from './spinner';
 export { Skeleton, SkeletonCard, SkeletonRow, type SkeletonProps } from './skeleton';
 export { EmptyState, type EmptyStateProps } from './empty-state';
+export {
+  GradientHeroCard,
+  HeroStat,
+  type GradientHeroCardProps,
+  type HeroTone,
+} from './gradient-hero-card';
+export { SimulationBadge } from './simulation-badge';
+export { Tabs, type TabsProps, type TabItem } from './tabs';
+export { DashboardHero } from './app-header';
+export { RewardProgressCard, type RewardProgressCardProps } from './reward-progress-card';

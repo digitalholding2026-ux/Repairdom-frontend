@@ -299,13 +299,13 @@ export default function AdminMissionsPage() {
         </div>
       ) : error && !notFound ? (
         <EmptyState
-          icon="search"
+          icon={<Icon name="search" size="md" />}
           title="Recherche impossible"
           description="Vérifiez la référence saisie et réessayez."
         />
       ) : (
         <EmptyState
-          icon="search"
+          icon={<Icon name="search" size="md" />}
           title="Recherche de mission"
           description="Saisissez la référence RD-XXXXXX d'une mission pour consulter sa supervision."
         />

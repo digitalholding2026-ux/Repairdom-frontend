@@ -5,10 +5,12 @@ import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import type { TechnicianMissionFinance } from '@/lib/api/finance-service';
 
+/* Médailles tokenisées (or/argent/bronze) : lisibles en mode sombre,
+ * contrairement aux amber/slate/orange en dur. */
 const RANK_STYLES = [
-  'bg-amber-400 text-amber-950',
-  'bg-slate-300 text-slate-700',
-  'bg-orange-400 text-orange-950',
+  'bg-warning text-warning-foreground',
+  'bg-muted text-muted-foreground',
+  'bg-warning-soft text-warning-ink',
 ];
 
 export function TopMissions({

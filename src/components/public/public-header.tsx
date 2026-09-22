@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { BrandLogo } from './brand-logo';
 import { useAuth } from '@/components/auth/auth-provider';
 import { homePathForRole } from '@/lib/api/auth-service';
@@ -37,7 +38,7 @@ export function PublicHeader() {
         <BrandLogo href="/" />
         <nav className="flex items-center gap-2" aria-label="Navigation principale">
           {loading ? (
-            <span className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" aria-hidden />
+            <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
           ) : authenticated ? (
             <>
               <Link href={homePathForRole(user?.role)}>

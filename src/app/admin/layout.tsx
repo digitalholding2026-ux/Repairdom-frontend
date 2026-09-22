@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -59,10 +60,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
             <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
           </Link>
           {loading ? (
-            <span
-              className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground"
-              aria-hidden
-            />
+            <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
           ) : showChrome ? (
             <div className="flex items-center gap-2">
               <Badge variant="info">Espace admin</Badge>

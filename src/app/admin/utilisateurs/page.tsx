@@ -177,7 +177,7 @@ export default function AdminUsersPage() {
       {searched ? (
         results.length === 0 ? (
           <EmptyState
-            icon="search"
+            icon={<Icon name="search" size="md" />}
             title="Aucun compte"
             description="Aucun compte ne correspond à cette recherche."
           />

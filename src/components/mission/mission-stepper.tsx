@@ -6,12 +6,14 @@ import {
   type MissionStepConfig,
 } from '@/lib/mission-progress';
 
+/* Phase B — tons tokenisés (sombre-compatibles). Les tons décoratifs
+ * indigo/violet/blue restent fixes (pastilles d'étapes, pas de token). */
 const toneDot: Record<MissionStepConfig['tone'], string> = {
   indigo: 'text-indigo-600',
   violet: 'text-violet-600',
   blue: 'text-sky-600',
-  amber: 'text-amber-600',
-  emerald: 'text-emerald-600',
+  amber: 'text-warning',
+  emerald: 'text-success',
 };
 
 export interface MissionStepperProps {
@@ -46,7 +48,7 @@ export function MissionStepper({ status, currentHint, className }: MissionSteppe
                 <span
                   className={cn(
                     'block w-full origin-top',
-                    done ? 'bg-emerald-400' : current ? 'bg-gradient-to-b from-primary to-accent' : '',
+                    done ? 'bg-success' : current ? 'bg-gradient-to-b from-primary to-accent' : '',
                   )}
                   style={current ? { animation: 'connector-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards' } : undefined}
                 />
@@ -57,7 +59,7 @@ export function MissionStepper({ status, currentHint, className }: MissionSteppe
               aria-hidden
               className={cn(
                 'relative z-10 mt-0.5 flex shrink-0 items-center justify-center rounded-full transition-all duration-500',
-                done && 'size-7 bg-emerald-500 text-white shadow-sm',
+                done && 'size-7 bg-success text-white shadow-sm',
                 current && 'size-10 bg-primary text-primary-foreground ring-4 ring-primary/20 animate-pulse-dot shadow-pop',
                 pending && 'size-7 bg-muted text-muted-foreground ring-1 ring-inset ring-border',
               )}

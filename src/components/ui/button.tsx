@@ -2,6 +2,7 @@
 
 import type { ButtonHTMLAttributes, MouseEvent } from 'react';
 import { cn } from '@/lib/cn';
+import { Spinner } from './spinner';
 import { triggerHaptic } from '@/lib/haptics';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'outline';
@@ -56,7 +57,7 @@ export function Button({
       onClick={handleClick}
       {...props}
     >
-      {isLoading ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : null}
+      {isLoading ? <Spinner size="sm" /> : null}
       {children}
     </button>
   );

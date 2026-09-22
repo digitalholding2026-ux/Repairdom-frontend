@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { Icon } from '@/components/ui/icon';
 
+/* Confettis décoratifs : palette festive fixe (conservée — pas de token). */
 const CONFETTI_COLORS = [
   '#4f46e5',
   '#7c3aed',
@@ -36,11 +37,11 @@ export function Celebration({ title, subtitle, children, className }: Celebratio
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-px shadow-float',
+        'success-gradient relative overflow-hidden rounded-2xl p-px shadow-float',
         className,
       )}
     >
-      <div className="relative rounded-[calc(1rem-1px)] bg-emerald-50 px-5 py-6 dark:bg-emerald-950/50">
+      <div className="relative rounded-[calc(1rem-1px)] bg-success-soft px-5 py-6">
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           {CONFETTI_PIECES.map((piece, index) => (
             <span
@@ -63,7 +64,7 @@ export function Celebration({ title, subtitle, children, className }: Celebratio
         </div>
 
         <div className="relative animate-pop-in space-y-3 text-center">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-pop">
+          <span className="success-gradient mx-auto flex size-14 items-center justify-center rounded-full text-white shadow-pop">
             <Icon name="check-circle" size="lg" strokeWidth={2.2} filled />
           </span>
           <div>

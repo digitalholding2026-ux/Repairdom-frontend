@@ -25,12 +25,14 @@ export interface TrackingHeroProps {
   href?: string;
 }
 
+/* Phase B — stops tokenisés (sombre-compatibles) : success/muted au lieu
+ * des emerald/slate en dur. */
 const LIVE_GRADIENT =
-  'from-primary/70 via-accent/60 to-emerald-500/60';
+  'from-primary/70 via-accent/60 to-success/60';
 const DONE_GRADIENT =
-  'from-emerald-400/70 via-emerald-500 to-teal-500/70';
+  'from-success/70 via-success to-success-gradient-to/70';
 const CANCELED_GRADIENT =
-  'from-slate-400/70 via-slate-400/50 to-slate-500/70';
+  'from-muted-foreground/70 via-muted-foreground/50 to-muted-foreground/70';
 
 /** Carte « suivi en direct » façon Uber Eats : barre segmentée avec l'avatar
  *  du technicien qui avance au fil de la progression, statut en direct. */
@@ -63,23 +65,23 @@ export function TrackingHero({
           className={cn(
             'pointer-events-none absolute -right-20 -top-20 size-52 rounded-full blur-3xl',
             canceled
-              ? 'bg-slate-400/10'
+              ? 'bg-muted-foreground/10'
               : live
                 ? 'bg-primary/10'
-                : 'bg-emerald-400/10',
+                : 'bg-success/10',
           )}
         />
 
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {canceled ? (
-              <span className="flex size-2.5 rounded-full bg-slate-400" />
+              <span className="flex size-2.5 rounded-full bg-muted-foreground" />
             ) : !live ? (
-              <span className="flex size-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-400/30" />
+              <span className="flex size-2.5 rounded-full bg-success ring-2 ring-success/30" />
             ) : (
               <span className="relative flex size-2.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-success" />
               </span>
             )}
             <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -111,7 +113,7 @@ export function TrackingHero({
                   key={segment}
                   className={cn(
                     'h-full flex-1 rounded-full transition-colors duration-500',
-                    filled ? (canceled ? 'bg-slate-400' : 'bg-gradient-to-r from-primary to-accent') : 'bg-muted',
+                    filled ? (canceled ? 'bg-muted-foreground' : 'bg-gradient-to-r from-primary to-accent') : 'bg-muted',
                   )}
                 />
               );

@@ -8,6 +8,7 @@ export const ICON_NAMES = [
   'shield-check', 'plus', 'search', 'file', 'alert', 'info', 'x', 'menu',
   'truck', 'badge-check', 'send', 'sparkles', 'settings', 'briefcase',
   'zap', 'droplet', 'thermometer', 'cpu',
+  'wallet', 'copy', 'eye', 'camera',
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -215,6 +216,32 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M1 15h3" />
       <path d="M20 9h3" />
       <path d="M20 15h3" />
+    </>
+  ),
+  /* Phase B — icônes manquantes (tracés lucide, stroke 24px). */
+  wallet: (
+    <>
+      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+      <circle cx="12" cy="13" r="3" />
     </>
   ),
 };

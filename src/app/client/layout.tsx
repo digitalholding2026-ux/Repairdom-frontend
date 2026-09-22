@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Icon } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -41,7 +42,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
           </Link>
           <div className="flex items-center gap-2">
             {loading ? (
-              <span className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" aria-hidden />
+              <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
             ) : showPrivateChrome ? (
               <>
                 <NotificationBell href="/client/notifications" />

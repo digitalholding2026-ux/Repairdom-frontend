@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Icon } from '@/components/ui/icon';
 import { Switch } from '@/components/ui/switch';
+import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
 import { cn } from '@/lib/cn';
 
 export interface AvailabilityCardProps {
@@ -13,26 +14,10 @@ export interface AvailabilityCardProps {
   onToggle: () => void;
 }
 
-/** Carte « live » de disponibilité — miroir du pôle finance client (BalanceCard). */
+/** Carte « live » de disponibilité — coque GradientHeroCard partagée. */
 export function AvailabilityCard({ isAvailable, busy, error, onToggle }: AvailabilityCardProps) {
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-3xl p-5 text-white shadow-pop',
-        'bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-600',
-        !isAvailable && 'from-zinc-600 via-slate-600 to-slate-700',
-      )}
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/20 blur-2xl"
-      />
-      <div
-        aria-hidden
-        className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent"
-      />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/40" />
-
+    <GradientHeroCard tone={isAvailable ? 'success' : 'neutral'}>
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-white/70">
@@ -41,12 +26,12 @@ export function AvailabilityCard({ isAvailable, busy, error, onToggle }: Availab
           <p className="mt-1.5 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <span className="relative flex size-2.5 shrink-0">
               {isAvailable ? (
-                <span className="absolute inline-flex size-full rounded-full bg-emerald-300 opacity-75 animate-ping" />
+                <span className="absolute inline-flex size-full rounded-full bg-white opacity-75 animate-ping" />
               ) : null}
               <span
                 className={cn(
                   'relative inline-flex size-2.5 rounded-full',
-                  isAvailable ? 'bg-emerald-300' : 'bg-white/70',
+                  isAvailable ? 'bg-white' : 'bg-white/70',
                 )}
               />
             </span>
@@ -89,6 +74,6 @@ export function AvailabilityCard({ isAvailable, busy, error, onToggle }: Availab
           {error}
         </Alert>
       ) : null}
-    </div>
+    </GradientHeroCard>
   );
 }

@@ -76,7 +76,7 @@ export function SpendChart({
                 className={cn(
                   'w-full max-w-8 rounded-t-md transition-all duration-500',
                   d.amount > 0
-                    ? 'bg-gradient-to-t from-orange-500 to-amber-400'
+                    ? 'bg-gradient-to-t from-reward-via to-reward-from'
                     : 'bg-muted-foreground/20',
                   !isCurrent && d.amount > 0 && 'opacity-70',
                 )}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
+import { DashboardHero } from '@/components/ui/app-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
 import { BalanceCard } from '@/components/client/dashboard/balance-card';
@@ -27,7 +28,7 @@ import {
   type DemandeListItem,
 } from '@/lib/api/request-service';
 import { demandeStatusConfig } from '@/lib/request-status';
-import { cn } from '@/lib/cn';
+import { Tabs } from '@/components/ui/tabs';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
@@ -60,37 +61,15 @@ function getGreeting(): string {
 }
 
 function MissionTabs({ current }: { current: 'missions' | 'history' }) {
-  const tabs = [
-    { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
-    { id: 'history', label: 'Historique', href: '/client/demandes/historique' },
-  ] as const;
   return (
-    <div
-      className="flex items-center gap-2 overflow-x-auto no-scrollbar"
-      role="tablist"
-      aria-label="Mes missions et historique"
-    >
-      {tabs.map((tab) => {
-        const active = tab.id === current;
-        return (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            role="tab"
-            aria-selected={active}
-            className={cn(
-              'shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              active
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-secondary-foreground hover:opacity-90',
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </div>
+    <Tabs
+      value={current}
+      label="Mes missions et historique"
+      items={[
+        { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
+        { id: 'history', label: 'Historique', href: '/client/demandes/historique' },
+      ]}
+    />
   );
 }
 
@@ -235,22 +214,15 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     const list = isHistory ? historique : demandes;
     return (
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-              {isHistory ? 'Historique' : 'Mes missions'}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {isHistory
-                ? 'Vos interventions confirmées et annulées.'
-                : 'Suivez vos demandes, devis et interventions en cours.'}
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <Icon name="logout" size="sm" />
-            <span className="ml-1 hidden sm:inline">Déconnexion</span>
-          </Button>
-        </div>
+        <DashboardHero
+          title={isHistory ? 'Historique' : 'Mes missions'}
+          subtitle={
+            isHistory
+              ? 'Vos interventions confirmées et annulées.'
+              : 'Suivez vos demandes, devis et interventions en cours.'
+          }
+          onLogout={handleLogout}
+        />
 
         <MissionTabs current={isHistory ? 'history' : 'missions'} />
 
@@ -291,18 +263,16 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     <div className="space-y-6">
       {/* ── Hero: salut + stats inline ─────────────────────────── */}
       <section className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-              {getGreeting()}{firstName ? `, ${firstName}` : ''} 👋
-            </h1>
-            <p className="text-sm text-muted-foreground">Que pouvons-nous réparer pour vous ?</p>
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <Icon name="logout" size="sm" />
-            <span className="ml-1 hidden sm:inline">Déconnexion</span>
-          </Button>
-        </div>
+        <DashboardHero
+          title={
+            <>
+              {getGreeting()}
+              {firstName ? `, ${firstName}` : ''} 👋
+            </>
+          }
+          subtitle="Que pouvons-nous réparer pour vous ?"
+          onLogout={handleLogout}
+        />
 
         {/* Stats inline */}
         <div className="grid grid-cols-3 gap-2.5">

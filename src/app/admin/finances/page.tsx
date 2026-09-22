@@ -423,7 +423,7 @@ function MissionRow({
               <AdminMissionDetail detail={detail} currency={currency} />
             ) : (
               <EmptyState
-                icon="info"
+                icon={<Icon name="info" size="md" />}
                 title="Aucune donnée"
                 description="Aucun détail financier disponible pour cette mission."
               />
@@ -487,7 +487,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         </p>
         {detail.transactions.length === 0 ? (
           <EmptyState
-            icon="file"
+            icon={<Icon name="file" size="md" />}
             title="Aucune écriture"
             description="Aucune écriture enregistrée pour cette mission."
           />
@@ -649,7 +649,7 @@ function TestCreditSection() {
             </div>
           ) : query.trim().length >= 2 && !searchLoading && !searchError ? (
             <EmptyState
-              icon="users"
+              icon={<Icon name="users" size="md" />}
               title="Aucun client trouvé"
               description={`Aucun résultat pour « ${query.trim()} ».`}
             />
