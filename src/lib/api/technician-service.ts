@@ -302,6 +302,19 @@ export interface MissionQuote {
 
 /* ── Catalogue → mission (Sprint 8.1) ────────────────────────── */
 
+/* Barème technicien (fourchette min/ref/max + frais, sans historique) exposé
+ * par GET /demandes/:id/catalog/suggestions — Phase A. */
+export interface SuggestionPricing {
+  interventionId: string;
+  minPrice: number | null;
+  referencePrice: number | null;
+  maxPrice: number | null;
+  travelFee: number | null;
+  serviceFee: number | null;
+  currency: string;
+  priceMode: string;
+}
+
 export interface SuggestionIntervention {
   id: string;
   name: string;
@@ -311,6 +324,7 @@ export interface SuggestionIntervention {
   estimatedTime: string | null;
   needsParts: boolean;
   partsNote: string | null;
+  pricing?: SuggestionPricing | null;
 }
 
 export interface DiagnosticSuggestion {

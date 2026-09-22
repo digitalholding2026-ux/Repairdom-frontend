@@ -161,7 +161,7 @@ export default function AdminProblemPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {problem.diagnostics.length === 0 ? (
-          <EmptyState icon="badge-check" title="Aucun diagnostic" description="Ajoutez un diagnostic pour ce problème." />
+          <EmptyState icon={<Icon name="badge-check" size="md" />} title="Aucun diagnostic" description="Ajoutez un diagnostic pour ce problème." />
         ) : (
         <div className="space-y-2">
           {problem.diagnostics.map((diag) => (

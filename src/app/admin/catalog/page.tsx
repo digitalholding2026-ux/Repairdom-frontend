@@ -121,7 +121,7 @@ export default function AdminCatalogPage() {
         <CatalogSkeleton />
       ) : domains.length === 0 ? (
         <EmptyState
-          icon="wrench"
+          icon={<Icon name="wrench" size="md" />}
           title="Aucun domaine"
           description="Créez un domaine ou utilisez le seed Smartphone pour commencer."
         />

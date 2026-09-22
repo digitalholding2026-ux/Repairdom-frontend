@@ -438,7 +438,7 @@ export function DemandeWizard() {
                 <Field
                   label="Photos (facultatif)"
                   htmlFor="demande-photos"
-                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Elles aident le technicien à comprendre le problème.`}
+                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Seul le descriptif des photos est transmis pour l’instant (l’envoi des fichiers image arrive prochainement).`}
                   error={photoError}
                 >
                   <label
@@ -642,7 +642,7 @@ export function DemandeWizard() {
                     label="Photos"
                     value={
                       photos.length > 0
-                        ? `${photos.length} photo${photos.length !== 1 ? 's' : ''} jointe${photos.length !== 1 ? 's' : ''}`
+                        ? `${photos.length} photo${photos.length !== 1 ? 's' : ''} déclarée${photos.length !== 1 ? 's' : ''} (descriptif uniquement)`
                         : 'Aucune'
                     }
                     onEdit={() => jumpTo(1)}

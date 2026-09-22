@@ -33,9 +33,11 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
   const rightItems = items.slice(split);
   const gridCols = primaryHref
     ? 'grid-cols-[1fr_auto_1fr]'
-    : items.length > 4
-      ? 'grid-cols-5'
-      : 'grid-cols-4';
+    : items.length > 5
+      ? 'grid-cols-6'
+      : items.length > 4
+        ? 'grid-cols-5'
+        : 'grid-cols-4';
 
   return (
     <nav

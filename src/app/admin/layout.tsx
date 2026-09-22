@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -121,14 +120,41 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
 
       {showChrome ? (
         <div className="lg:hidden">
-          <BottomNav
-            items={[
-              { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
-              { href: '/admin/missions', label: 'Missions', icon: 'search' },
-              { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
-              { href: '/admin/finances', label: 'Finances', icon: 'file' },
-            ]}
-          />
+          {/* Phase A : les 8 sections admin restent accessibles en mobile via
+            * une rangée à défilement horizontal (la BottomNav à 4 items en
+            * amputait 4). */}
+          <nav
+            aria-label="Navigation admin"
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+          >
+            <div className="flex gap-1 overflow-x-auto px-2">
+              {ADMIN_NAV.map((item) => {
+                const active = isNavActive(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'flex min-w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-2xs font-medium',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      active ? 'text-primary' : 'text-muted-foreground',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-6 items-center justify-center rounded-full px-3',
+                        active && 'bg-primary/10',
+                      )}
+                    >
+                      <Icon name={item.icon} size="sm" strokeWidth={active ? 2.4 : 1.9} />
+                    </span>
+                    <span className="max-w-full truncate leading-none">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
         </div>
       ) : null}
     </div>

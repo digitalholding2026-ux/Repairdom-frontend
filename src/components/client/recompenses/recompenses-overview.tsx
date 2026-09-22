@@ -78,7 +78,8 @@ export function RecompensesPlaceholder() {
           Les récompenses seront débloquées après 5 dépannages validés. Restez connecté !
         </p>
       </div>
-      <Link href="/client/demandes" className="block">
+      {/* Phase A : le CTA pointait vers la liste /client/demandes au lieu du dépôt /client/demande. */}
+      <Link href="/client/demande" className="block">
         <Button variant="secondary" className="w-full">
           Déposer une demande
         </Button>

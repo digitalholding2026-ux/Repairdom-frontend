@@ -193,7 +193,7 @@ export default function AdminBrandPage() {
           }
         />
         {brand.models.length === 0 ? (
-        <EmptyState icon="briefcase" title="Aucun modèle" description="Ajoutez un modèle pour cette marque." />
+        <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucun modèle" description="Ajoutez un modèle pour cette marque." />
       ) : (
         <div className="space-y-2">
           {brand.models.map((model) => (

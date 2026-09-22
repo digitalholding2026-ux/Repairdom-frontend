@@ -154,7 +154,7 @@ export default function AdminDomainPage() {
           }
         />
         {domain.brands.length === 0 ? (
-          <EmptyState icon="briefcase" title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
+          <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
         ) : (
           <div className="space-y-2">
             {domain.brands.map((brand) => (
@@ -214,7 +214,7 @@ export default function AdminDomainPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {domain.problems.length === 0 ? (
-          <EmptyState icon="file" title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
+          <EmptyState icon={<Icon name="file" size="md" />} title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
         ) : (
         <div className="space-y-2">
           {domain.problems.map((problem) => (

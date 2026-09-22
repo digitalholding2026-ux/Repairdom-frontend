@@ -147,7 +147,7 @@ export default function AdminModelPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {problems.length === 0 ? (
-        <EmptyState icon="file" title="Aucun problème" description="Ajoutez un problème pour ce modèle." />
+        <EmptyState icon={<Icon name="file" size="md" />} title="Aucun problème" description="Ajoutez un problème pour ce modèle." />
       ) : (
         <div className="space-y-2">
           {problems.map((problem) => (

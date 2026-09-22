@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -82,6 +82,14 @@ export default function AdminDiagnosticPage() {
   const [intNeedsParts, setIntNeedsParts] = useState(false);
 
   const [pricingInterventionId, setPricingInterventionId] = useState<string | null>(null);
+  /* Phase A : mise au premier plan de l'éditeur de tarif (rendu en bas de
+   * page, hors viewport) à son ouverture. */
+  const pricingEditorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (pricingInterventionId) {
+      pricingEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [pricingInterventionId]);
   const [pricingData, setPricingData] = useState<CatalogPricing | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [minPrice, setMinPrice] = useState('');
@@ -282,7 +290,7 @@ export default function AdminDiagnosticPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {diagnostic.interventions.length === 0 ? (
-          <EmptyState icon="wrench" title="Aucune intervention" description="Ajoutez une intervention pour ce diagnostic." />
+          <EmptyState icon={<Icon name="wrench" size="md" />} title="Aucune intervention" description="Ajoutez une intervention pour ce diagnostic." />
         ) : (
         <div className="space-y-2">
           {diagnostic.interventions.map((intervention) => (
@@ -403,7 +411,8 @@ export default function AdminDiagnosticPage() {
 
       {/* Inline Pricing Editor (bottom of page) */}
       {pricingInterventionId ? (
-        <Card id="pricing-editor" className="scroll-mt-20 border-primary/30">
+        <div ref={pricingEditorRef} className="scroll-mt-20">
+        <Card id="pricing-editor" className="border-primary/30">
           <CardContent className="space-y-3 pt-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-sm font-semibold">
@@ -496,6 +505,7 @@ export default function AdminDiagnosticPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       ) : null}
     </div>
   );

@@ -9,6 +9,7 @@ import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
@@ -51,6 +52,23 @@ export default function ClientDemandeDetailPage() {
   const [events, setEvents] = useState<MissionEvent[]>([]);
   const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
   const [insufficientBalance, setInsufficientBalance] = useState<{ deficit: number } | null>(null);
+  /* Action en attente de confirmation (Phase A : plus aucun acte
+   * irréversible — annulation, réponse au devis, confirmation — en un clic). */
+  const [confirmAction, setConfirmAction] = useState<
+    | { kind: 'cancel' }
+    | { kind: 'confirm' }
+    | { kind: 'accept'; quoteId: string }
+    | { kind: 'reject'; quoteId: string }
+    | null
+  >(null);
+
+  const runConfirmedAction = () => {
+    if (!confirmAction || actionBusy) return;
+    if (confirmAction.kind === 'cancel') void handleStatusChange('CANCELED');
+    else if (confirmAction.kind === 'confirm') void handleStatusChange('CONFIRMED');
+    else void handleQuoteResponse(confirmAction.quoteId, confirmAction.kind);
+    setConfirmAction(null);
+  };
 
   /* Chargement unique : premier passage complet (erreur affichée), puis
    * rafraîchissement silencieux toutes les 5 s (un seul timer). */
@@ -293,7 +311,7 @@ export default function ClientDemandeDetailPage() {
 
           {demande.status === 'COMPLETED' ? (
             <Button
-              onClick={() => handleStatusChange('CONFIRMED')}
+              onClick={() => setConfirmAction({ kind: 'confirm' })}
               isLoading={actionBusy === 'CONFIRMED'}
               className="w-full"
               size="lg"
@@ -304,7 +322,7 @@ export default function ClientDemandeDetailPage() {
 
           {canCancel ? (
             <Button
-              onClick={() => handleStatusChange('CANCELED')}
+              onClick={() => setConfirmAction({ kind: 'cancel' })}
               variant="destructive"
               isLoading={actionBusy === 'CANCELED'}
               className="w-full"
@@ -474,6 +492,15 @@ export default function ClientDemandeDetailPage() {
                     <Link href="/client/solde">
                       <Button variant="secondary" className="w-full">Voir mon solde</Button>
                     </Link>
+                    {canCancel ? (
+                      <Button
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => setConfirmAction({ kind: 'cancel' })}
+                      >
+                        Annuler la demande
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -481,14 +508,14 @@ export default function ClientDemandeDetailPage() {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleQuoteResponse(latestQuote.id, 'accept')}
+                        onClick={() => setConfirmAction({ kind: 'accept', quoteId: latestQuote.id })}
                         isLoading={actionBusy === 'quote:accept'}
                         className="flex-1"
                       >
                         Accepter le tarif
                       </Button>
                       <Button
-                        onClick={() => handleQuoteResponse(latestQuote.id, 'reject')}
+                        onClick={() => setConfirmAction({ kind: 'reject', quoteId: latestQuote.id })}
                         variant="destructive"
                         isLoading={actionBusy === 'quote:reject'}
                         className="flex-1"
@@ -544,6 +571,41 @@ export default function ClientDemandeDetailPage() {
           alreadyRatedLabel="Vous avez déjà évalué cette intervention."
         />
       ) : null}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={runConfirmedAction}
+        loading={actionBusy !== null}
+        tone={confirmAction?.kind === 'cancel' || confirmAction?.kind === 'reject' ? 'danger' : 'primary'}
+        title={
+          confirmAction?.kind === 'cancel'
+            ? 'Annuler la demande ?'
+            : confirmAction?.kind === 'accept'
+              ? 'Accepter ce tarif ?'
+              : confirmAction?.kind === 'reject'
+                ? 'Refuser ce tarif ?'
+                : 'Confirmer l’intervention ?'
+        }
+        description={
+          confirmAction?.kind === 'cancel'
+            ? 'La demande sera annulée. Le technicien en sera informé.'
+            : confirmAction?.kind === 'accept'
+              ? 'Le montant sera débité de votre solde et le technicien pourra planifier l’intervention.'
+              : confirmAction?.kind === 'reject'
+                ? 'Le technicien pourra vous proposer un nouveau tarif.'
+                : 'Vous validez que l’intervention est terminée. Cette action déclenche le règlement.'
+        }
+        confirmLabel={
+          confirmAction?.kind === 'cancel'
+            ? 'Annuler la demande'
+            : confirmAction?.kind === 'accept'
+              ? 'Accepter'
+              : confirmAction?.kind === 'reject'
+                ? 'Refuser'
+                : 'Confirmer'
+        }
+      />
     </div>
   );
 }

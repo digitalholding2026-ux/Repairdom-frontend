@@ -10,6 +10,7 @@ import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input, Textarea } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
@@ -57,6 +58,12 @@ export default function TechnicianDemandeDetailPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [scheduledValue, setScheduledValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  /* Phase A : l'erreur de chargement (pleine page, zone liste/détail) est
+   * séparée des erreurs d'action (en ligne, zone boutons) — un échec
+   * d'action ne doit plus s'afficher hors de sa zone. */
+  const [actionError, setActionError] = useState<string | null>(null);
+  /* Phase A : « Marquer comme terminée » déclenche le règlement — confirmation exigée. */
+  const [confirmFinish, setConfirmFinish] = useState(false);
   const [kycVerified, setKycVerified] = useState(true);
   const [technicianProfile, setTechnicianProfile] = useState<{ kycStatus: string } | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -138,12 +145,12 @@ export default function TechnicianDemandeDetailPage() {
   const handleAccept = async () => {
     if (!params?.id) return;
     setActionBusy('ACCEPTED');
-    setError(null);
+    setActionError(null);
     try {
       const updated = await acceptDemande(params.id);
       setDemande(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'acceptation.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de l\'acceptation.');
     } finally {
       setActionBusy(null);
     }
@@ -152,12 +159,12 @@ export default function TechnicianDemandeDetailPage() {
   const handleStatusChange = async (status: string) => {
     if (!params?.id) return;
     setActionBusy(status);
-    setError(null);
+    setActionError(null);
     try {
       const updated = await updateTechnicianDemandeStatus(params.id, status);
       setDemande(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
     } finally {
       setActionBusy(null);
     }
@@ -166,7 +173,7 @@ export default function TechnicianDemandeDetailPage() {
   const handleSchedule = async () => {
     if (!params?.id) return;
     setActionBusy('SCHEDULED');
-    setError(null);
+    setActionError(null);
     try {
       const updated = await updateTechnicianDemandeStatus(
         params.id,
@@ -175,7 +182,7 @@ export default function TechnicianDemandeDetailPage() {
       );
       setDemande(updated);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la planification.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de la planification.');
     } finally {
       setActionBusy(null);
     }
@@ -185,16 +192,16 @@ export default function TechnicianDemandeDetailPage() {
     if (!params?.id) return;
     const amount = Number(amountValue);
     if (!Number.isInteger(amount) || amount <= 0) {
-      setError('Veuillez saisir un montant valide (entier, supérieur à 0).');
+      setActionError('Veuillez saisir un montant valide (entier, supérieur à 0).');
       return;
     }
     const description = quoteDescription.trim();
     if (!description) {
-      setError('Veuillez décrire la proposition.');
+      setActionError('Veuillez décrire la proposition.');
       return;
     }
     setActionBusy('QUOTE');
-    setError(null);
+    setActionError(null);
     try {
       const created = await createDemandeQuote(params.id, { amount, description });
       setQuotes((prev) => [created, ...prev]);
@@ -202,7 +209,7 @@ export default function TechnicianDemandeDetailPage() {
       setQuoteDescription('');
       setShowQuoteForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création du tarif.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de la création du tarif.');
     } finally {
       setActionBusy(null);
     }
@@ -228,7 +235,7 @@ export default function TechnicianDemandeDetailPage() {
   const handleSelectCatalogDiagnostic = async (diagId: string, intervention: SuggestionIntervention) => {
     if (!params?.id) return;
     setActionBusy(`catalog:${intervention.id}`);
-    setError(null);
+    setActionError(null);
     try {
       const result = await selectDemandeDiagnostic(params.id, {
         mode: 'CATALOG',
@@ -238,7 +245,7 @@ export default function TechnicianDemandeDetailPage() {
       if (result.quote) setQuotes((prev) => [result.quote!, ...prev]);
       if (result.diagnostic) setDiagnostics((prev) => [result.diagnostic, ...prev]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la sélection du diagnostic.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de la sélection du diagnostic.');
     } finally {
       setActionBusy(null);
     }
@@ -248,21 +255,21 @@ export default function TechnicianDemandeDetailPage() {
     if (!params?.id) return;
     const content = manualContent.trim();
     if (content.length < 10) {
-      setError('Décrivez le diagnostic observé (10 caractères minimum).');
+      setActionError('Décrivez le diagnostic observé (10 caractères minimum).');
       return;
     }
     const proposedIntervention = manualProposedIntervention.trim();
     if (proposedIntervention.length < 5) {
-      setError('Décrivez l’intervention proposée (5 caractères minimum).');
+      setActionError('Décrivez l’intervention proposée (5 caractères minimum).');
       return;
     }
     const justification = manualJustification.trim();
     if (justification.length < 5) {
-      setError('Justifiez le diagnostic (5 caractères minimum).');
+      setActionError('Justifiez le diagnostic (5 caractères minimum).');
       return;
     }
     setActionBusy('catalog:manual');
-    setError(null);
+    setActionError(null);
     try {
       const result = await selectDemandeDiagnostic(params.id, {
         mode: 'MANUAL',
@@ -280,7 +287,7 @@ export default function TechnicianDemandeDetailPage() {
       setManualJustification('');
       setManualNotes('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+      setActionError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
     } finally {
       setActionBusy(null);
     }
@@ -444,7 +451,7 @@ export default function TechnicianDemandeDetailPage() {
             </div>
           ) : null}
 
-          {error ? <Alert variant="error">{error}</Alert> : null}
+          {actionError ? <Alert variant="error">{actionError}</Alert> : null}
 
           {canAccept && kycRequired ? (
             <div className="space-y-3">
@@ -515,7 +522,7 @@ export default function TechnicianDemandeDetailPage() {
 
           {demande.status === 'IN_PROGRESS' ? (
             <Button
-              onClick={() => handleStatusChange('COMPLETED')}
+              onClick={() => setConfirmFinish(true)}
               isLoading={actionBusy === 'COMPLETED'}
               className="w-full"
               size="lg"
@@ -617,18 +624,40 @@ export default function TechnicianDemandeDetailPage() {
                             </span>
                           ) : null}
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="space-y-2">
                           {suggestion.interventions.map((intervention) => (
-                            <Button
+                            <div
                               key={intervention.id}
-                              size="sm"
-                              variant="secondary"
-                              disabled={hasPendingCatalogQuote}
-                              isLoading={actionBusy === `catalog:${intervention.id}`}
-                              onClick={() => handleSelectCatalogDiagnostic(suggestion.id, intervention)}
+                              className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2"
                             >
-                              Sélectionner — {intervention.name}
-                            </Button>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">{intervention.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {intervention.pricing?.referencePrice != null ? (
+                                    <>Réf. {formatPrice(intervention.pricing.referencePrice)}</>
+                                  ) : (
+                                    'Barème non défini'
+                                  )}
+                                  {intervention.pricing?.minPrice != null &&
+                                  intervention.pricing?.maxPrice != null ? (
+                                    <>
+                                      {' '}· {formatPrice(intervention.pricing.minPrice)} –{' '}
+                                      {formatPrice(intervention.pricing.maxPrice)}
+                                    </>
+                                  ) : null}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="shrink-0"
+                                disabled={hasPendingCatalogQuote}
+                                isLoading={actionBusy === `catalog:${intervention.id}`}
+                                onClick={() => handleSelectCatalogDiagnostic(suggestion.id, intervention)}
+                              >
+                                Sélectionner
+                              </Button>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -931,6 +960,19 @@ export default function TechnicianDemandeDetailPage() {
           alreadyRatedLabel="Vous avez déjà évalué ce client pour cette intervention."
         />
       ) : null}
+
+      <ConfirmDialog
+        open={confirmFinish}
+        onCancel={() => setConfirmFinish(false)}
+        onConfirm={() => {
+          setConfirmFinish(false);
+          void handleStatusChange('COMPLETED');
+        }}
+        loading={actionBusy === 'COMPLETED'}
+        title="Marquer comme terminée ?"
+        description="L’intervention passera en attente de confirmation du client. Cette action déclenche le calcul du règlement (brut, commission Relio 2 %, net)."
+        confirmLabel="Marquer comme terminée"
+      />
     </div>
   );
 }
