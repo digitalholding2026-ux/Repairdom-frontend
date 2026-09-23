@@ -6,12 +6,11 @@ import { usePathname } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { Icon } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
+import { BrandLogo } from '@/components/public/brand-logo';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
-import { siteConfig } from '@/lib/site-config';
 
 const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscription', '/technicien/verification'];
 
@@ -26,15 +25,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
-          <Link
-            href={showPrivateChrome ? '/technicien' : '/'}
-            className="flex items-center gap-2"
-          >
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="wrench" size="sm" strokeWidth={2.2} />
-            </span>
-            <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
-          </Link>
+          <BrandLogo href={showPrivateChrome ? '/technicien' : '/'} />
           <div className="flex items-center gap-2">
             {loading ? (
               <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />

@@ -4,6 +4,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from '@/components/ui/toast';
 import { ToastProvider } from '@/lib/toast-context';
+import { siteConfig } from '@/lib/site-config';
 import './globals.css';
 
 const inter = Inter({
@@ -20,6 +21,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  /* Base de résolution des images OG/Twitter (prod via NEXT_PUBLIC_APP_URL). */
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: 'Relio — Dépannage à domicile, en confiance',
     template: '%s · Relio',
@@ -27,6 +30,27 @@ export const metadata: Metadata = {
   description:
     "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
   applicationName: 'Relio',
+  /* Identité : favicon provisoire = PNG officiel (public/brand). La refonte
+   * Figma fournira un vrai jeu d'icônes (SVG + masquable + mono). */
+  icons: {
+    icon: [{ url: '/brand/relio-logo.png', type: 'image/png' }],
+    apple: [{ url: '/brand/relio-logo.png', type: 'image/png' }],
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Relio',
+    title: 'Relio — Dépannage à domicile, en confiance',
+    description:
+      "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
+    images: [{ url: '/brand/relio-logo.png', alt: 'Relio' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Relio — Dépannage à domicile, en confiance',
+    description:
+      "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
+    images: ['/brand/relio-logo.png'],
+  },
 };
 
 export const viewport: Viewport = {

@@ -6,13 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { BrandLogo } from '@/components/public/brand-logo';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
 import { logoutAndGoHome } from '@/lib/api/auth-service';
-import { siteConfig } from '@/lib/site-config';
 import { cn } from '@/lib/cn';
 
 interface AdminNavItem {
@@ -53,12 +53,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 lg:px-6">
-          <Link href="/admin" className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Icon name="shield" size="sm" strokeWidth={2.2} />
-            </span>
-            <span className="text-base font-bold tracking-tight">{siteConfig.name}</span>
-          </Link>
+          <BrandLogo href="/admin" />
           {loading ? (
             <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
           ) : showChrome ? (
