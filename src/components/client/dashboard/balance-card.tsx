@@ -25,7 +25,7 @@ export function BalanceCard({ balance }: { balance: ClientFinanceSummary }) {
           {balance.mode === 'SIMULATION' ? <SimulationBadge /> : null}
         </div>
 
-        <div className="relative mt-5 grid grid-cols-2 gap-2.5">
+        <div className="relative mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <HeroStat
             label="Crédits reçus"
             value={formatCurrency(balance.totals.credit, balance.currency)}

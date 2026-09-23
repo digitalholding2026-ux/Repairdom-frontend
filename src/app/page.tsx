@@ -70,7 +70,7 @@ export default function HomePage() {
       <main className="flex-1">
         <Hero />
 
-        <div className="relative mx-auto w-full max-w-lg px-4 pb-16">
+        <div className="relative mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
           <div
             aria-hidden
             className="pointer-events-none absolute -top-24 right-0 -z-10 size-64 rounded-full bg-primary/10 blur-3xl"
@@ -97,13 +97,13 @@ export default function HomePage() {
                 Comment ça marche ?
               </h2>
             </Reveal>
-            <ol className="mt-6 space-y-0">
+            <ol className="mt-6 space-y-0 lg:grid lg:grid-cols-5 lg:gap-4">
               {steps.map((step, index) => (
-                <li key={step.title} className="relative flex gap-4 pb-7 last:pb-0">
+                <li key={step.title} className="relative flex gap-4 pb-7 last:pb-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5 lg:pb-5">
                   {index < steps.length - 1 ? (
                     <Reveal
                       delay={index * 60}
-                      className="absolute left-[19px] top-11 bottom-0 w-px bg-border"
+                      className="absolute left-[19px] top-11 bottom-0 w-px bg-border lg:hidden"
                     />
                   ) : null}
                   <Reveal delay={index * 60} className="relative z-10">
@@ -137,7 +137,7 @@ export default function HomePage() {
                 Le dépannage en confiance
               </h2>
             </Reveal>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {trust.map((item, index) => (
                 <Reveal key={item.title} delay={index * 70} className="h-full">
                   <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30">
@@ -158,23 +158,23 @@ export default function HomePage() {
             className="mt-14 overflow-hidden rounded-3xl shadow-float"
             aria-labelledby="cta-title"
           >
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 text-center text-white">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 text-center text-white sm:p-10">
               <div aria-hidden className="animate-float absolute -right-10 -top-12 size-36 rounded-full bg-white/15 blur-2xl" />
               <div className="relative">
                 <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-float">
                   <Icon name="sparkles" size="lg" />
                 </span>
-                <h2 id="cta-title" className="mt-4 text-lg font-bold tracking-tight">
+                <h2 id="cta-title" className="mt-4 text-lg font-bold tracking-tight sm:text-2xl">
                   Prêt à être dépanné ?
                 </h2>
                 <p className="mx-auto mt-1 max-w-sm text-sm text-white/85">
                   Déposez votre demande, recevez un devis, validez. Le reste, on s&apos;en occupe.
                 </p>
-                <div className="mt-5 flex flex-col gap-2.5">
+                <div className="mt-5 flex flex-col gap-2.5 sm:mx-auto sm:max-w-xl sm:flex-row">
                   <Link href="/client/inscription">
                     <Button
                       size="lg"
-                      className="group relative w-full overflow-hidden bg-white font-semibold text-blue-700 shadow-pop hover:-translate-y-0.5"
+                      className="group relative w-full overflow-hidden bg-white font-semibold text-blue-700 shadow-pop hover:-translate-y-0.5 sm:flex-1"
                     >
                       {/* Contraste volontairement fixe : bouton blanc sur hero gradient
                         (inchangé en sombre) — un token adaptatif casserait le ratio. */}
@@ -186,7 +186,7 @@ export default function HomePage() {
                     <Button
                       variant="ghost"
                       size="lg"
-                      className="w-full border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
+                      className="w-full border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 sm:flex-1"
                     >
                       J&apos;ai déjà un compte
                     </Button>

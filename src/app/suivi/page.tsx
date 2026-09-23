@@ -61,14 +61,14 @@ export default function SuiviPage() {
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 space-y-5">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
           title="Suivre une intervention"
           description="Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l'avancement de votre mission."
           backHref="/"
         />
 
-        <Card>
+        <Card className="mx-auto max-w-2xl">
           <CardContent className="space-y-3">
             <Field label="Numéro de suivi" htmlFor="tracking-reference">
               <Input
@@ -146,6 +146,7 @@ export default function SuiviPage() {
                     }
                   />
 
+                  <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-base">
@@ -183,6 +184,8 @@ export default function SuiviPage() {
                       </CardContent>
                     </Card>
                   ) : null}
+
+                  </div>
 
                   {success ? (
                     <Celebration

@@ -5,9 +5,9 @@ import { siteConfig } from '@/lib/site-config';
 export function PublicFooter() {
   return (
     <footer className="border-t border-border py-8 safe-bottom">
-      <div className="mx-auto w-full max-w-lg space-y-6 px-4">
-        <div className="flex flex-col gap-6 sm:flex-row sm:justify-between sm:gap-8">
-          <div className="max-w-xs space-y-1">
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr] lg:gap-12">
+          <div className="max-w-sm space-y-1">
             <p className="text-sm font-bold tracking-tight">{siteConfig.name}</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
               La plateforme de dépannage à domicile : décrivez votre panne, recevez un devis,

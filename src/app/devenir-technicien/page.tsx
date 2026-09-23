@@ -66,10 +66,10 @@ export default function DevenirTechnicienPage() {
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 sm:p-8">
-          <div className="flex h-full flex-col items-start gap-4 text-white">
+        <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 sm:p-8 lg:p-12">
+          <div className="flex h-full flex-col items-start gap-4 text-white lg:max-w-3xl">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
               <Icon name="briefcase" size="sm" />
               Espace professionnel
@@ -106,11 +106,11 @@ export default function DevenirTechnicienPage() {
           <h2 id="how-title" className="text-xl font-bold tracking-tight sm:text-2xl">
             Comment ça fonctionne ?
           </h2>
-          <ol className="mt-5 space-y-0">
+          <ol className="mt-5 space-y-0 lg:grid lg:grid-cols-2 lg:gap-x-8">
             {steps.map((step, index) => (
-              <li key={step.title} className="relative flex gap-4 pb-6 last:pb-0">
+              <li key={step.title} className="relative flex gap-4 pb-6 last:pb-0 lg:rounded-xl lg:border lg:border-border lg:bg-card lg:p-4">
                 {index < steps.length - 1 ? (
-                  <span aria-hidden className="absolute left-[19px] top-11 bottom-0 w-px bg-border" />
+                  <span aria-hidden className="absolute left-[19px] top-11 bottom-0 w-px bg-border lg:hidden" />
                 ) : null}
                 <span
                   aria-hidden
@@ -132,7 +132,7 @@ export default function DevenirTechnicienPage() {
           <h2 id="benefits-title" className="text-xl font-bold tracking-tight sm:text-2xl">
             Pourquoi rejoindre Relio ?
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {benefits.map((item) => (
               <div key={item.title} className="rounded-xl border border-border bg-card p-4 shadow-card">
                 <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -150,7 +150,7 @@ export default function DevenirTechnicienPage() {
           <h2 id="requirements-title" className="text-xl font-bold tracking-tight sm:text-2xl">
             Ce qu&apos;il faut pour commencer
           </h2>
-          <ul className="mt-5 space-y-3">
+          <ul className="mt-5 grid gap-3 md:grid-cols-2">
             {requirements.map((item) => (
               <li key={item.label} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -193,14 +193,14 @@ export default function DevenirTechnicienPage() {
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
             Créez votre compte technicien et commencez votre profil dès maintenant.
           </p>
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-4 flex flex-col gap-2 sm:mx-auto sm:max-w-xl sm:flex-row">
             <Link href="/technicien/inscription">
-              <Button size="lg" className="w-full">
+              <Button size="lg" className="w-full sm:flex-1">
                 Devenir technicien
               </Button>
             </Link>
             <Link href="/technicien/connexion">
-              <Button variant="secondary" className="w-full">
+              <Button variant="secondary" className="w-full sm:flex-1">
                 Déjà technicien ? Se connecter
               </Button>
             </Link>

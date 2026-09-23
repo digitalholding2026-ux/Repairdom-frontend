@@ -35,7 +35,7 @@ export function Faq() {
           On répond à vos questions
         </h2>
       </Reveal>
-      <div className="mt-6 space-y-2.5">
+      <div className="mx-auto mt-6 max-w-4xl space-y-2.5">
         {FAQ.map((item, index) => (
           <Reveal key={item.question} delay={index * 60}>
             <details className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-colors open:border-primary/30">

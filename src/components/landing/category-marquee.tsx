@@ -28,14 +28,14 @@ export function CategoryMarquee() {
   ));
 
   return (
-    <section className="mt-14" aria-labelledby="categories-title">
+    <section id="categories" className="mt-14" aria-labelledby="categories-title">
       <p id="categories-title" className="px-1 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Besoin d&apos;un pro pour quoi que ce soit
       </p>
       <h2 className="mt-1.5 px-1 text-center text-xl font-bold tracking-tight sm:text-2xl">
         Explorez par catégorie
       </h2>
-      <div className="relative mt-6">
+      <div className="relative mt-6 md:hidden">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-background to-transparent"
@@ -45,6 +45,9 @@ export function CategoryMarquee() {
           className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-background to-transparent"
         />
         <Marquee items={chips} duration={26} />
+      </div>
+      <div className="mt-6 hidden grid-cols-2 gap-3 md:grid lg:grid-cols-4">
+        {chips}
       </div>
     </section>
   );

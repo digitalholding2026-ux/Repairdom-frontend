@@ -33,8 +33,8 @@ export function Hero() {
         className="animate-float absolute -bottom-36 -left-24 size-80 rounded-full bg-accent/30 blur-3xl [animation-delay:3s]"
       />
 
-      <div className="relative mx-auto w-full max-w-lg px-4 pb-16 pt-10 sm:pb-20">
-        <div className="flex flex-col items-start gap-5 text-white">
+      <div className="relative mx-auto grid w-full max-w-7xl items-center gap-10 px-4 pb-16 pt-10 sm:px-6 sm:pb-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(20rem,0.9fr)] lg:gap-16 lg:px-8 lg:py-20">
+        <div className="flex flex-col items-start gap-5 text-white lg:gap-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white shadow-float backdrop-blur-sm">
             <span className="flex items-center gap-0.5 text-amber-300">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -48,7 +48,7 @@ export function Hero() {
             </span>
           </span>
 
-          <h1 className="text-balance text-[2.15rem] font-extrabold leading-[1.08] tracking-tight">
+          <h1 className="text-balance text-[2.15rem] font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
             <Words words={LINE_A} />
             <br />
             <Words
@@ -57,7 +57,7 @@ export function Hero() {
             />
           </h1>
 
-          <p className="max-w-sm text-base leading-relaxed text-white/85">
+          <p className="max-w-xl text-base leading-relaxed text-white/85 sm:text-lg">
             Un technicien qualifié près de chez vous, un diagnostic clair et un tarif avant
             l&apos;intervention. Déposez votre panne en 2 minutes.
           </p>

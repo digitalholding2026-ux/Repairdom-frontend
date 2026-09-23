@@ -241,7 +241,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             }
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 xl:grid-cols-2">
             {list.map((d) => (
               <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
                 {isHistory ? (
@@ -260,9 +260,9 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   const firstName = user?.firstName ?? '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
       {/* ── Hero: salut + stats inline ─────────────────────────── */}
-      <section className="space-y-4">
+      <section className="space-y-4 lg:col-span-2">
         <DashboardHero
           title={
             <>
@@ -275,7 +275,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         />
 
         {/* Stats inline */}
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
           <StatCard icon="truck" label="En cours" value={activeCount} />
           <StatCard
             icon="check-circle"
@@ -293,7 +293,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       </section>
 
       {/* CTA principal (action immédiate dominante) */}
-      <section>
+      <section className="lg:col-span-2">
         <Link href="/client/demande" className="block">
           <Button size="lg" className="w-full gap-2 text-base">
             <Icon name="wrench" size="md" strokeWidth={2} />
@@ -310,15 +310,18 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       ) : null}
 
       {/* Quick actions */}
-      <QuickActions />
+      <section className="self-center">
+        <QuickActions />
+      </section>
 
       {/* Intervention en cours — carte « live » animée */}
       {currentMission ? (
-        <section className="space-y-3">
+        <section className="space-y-3 lg:col-span-2">
           <SectionHeader title="Intervention en cours" />
           <LiveMissionCard mission={currentMission} />
         </section>
       ) : demandes.length === 0 ? (
+        <div className="lg:col-span-2">
         <EmptyState
           title="Vous n’avez encore aucune demande"
           description="Décrivez votre panne et nous trouvons le technicien adapté près de chez vous."
@@ -328,19 +331,22 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             </Link>
           }
         />
+        </div>
       ) : null}
 
       {/* Feed d'activité */}
-      <section className="space-y-3">
+      <section className="space-y-3 lg:col-span-1">
         <SectionHeader title="Activité récente" />
         <ActivityFeed items={activities} />
       </section>
 
       {/* Gamification — récompenses */}
-      <RewardsCard completedCount={doneCount} />
+      <div className="lg:col-span-1">
+        <RewardsCard completedCount={doneCount} />
+      </div>
 
       {/* Mon compte */}
-      <section className="space-y-3">
+      <section className="space-y-3 lg:col-span-2">
         <SectionHeader title="Mon compte" />
         {user ? <ClientAccountSection user={user} /> : null}
       </section>

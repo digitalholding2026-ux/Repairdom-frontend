@@ -11,6 +11,18 @@ import { BrandLogo } from '@/components/public/brand-logo';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { useAuth } from '@/components/auth/auth-provider';
+import { WorkspaceSidebar, type WorkspaceNavItem } from '@/components/ui/workspace-sidebar';
+
+const TECHNICIAN_NAV: WorkspaceNavItem[] = [
+  { href: '/technicien', label: 'Vue d’ensemble', icon: 'home' },
+  { href: '/technicien/demandes', label: 'Missions', icon: 'wrench' },
+  { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
+  { href: '/technicien/historique', label: 'Historique', icon: 'badge-check' },
+  { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
+  { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+  { href: '/technicien/zones', label: 'Zones couvertes', icon: 'pin' },
+  { href: '/technicien/profil', label: 'Mon profil', icon: 'user' },
+];
 
 const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscription', '/technicien/verification'];
 
@@ -24,7 +36,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <BrandLogo href={showPrivateChrome ? '/technicien' : '/'} />
           <div className="flex items-center gap-2">
             {loading ? (
@@ -42,25 +54,32 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 pb-28">
-        <div key={pathname} className="animate-slide-up">
-          <RoleGuard expectedRole="TECHNICIAN" publicPaths={TECHNICIAN_PUBLIC_PATHS}>
-            {children}
-          </RoleGuard>
-        </div>
-      </main>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}>
+        {showPrivateChrome && !isPublicPath ? (
+          <WorkspaceSidebar label="Espace technicien" items={TECHNICIAN_NAV} />
+        ) : null}
+        <main className="min-w-0 w-full flex-1 pb-28 lg:pb-10">
+          <div key={pathname} className="animate-slide-up">
+            <RoleGuard expectedRole="TECHNICIAN" publicPaths={TECHNICIAN_PUBLIC_PATHS}>
+              {children}
+            </RoleGuard>
+          </div>
+        </main>
+      </div>
 
       {showPrivateChrome && !isPublicPath ? (
-        <BottomNav
-          items={[
-            { href: '/technicien', label: 'Accueil', icon: 'home' },
-            { href: '/technicien/demandes', label: 'Demandes', icon: 'wrench' },
-            { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
-            { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
-            { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
-            { href: '/technicien/profil', label: 'Profil', icon: 'user' },
-          ]}
-        />
+        <div className="lg:hidden">
+          <BottomNav
+            items={[
+              { href: '/technicien', label: 'Accueil', icon: 'home' },
+              { href: '/technicien/demandes', label: 'Demandes', icon: 'wrench' },
+              { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
+              { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
+              { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+              { href: '/technicien/profil', label: 'Profil', icon: 'user' },
+            ]}
+          />
+        </div>
       ) : null}
     </div>
   );

@@ -38,7 +38,7 @@ export function PhoneMockup() {
   };
 
   return (
-    <div className="relative mx-auto mt-12 w-fit sm:mt-14" aria-hidden>
+    <div className="relative mx-auto mt-12 w-fit sm:mt-14 lg:mt-0 lg:scale-110" aria-hidden>
       <div className="absolute -inset-8 -z-10 rounded-full bg-primary/30 blur-3xl" />
 
       <div className="animate-float">

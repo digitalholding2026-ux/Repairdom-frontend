@@ -28,7 +28,7 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
         </div>
       </div>
 
-      <div className="relative mt-4 grid grid-cols-2 gap-2.5">
+      <div className="relative mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <HeroStat label="Disponible" value={formatCurrency(summary.available, summary.currency)} />
         <HeroStat
           label="Dont réparation"

@@ -197,7 +197,7 @@ export default function TechnicienMissionsDisponiblesPage() {
                 autoComplete="off"
               />
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div>
                 <label htmlFor="missions-category" className="mb-1.5 block text-xs font-medium text-muted-foreground">
                   Catégorie
@@ -284,7 +284,7 @@ export default function TechnicienMissionsDisponiblesPage() {
               }
             />
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3 xl:grid-cols-2">
               {filtered.map((mission) => (
                 <TechnicianDemandeCard
                   key={mission.id}

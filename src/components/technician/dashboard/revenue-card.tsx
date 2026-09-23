@@ -34,7 +34,7 @@ export function RevenueCard({ finance, completedToday }: RevenueCardProps) {
           </span>
         </div>
 
-        <div className="relative mt-4 grid grid-cols-2 gap-2.5">
+        <div className="relative mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <HeroStat label="Disponible" value={formatCurrency(available)} />
           <HeroStat
             label="Aujourd'hui"

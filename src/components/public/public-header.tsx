@@ -31,7 +31,7 @@ export function PublicHeader() {
     >
       <div
         className={cn(
-          'mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-4 transition-all duration-300',
+          'mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 transition-all duration-300 sm:px-6 lg:px-8',
           scrolled ? 'h-12' : 'h-14',
         )}
       >
@@ -63,6 +63,17 @@ export function PublicHeader() {
             </>
           ) : (
             <>
+              <div className="mr-3 hidden items-center gap-6 md:flex">
+                <Link href="/#categories-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  Services
+                </Link>
+                <Link href="/#how-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  Comment ça marche
+                </Link>
+                <Link href="/devenir-technicien" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                  Devenir technicien
+                </Link>
+              </div>
               <Link href="/client/connexion">
                 <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
                   Connexion

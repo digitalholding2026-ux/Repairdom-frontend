@@ -206,9 +206,9 @@ export default function TechnicianDashboardPage() {
   const greeting = getGreeting();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
       {/* ── Hero: salut + stats inline ─────────────────────────── */}
-      <section className="space-y-4">
+      <section className="space-y-4 lg:col-span-2">
         <DashboardHero
           title={
             <>
@@ -225,7 +225,7 @@ export default function TechnicianDashboardPage() {
         />
 
         {/* Stats inline */}
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
           <StatCard
             icon="search"
             label="Disponibles"
@@ -249,14 +249,14 @@ export default function TechnicianDashboardPage() {
 
       {/* ── Mode mission : l'intervention en cours d'abord ─────── */}
       {currentMission ? (
-        <section id="intervention-en-cours" className="space-y-3 scroll-mt-20">
+        <section id="intervention-en-cours" className="space-y-3 scroll-mt-20 lg:col-span-2">
           <SectionHeader title="Intervention en cours" />
           <TechnicianLiveMissionCard mission={currentMission} />
         </section>
       ) : null}
 
       {/* ── Nouvelles demandes (résumé compact → page complète) ── */}
-      <section id="nouvelles-demandes" className="space-y-3 scroll-mt-20">
+      <section id="nouvelles-demandes" className="space-y-3 scroll-mt-20 lg:col-span-2">
         <SectionHeader
           title="Nouvelles demandes"
           action={
@@ -276,7 +276,7 @@ export default function TechnicianDashboardPage() {
             }
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-3 xl:grid-cols-2">
             {available.slice(0, 3).map((d) => (
               <TechnicianDemandeCard
                 key={d.id}
@@ -311,7 +311,7 @@ export default function TechnicianDashboardPage() {
       </section>
 
       {/* ── Quick actions (contextuelles, pas de doublon BottomNav) */}
-      <section>
+      <section className="lg:col-span-2">
         <QuickActions />
       </section>
 
@@ -323,7 +323,7 @@ export default function TechnicianDashboardPage() {
 
       {/* ── Mes interventions ──────────────────────────────────── */}
       {mineList.length > 0 ? (
-        <section className="space-y-3">
+        <section className="space-y-3 lg:col-span-2">
           <SectionHeader
             title="Mes interventions"
             action={
@@ -332,7 +332,7 @@ export default function TechnicianDashboardPage() {
               </Badge>
             }
           />
-          <div className="space-y-3">
+          <div className="grid gap-3 xl:grid-cols-2">
             {mineList.map((d) => (
               <TechnicianDemandeCard
                 key={d.id}
@@ -351,10 +351,12 @@ export default function TechnicianDashboardPage() {
       </section>
 
       {/* ── Gamification ───────────────────────────────────────── */}
-      <InterventionsCard completedCount={doneCount} />
+      <section>
+        <InterventionsCard completedCount={doneCount} />
+      </section>
 
       {/* ── Mon compte ─────────────────────────────────────────── */}
-      <section className="space-y-3">
+      <section className="space-y-3 lg:col-span-2">
         <SectionHeader title="Mon compte" />
         {profile ? <AccountSection profile={profile} /> : null}
       </section>

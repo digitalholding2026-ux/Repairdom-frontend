@@ -12,6 +12,17 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { RoleGuard } from '@/components/auth/role-guard';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/components/auth/auth-provider';
+import { WorkspaceSidebar, type WorkspaceNavItem } from '@/components/ui/workspace-sidebar';
+
+const CLIENT_NAV: WorkspaceNavItem[] = [
+  { href: '/client', label: 'Vue d’ensemble', icon: 'home' },
+  { href: '/client/demandes', label: 'Mes missions', icon: 'briefcase' },
+  { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
+  { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+  { href: '/client/solde', label: 'Mon solde', icon: 'file' },
+  { href: '/client/recompenses', label: 'Récompenses', icon: 'sparkles' },
+  { href: '/client/profil', label: 'Mon profil', icon: 'user' },
+];
 
 const CLIENT_PUBLIC_PATHS = [
   '/client/connexion',
@@ -29,7 +40,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-lg items-center justify-between px-4">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <BrandLogo href={showPrivateChrome ? '/client' : '/'} />
           <div className="flex items-center gap-2">
             {loading ? (
@@ -50,24 +61,35 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6 pb-28">
-        <div key={pathname} className="animate-slide-up">
-          <RoleGuard expectedRole="CLIENT" publicPaths={CLIENT_PUBLIC_PATHS}>
-            {children}
-          </RoleGuard>
-        </div>
-      </main>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}>
+        {showPrivateChrome && !isPublicPath ? (
+          <WorkspaceSidebar
+            label="Espace client"
+            items={CLIENT_NAV}
+            action={{ href: '/client/demande', label: 'Nouvelle demande', icon: 'plus' }}
+          />
+        ) : null}
+        <main className="min-w-0 w-full flex-1 pb-28 lg:pb-10">
+          <div key={pathname} className="animate-slide-up">
+            <RoleGuard expectedRole="CLIENT" publicPaths={CLIENT_PUBLIC_PATHS}>
+              {children}
+            </RoleGuard>
+          </div>
+        </main>
+      </div>
 
       {showPrivateChrome && !isPublicPath ? (
-        <BottomNav
-          items={[
-            { href: '/client', label: 'Accueil', icon: 'home' },
-            { href: '/client/demandes', label: 'Missions', icon: 'briefcase' },
-            { href: '/client/solde', label: 'Solde', icon: 'file' },
-            { href: '/client/profil', label: 'Profil', icon: 'user' },
-          ]}
-          primaryHref={{ href: '/client/demande', label: 'Déposer une demande', icon: 'plus' }}
-        />
+        <div className="lg:hidden">
+          <BottomNav
+            items={[
+              { href: '/client', label: 'Accueil', icon: 'home' },
+              { href: '/client/demandes', label: 'Missions', icon: 'briefcase' },
+              { href: '/client/solde', label: 'Solde', icon: 'file' },
+              { href: '/client/profil', label: 'Profil', icon: 'user' },
+            ]}
+            primaryHref={{ href: '/client/demande', label: 'Déposer une demande', icon: 'plus' }}
+          />
+        </div>
       ) : null}
     </div>
   );

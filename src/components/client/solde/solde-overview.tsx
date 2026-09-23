@@ -35,7 +35,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
         </div>
       </div>
 
-      <div className="relative mt-4 grid grid-cols-2 gap-2.5">
+      <div className="relative mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <HeroStat label="Crédits reçus" value={formatCurrency(summary.totals.credit, summary.currency)} />
         <HeroStat label="Débits" value={formatCurrency(summary.totals.debit, summary.currency)} />
         <HeroStat label="Remboursements" value={formatCurrency(totalRefunds, summary.currency)} />

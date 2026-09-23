@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 lg:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <BrandLogo href="/admin" />
           {loading ? (
             <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
@@ -74,7 +74,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 items-start gap-8 px-4 py-6 lg:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 items-start gap-6 px-4 py-6 sm:px-6 lg:gap-8 lg:px-8">
         {showChrome ? (
           <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label="Navigation admin">
             <nav className="space-y-1 rounded-2xl border border-border bg-card p-2">
