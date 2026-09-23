@@ -9,11 +9,10 @@ interface BrandLogoProps {
   className?: string;
 }
 
-/* Identité Relio : logotype officiel (public/brand/relio-logo.png, copie à
- * l'octet de logo/Relio-removebg-preview.png, version transparente). Le PNG
- * conservant son canal alpha, aucun fond ni pastille n'est ajouté :
- * rendu propre en mode clair comme en dark-mode. `showText` est conservé
- * pour la compatibilité des appelants ; le visuel contient déjà le nom. */
+/* Identité Relio (refonte vectorielle) : monogramme « R » gradient officiel
+ * (#00AEEF → #8A2BE2) + wordmark. Version claire (marine) / sombre (blanc)
+ * commutée en CSS — lisible dans les deux modes, sans slogan (réservé au
+ * footer/landing). `showText` conservé pour compatibilité. */
 export function BrandLogo({ href = '/', className }: BrandLogoProps) {
   return (
     <Link
@@ -25,11 +24,19 @@ export function BrandLogo({ href = '/', className }: BrandLogoProps) {
       aria-label={`${siteConfig.name} — retour à l’accueil`}
     >
       <Image
-        src="/brand/relio-logo.png"
+        src="/brand/relio-logo-light.svg"
         alt={siteConfig.name}
-        width={96}
-        height={64}
-        className="h-9 w-auto"
+        width={147}
+        height={48}
+        className="h-9 w-auto dark:hidden"
+        priority
+      />
+      <Image
+        src="/brand/relio-logo-dark.svg"
+        alt={siteConfig.name}
+        width={147}
+        height={48}
+        className="hidden h-9 w-auto dark:block"
         priority
       />
     </Link>

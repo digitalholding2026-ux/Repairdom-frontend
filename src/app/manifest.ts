@@ -1,8 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-/* PWA/manifest minimal : installation mobile avec l'identité Relio.
- * Icône provisoire = PNG officiel ; la refonte Figma fournira le jeu
- * définitif (512 masquable + mono sombre). */
+/* PWA/manifest minimal : installation mobile avec l'identité Relio. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Relio — Dépannage à domicile, en confiance',
@@ -16,9 +14,9 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#0062cc',
     icons: [
       {
-        src: '/brand/relio-logo.png',
+        src: '/brand/relio-mark.svg',
         sizes: 'any',
-        type: 'image/png',
+        type: 'image/svg+xml',
         purpose: 'any',
       },
     ],

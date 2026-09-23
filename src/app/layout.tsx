@@ -30,11 +30,10 @@ export const metadata: Metadata = {
   description:
     "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
   applicationName: 'Relio',
-  /* Identité : favicon provisoire = PNG officiel (public/brand). La refonte
-   * Figma fournira un vrai jeu d'icônes (SVG + masquable + mono). */
+  /* Identité : favicon vectoriel (monogramme), net à toutes les tailles. */
   icons: {
-    icon: [{ url: '/brand/relio-logo.png', type: 'image/png' }],
-    apple: [{ url: '/brand/relio-logo.png', type: 'image/png' }],
+    icon: [{ url: '/brand/relio-mark.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/brand/relio-mark.svg', type: 'image/svg+xml' }],
   },
   openGraph: {
     type: 'website',
@@ -42,14 +41,14 @@ export const metadata: Metadata = {
     title: 'Relio — Dépannage à domicile, en confiance',
     description:
       "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
-    images: [{ url: '/brand/relio-logo.png', alt: 'Relio' }],
+    images: [{ url: '/brand/relio-logo-light.svg', alt: 'Relio' }],
   },
   twitter: {
     card: 'summary',
     title: 'Relio — Dépannage à domicile, en confiance',
     description:
       "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
-    images: ['/brand/relio-logo.png'],
+    images: ['/brand/relio-logo-light.svg'],
   },
 };
 
