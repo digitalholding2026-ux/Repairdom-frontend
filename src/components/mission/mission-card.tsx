@@ -136,7 +136,7 @@ export function MissionCardPerson({
         <span className="truncate font-medium text-foreground">{name}</span>
         {extra}
       </span>
-      <span className="shrink-0 font-mono text-sm font-semibold text-foreground">{amount}</span>
+      <span className="figure shrink-0 text-sm font-semibold text-foreground">{amount}</span>
     </div>
   );
 }

@@ -22,7 +22,7 @@ export function RevenueCard({ finance, completedToday }: RevenueCardProps) {
             <p className="text-xs font-medium uppercase tracking-wider text-white/70">
               Mes revenus
             </p>
-            <p className="mt-1.5 font-mono text-3xl font-bold tracking-tight">
+            <p className="figure mt-1.5 text-3xl font-bold tracking-tight">
               {formatCurrency(net)}
             </p>
             <p className="mt-0.5 text-xs text-white/70">

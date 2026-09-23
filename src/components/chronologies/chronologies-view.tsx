@@ -157,7 +157,7 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
               <Link
                 key={mission.id}
                 href={`${detailPrefix}/${mission.id}`}
-                className="block rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+                className="block rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-sm font-semibold text-primary">
@@ -200,7 +200,7 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
                 <Link
                   key={mission.id}
                   href={`${detailPrefix}/${mission.id}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-muted/40"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-muted/50"
                 >
                   <span className="font-mono font-medium text-primary">{mission.reference}</span>
                   <span className="text-foreground">

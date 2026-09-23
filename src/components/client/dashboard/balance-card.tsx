@@ -14,7 +14,7 @@ export function BalanceCard({ balance }: { balance: ClientFinanceSummary }) {
             <p className="text-xs font-medium uppercase tracking-wider text-white/70">
               Solde disponible
             </p>
-            <p className="mt-1 text-3xl font-bold tracking-tight">
+            <p className="figure mt-1 text-3xl font-bold tracking-tight">
               {formatCurrency(balance.balance, balance.currency)}
             </p>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">

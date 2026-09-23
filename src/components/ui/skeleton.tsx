@@ -10,7 +10,7 @@ export function Skeleton({ className }: SkeletonProps) {
       aria-hidden
       className={cn(
         'relative overflow-hidden rounded-md bg-muted',
-        'after:absolute after:inset-y-0 after:left-0 after:w-full after:animate-[shimmer_1.6s_infinite] after:bg-gradient-to-r after:from-transparent after:via-white/40 after:to-transparent',
+        'after:absolute after:inset-y-0 after:left-0 after:w-full after:animate-[shimmer_1.6s_infinite] after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent',
         className,
       )}
     />

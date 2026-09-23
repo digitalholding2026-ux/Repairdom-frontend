@@ -199,7 +199,7 @@ function MissionDebitCard({
               Remboursé — {formatCurrency(mission.refundAmount, currency)}
             </Alert>
           ) : null}
-          <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+          <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
             <div className="flex items-center justify-between gap-3">
               <span className="text-muted-foreground">Réparation</span>
               <span className="font-medium">{formatCurrency(mission.repair, currency)}</span>
@@ -219,7 +219,7 @@ function MissionDebitCard({
             <div className="my-1 h-px bg-border" />
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold">Total débité</span>
-              <span className="font-semibold text-error-ink">
+              <span className="font-semibold text-error-ink tabular-nums">
                 {formatCurrency(mission.totalDebit, currency)}
               </span>
             </div>
@@ -266,7 +266,7 @@ function TransactionRow({
           ) : null}
         </div>
         <span
-          className={`shrink-0 text-sm font-semibold ${credit ? 'text-success-ink' : 'text-error-ink'}`}
+          className={`shrink-0 text-sm font-semibold tabular-nums ${credit ? 'text-success-ink' : 'text-error-ink'}`}
         >
           {formatCurrencySigned(credit ? txn.amount : -txn.amount, currency)}
         </span>

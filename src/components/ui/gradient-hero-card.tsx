@@ -51,7 +51,7 @@ export function GradientHeroCard({ tone = 'brand', className, children }: Gradie
   );
 }
 
-/* Cellule statistique d'une carte hero (label + montant, police display). */
+/* Cellule statistique d'une carte hero (label + montant, police display tabulaire). */
 export function HeroStat({
   label,
   value,
@@ -64,7 +64,7 @@ export function HeroStat({
   return (
     <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
       <p className="text-2xs font-medium uppercase tracking-wider text-white/85">{label}</p>
-      <p className={cn('font-mono text-base font-bold', muted && 'text-white/85')}>{value}</p>
+      <p className={cn('figure text-base font-bold', muted && 'text-white/85')}>{value}</p>
     </div>
   );
 }

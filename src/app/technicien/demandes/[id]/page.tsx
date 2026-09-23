@@ -550,7 +550,7 @@ export default function TechnicianDemandeDetailPage() {
       {events.length > 0 ? (
         <Link
           href={`/technicien/chronologies/${demande.id}`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
         >
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
@@ -857,12 +857,12 @@ export default function TechnicianDemandeDetailPage() {
           {latestQuote ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-lg font-bold">{formatAmount(latestQuote)}</span>
+                <span className="figure text-lg font-bold">{formatAmount(latestQuote)}</span>
                 <QuoteStatusBadge status={latestQuote.status} />
               </div>
               <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
               {latestQuote.repair != null || latestQuote.travel != null || latestQuote.breakdown ? (
-                <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
                   {latestQuote.catalogDiagnostic?.name ? (
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-muted-foreground">Diagnostic</span>

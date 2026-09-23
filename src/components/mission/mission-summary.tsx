@@ -41,7 +41,7 @@ function SummaryRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-sm whitespace-pre-line">{value}</p>
+        <p className="mt-0.5 text-sm whitespace-pre-line tabular-nums">{value}</p>
       </div>
     </div>
   );

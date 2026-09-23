@@ -746,7 +746,7 @@ function SelectChip({ selected, onClick, children }: SelectChipProps) {
         'inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         selected
-          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+          ? 'border-primary bg-primary text-primary-foreground shadow-card'
           : 'border-border bg-card text-foreground hover:bg-muted',
       )}
     >

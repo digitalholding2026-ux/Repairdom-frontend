@@ -51,7 +51,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
               {item.amount != null ? (
                 <span
                   className={cn(
-                    'text-sm font-semibold',
+                    'text-sm font-semibold tabular-nums',
                     item.amount >= 0 ? 'text-success-ink' : 'text-muted-foreground',
                   )}
                 >

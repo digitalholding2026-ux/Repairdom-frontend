@@ -338,7 +338,7 @@ export default function ClientDemandeDetailPage() {
       {events.length > 0 ? (
         <Link
           href={`/client/chronologies/${demande.id}`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
         >
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
@@ -422,13 +422,13 @@ export default function ClientDemandeDetailPage() {
             {latestQuote ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-lg font-bold">{formatQuoteAmount(latestQuote)}</span>
+                  <span className="figure text-lg font-bold">{formatQuoteAmount(latestQuote)}</span>
                   <QuoteStatusBadge status={latestQuote.status} />
                 </div>
                 <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
 
                 {latestQuote.repair != null || latestQuote.travel != null ? (
-                  <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                  <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
                     {latestQuote.catalogDiagnostic?.name ? (
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-muted-foreground">Diagnostic</span>
@@ -455,7 +455,7 @@ export default function ClientDemandeDetailPage() {
                     <div className="my-1 h-px bg-border" />
                     <div className="flex items-center justify-between">
                       <span className="font-semibold">Total à payer</span>
-                      <span className="font-semibold">
+                      <span className="font-semibold tabular-nums">
                         {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
                       </span>
                     </div>

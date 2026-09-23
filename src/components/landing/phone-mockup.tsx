@@ -67,7 +67,7 @@ export function PhoneMockup() {
             </div>
 
             <div className="space-y-3 px-3.5 pb-4 pt-3">
-              <div className="rounded-2xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-3.5 shadow-lg">
+              <div className="rounded-2xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-3.5 shadow-float">
                 <p className="text-2xs font-medium uppercase tracking-wider text-white/70">
                   Solde disponible
                 </p>

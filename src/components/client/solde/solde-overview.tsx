@@ -19,7 +19,7 @@ export function SoldeOverview({ summary }: { summary: ClientFinanceSummary }) {
           <p className="text-xs font-medium uppercase tracking-wider text-white/70">
             Solde disponible
           </p>
-          <p className="mt-1.5 font-mono text-3xl font-bold tracking-tight">
+          <p className="figure mt-1.5 text-3xl font-bold tracking-tight">
             {formatCurrency(summary.balance, summary.currency)}
           </p>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">

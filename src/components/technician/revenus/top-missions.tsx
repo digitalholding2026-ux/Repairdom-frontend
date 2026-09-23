@@ -44,7 +44,7 @@ export function TopMissions({
                   {formatCurrency(m.repair + m.travel, currency)} · réglée
                 </p>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-success-ink">
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-success-ink">
                 {formatCurrency(m.net, currency)}
               </span>
               <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />

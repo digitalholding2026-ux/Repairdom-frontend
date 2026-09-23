@@ -170,7 +170,7 @@ export function RelioFundsSection() {
                           <td className="py-2 pr-3 text-xs text-muted-foreground">
                             {formatDateTime(w.createdAt)}
                           </td>
-                          <td className="py-2 pr-3 font-medium">
+                          <td className="py-2 pr-3 font-medium tabular-nums">
                             {formatCurrency(w.amount, funds.currency)}
                           </td>
                           <td className="py-2 pr-3">
@@ -224,7 +224,7 @@ function FundMetric({
     <Card className={highlight ? 'border-primary/40' : undefined}>
       <CardContent className="pt-4">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="mt-1 font-mono text-lg font-bold">{value}</p>
+        <p className="figure mt-1 text-lg font-bold">{value}</p>
       </CardContent>
     </Card>
   );

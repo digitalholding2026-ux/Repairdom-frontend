@@ -389,7 +389,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-border bg-muted/20 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-semibold">{value}</p>
+      <p className="mt-0.5 text-sm font-semibold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -508,7 +508,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
       </div>
 
       {detail.quote ? (
-        <div className="rounded-lg border border-border bg-card p-3 text-sm">
+        <div className="rounded-lg border border-border bg-card p-3 text-sm tabular-nums">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Tarif accepté (réparation / déplacement)
           </p>
@@ -551,7 +551,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
                     {t.reversalOfId ? ' · contrepassé' : ''}
                   </p>
                 </div>
-                <span className={`shrink-0 text-sm font-semibold ${credit ? 'text-success-ink' : 'text-error-ink'}`}>
+                <span className={`shrink-0 text-sm font-semibold tabular-nums ${credit ? 'text-success-ink' : 'text-error-ink'}`}>
                   {formatCurrencySigned(credit ? t.amount : -t.amount, currency)}
                 </span>
               </div>
