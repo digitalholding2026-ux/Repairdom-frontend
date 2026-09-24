@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,17 @@ export default function RechargerPage() {
 
   const effectiveAmount = custom.trim() ? Number(custom.replace(/\s/g, '')) : amount;
 
+  // Clé d'idempotence stable par contenu : un retry (timeout, 503) rejoue la
+  // MÊME intention côté backend au lieu de créer un second paiement. Elle
+  // est régénérée dès que le contenu change (montant, réseau, téléphone).
+  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
+  const payloadSignature = `${effectiveAmount}|${network}|${phone.trim()}`;
+  const lastSignature = useRef(payloadSignature);
+  if (lastSignature.current !== payloadSignature) {
+    lastSignature.current = payloadSignature;
+    setIdempotencyKey(crypto.randomUUID());
+  }
+
   async function submit() {
     setError(null);
     setResult(null);
@@ -53,7 +64,14 @@ export default function RechargerPage() {
         amount: effectiveAmount,
         network,
         phone: phone.trim(),
+        idempotencyKey,
       });
+      if (created.paymentError) {
+        // Paiement refusé à l'init (intention FAILED, aucun débit) : la
+        // raison sûre vient du backend, avec la référence pour le suivi.
+        setResult(created);
+        return;
+      }
       if (created.checkoutUrl) {
         window.location.href = created.checkoutUrl;
         return;
@@ -83,7 +101,7 @@ export default function RechargerPage() {
         </Alert>
       ) : null}
 
-      {result && result.saspayEnabled ? (
+      {result && result.saspayEnabled && !result.paymentError ? (
         <Card>
           <CardContent className="space-y-3 py-4">
             <Alert variant="info">
@@ -92,6 +110,20 @@ export default function RechargerPage() {
             </Alert>
             <Link href={`/client/solde/recharge/result?intent=${encodeURIComponent(result.intent.reference)}`}>
               <Button>Voir l&apos;état du paiement</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {result?.paymentError ? (
+        <Card>
+          <CardContent className="space-y-3 py-4">
+            <Alert variant="error">{result.paymentError.message}</Alert>
+            <p className="text-xs text-muted-foreground">
+              Référence {result.intent.reference} — aucun débit, aucun crédit.
+            </p>
+            <Link href={`/client/solde/recharge/result?intent=${encodeURIComponent(result.intent.reference)}`}>
+              <Button variant="outline">Voir le détail</Button>
             </Link>
           </CardContent>
         </Card>

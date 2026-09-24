@@ -72,13 +72,25 @@ export default function RechargeResultPage() {
     };
   }, [reference, load]);
 
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
+
   async function verifyNow() {
     if (!reference || verifying) return;
     setVerifying(true);
+    setVerifyInfo(null);
     try {
-      const { intent: current } = await verifyTopupIntent(reference);
+      const { intent: current, saspayStatus, verificationError } = await verifyTopupIntent(reference);
       if (current) setIntent(current);
       setError(null);
+      if (verificationError) {
+        // La vérification serveur n'a pas abouti (l'intention reste PENDING
+        // pour re-vérification) : raison sûre fournie par le backend.
+        setVerifyInfo(verificationError.message);
+      } else if (saspayStatus === 'UNKNOWN') {
+        setVerifyInfo(
+          'Transaction introuvable côté service de paiement. Vérifiez le statut avant toute nouvelle tentative.',
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Vérification impossible.');
     } finally {
@@ -119,24 +131,27 @@ export default function RechargeResultPage() {
             </p>
             {intent.status === 'PENDING' ? (
               <Alert variant="info">
-                Paiement en attente de confirmation. Validez la demande sur votre téléphone
-                si ce n&apos;est pas fait, puis actualisez.
+                {intent.userMessage ?? 'Paiement en attente de confirmation.'} Validez la
+                demande sur votre téléphone si ce n&apos;est pas fait, puis actualisez.
               </Alert>
+            ) : null}
+            {verifyInfo && intent.status === 'PENDING' ? (
+              <Alert variant="info">{verifyInfo}</Alert>
             ) : null}
             {intent.status === 'SUCCESS' ? (
               <Alert variant="success">
-                Recharge confirmée — votre solde a été crédité
+                {intent.userMessage ?? 'Recharge confirmée — votre solde a été crédité.'}
                 {intent.netAmount ? ` (${formatCurrency(intent.netAmount, intent.currency)})` : ''}.
               </Alert>
             ) : null}
             {intent.status === 'FAILED' ? (
               <Alert variant="error">
-                Paiement en échec{intent.errorMessage ? ` — ${intent.errorMessage}` : ''}.
+                {intent.userMessage ?? "Le paiement n'a pas abouti."}
                 Aucun débit : vous pouvez créer une nouvelle recharge.
               </Alert>
             ) : null}
             {intent.status === 'CANCELLED' ? (
-              <Alert variant="error">Paiement annulé — aucun débit.</Alert>
+              <Alert variant="error">{intent.userMessage ?? 'Paiement annulé — aucun débit.'}</Alert>
             ) : null}
             <p className="text-xs text-muted-foreground">
               Créée le {formatDateTime(intent.createdAt)}

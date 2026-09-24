@@ -225,10 +225,12 @@ export interface AdminMissionFinance {
 
 class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code: string | null;
+  constructor(message: string, status: number, code?: string | null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code ?? null;
   }
 }
 
@@ -241,9 +243,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const message = (body as { message?: string | string[] } | null)?.message;
+    const payload = body as { message?: string | string[]; code?: string } | null;
+    const message = payload?.message;
     const text = Array.isArray(message) ? message.join(', ') : message;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
+    const code = typeof payload?.code === 'string' ? payload.code : null;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
   }
 
   return body as T;
@@ -380,6 +384,9 @@ export interface TopupIntent {
   netAmount: number | null;
   creditedTransactionId: string | null;
   errorMessage: string | null;
+  /** Message utilisateur sûr calculé côté backend (l'UI ne lit jamais
+   *  errorMessage, réservé aux logs). */
+  userMessage: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -394,6 +401,11 @@ export interface CreateTopupIntentInput {
   email?: string;
 }
 
+export interface TopupPaymentError {
+  code: string;
+  message: string;
+}
+
 export interface CreateTopupIntentResult {
   intent: TopupIntent;
   saspayEnabled: boolean;
@@ -402,6 +414,9 @@ export interface CreateTopupIntentResult {
   saspayStatus?: string;
   saspayTransactionId?: string | null;
   note?: string | null;
+  /** Renseigné quand le paiement est refusé à l'init (intention FAILED,
+   *  aucun débit) — réponse 201, pas d'exception. */
+  paymentError?: TopupPaymentError | null;
 }
 
 /** Crée une intention de recharge (et initialise le paiement en REAL).
@@ -430,6 +445,9 @@ export async function getTopupIntent(reference: string): Promise<{ intent: Topup
 export interface VerifyTopupResult {
   intent: TopupIntent | null;
   saspayStatus: string | null;
+  /** Renseigné quand la vérification serveur n'a pas abouti (l'intention
+   *  reste PENDING pour re-vérification) — réponse 200, pas d'exception. */
+  verificationError?: TopupPaymentError | null;
 }
 
 /** Vérification serveur on-demand (sans polling agressif). */
