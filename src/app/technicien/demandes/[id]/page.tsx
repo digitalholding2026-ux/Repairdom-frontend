@@ -115,10 +115,16 @@ export default function TechnicianDemandeDetailPage() {
 
     const load = async (initial: boolean) => {
       try {
+        /* getTechnicianDemande est l'appel principal : seul son échec (ex.
+         * mission acceptée par un concurrent) affiche « Demande
+         * introuvable ». Diagnostics/devis sont optionnels avant
+         * acceptation — les routes backend les réservent au technicien
+         * assigné (requireAccess volontairement inchangé) : un 404 ici
+         * signifie simplement « pas encore assigné », on utilise []. */
         const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
           getTechnicianDemande(params.id!),
-          listDemandeDiagnostics(params.id!),
-          listDemandeQuotes(params.id!),
+          listDemandeDiagnostics(params.id!).catch(() => []),
+          listDemandeQuotes(params.id!).catch(() => []),
           listMissionEvents(params.id!).catch(() => []),
         ]);
         if (!active) return;
