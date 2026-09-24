@@ -20,12 +20,14 @@ import {
 import { formatCurrency, formatCurrencySigned, formatDateTime } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
 import { UpcomingBanner } from '@/components/client/solde/upcoming-banner';
+import { WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { SpendChart } from '@/components/client/solde/spend-chart';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
   CLIENT_TOPUP: 'Recharge SasPay',
+  CLIENT_WITHDRAWAL: 'Retrait',
   CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
   CLIENT_FEE: 'Frais Relio (historique)',
   REVERSAL: 'Remboursement',
@@ -41,21 +43,22 @@ export default function ClientSoldePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    getClientFinanceSummary()
-      .then((data) => {
-        if (!cancelled) setSummary(data);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    void loadSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function loadSummary() {
+    setLoading(true);
+    try {
+      const data = await getClientFinanceSummary();
+      setSummary(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (loading) return <SoldeSkeleton />;
 
@@ -94,6 +97,13 @@ export default function ClientSoldePage() {
 
       {/* Bandeau recharge / retrait */}
       <UpcomingBanner />
+
+      {/* Retrait des fonds (visible même à 0 XAF) */}
+      <WithdrawalPanel
+        available={summary.balance}
+        currency={summary.currency}
+        onChanged={() => void loadSummary()}
+      />
 
       {/* Stats rapides */}
       <div className="grid grid-cols-2 gap-2.5">

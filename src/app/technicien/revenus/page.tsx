@@ -24,6 +24,7 @@ import {
   fullName,
 } from '@/lib/format';
 import { RevenueOverview } from '@/components/technician/revenus/revenue-overview';
+import { WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { RevenueChart } from '@/components/technician/revenus/revenue-chart';
 import { TopMissions } from '@/components/technician/revenus/top-missions';
 import { PendingMissionsBanner } from '@/components/technician/revenus/pending-missions-banner';
@@ -35,6 +36,7 @@ const TECH_TXN_LABELS: Record<string, string> = {
   TECHNICIAN_REPAIR_REVENUE: 'Gain réparation',
   TECHNICIAN_TRAVEL_REVENUE: 'Gain déplacement',
   TECHNICIAN_FEE: 'Commission Relio (2 %)',
+  TECHNICIAN_WITHDRAWAL: 'Retrait',
 };
 
 function txnLabel(type: string): string {
@@ -71,6 +73,14 @@ export default function TechnicianRevenusPage() {
       cancelled = true;
     };
   }, []);
+
+  async function reloadSummary() {
+    try {
+      setSummary(await getTechnicianFinanceSummary());
+    } catch {
+      /* Un échec de rafraîchissement ne masque pas la page. */
+    }
+  }
 
   if (loading) return <RevenusSkeleton />;
 
@@ -112,6 +122,13 @@ export default function TechnicianRevenusPage() {
         Une intervention n&apos;est comptabilisée qu&apos;une fois confirmée par le client. Les
         interventions en attente ou annulées ne génèrent aucun gain.
       </Alert>
+
+      {/* Retrait des fonds (visible même à 0 XAF) */}
+      <WithdrawalPanel
+        available={summary.available}
+        currency={summary.currency}
+        onChanged={() => void reloadSummary()}
+      />
 
       {/* Évolution mensuelle */}
       <section className="space-y-3">

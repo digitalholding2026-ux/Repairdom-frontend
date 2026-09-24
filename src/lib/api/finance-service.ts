@@ -457,3 +457,88 @@ export async function verifyTopupIntent(reference: string): Promise<VerifyTopupR
     { method: 'POST' },
   );
 }
+
+/* ―― Retrait client/technicien via SasPay (payout) ―――――――――――――――――――
+ * Même endpoint pour les deux rôles (JWT) : POST /finances/withdrawals.
+ * Le débit définitif n'existe qu'au SUCCESS confirmé serveur ; les frais
+ * sont appliqués par SasPay (jamais calculés ici). */
+
+export type WithdrawalRequestStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+export type WithdrawalNetwork = 'mtn_cm' | 'orange_cm';
+
+export interface WithdrawalRequest {
+  id: string;
+  reference: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  mode: FinancialMode;
+  status: WithdrawalRequestStatus;
+  holdId: string | null;
+  ledgerReference: string | null;
+  saspayTransactionId: string | null;
+  saspayReference: string | null;
+  externalReference: string | null;
+  network: string | null;
+  country: string | null;
+  requestedAmount: number | null;
+  fee: number | null;
+  chargedAmount: number | null;
+  netAmount: number | null;
+  errorMessage: string | null;
+  /** Message utilisateur sûr calculé côté backend. */
+  userMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateWithdrawalRequestInput {
+  amount: number;
+  idempotencyKey?: string;
+  network?: WithdrawalNetwork;
+  msisdn?: string;
+}
+
+export interface CreateWithdrawalRequestResult {
+  request: WithdrawalRequest;
+  saspayEnabled: boolean;
+  saspayTransactionId?: string | null;
+  paymentError?: TopupPaymentError | null;
+  note?: string | null;
+}
+
+/** Crée une demande de retrait (hold + PENDING, init payout en REAL). */
+export async function createWithdrawalRequest(
+  input: CreateWithdrawalRequestInput,
+): Promise<CreateWithdrawalRequestResult> {
+  return apiFetch<CreateWithdrawalRequestResult>('/finances/withdrawals', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listWithdrawalRequests(): Promise<{ items: WithdrawalRequest[] }> {
+  return apiFetch<{ items: WithdrawalRequest[] }>('/finances/withdrawals');
+}
+
+/** Statut réel Relio d'une demande (source de vérité). */
+export async function getWithdrawalRequest(reference: string): Promise<{ request: WithdrawalRequest }> {
+  return apiFetch<{ request: WithdrawalRequest }>(
+    `/finances/withdrawals/${encodeURIComponent(reference)}`,
+  );
+}
+
+export interface VerifyWithdrawalResult {
+  request: WithdrawalRequest | null;
+  saspayStatus: string | null;
+  verificationError?: TopupPaymentError | null;
+}
+
+/** Vérification serveur on-demand (sans polling agressif). */
+export async function verifyWithdrawalRequest(reference: string): Promise<VerifyWithdrawalResult> {
+  return apiFetch<VerifyWithdrawalResult>(
+    `/finances/withdrawals/${encodeURIComponent(reference)}/verify`,
+    { method: 'POST' },
+  );
+}
