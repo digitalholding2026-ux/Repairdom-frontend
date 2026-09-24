@@ -48,7 +48,11 @@ function StatusBadge({ status }: { status: WithdrawalRequestStatus }) {
  * rôle porté par le JWT). Le solde affiché vient de l'API (jamais calculé
  * ici) ; les frais sont appliqués par SasPay (jamais calculés ici).
  * L'action reste visible à 0 XAF : le formulaire explique alors le solde
- * insuffisant au lieu de disparaître. */
+ * insuffisant au lieu de disparaître.
+ * RECETTE PAYOUT (temporaire) : aucun blocage frontend sur le solde. Même à
+ * 0 XAF, la demande est envoyée à POST /finances/withdrawals et seul le
+ * backend décide (refus solde insuffisant accepté). Ne pas recalculer de
+ * solde ici, ne pas toucher au backend/ledger/FundsHold/SasPay. */
 export function WithdrawalPanel({
   available,
   currency,
@@ -94,7 +98,10 @@ export function WithdrawalPanel({
     void refreshHistory();
   }, []);
 
-  const insufficient = !Number.isInteger(effectiveAmount) || effectiveAmount <= 0 || effectiveAmount > available;
+  // RECETTE PAYOUT (temporaire) : pas de contrôle de solde côté frontend.
+  // `available` reste purement informatif (affichage). Seul le backend
+  // refuse éventuellement pour solde insuffisant après POST /finances/withdrawals.
+  const insufficient = !Number.isInteger(effectiveAmount) || effectiveAmount <= 0;
 
   async function submit() {
     setError(null);
@@ -102,12 +109,9 @@ export function WithdrawalPanel({
       setError('Montant invalide : minimum 100 XAF.');
       return;
     }
-    if (effectiveAmount > available) {
-      setError(
-        `Solde insuffisant : ${formatCurrency(effectiveAmount, currency)} demandés pour ${formatCurrency(available, currency)} disponibles.`,
-      );
-      return;
-    }
+    // RECETTE PAYOUT (temporaire) : blocage frontend `effectiveAmount > available`
+    // volontairement désactivé pour laisser POST /finances/withdrawals atteindre
+    // le backend (qui applique le contrôle financier réel).
     if (!msisdn.trim()) {
       setError('Numéro Mobile Money bénéficiaire requis.');
       return;
@@ -177,11 +181,9 @@ export function WithdrawalPanel({
             <div className="space-y-3 border-t border-border pt-3">
               {error ? <Alert variant="error">{error}</Alert> : null}
 
-              {available <= 0 && !result ? (
-                <Alert variant="info">
-                  Solde insuffisant pour un retrait. Rechargez votre compte pour pouvoir retirer des fonds.
-                </Alert>
-              ) : null}
+              {/* RECETTE PAYOUT (temporaire) : bandeau bloquant `available <= 0`
+                  désactivé. Le solde affiché reste informatif ; le backend
+                  décide après POST /finances/withdrawals. */}
 
               {!confirming && !result ? (
                 <>
@@ -229,7 +231,7 @@ export function WithdrawalPanel({
                     onChange={(e) => setMsisdn(e.target.value.slice(0, 20))}
                     className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
                   />
-                  <Button onClick={() => setConfirming(true)} disabled={submitting || available <= 0} className="w-full">
+                  <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
                     Continuer
                   </Button>
                 </>
