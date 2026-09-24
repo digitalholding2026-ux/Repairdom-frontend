@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 
 export function UpcomingBanner() {
@@ -9,12 +10,15 @@ export function UpcomingBanner() {
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">Recharger mon solde</p>
         <p className="text-xs text-muted-foreground">
-          Les recharges et retraits seront disponibles prochainement.
+          Paiement mobile money (MTN, Orange) via SasPay.
         </p>
       </div>
-      <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-2xs font-medium text-muted-foreground">
-        À venir
-      </span>
+      <Link
+        href="/client/solde/recharger"
+        className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-2xs font-semibold text-primary-foreground"
+      >
+        Recharger
+      </Link>
     </div>
   );
 }

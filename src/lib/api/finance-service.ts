@@ -353,3 +353,89 @@ export async function createTestCredit(
     body: JSON.stringify({ userId, amount }),
   });
 }
+
+/* ―― Recharge client via SasPay (pay-in) ――――――――――――――――――――――――――――
+ * Le retour SasPay ne prouve jamais rien : seul le statut Relio
+ * (getTopupIntent) fait foi, alimenté par webhook/vérification serveur. */
+
+export type TopupIntentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+export type TopupNetwork = 'mtn_cm' | 'orange_cm';
+
+export interface TopupIntent {
+  id: string;
+  reference: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  mode: FinancialMode;
+  status: TopupIntentStatus;
+  saspayTransactionId: string | null;
+  saspayReference: string | null;
+  externalReference: string | null;
+  network: string | null;
+  country: string | null;
+  requestedAmount: number | null;
+  fee: number | null;
+  chargedAmount: number | null;
+  netAmount: number | null;
+  creditedTransactionId: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTopupIntentInput {
+  amount: number;
+  idempotencyKey?: string;
+  network?: TopupNetwork;
+  phone?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+}
+
+export interface CreateTopupIntentResult {
+  intent: TopupIntent;
+  saspayEnabled: boolean;
+  checkoutUrl: string | null;
+  pushSent?: boolean;
+  saspayStatus?: string;
+  saspayTransactionId?: string | null;
+  note?: string | null;
+}
+
+/** Crée une intention de recharge (et initialise le paiement en REAL).
+ *  `checkoutUrl` non vide → rediriger le client ; sinon push USSD. */
+export async function createTopupIntent(
+  input: CreateTopupIntentInput,
+): Promise<CreateTopupIntentResult> {
+  return apiFetch<CreateTopupIntentResult>('/finances/topup/intents', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listTopupIntents(): Promise<{ items: TopupIntent[] }> {
+  return apiFetch<{ items: TopupIntent[] }>('/finances/topup/intents');
+}
+
+/** Statut réel Relio d'une intention (source de vérité après retour SasPay). */
+export async function getTopupIntent(reference: string): Promise<{ intent: TopupIntent }> {
+  return apiFetch<{ intent: TopupIntent }>(
+    `/finances/topup/intents/${encodeURIComponent(reference)}`,
+  );
+}
+
+export interface VerifyTopupResult {
+  intent: TopupIntent | null;
+  saspayStatus: string | null;
+}
+
+/** Vérification serveur on-demand (sans polling agressif). */
+export async function verifyTopupIntent(reference: string): Promise<VerifyTopupResult> {
+  return apiFetch<VerifyTopupResult>(
+    `/finances/topup/intents/${encodeURIComponent(reference)}/verify`,
+    { method: 'POST' },
+  );
+}

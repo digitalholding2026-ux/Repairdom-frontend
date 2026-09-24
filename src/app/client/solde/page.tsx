@@ -25,6 +25,7 @@ import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
+  CLIENT_TOPUP: 'Recharge SasPay',
   CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
   CLIENT_FEE: 'Frais Relio (historique)',
   REVERSAL: 'Remboursement',
