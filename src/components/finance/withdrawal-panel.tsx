@@ -192,14 +192,14 @@ export function WithdrawalPanel({
 
               {!confirming && !result ? (
                 <>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
                     {PRESETS.map((preset) => (
                       <button
                         key={preset}
                         type="button"
                         aria-pressed={!custom && amount === preset}
                         onClick={() => { setAmount(preset); setCustom(''); }}
-                        className={`rounded-xl border px-2 py-2 text-sm font-semibold tabular-nums transition-colors ${
+                        className={`min-w-0 rounded-xl border px-2 py-2 text-xs font-semibold tabular-nums transition-colors sm:text-sm ${
                           !custom && amount === preset
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-border bg-card text-foreground'

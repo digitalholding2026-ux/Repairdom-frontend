@@ -23,7 +23,7 @@ function StarSelector({ value, onChange }: { value: number; onChange: (value: nu
             event.preventDefault();
             onChange(star);
           }}
-          className="rounded p-0.5 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded p-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className={cn(star <= value ? 'text-warning' : 'text-muted-foreground/40')}>
             <Icon name="star" size="lg" filled={star <= value} />

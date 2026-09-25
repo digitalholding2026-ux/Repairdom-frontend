@@ -159,7 +159,7 @@ export default function AdminUsersPage() {
               void handleSearch();
             }}
           >
-            <Field label={tab === 'CLIENT' ? 'Rechercher un client' : 'Rechercher un technicien'} htmlFor="userSearch" className="flex-1">
+            <Field label={tab === 'CLIENT' ? 'Rechercher un client' : 'Rechercher un technicien'} htmlFor="userSearch" className="min-w-0 flex-1">
               <Input
                 id="userSearch"
                 value={query}

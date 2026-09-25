@@ -17,11 +17,11 @@ export function DashboardHero({
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
-      <div className="space-y-1">
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
-        {subtitle ? <p className="text-sm text-muted-foreground">{subtitle}</p> : null}
+      <div className="min-w-0 flex-1 space-y-1">
+        <h1 className="break-words text-xl font-bold tracking-tight sm:text-2xl">{title}</h1>
+        {subtitle ? <p className="break-words text-sm text-muted-foreground">{subtitle}</p> : null}
       </div>
-      <Button variant="ghost" size="sm" onClick={onLogout}>
+      <Button variant="ghost" size="sm" onClick={onLogout} className="shrink-0">
         <Icon name="logout" size="sm" />
         <span className="ml-1 hidden sm:inline">Déconnexion</span>
       </Button>

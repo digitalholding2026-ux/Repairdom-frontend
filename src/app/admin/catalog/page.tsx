@@ -88,7 +88,7 @@ export default function AdminCatalogPage() {
         title="Catalogue"
         description="Gérez les domaines, problèmes, diagnostics et tarifs Relio."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href="/admin/catalog/villes">
               <Button variant="secondary" size="sm">
                 <Icon name="pin" size="3.5" />

@@ -85,7 +85,7 @@ export default function AdminMissionsPage() {
               onChange={(e) => setReference(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
               placeholder="Ex. : RD-AB12CD"
-              className="uppercase"
+              className="min-w-0 uppercase"
               maxLength={20}
             />
             <Button onClick={handleSearch} isLoading={loading} className="shrink-0">
