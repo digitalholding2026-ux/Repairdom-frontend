@@ -8,10 +8,13 @@ export default function ClientChronologiesPage() {
     <div className="space-y-4">
       <PageHeader
         title="Chronologies"
-        description="Suivez l'historique des étapes de chacune de vos missions."
-        backHref="/client"
+        description="Suivez l'avancement de vos interventions en temps réel."
       />
-      <ChronologiesView detailPrefix="/client/chronologies" badgeContext="client" />
+      <ChronologiesView
+        detailPrefix="/client/chronologies"
+        badgeContext="client"
+        educationalEmptyState
+      />
     </div>
   );
 }

@@ -9,14 +9,14 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
-import { Tabs } from '@/components/ui/tabs';
+import { TrackingPreview } from '@/components/chronologies/tracking-preview';
 import { PROGRESS_STEPS } from '@/components/mission/demande-progress';
 import {
   listMyChronologies,
   type ChronologyMission,
   type ChronologyScope,
 } from '@/lib/api/chronologies-service';
-import { fullName } from '@/lib/format';
+import { formatRelative, fullName } from '@/lib/format';
 import type { StatusContext } from '@/lib/request-status';
 
 const HISTORY_TITLES: Record<string, string> = {
@@ -72,11 +72,61 @@ function MiniProgress({ status }: { status: string }) {
 export interface ChronologiesViewProps {
   detailPrefix: string;
   badgeContext: StatusContext;
+  /** Variante pédagogique (espace client) : conteneur texturé + aperçu
+   *  démo quand aucune mission en cours. */
+  educationalEmptyState?: boolean;
+}
+
+/* Onglets « En cours / Historique » : contrôle segmenté local (style
+ * pilule), même comportement que le Tabs partagé. */
+function ScopeTabs({
+  value,
+  onChange,
+}: {
+  value: ChronologyScope;
+  onChange: (scope: ChronologyScope) => void;
+}) {
+  const items: Array<{ id: ChronologyScope; label: string }> = [
+    { id: 'active', label: 'En cours' },
+    { id: 'history', label: 'Historique' },
+  ];
+  return (
+    <div
+      role="tablist"
+      aria-label="Période des missions"
+      className="inline-flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100 p-1 dark:border-slate-700/50 dark:bg-slate-800/80"
+    >
+      {items.map((item) => {
+        const active = item.id === value;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(item.id)}
+            className={cn(
+              'rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              active
+                ? 'bg-white text-primary shadow-xs dark:bg-slate-900'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /** Centrale « Chronologies » : onglets En cours / Historique, données
  *  provenant de l'endpoint dédié (événements embarqués, pas de N+1). */
-export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesViewProps) {
+export function ChronologiesView({
+  detailPrefix,
+  badgeContext,
+  educationalEmptyState = false,
+}: ChronologiesViewProps) {
   const [scope, setScope] = useState<ChronologyScope>('active');
   const [missions, setMissions] = useState<ChronologyMission[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,63 +147,134 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
     };
   }, [scope]);
 
-  const historyGroups = missions
-    ? [...missions]
-        .sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt))
-        .reduce<{ key: string; items: ChronologyMission[] }[]>((groups, mission) => {
-          const key = monthKey(mission.lastActivityAt);
-          const last = groups[groups.length - 1];
-          if (last?.key === key) {
-            last.items.push(mission);
-          } else {
-            groups.push({ key, items: [mission] });
-          }
-          return groups;
-        }, [])
-        .sort((a, b) => b.key.localeCompare(a.key))
-    : [];
-
   return (
     <div className="space-y-4">
-      <Tabs
-        variant="segmented"
-        label="Période des missions"
-        value={scope}
-        onChange={(id) => setScope(id as ChronologyScope)}
-        items={[
-          { id: 'active', label: 'En cours' },
-          { id: 'history', label: 'Historique' },
-        ]}
-      />
+      <ScopeTabs value={scope} onChange={setScope} />
 
-      {error ? (
-        <Alert variant="error">{error}</Alert>
-      ) : missions === null ? (
-        <div className="space-y-3" role="status">
-          <span className="sr-only">Chargement…</span>
-          <SkeletonRow />
-          <SkeletonRow />
-          <SkeletonRow />
-        </div>
-      ) : missions.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              icon={<Icon name="clock" size="lg" />}
-              title={scope === 'active' ? 'Aucune mission en cours' : 'Aucun historique'}
-              description={
-                scope === 'active'
-                  ? 'Vos missions en cours apparaîtront ici avec leur chronologie.'
-                  : 'Les missions confirmées ou annulées apparaîtront ici, du plus récent au plus ancien.'
-              }
+      {educationalEmptyState ? (
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e] lg:p-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-gradient-to-tr from-[#00AEEF]/10 via-[#8A2BE2]/10 to-transparent blur-3xl"
+          />
+          <div className="relative">
+            <ChronologiesBody
+              error={error}
+              missions={missions}
+              scope={scope}
+              detailPrefix={detailPrefix}
+              badgeContext={badgeContext}
+              educationalEmptyState
             />
-          </CardContent>
-        </Card>
-      ) : scope === 'active' ? (
-        <div className="space-y-3">
-          {missions.map((mission) => {
-            const label = deviceLabel(mission);
-            return (
+          </div>
+        </div>
+      ) : (
+        <ChronologiesBody
+          error={error}
+          missions={missions}
+          scope={scope}
+          detailPrefix={detailPrefix}
+          badgeContext={badgeContext}
+          educationalEmptyState={false}
+        />
+      )}
+    </div>
+  );
+}
+
+function ChronologiesBody({
+  error,
+  missions,
+  scope,
+  detailPrefix,
+  badgeContext,
+  educationalEmptyState,
+}: {
+  error: string | null;
+  missions: ChronologyMission[] | null;
+  scope: ChronologyScope;
+  detailPrefix: string;
+  badgeContext: StatusContext;
+  educationalEmptyState: boolean;
+}) {
+  if (error) {
+    return <Alert variant="error">{error}</Alert>;
+  }
+  if (missions === null) {
+    return (
+      <div className="space-y-3" role="status">
+        <span className="sr-only">Chargement…</span>
+        <SkeletonRow />
+        <SkeletonRow />
+        <SkeletonRow />
+      </div>
+    );
+  }
+  if (missions.length === 0) {
+    if (educationalEmptyState && scope === 'active') {
+      return <TrackingPreview />;
+    }
+    return (
+      <Card>
+        <CardContent>
+          <EmptyState
+            icon={<Icon name="clock" size="lg" />}
+            title={scope === 'active' ? 'Aucune mission en cours' : 'Aucun historique'}
+            description={
+              scope === 'active'
+                ? 'Vos missions en cours apparaîtront ici avec leur chronologie.'
+                : 'Les missions confirmées ou annulées apparaîtront ici, du plus récent au plus ancien.'
+            }
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+  if (scope === 'history') {
+    const historyGroups = [...missions]
+      .sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt))
+      .reduce<{ key: string; items: ChronologyMission[] }[]>((groups, mission) => {
+        const key = monthKey(mission.lastActivityAt);
+        const last = groups[groups.length - 1];
+        if (last?.key === key) {
+          last.items.push(mission);
+        } else {
+          groups.push({ key, items: [mission] });
+        }
+        return groups;
+      }, [])
+      .sort((a, b) => b.key.localeCompare(a.key));
+    return (
+      <div className="space-y-6">
+        {historyGroups.map((group) => (
+          <div key={group.key} className="space-y-2">
+            <p className="px-1 text-sm font-semibold capitalize">{monthLabel(group.key)}</p>
+            {group.items.map((mission) => (
+              <Link
+                key={mission.id}
+                href={`${detailPrefix}/${mission.id}`}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-muted/50"
+              >
+                <span className="font-mono font-medium text-primary">{mission.reference}</span>
+                <span className="text-foreground">
+                  {HISTORY_TITLES[mission.status] ?? mission.status}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatRelative(mission.lastActivityAt)} · {shortDate(mission.lastActivityAt)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {missions.map((mission) => {
+        const label = deviceLabel(mission);
+        return (
               <Link
                 key={mission.id}
                 href={`${detailPrefix}/${mission.id}`}
@@ -178,7 +299,10 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
                       Client : {fullName(mission.client.firstName, mission.client.lastName)}
                     </p>
                   ) : null}
-                  <p>Dernière activité : {shortDate(mission.lastActivityAt)}</p>
+                  <p>
+                    Dernière activité : {formatRelative(mission.lastActivityAt)} ·{' '}
+                    {shortDate(mission.lastActivityAt)}
+                  </p>
                 </div>
                 <div className="mt-2">
                   <MiniProgress status={mission.status} />
@@ -190,31 +314,6 @@ export function ChronologiesView({ detailPrefix, badgeContext }: ChronologiesVie
               </Link>
             );
           })}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {historyGroups.map((group) => (
-            <div key={group.key} className="space-y-2">
-              <p className="px-1 text-sm font-semibold capitalize">{monthLabel(group.key)}</p>
-              {group.items.map((mission) => (
-                <Link
-                  key={mission.id}
-                  href={`${detailPrefix}/${mission.id}`}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-muted/50"
-                >
-                  <span className="font-mono font-medium text-primary">{mission.reference}</span>
-                  <span className="text-foreground">
-                    {HISTORY_TITLES[mission.status] ?? mission.status}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {shortDate(mission.lastActivityAt)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
