@@ -152,10 +152,10 @@ export function ChronologiesView({
       <ScopeTabs value={scope} onChange={setScope} />
 
       {educationalEmptyState ? (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e] lg:p-8">
+        <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-relio-card lg:p-8">
           <div
             aria-hidden
-            className="pointer-events-none absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-gradient-to-tr from-[#00AEEF]/10 via-[#8A2BE2]/10 to-transparent blur-3xl"
+            className="pointer-events-none absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-gradient-to-tr from-relio-orange/10 via-relio-orange-bright/10 to-transparent blur-3xl"
           />
           <div className="relative">
             <ChronologiesBody

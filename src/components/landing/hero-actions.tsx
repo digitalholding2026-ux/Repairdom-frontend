@@ -18,9 +18,9 @@ export function HeroActions() {
           <Link href={home} className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group relative w-full overflow-hidden bg-white font-semibold text-blue-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+              className="group relative w-full overflow-hidden bg-white font-semibold text-orange-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
             >
-              <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+              <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
               Continuer ma mission
               <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
             </Button>
@@ -50,9 +50,9 @@ export function HeroActions() {
         <Link href="/client/inscription" className="w-full sm:w-auto">
           <Button
             size="lg"
-            className="group relative w-full overflow-hidden bg-white font-semibold text-blue-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+            className="group relative w-full overflow-hidden bg-white font-semibold text-orange-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
           >
-            <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-blue-200/60 to-transparent" />
+            <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
             J&apos;ai besoin d&apos;un dépannage
             <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
           </Button>

@@ -53,7 +53,7 @@ export function Logo({ variant = 'full', className }: LogoProps) {
       viewBox="0 0 1200 360"
       role="img"
       aria-label={siteConfig.name}
-      className={cn('h-8 w-auto text-[#0F1B3D] dark:text-white', className)}
+      className={cn('h-8 w-auto text-[#0B0D12] dark:text-white', className)}
     >
       <PinGradient id={gradientId} />
       <text

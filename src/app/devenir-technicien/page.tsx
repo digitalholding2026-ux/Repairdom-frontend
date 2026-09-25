@@ -85,7 +85,7 @@ export default function DevenirTechnicienPage() {
               <Link href="/technicien/inscription" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="w-full bg-white text-brand-gradient-from hover:opacity-90 sm:w-auto"
+                  className="w-full bg-white text-orange-800 hover:opacity-90 sm:w-auto"
                 >
                   Devenir technicien
                 </Button>

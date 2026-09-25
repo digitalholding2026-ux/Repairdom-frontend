@@ -327,10 +327,10 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             </div>
           )
         ) : (
-          <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e]">
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-relio-card">
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gradient-to-br from-[#00AEEF]/10 via-[#8E1BFF]/10 to-transparent blur-3xl"
+              className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gradient-to-br from-relio-orange/10 via-relio-orange-bright/10 to-transparent blur-3xl"
             />
             <div className="relative">
               {list.length === 0 ? (

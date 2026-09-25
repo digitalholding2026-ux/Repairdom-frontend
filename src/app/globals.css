@@ -55,6 +55,15 @@
   --color-brand: var(--brand);
   --color-brand-secondary: var(--brand-secondary);
 
+  /* Palette officielle Relio (logo 2026) : orange #FF6A00 / #FF9500, fond
+   * sombre #0B0D12, surface #151922, texte #F8FAFC, muted #A1A1AA. */
+  --color-relio-orange: #ff6a00;
+  --color-relio-orange-bright: #ff9500;
+  --color-relio-bg: #0b0d12;
+  --color-relio-card: #151922;
+  --color-relio-text: #f8fafc;
+  --color-relio-muted: #a1a1aa;
+
   --color-reward-from: var(--reward-from);
   --color-reward-via: var(--reward-via);
   --color-reward-to: var(--reward-to);
@@ -82,34 +91,34 @@
 :root {
   --background: #f6f7f9;
   --foreground: #0f172a;
-  /* Identité Relio : primaire #0062CC (AA ≥ 4.5:1 sur blanc, texte blanc inclus). */
-  --primary: #0062cc;
-  --primary-foreground: #ffffff;
-  --secondary: #eff6ff;
-  --secondary-foreground: #1e40af;
+  /* Identité Relio : primaire #FF6A00. Contraste blanc insuffisant (~2.9:1),
+   * donc texte sombre #0B0D12 sur fond primaire (ratio ~6.5:1, AA validé). */
+  --primary: #ff6a00;
+  --primary-hover: #ff9500;
+  --primary-foreground: #0b0d12;
+  --secondary: #fff0e6;
+  --secondary-foreground: #b44300;
   --muted: #eef0f3;
   --muted-foreground: #64748b;
-  /* Accent aligné sur le gradient Relio (utilisé en stops décoratifs). */
-  --accent: #00aeef;
-  --accent-foreground: #ffffff;
+  /* Accent lumineux Relio (stops décoratifs, glows, progressions). */
+  --accent: #ff9500;
+  --accent-foreground: #0b0d12;
   --destructive: #dc2626;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
-  --ring: #0062cc;
+  --ring: #ff6a00;
 
-  /* Gradient officiel Relio (#00AEEF → #8A2BE2), accent secondaire #8E1BFF. */
-  --brand-gradient-from: #00aeef;
-  --brand-gradient-via: #8e1bff;
-  --brand-gradient-to: #8a2be2;
+  /* Gradient officiel Relio (orange lumineux → orange → orange profond). */
+  --brand-gradient-from: #ff9500;
+  --brand-gradient-via: #ff6a00;
+  --brand-gradient-to: #ff4d00;
 
-  /* Valeurs officielles brutes (UI-0) : Primary #007BFF et Secondary
-   * #8E1BFF. `--primary` reste volontairement à #0062CC en clair car
-   * #007BFF n'atteint pas AA ≥ 4.5:1 en texte/CTA sur blanc ; utiliser
-   * `bg-brand`/`text-brand` uniquement en décoratif/grands aplats, et
+  /* Valeurs officielles brutes : orange primaire et orange lumineux.
+   * `bg-brand`/`text-brand` restent réservés au décoratif/grands aplats,
    * `bg-primary`/`text-primary` pour tout texte ou CTA. */
-  --brand: #007bff;
-  --brand-secondary: #8e1bff;
+  --brand: #ff6a00;
+  --brand-secondary: #ff9500;
 
   /* Gradient gamification/récompenses (ambre → orange). */
   --reward-from: #f59e0b;
@@ -147,27 +156,27 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1120;
-    --foreground: #e2e8f0;
-    /* Sombre : primaire = #00AEEF (palette officielle, contraste ~7:1 sur
-     * #0b1120 en texte comme en fond de CTA avec texte #0f172a). */
-    --primary: #00aeef;
-    --primary-foreground: #0f172a;
-    --secondary: #1e293b;
-    --secondary-foreground: #bfdbfe;
-    --muted: #151d2d;
-    --muted-foreground: #94a3b8;
-    --accent: #00aeef;
-    --accent-foreground: #0f172a;
+    --background: #0b0d12;
+    --foreground: #f8fafc;
+    /* Sombre : primaire #FF6A00 officiel, texte #0B0D12 (ratio ~6.5:1). */
+    --primary: #ff6a00;
+    --primary-hover: #ff9500;
+    --primary-foreground: #0b0d12;
+    --secondary: #202634;
+    --secondary-foreground: #e8eaf0;
+    --muted: #1b2230;
+    --muted-foreground: #a1a1aa;
+    --accent: #ff9500;
+    --accent-foreground: #0b0d12;
     --destructive: #f87171;
-    --card: #131c2e;
-    --card-foreground: #e2e8f0;
-    --border: #24334a;
-    --ring: #00aeef;
+    --card: #151922;
+    --card-foreground: #f8fafc;
+    --border: #252d3d;
+    --ring: #ff6a00;
 
-    --brand-gradient-from: #00aeef;
-    --brand-gradient-via: #8e1bff;
-    --brand-gradient-to: #8a2be2;
+    --brand-gradient-from: #ff9500;
+    --brand-gradient-via: #ff6a00;
+    --brand-gradient-to: #ff4d00;
 
     --reward-from: #fbbf24;
     --reward-via: #fb923c;
@@ -342,7 +351,7 @@
 }
 
 .hero-gradient {
-  background-image: linear-gradient(135deg, #00aeef, #8a2be2);
+  background-image: linear-gradient(135deg, #ff9500, #ff4d00);
   background-size: 280% 280%;
   animation: gradient-pan 16s ease-in-out infinite;
 }

@@ -53,7 +53,7 @@ export function Hero() {
             <br />
             <Words
               words={LINE_B}
-              className="bg-gradient-to-r from-amber-100 via-white to-sky-100 bg-clip-text text-transparent"
+              className="bg-gradient-to-r from-amber-100 via-white to-orange-100 bg-clip-text text-transparent"
             />
           </h1>
 

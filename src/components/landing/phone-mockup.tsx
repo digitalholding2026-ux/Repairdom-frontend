@@ -48,7 +48,7 @@ export function PhoneMockup() {
           onPointerLeave={onPointerLeave}
           className="w-[15.5rem] rounded-[2.4rem] border border-white/15 bg-card p-2 shadow-pop transition-transform duration-150 ease-out will-change-transform"
         >
-          <div className="overflow-hidden rounded-[1.9rem] bg-[#0b1120] text-white">
+          <div className="overflow-hidden rounded-[1.9rem] bg-relio-bg text-white">
             <div className="flex items-center justify-between px-4 pt-3.5">
               <div className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-rose-400/80" />
@@ -78,7 +78,7 @@ export function PhoneMockup() {
                   </span>
                 </div>
                 <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-white/20">
-                  <div className="h-full w-2/3 rounded-full bg-white/90 [animation:shimmer_2.2s_linear_infinite] bg-[linear-gradient(90deg,transparent,rgba(75,0,130,0.35),transparent)] bg-[length:2rem_100%]" />
+                  <div className="h-full w-2/3 rounded-full bg-white/90 [animation:shimmer_2.2s_linear_infinite] bg-[linear-gradient(90deg,transparent,rgba(255,106,0,0.35),transparent)] bg-[length:2rem_100%]" />
                 </div>
               </div>
 

@@ -78,7 +78,7 @@ function hubIconTheme(type: string): { icon: 'file' | 'check-circle' | 'wallet';
     case 'NEGOTIATION_REQUESTED':
     case 'QUOTE_ACCEPTED':
     case 'QUOTE_REJECTED':
-      return { icon: 'file', className: 'bg-blue-500/10 text-blue-600' };
+      return { icon: 'file', className: 'bg-primary/10 text-primary' };
     case 'TECHNICIAN_ACCEPTED':
     case 'SCHEDULED':
     case 'COMPLETED':
@@ -246,10 +246,10 @@ export function NotificationsCenter({ detailHref, hub = false }: NotificationsCe
   );
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e] lg:p-8">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-relio-card lg:p-8">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-gradient-to-br from-[#00AEEF]/10 via-[#8E1BFF]/10 to-transparent blur-3xl"
+        className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-gradient-to-br from-relio-orange/10 via-relio-orange-bright/10 to-transparent blur-3xl"
       />
       <div className="relative space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

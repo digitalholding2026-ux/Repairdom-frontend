@@ -128,10 +128,10 @@ export default function RechargerPage() {
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e] lg:p-8">
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-relio-card lg:p-8">
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-gradient-to-br from-emerald-500/10 via-[#00AEEF]/10 to-transparent blur-3xl"
+          className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-gradient-to-br from-emerald-500/10 via-relio-orange/10 to-transparent blur-3xl"
         />
         <div className="relative space-y-5">
           {/* Comment ça se passe ? */}

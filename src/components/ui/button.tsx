@@ -22,7 +22,8 @@ const base =
   'disabled:pointer-events-none disabled:opacity-50 select-none active:scale-[0.98]';
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-primary-foreground hover:opacity-90',
+  primary:
+    'bg-primary text-primary-foreground shadow-lg shadow-relio-orange/20 hover:bg-relio-orange-bright',
   secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
   ghost: 'text-foreground hover:bg-muted',
   destructive: 'bg-destructive text-error-foreground hover:opacity-90',
