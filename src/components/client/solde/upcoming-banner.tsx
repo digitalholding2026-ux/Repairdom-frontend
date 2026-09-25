@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 
 export function UpcomingBanner() {
@@ -13,11 +14,8 @@ export function UpcomingBanner() {
           Paiement mobile money (MTN, Orange) via SasPay.
         </p>
       </div>
-      <Link
-        href="/client/solde/recharger"
-        className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-2xs font-semibold text-primary-foreground"
-      >
-        Recharger
+      <Link href="/client/solde/recharger" className="shrink-0">
+        <Button size="sm">Recharger</Button>
       </Link>
     </div>
   );

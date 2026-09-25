@@ -49,7 +49,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
           type="button"
           onClick={onDismiss}
           aria-label="Fermer la notification"
-          className="shrink-0 rounded-md p-2.5 opacity-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="shrink-0 rounded-md p-3 opacity-50 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon name="x" size="xs" />
         </button>

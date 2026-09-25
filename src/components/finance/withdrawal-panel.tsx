@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { SectionHeader } from '@/components/ui/page-header';
 import {
@@ -207,12 +208,12 @@ export function WithdrawalPanel({
                       </button>
                     ))}
                   </div>
-                  <input
+                  <Input
                     inputMode="numeric"
                     placeholder="Ou montant libre (min. 100 XAF)"
                     value={custom}
                     onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm tabular-nums outline-none focus:border-primary"
+                    className="tabular-nums"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     {NETWORKS.map((net) => (
@@ -229,12 +230,11 @@ export function WithdrawalPanel({
                       </button>
                     ))}
                   </div>
-                  <input
+                  <Input
                     inputMode="tel"
                     placeholder="Numéro bénéficiaire (ex. +237690000000)"
                     value={msisdn}
                     onChange={(e) => setMsisdn(e.target.value.slice(0, 20))}
-                    className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
                   />
                   <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
                     Continuer

@@ -39,7 +39,7 @@ export function Tabs({ items, value, onChange, variant = 'pills', label, classNa
         const tabClassName = cn(
           'text-sm font-medium transition-colors',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          variant === 'segmented' ? 'flex-1 rounded-lg px-3 py-2' : 'shrink-0 rounded-full px-3.5 py-1.5',
+          variant === 'segmented' ? 'flex-1 rounded-lg px-3 py-2' : 'shrink-0 rounded-full px-3.5 py-2',
           active
             ? 'bg-primary text-primary-foreground'
             : variant === 'segmented'

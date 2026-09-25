@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import {
   createTopupIntent,
@@ -151,12 +152,12 @@ export default function RechargerPage() {
             </button>
           ))}
         </div>
-        <input
+        <Input
           inputMode="numeric"
           placeholder="Ou montant libre (min. 100 XAF)"
           value={custom}
           onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm tabular-nums outline-none focus:border-primary"
+          className="tabular-nums"
         />
       </section>
 
@@ -180,12 +181,11 @@ export default function RechargerPage() {
             </button>
           ))}
         </div>
-        <input
+        <Input
           inputMode="tel"
           placeholder="Numéro mobile money (ex. +237690000000)"
           value={phone}
           onChange={(e) => setPhone(e.target.value.slice(0, 20))}
-          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none focus:border-primary"
         />
       </section>
 
