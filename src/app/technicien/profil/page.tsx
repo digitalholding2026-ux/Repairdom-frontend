@@ -25,6 +25,7 @@ import {
   type TechnicianKycOverview,
 } from '@/lib/api/technician-service';
 import { listCities, type City } from '@/lib/api/cities-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
 import { logoutAndGoHome } from '@/lib/api/auth-service';
 
@@ -142,7 +143,7 @@ export default function TechnicianProfilePage() {
       setAvatarUrl(updated.avatarUrl);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\u2019enregistrement.');
+      setError(toUserErrorMessage(err, 'Erreur lors de l\u2019enregistrement.'));
     } finally {
       setSaving(false);
     }

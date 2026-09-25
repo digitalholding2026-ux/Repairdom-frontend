@@ -15,6 +15,7 @@ import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
 import { createDemande } from '@/lib/api/request-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
   listCatalogDomains,
   listCatalogBrands,
@@ -298,10 +299,28 @@ export function DemandeWizard() {
         )}&mode=${encodeURIComponent(requestedMode)}&req=${encodeURIComponent(requestedAtIso ?? '')}`,
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.');
+      setError(toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.'));
       setIsSubmitting(false);
     }
   };
+
+  /* UI-2 : avertit avant de perdre une demande commencée (rechargement,
+   * fermeture d'onglet). Inactif quand le wizard est vide ou en envoi. */
+  const hasStarted =
+    step > 0 ||
+    description.trim() !== '' ||
+    city.trim() !== '' ||
+    contactPhone.trim() !== '' ||
+    domainId !== '' ||
+    photos.length > 0;
+  useEffect(() => {
+    if (!hasStarted || isSubmitting) return;
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasStarted, isSubmitting]);
 
   return (
     <div className="space-y-4">

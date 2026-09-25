@@ -27,6 +27,7 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { searchAdminClients, type AdminClientUser } from '@/lib/api/admin-service';
 
 const MODES: FinancialMode[] = ['SIMULATION', 'REAL'];
@@ -632,7 +633,7 @@ function TestCreditSection() {
         setNotice('Ce compte a déjà été crédité (crédit initial unique SIMULATION).');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du crédit du compte.');
+      setError(toUserErrorMessage(err, 'Erreur lors du crédit du compte.'));
     } finally {
       setSubmitting(false);
       setConfirmOpen(false);

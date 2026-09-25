@@ -35,6 +35,8 @@ import {
 } from '@/lib/api/request-service';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 import { formatCurrency, formatFileSize } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { useToast } from '@/lib/toast-context';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -44,6 +46,7 @@ function formatPrice(value: number | null | undefined): string {
 
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
+  const { toast } = useToast();
   const [demande, setDemande] = useState<DemandeListItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
@@ -118,8 +121,12 @@ export default function ClientDemandeDetailPage() {
     try {
       const updated = await updateDemandeStatus(params.id, status);
       setDemande(updated);
+      toast({
+        title: status === 'CONFIRMED' ? 'Intervention confirmée.' : 'Demande annulée.',
+        variant: 'success',
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la mise à jour.'));
     } finally {
       setActionBusy(null);
     }
@@ -147,8 +154,12 @@ export default function ClientDemandeDetailPage() {
     try {
       const updated = await respondToQuote(params.id, quoteId, action);
       setQuotes((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
+      toast({
+        title: action === 'accept' ? 'Tarif accepté.' : 'Tarif refusé.',
+        variant: 'success',
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la réponse au tarif.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la réponse au tarif.'));
     } finally {
       setActionBusy(null);
     }
@@ -163,8 +174,9 @@ export default function ClientDemandeDetailPage() {
       setDemande((prev) =>
         prev ? { ...prev, negotiationRequestedAt: result.negotiationRequestedAt } : prev,
       );
+      toast({ title: 'Demande de négociation envoyée.', variant: 'success' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la demande de négociation.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la demande de négociation.'));
     } finally {
       setActionBusy(null);
     }

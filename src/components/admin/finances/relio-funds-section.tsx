@@ -18,6 +18,7 @@ import {
   type RelioWithdrawal,
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatDateTime, fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Portefeuille Relio (Sprint ADMIN SUPER POWERS) : commissions acquises
  * (2 % du brut au CONFIRMED + historique), retraits traçables et solde
@@ -71,7 +72,7 @@ export function RelioFundsSection() {
       setNote('');
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du retrait.');
+      setError(toUserErrorMessage(err, 'Erreur lors du retrait.'));
       setConfirmOpen(false);
     } finally {
       setWithdrawing(false);

@@ -15,6 +15,7 @@ import {
   EMAIL_ALREADY_VERIFIED_MESSAGE,
   VERIFICATION_LINK_INVALID_MESSAGE,
 } from '@/lib/api/auth-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export type VerificationRole = 'CLIENT' | 'TECHNICIAN';
 
@@ -78,8 +79,7 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
         setVerified(true);
       } catch (err) {
         if (cancelled) return;
-        const message =
-          err instanceof Error ? err.message : VERIFICATION_LINK_INVALID_MESSAGE;
+        const message = toUserErrorMessage(err, VERIFICATION_LINK_INVALID_MESSAGE);
         if (message === EMAIL_ALREADY_VERIFIED_MESSAGE) {
           setAlreadyVerified(true);
         } else {
@@ -103,7 +103,7 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
       await resendVerification(accountEmail);
       setResendSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\u2019envoi.');
+      setError(toUserErrorMessage(err, 'Erreur lors de l\u2019envoi.'));
     } finally {
       setResendBusy(false);
     }

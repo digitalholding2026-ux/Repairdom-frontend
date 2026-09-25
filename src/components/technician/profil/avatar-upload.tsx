@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { uploadTechnicianAvatar } from '@/lib/api/technician-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -43,7 +44,7 @@ export function AvatarUpload({ avatarUrl, onUpdated }: AvatarUploadProps) {
       onUpdated(updated.avatarUrl ?? '');
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l\u2019envoi de la photo.");
+      setError(toUserErrorMessage(err, "Erreur lors de l\u2019envoi de la photo."));
     } finally {
       setUploading(false);
     }

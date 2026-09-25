@@ -18,6 +18,7 @@ import {
   deleteAdminUserAccount,
   type AdminUserAccount,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 type RoleTab = 'CLIENT' | 'TECHNICIAN';
 
@@ -102,7 +103,7 @@ export default function AdminUsersPage() {
       setAccount(await getAdminUserAccount(account.id).catch(() => null));
       setResults((prev) => prev.filter((item) => item.id !== account.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la suppression.'));
       setConfirmOpen(false);
     } finally {
       setDeleting(false);

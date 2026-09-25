@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { formatTime } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { getMe } from '@/lib/api/auth-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
   listDemandeMessages,
   sendDemandeMessage,
@@ -82,7 +83,7 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
       const list = await listDemandeMessages(demandeId);
       setMessages(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'envoi.');
+      setError(toUserErrorMessage(err, 'Erreur lors de l\'envoi.'));
     } finally {
       setSending(false);
     }

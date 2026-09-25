@@ -27,6 +27,7 @@ import {
   type ServiceZone,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Référentiel géographique admin (ServiceCity / Zone).
  * Contrats : GET/POST/PATCH/DELETE /admin/catalog/cities,
@@ -172,7 +173,7 @@ export default function AdminVillesPage() {
       setCityModal(null);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.';
+      const message = toUserErrorMessage(err, 'Erreur lors de l’enregistrement.');
       setError(message);
       toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {
@@ -225,7 +226,7 @@ export default function AdminVillesPage() {
       setZoneModal(null);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.';
+      const message = toUserErrorMessage(err, 'Erreur lors de l’enregistrement.');
       setZonesError(message);
       toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {

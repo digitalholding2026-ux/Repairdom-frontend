@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { SkeletonRow } from '@/components/ui/skeleton';
 import { useToast } from '@/lib/toast-context';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { triggerHaptic } from '@/lib/haptics';
 import { notificationMeta, NOTIFICATION_VARIANT_CLASSES } from '@/lib/notification-meta';
 import {
@@ -61,7 +62,7 @@ export function NotificationsCenter({ detailHref }: NotificationsCenterProps) {
       setUnreadCount(0);
       toast({ title: 'Tout est marqué comme lu', variant: 'success' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour.';
+      const message = toUserErrorMessage(err, 'Erreur lors de la mise à jour.');
       setError(message);
       toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {

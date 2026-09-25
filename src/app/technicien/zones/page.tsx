@@ -13,6 +13,7 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Select } from '@/components/ui/select';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useToast } from '@/lib/toast-context';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { listCities, type City } from '@/lib/api/cities-service';
 import {
   getTechnicianProfile,
@@ -108,7 +109,7 @@ export default function TechnicienZonesPage() {
       setSelectedZoneId('');
       toast({ title: 'Zone ajoutée', description: 'Votre couverture a été mise à jour.', variant: 'success' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors de l’ajout.';
+      const message = toUserErrorMessage(err, 'Erreur lors de l’ajout.');
       setError(message);
       toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {
@@ -129,7 +130,7 @@ export default function TechnicienZonesPage() {
       setZoneToRemove(null);
       toast({ title: 'Zone retirée', description: 'Votre couverture a été mise à jour.', variant: 'success' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du retrait.';
+      const message = toUserErrorMessage(err, 'Erreur lors du retrait.');
       setError(message);
       toast({ title: 'Erreur', description: message, variant: 'error' });
     } finally {

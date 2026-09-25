@@ -13,6 +13,7 @@ import {
   type TopupIntent,
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Retour navigateur SasPay → Relio (?intent=TOPUP-…).
  * Ce retour NE prouve jamais le paiement : la page relit le statut RÉEL
@@ -42,7 +43,7 @@ export default function RechargeResultPage() {
       setError(null);
       return current.status;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Statut indisponible.');
+      setError(toUserErrorMessage(err, 'Statut indisponible.'));
       return null;
     }
   }, []);
@@ -93,7 +94,7 @@ export default function RechargeResultPage() {
         );
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Vérification impossible.');
+      setError(toUserErrorMessage(err, 'Vérification impossible.'));
     } finally {
       setVerifying(false);
     }

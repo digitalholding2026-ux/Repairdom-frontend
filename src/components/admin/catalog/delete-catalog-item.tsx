@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Icon } from '@/components/ui/icon';
 import type { CatalogDeleteOutcome } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Bouton « Supprimer » générique du back-office catalogue : confirmation
  * explicite (jamais de clic immédiat), puis suppression physique si l'élément
@@ -30,7 +31,7 @@ export function DeleteCatalogItem({
       onDone(outcome, null);
     } catch (err) {
       setOpen(false);
-      onDone(null, err instanceof Error ? err.message : 'Erreur lors de la suppression.');
+      onDone(null, toUserErrorMessage(err, 'Erreur lors de la suppression.'));
     } finally {
       setBusy(false);
     }

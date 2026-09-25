@@ -12,6 +12,7 @@ import {
 } from '@/lib/api/technician-service';
 import { kycStatusLabel, kycVariantFor, kycDocumentTypeLabel } from '@/lib/technician-profile';
 import { formatDate } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const ALLOWED_KYC_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 const MAX_KYC_SIZE = 10 * 1024 * 1024;
@@ -47,7 +48,7 @@ export function KycSection({ kyc, onUpdated }: KycSectionProps) {
       onUpdated(overview);
       setSuccess(`${file.name} a bien été envoyé.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\u2019envoi du document.');
+      setError(toUserErrorMessage(err, 'Erreur lors de l\u2019envoi du document.'));
     } finally {
       setUploadingType(null);
     }
@@ -62,7 +63,7 @@ export function KycSection({ kyc, onUpdated }: KycSectionProps) {
       onUpdated(overview);
       setSuccess('Document retiré.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la suppression.'));
     } finally {
       setDeletingId(null);
     }

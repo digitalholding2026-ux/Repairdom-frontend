@@ -11,6 +11,7 @@ import {
   sendAdminTechnicianMessage,
   type AdminTechnicianMessage,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Communication ADMIN → TECHNICIEN : l'admin saisit l'email du compte
  * technicien (résolu côté backend) et un message. Le technicien reçoit une
@@ -35,7 +36,7 @@ export default function AdminCommunicationPage() {
       setSent(result);
       setMessage('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l'envoi.");
+      setError(toUserErrorMessage(err, "Erreur lors de l'envoi."));
     } finally {
       setSending(false);
     }

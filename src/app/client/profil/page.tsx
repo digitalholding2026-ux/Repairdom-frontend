@@ -20,6 +20,7 @@ import {
   type AuthUser,
 } from '@/lib/api/auth-service';
 import { listCities, type City } from '@/lib/api/cities-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function ClientProfilPage() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function ClientProfilPage() {
       setUser(updated);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la mise à jour.'));
     } finally {
       setSaving(false);
     }

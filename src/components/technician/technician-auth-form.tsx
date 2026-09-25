@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useAuth } from '@/components/auth/auth-provider';
 import { cn } from '@/lib/cn';
 
@@ -89,7 +90,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
       await refresh();
       router.push(safeRedirect(window.location.search, '/technicien', homePathForRole(session.user.role)));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.';
+      const message = toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.');
       const attemptedEmail = email.trim();
       if (isSignUp && err instanceof ApiError && err.status === 409 && attemptedEmail) {
         setIsSubmitting(false);

@@ -13,6 +13,7 @@ import {
   type TopupNetwork,
 } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const PRESETS = [2000, 5000, 10000, 25000];
 
@@ -79,7 +80,7 @@ export default function RechargerPage() {
       }
       setResult(created);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Recharge impossible pour le moment.');
+      setError(toUserErrorMessage(err, 'Recharge impossible pour le moment.'));
     } finally {
       setSubmitting(false);
     }
@@ -189,8 +190,8 @@ export default function RechargerPage() {
         />
       </section>
 
-      <Button onClick={submit} disabled={submitting} className="w-full">
-        {submitting ? 'Initialisation…' : `Payer ${formatCurrency(Number.isInteger(effectiveAmount) ? effectiveAmount : 0, 'XAF')}`}
+      <Button onClick={submit} isLoading={submitting} className="w-full">
+        {`Payer ${formatCurrency(Number.isInteger(effectiveAmount) ? effectiveAmount : 0, 'XAF')}`}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">

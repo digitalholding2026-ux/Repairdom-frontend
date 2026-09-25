@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { uploadClientAvatar } from '@/lib/api/auth-service';
 import type { AuthUser } from '@/lib/api/auth-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -44,7 +45,7 @@ export function AvatarUpload({ user, onUpdated }: AvatarUploadProps) {
       onUpdated(updated);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l\u2019envoi de la photo.");
+      setError(toUserErrorMessage(err, "Erreur lors de l\u2019envoi de la photo."));
     } finally {
       setUploading(false);
     }

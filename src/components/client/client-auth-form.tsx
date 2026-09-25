@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useAuth } from '@/components/auth/auth-provider';
 
 export type ClientAuthMode = 'signup' | 'signin';
@@ -85,7 +86,7 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
       await refresh();
       router.push(safeRedirect(window.location.search, '/client', '/client'));
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Une erreur est survenue. Réessayez.';
+      const message = toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.');
       const attemptedEmail = email.trim();
       // Compte existant (inscription sur email déjà pris) : orienter vers la
       // page de vérification de CETTE adresse (le renvoi y est possible si le

@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { formatDate, formatDateTime, formatFileSize, fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { AdminInfoRow } from '@/components/admin/info-row';
 import { KycDetailSkeleton } from '@/components/admin/kyc/kyc-detail-skeleton';
 import {
@@ -73,7 +74,7 @@ export default function AdminKycFolderPage() {
       const result = await getAdminKycDocumentUrl(params.technicianId, documentId);
       setDocumentUrls((prev) => ({ ...prev, [documentId]: result.url }));
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la récupération du document.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la récupération du document.'));
     } finally {
       setFetchingUrlId(null);
     }
@@ -95,7 +96,7 @@ export default function AdminKycFolderPage() {
       setDetail(folder);
       setActionSuccess('Profil validé. Le statut du technicien est désormais VERIFIED.');
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la validation.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la validation.'));
     } finally {
       setActionBusy(false);
     }
@@ -118,7 +119,7 @@ export default function AdminKycFolderPage() {
       setRejectReason('');
       setActionSuccess('Dossier rejeté. Le technicien peut resoumettre ses documents.');
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors du rejet.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors du rejet.'));
     } finally {
       setActionBusy(false);
     }

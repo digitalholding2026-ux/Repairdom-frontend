@@ -22,6 +22,8 @@ import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { useToast } from '@/lib/toast-context';
 import { kycStatusLabel } from '@/lib/technician-profile';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
@@ -54,6 +56,7 @@ function formatPrice(value: number | null | undefined): string {
 
 export default function TechnicianDemandeDetailPage() {
   const params = useParams<{ id: string }>();
+  const { toast } = useToast();
   const [demande, setDemande] = useState<TechnicianDemande | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
@@ -156,8 +159,9 @@ export default function TechnicianDemandeDetailPage() {
     try {
       const updated = await acceptDemande(params.id);
       setDemande(updated);
+      toast({ title: 'Mission acceptée.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de l\'acceptation.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de l\'acceptation.'));
     } finally {
       setActionBusy(null);
     }
@@ -170,8 +174,9 @@ export default function TechnicianDemandeDetailPage() {
     try {
       const updated = await updateTechnicianDemandeStatus(params.id, status);
       setDemande(updated);
+      toast({ title: 'Statut mis à jour.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la mise à jour.'));
     } finally {
       setActionBusy(null);
     }
@@ -188,8 +193,9 @@ export default function TechnicianDemandeDetailPage() {
         new Date(scheduledValue).toISOString(),
       );
       setDemande(updated);
+      toast({ title: 'Intervention planifiée.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la planification.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la planification.'));
     } finally {
       setActionBusy(null);
     }
@@ -215,8 +221,9 @@ export default function TechnicianDemandeDetailPage() {
       setAmountValue('');
       setQuoteDescription('');
       setShowQuoteForm(false);
+      toast({ title: 'Devis envoyé.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la création du tarif.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la création du tarif.'));
     } finally {
       setActionBusy(null);
     }
@@ -232,7 +239,7 @@ export default function TechnicianDemandeDetailPage() {
       setSuggestions(res.suggestions);
     } catch (err) {
       setSuggestionsError(
-        err instanceof Error ? err.message : 'Erreur lors du chargement des diagnostics compatibles.',
+        toUserErrorMessage(err, 'Erreur lors du chargement des diagnostics compatibles.'),
       );
     } finally {
       setSuggestionsLoading(false);
@@ -251,8 +258,9 @@ export default function TechnicianDemandeDetailPage() {
       });
       if (result.quote) setQuotes((prev) => [result.quote!, ...prev]);
       if (result.diagnostic) setDiagnostics((prev) => [result.diagnostic, ...prev]);
+      toast({ title: 'Diagnostic enregistré.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de la sélection du diagnostic.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la sélection du diagnostic.'));
     } finally {
       setActionBusy(null);
     }
@@ -293,8 +301,9 @@ export default function TechnicianDemandeDetailPage() {
       setManualProposedIntervention('');
       setManualJustification('');
       setManualNotes('');
+      toast({ title: 'Diagnostic enregistré.', variant: 'success' });
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+      setActionError(toUserErrorMessage(err, 'Erreur lors de l’enregistrement.'));
     } finally {
       setActionBusy(null);
     }

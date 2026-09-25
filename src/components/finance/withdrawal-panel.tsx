@@ -18,6 +18,7 @@ import {
   type WithdrawalRequestStatus,
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const PRESETS = [2000, 5000, 10000, 25000];
 
@@ -133,7 +134,7 @@ export function WithdrawalPanel({
       await refreshHistory();
       onChanged?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Retrait impossible pour le moment.');
+      setError(toUserErrorMessage(err, 'Retrait impossible pour le moment.'));
     } finally {
       setSubmitting(false);
     }
@@ -145,7 +146,7 @@ export function WithdrawalPanel({
       setHistory((prev) => prev.map((item) => (item.reference === reference ? request : item)));
       onChanged?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Statut indisponible.');
+      setError(toUserErrorMessage(err, 'Statut indisponible.'));
     }
   }
 
@@ -160,7 +161,7 @@ export function WithdrawalPanel({
       if (verificationError) setError(verificationError.message);
       onChanged?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Vérification impossible.');
+      setError(toUserErrorMessage(err, 'Vérification impossible.'));
     } finally {
       setVerifying(null);
     }

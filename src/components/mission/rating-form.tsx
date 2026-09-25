@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { cn } from '@/lib/cn';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export const REVIEW_COMMENT_MAX_LENGTH = 1000;
 
@@ -77,7 +78,7 @@ export function RatingForm({
       setSuccess(true);
       onRated?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l’envoi de votre avis.');
+      setError(toUserErrorMessage(err, 'Erreur lors de l’envoi de votre avis.'));
     } finally {
       setSubmitting(false);
     }
