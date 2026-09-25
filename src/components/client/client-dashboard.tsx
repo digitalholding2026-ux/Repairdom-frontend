@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
@@ -26,7 +27,6 @@ import {
   type DemandeListItem,
 } from '@/lib/api/request-service';
 import { formatCurrency } from '@/lib/format';
-import { Tabs } from '@/components/ui/tabs';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
@@ -59,15 +59,93 @@ function getGreeting(): string {
 }
 
 function MissionTabs({ current }: { current: 'missions' | 'history' }) {
+  const items = [
+    { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
+    { id: 'history', label: 'Historique', href: '/client/demandes/historique' },
+  ];
   return (
-    <Tabs
-      value={current}
-      label="Mes missions et historique"
-      items={[
-        { id: 'missions', label: 'Mes missions', href: '/client/demandes' },
-        { id: 'history', label: 'Historique', href: '/client/demandes/historique' },
-      ]}
-    />
+    <nav
+      aria-label="Mes missions et historique"
+      className="inline-flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100 p-1 dark:border-slate-700/50 dark:bg-slate-800/80"
+    >
+      {items.map((item) => {
+        const active = item.id === current;
+        return (
+          <Link
+            key={item.id}
+            href={item.href}
+            aria-current={active ? 'page' : undefined}
+            className={
+              active
+                ? 'rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary shadow-xs transition-all duration-200 dark:bg-slate-900'
+                : 'rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground'
+            }
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+const REASSURANCE_CARDS: Array<{ icon: IconName; title: string; text: string }> = [
+  {
+    icon: 'shield-check',
+    title: 'Techniciens vérifiés',
+    text: 'Identité et qualifications contrôlées par l\u2019équipe Relio avant chaque intervention.',
+  },
+  {
+    icon: 'wallet',
+    title: 'Paiement sécurisé',
+    text: 'Votre solde n\u2019est débité qu\u2019après confirmation de l\u2019opérateur Mobile Money.',
+  },
+  {
+    icon: 'clock',
+    title: 'Intervention rapide',
+    text: 'Un technicien disponible près de chez vous, au créneau qui vous convient.',
+  },
+];
+
+/* État vide animé de « Mes missions » + cartes de réassurance. */
+function MissionsEmptyState() {
+  return (
+    <div className="flex flex-col items-center px-4 py-12 text-center">
+      <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-2xl bg-primary/20 opacity-75" />
+        <Icon name="wrench" size="xl" className="relative z-10 h-10 w-10 text-primary" />
+      </div>
+      <h3 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">
+        Aucune intervention en cours
+      </h3>
+      <p className="mb-6 max-w-md text-sm text-slate-500 dark:text-slate-400">
+        Besoin d&apos;un électricien, plombier ou réparateur ? Décrivez votre problème et
+        recevez des propositions de nos techniciens vérifiés.
+      </p>
+      <Link href="/client/demande">
+        <Button
+          size="lg"
+          className="shadow-lg shadow-primary/25 transition-all duration-200 hover:scale-[1.02] hover:shadow-primary/40 active:scale-[0.98]"
+        >
+          <Icon name="plus" size="sm" />
+          Demander un dépannage
+        </Button>
+      </Link>
+      <div className="mt-8 grid w-full grid-cols-1 gap-4 border-t border-slate-100 pt-8 dark:border-slate-800/60 md:grid-cols-3">
+        {REASSURANCE_CARDS.map((card) => (
+          <div
+            key={card.title}
+            className="rounded-xl border border-slate-200/50 bg-slate-50/80 p-4 text-left dark:border-slate-700/40 dark:bg-slate-800/40"
+          >
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Icon name={card.icon} size="md" />
+            </span>
+            <p className="mt-3 text-sm font-semibold">{card.title}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{card.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -205,45 +283,68 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   if (variant === 'list' || variant === 'history') {
     const isHistory = variant === 'history';
     const list = isHistory ? historique : demandes;
+    const activeMissionsCount = demandes.filter((d) => ACTIVE_STATUSES.includes(d.status)).length;
     return (
       <div className="space-y-5">
-        <DashboardHero
-          title={isHistory ? 'Historique' : 'Mes missions'}
-          subtitle={
-            isHistory
-              ? 'Vos interventions confirmées et annulées.'
-              : 'Suivez vos demandes, devis et interventions en cours.'
-          }
-          onLogout={handleLogout}
-        />
+        {isHistory ? (
+          <DashboardHero
+            title="Historique"
+            subtitle="Vos interventions confirmées et annulées."
+            onLogout={handleLogout}
+          />
+        ) : (
+          <PageHeader
+            title="Mes missions"
+            description="Suivez vos demandes, devis et interventions en cours."
+            actions={
+              <Badge variant="outline">
+                {activeMissionsCount} active{activeMissionsCount !== 1 ? 's' : ''}
+              </Badge>
+            }
+          />
+        )}
 
         <MissionTabs current={isHistory ? 'history' : 'missions'} />
 
-        {list.length === 0 ? (
-          <EmptyState
-            title={isHistory ? 'Votre historique est vide' : 'Aucune mission en cours'}
-            description={
-              isHistory
-                ? 'Les interventions confirmées et annulées apparaîtront ici.'
-                : 'Vous n\u2019avez aucune demande en cours pour le moment.'
-            }
-            action={
-              <Link href="/client/demande">
-                <Button>Déposer une panne</Button>
-              </Link>
-            }
-          />
-        ) : (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {list.map((d) => (
-              <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
-                {isHistory ? (
+        {isHistory ? (
+          list.length === 0 ? (
+            <EmptyState
+              title="Votre historique est vide"
+              description="Les interventions confirmées et annulées apparaîtront ici."
+              action={
+                <Link href="/client/demande">
+                  <Button>Déposer une panne</Button>
+                </Link>
+              }
+            />
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-2">
+              {list.map((d) => (
+                <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
                   <HistoryDemandeCard demande={d} />
-                ) : (
-                  <DemandeCard demande={d} />
-                )}
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#131c2e]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-gradient-to-br from-[#00AEEF]/10 via-[#8E1BFF]/10 to-transparent blur-3xl"
+            />
+            <div className="relative">
+              {list.length === 0 ? (
+                <MissionsEmptyState />
+              ) : (
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {list.map((d) => (
+                    <Link key={d.id} href={`/client/demandes/${d.id}`} className="block">
+                      <DemandeCard demande={d} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
