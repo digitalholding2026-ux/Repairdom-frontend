@@ -90,6 +90,12 @@ export function DemandeWizard() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* GPS V1 — position ponctuelle opt-in (géolocalisation navigateur, un seul
+   * relevé, jamais de suivi). Le formulaire reste utilisable sans GPS et
+   * l'adresse texte n'est jamais remplacée ni déduite. */
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   // Appareil (catalogue) — source de vérité admin.
   const [domains, setDomains] = useState<CatalogDomainLite[]>([]);
@@ -269,6 +275,37 @@ export function DemandeWizard() {
     setStep(targetStep);
   };
 
+  const handleUseGeolocation = () => {
+    setGeoError(null);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError('La géolocalisation n’est pas disponible sur cet appareil.');
+      return;
+    }
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          setGeoError('Position reçue invalide. Réessayez.');
+        } else {
+          setCoords({ latitude, longitude });
+        }
+        setGeoLoading(false);
+      },
+      (failure) => {
+        if (failure.code === failure.PERMISSION_DENIED) {
+          setGeoError('Position refusée. Autorisez l’accès dans votre navigateur, ou continuez sans GPS.');
+        } else if (failure.code === failure.TIMEOUT) {
+          setGeoError('Délai dépassé pour obtenir la position. Réessayez.');
+        } else {
+          setGeoError('Position indisponible pour le moment. Réessayez ou continuez sans GPS.');
+        }
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
   const handleSubmit = async () => {
     setError(null);
     setIsSubmitting(true);
@@ -287,6 +324,9 @@ export function DemandeWizard() {
         address: address.trim() || undefined,
         landmark: landmark.trim() || undefined,
         contactPhone: contactPhone.trim() || undefined,
+        // GPS V1 — position opt-in uniquement.
+        latitude: coords?.latitude,
+        longitude: coords?.longitude,
         requestedMode,
         requestedAt: requestedAtIso ?? undefined,
         domainId: hasDevice && domainId ? domainId : undefined,
@@ -312,7 +352,8 @@ export function DemandeWizard() {
     city.trim() !== '' ||
     contactPhone.trim() !== '' ||
     domainId !== '' ||
-    photos.length > 0;
+    photos.length > 0 ||
+    coords !== null;
   useEffect(() => {
     if (!hasStarted || isSubmitting) return;
     const handler = (event: BeforeUnloadEvent) => {
@@ -573,6 +614,42 @@ export function DemandeWizard() {
                     autoComplete="tel"
                   />
                 </Field>
+
+                <div className="space-y-2">
+                  <span className="block text-sm font-medium">Position GPS (facultatif)</span>
+                  <p className="text-xs text-muted-foreground">
+                    Aide à trouver un technicien proche. Votre adresse ci-dessus reste inchangée.
+                  </p>
+                  {coords ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-success-border bg-success-soft px-3 py-2.5">
+                      <p className="text-sm font-medium text-success-ink">
+                        Position enregistrée pour cette demande.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCoords(null)}
+                        disabled={isSubmitting}
+                      >
+                        Retirer
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleUseGeolocation}
+                      isLoading={geoLoading}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto"
+                    >
+                      <Icon name="pin" size="sm" />
+                      Utiliser ma position
+                    </Button>
+                  )}
+                  {geoError ? <Alert variant="error" dense>{geoError}</Alert> : null}
+                </div>
 
                 <div className="space-y-2">
                   <span className="block text-sm font-medium">Quand souhaitez-vous être dépanné ? *</span>

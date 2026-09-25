@@ -32,6 +32,9 @@ export interface CreateDemandeInput {
   address?: string;
   landmark?: string;
   contactPhone?: string;
+  /* GPS V1 — position optionnelle (jamais exigée, jamais déduite). */
+  latitude?: number;
+  longitude?: number;
   requestedMode: RequestTimingMode;
   requestedAt?: string;
   domainId?: string;
@@ -60,6 +63,9 @@ export interface CreateDemandeResult {
   address: string | null;
   landmark: string | null;
   contactPhone: string | null;
+  /* GPS V1 — null pour les demandes créées sans position. */
+  latitude: number | null;
+  longitude: number | null;
   technicianId: string | null;
   technician: TechnicianInfo | null;
   scheduledAt: string | null;
@@ -137,6 +143,15 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       address: input.address || undefined,
       landmark: input.landmark || undefined,
       contactPhone: input.contactPhone || undefined,
+      // GPS V1 — transmis uniquement si fini (jamais NaN/Infinity).
+      latitude:
+        typeof input.latitude === 'number' && Number.isFinite(input.latitude)
+          ? input.latitude
+          : undefined,
+      longitude:
+        typeof input.longitude === 'number' && Number.isFinite(input.longitude)
+          ? input.longitude
+          : undefined,
       requestedMode: input.requestedMode,
       requestedAt: input.requestedAt || undefined,
       domainId: input.domainId ?? undefined,

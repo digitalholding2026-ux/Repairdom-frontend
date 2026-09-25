@@ -15,6 +15,10 @@ export interface TechnicianProfile {
   specialties: string[];
   kycStatus: string;
   kycRejectionReason: string | null;
+  /* GPS V1 — dernière position transmise (null si jamais envoyée). */
+  lastLatitude: number | null;
+  lastLongitude: number | null;
+  locationUpdatedAt: string | null;
   completedInterventions: number;
   createdAt: string;
   user: {
@@ -56,6 +60,11 @@ export interface TechnicianDemande {
   address: string | null;
   landmark: string | null;
   contactPhone: string | null;
+  /* GPS V1 — null hors contexte assigné (opportunités) ; distanceMeters
+   * renseigné uniquement sur le détail d'une mission assignée. */
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceMeters?: number | null;
   technicianId: string | null;
   technician: { id: string; firstName: string; lastName: string | null; phone: string | null; city: string | null } | null;
   scheduledAt: string | null;
@@ -162,6 +171,19 @@ export async function updateTechnicianCoverage(zoneIds: string[]): Promise<Techn
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ zoneIds }),
+  });
+}
+
+/* GPS V1 — transmission explicite et ponctuelle de la position
+ * (PATCH /technician/location). Jamais de tracking en arrière-plan. */
+export async function updateTechnicianLocation(
+  latitude: number,
+  longitude: number,
+): Promise<TechnicianProfile> {
+  return apiFetch<TechnicianProfile>('/technician/location', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ latitude, longitude }),
   });
 }
 

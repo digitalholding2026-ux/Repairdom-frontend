@@ -14,11 +14,13 @@ import { Select } from '@/components/ui/select';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useToast } from '@/lib/toast-context';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { formatDateTime } from '@/lib/format';
 import { listCities, type City } from '@/lib/api/cities-service';
 import {
   getTechnicianProfile,
   getTechnicianCoverage,
   updateTechnicianCoverage,
+  updateTechnicianLocation,
   type TechnicianCoverage,
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
@@ -41,6 +43,9 @@ export default function TechnicienZonesPage() {
   const [selectedZoneId, setSelectedZoneId] = useState('');
   const [mutating, setMutating] = useState(false);
   const [zoneToRemove, setZoneToRemove] = useState<TechnicianCoverage | null>(null);
+  /* GPS V1 — mise à jour ponctuelle et explicite (jamais de suivi continu). */
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +143,45 @@ export default function TechnicienZonesPage() {
     }
   };
 
+  const handleUpdateLocation = () => {
+    setLocationError(null);
+    if (locating || mutating) return;
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocationError('La géolocalisation n’est pas disponible sur cet appareil.');
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const updated = await updateTechnicianLocation(
+            position.coords.latitude,
+            position.coords.longitude,
+          );
+          setProfile(updated);
+          toast({ title: 'Position mise à jour.', variant: 'success' });
+        } catch (err) {
+          const message = toUserErrorMessage(err, 'Envoi de la position impossible.');
+          setLocationError(message);
+          toast({ title: 'Erreur', description: message, variant: 'error' });
+        } finally {
+          setLocating(false);
+        }
+      },
+      (failure) => {
+        if (failure.code === failure.PERMISSION_DENIED) {
+          setLocationError('Position refusée. Autorisez l’accès dans votre navigateur pour réessayer.');
+        } else if (failure.code === failure.TIMEOUT) {
+          setLocationError('Délai dépassé pour obtenir la position. Réessayez.');
+        } else {
+          setLocationError('Position indisponible pour le moment. Réessayez.');
+        }
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
   if (loading) {
     return (
       <div className="space-y-4" role="status">
@@ -191,6 +235,38 @@ export default function TechnicienZonesPage() {
                   <Icon name="pin" size="sm" />
                 </span>
                 <p className="text-sm font-semibold">{referenceCity.name}</p>
+              </CardContent>
+            </Card>
+          </section>
+
+          <section className="space-y-3">
+            <SectionHeader
+              title="Ma position"
+              description="Position ponctuelle transmise explicitement. Elle servira plus tard à estimer la distance aux missions — aucun suivi continu."
+            />
+            <Card>
+              <CardContent className="space-y-3 pt-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon name="pin" size="sm" />
+                  </span>
+                  <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+                    {profile?.locationUpdatedAt
+                      ? `Dernière mise à jour : ${formatDateTime(profile.locationUpdatedAt)}`
+                      : 'Aucune position transmise pour le moment.'}
+                  </p>
+                </div>
+                {locationError ? <Alert variant="error" dense>{locationError}</Alert> : null}
+                <Button
+                  onClick={handleUpdateLocation}
+                  isLoading={locating}
+                  disabled={mutating}
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                >
+                  <Icon name="pin" size="sm" />
+                  <span className="ml-1">Mettre à jour ma position</span>
+                </Button>
               </CardContent>
             </Card>
           </section>
