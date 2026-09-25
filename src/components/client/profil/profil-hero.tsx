@@ -22,7 +22,8 @@ export function ProfilHero({ user }: ProfilHeroProps) {
           className="ring-2 ring-white/25"
         />
         <div className="min-w-0 space-y-1">
-          <h1 className="truncate text-xl font-bold">{fullName}</h1>
+          {/* UI-6 : la page porte déjà le h1 (« Mon profil ») — le nom reste au niveau h2, visuel inchangé. */}
+          <h2 className="truncate text-xl font-bold">{fullName}</h2>
           <p className="truncate text-sm text-white/70">{user.email}</p>
           <div className="flex flex-wrap items-center gap-2 pt-0.5">
             {user.emailVerified ? (

@@ -26,7 +26,9 @@ export function Marquee({
     >
       <div className={cn('marquee-track flex w-max gap-3 pr-3', reverse && 'marquee-reverse')}>
         {doubled.map((item, index) => (
-          <div key={index} className={cn('shrink-0', itemClassName)}>
+          /* UI-6 : la moitié dupliquée (boucle infinie) est masquée aux
+           * lecteurs d'écran pour éviter la double lecture. */
+          <div key={index} aria-hidden={index >= items.length} className={cn('shrink-0', itemClassName)}>
             {item}
           </div>
         ))}

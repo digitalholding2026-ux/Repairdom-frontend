@@ -502,7 +502,7 @@ export function DemandeWizard() {
                               type="button"
                               onClick={() => removePhoto(photo.key)}
                               aria-label={`Retirer ${photo.name}`}
-                              className="absolute -right-1 -top-1 flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform active:scale-95"
+                              className="absolute -right-1 -top-1 flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
                             >
                               <Icon name="x" size="sm" />
                             </button>

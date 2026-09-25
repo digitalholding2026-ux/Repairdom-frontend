@@ -155,7 +155,8 @@ export default function AdminKycFolderPage() {
           <div className="flex items-center gap-4">
             <Avatar size="2xl" src={technician.avatarUrl} firstName={technician.firstName} lastName={technician.lastName} />
             <div className="min-w-0 space-y-1.5">
-              <h1 className="text-lg font-bold leading-tight">{name}</h1>
+              {/* UI-6 : la page porte déjà le h1 (« Examen du dossier ») — niveau h2, visuel inchangé. */}
+              <h2 className="text-lg font-bold leading-tight">{name}</h2>
               {technician.city ? (
                 <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Icon name="pin" size="3.5" />

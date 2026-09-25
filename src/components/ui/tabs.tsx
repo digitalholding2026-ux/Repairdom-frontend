@@ -23,6 +23,44 @@ export interface TabsProps {
 }
 
 export function Tabs({ items, value, onChange, variant = 'pills', label, className }: TabsProps) {
+  /* UI-6 : lorsque tous les onglets sont des liens, c'est une navigation —
+   * pas des tabs (pas de `role=tab` artificiel, `aria-current` suffit). */
+  if (items.length > 0 && items.every((item) => item.href)) {
+    return (
+      <nav
+        aria-label={label}
+        className={cn(
+          variant === 'segmented'
+            ? 'flex items-center gap-1 rounded-xl border border-border bg-card p-1'
+            : 'flex items-center gap-2 overflow-x-auto no-scrollbar',
+          className,
+        )}
+      >
+        {items.map((item) => {
+          const active = item.id === value;
+          return (
+            <Link
+              key={item.id}
+              href={item.href as string}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'text-sm font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                variant === 'segmented' ? 'flex-1 rounded-lg px-3 py-2 text-center' : 'shrink-0 rounded-full px-3.5 py-2',
+                active
+                  ? 'bg-primary text-primary-foreground'
+                  : variant === 'segmented'
+                    ? 'text-muted-foreground hover:text-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:opacity-90',
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
   return (
     <div
       role="tablist"
@@ -47,7 +85,8 @@ export function Tabs({ items, value, onChange, variant = 'pills', label, classNa
               : 'bg-secondary text-secondary-foreground hover:opacity-90',
         );
         return item.href ? (
-          <Link key={item.id} href={item.href} role="tab" aria-selected={active} className={tabClassName}>
+          /* Cas mixte résiduel : un lien n'est jamais un tab. */
+          <Link key={item.id} href={item.href} aria-current={active ? 'page' : undefined} className={tabClassName}>
             {item.label}
           </Link>
         ) : (

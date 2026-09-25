@@ -20,7 +20,8 @@ export function Field({ label, htmlFor, hint, error, required, children, classNa
         {required ? <span className="ml-0.5 text-error" aria-hidden> *</span> : null}
       </Label>
       {children}
-      {error ? <p className="text-sm text-error-ink">{error}</p> : null}
+      {/* UI-6 : erreur annoncée à son apparition (pas de aria-live global). */}
+      {error ? <p role="alert" className="text-sm text-error-ink">{error}</p> : null}
       {!error && hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
     </div>
   );

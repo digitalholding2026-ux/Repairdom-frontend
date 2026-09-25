@@ -230,6 +230,10 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+    /* UI-6 : pas de défilement animé si l'utilisateur réduit les animations. */
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
