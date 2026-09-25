@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
+import { Tabs } from '@/components/ui/tabs';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
@@ -17,7 +18,7 @@ import {
   type ClientFinanceTransaction,
   type ClientFinanceMission,
 } from '@/lib/api/finance-service';
-import { formatCurrency, formatCurrencySigned, formatDateTime } from '@/lib/format';
+import { formatCurrency, formatCurrencySigned, formatDateTime, formatRelative } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
 import { WithdrawalHistory, WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { SpendChart } from '@/components/client/solde/spend-chart';
@@ -36,6 +37,37 @@ function txnLabel(type: string): string {
   return CLIENT_TXN_LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase();
 }
 
+type MovementFilter = 'ALL' | 'TOPUP' | 'WITHDRAW' | 'HOLD';
+
+const MOVEMENT_TABS = [
+  { id: 'ALL', label: 'Tous' },
+  { id: 'TOPUP', label: 'Recharges' },
+  { id: 'WITHDRAW', label: 'Retraits' },
+  { id: 'HOLD', label: 'Réservations' },
+] as const;
+
+/* Répartition des écritures par onglet. Les contrepassations (REVERSAL)
+ * restent visibles uniquement dans « Tous ». */
+function matchesMovementFilter(type: string, filter: MovementFilter): boolean {
+  switch (filter) {
+    case 'TOPUP':
+      return type === 'CLIENT_TOPUP' || type === 'INITIAL_TEST_CREDIT';
+    case 'WITHDRAW':
+      return type === 'CLIENT_WITHDRAWAL';
+    case 'HOLD':
+      return type === 'CLIENT_MISSION_DEBIT' || type === 'CLIENT_FEE';
+    default:
+      return true;
+  }
+}
+
+const TXN_STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
+  VALIDATED: { label: 'Validé', variant: 'success' },
+  PENDING: { label: 'En attente', variant: 'info' },
+  FAILED: { label: 'Échoué', variant: 'danger' },
+  REVERSED: { label: 'Contrepassé', variant: 'neutral' },
+};
+
 export default function ClientSoldePage() {
   const [summary, setSummary] = useState<ClientFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +76,8 @@ export default function ClientSoldePage() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // Rafraîchit l'historique des retraits après chaque demande créée.
   const [withdrawToken, setWithdrawToken] = useState(0);
+  // Filtre d'onglets de la liste des mouvements.
+  const [movementFilter, setMovementFilter] = useState<MovementFilter>('ALL');
 
   useEffect(() => {
     void loadSummary();
@@ -69,11 +103,12 @@ export default function ClientSoldePage() {
     return (
       <div className="space-y-4">
         <Alert variant="error">{error}</Alert>
-        <Link href="/client">
-          <span className="text-sm font-medium text-primary hover:underline">
-            Retour à l&apos;accueil
-          </span>
-        </Link>
+        <div className="flex gap-2">
+          <Button onClick={() => void loadSummary()}>Réessayer</Button>
+          <Link href="/client">
+            <Button variant="outline">Retour à l&apos;accueil</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -82,6 +117,9 @@ export default function ClientSoldePage() {
 
   const missionCount = summary.missions.length;
   const avgPerMission = missionCount > 0 ? summary.totals.debit / missionCount : 0;
+  const visibleTransactions = summary.transactions.filter((t) =>
+    matchesMovementFilter(t.type, movementFilter),
+  );
 
   return (
     <div className="space-y-5">
@@ -174,6 +212,13 @@ export default function ClientSoldePage() {
       {/* Détail des mouvements */}
       <section id="mouvements" className="space-y-3 scroll-mt-20">
         <SectionHeader title="Détail des mouvements" />
+        <Tabs
+          items={MOVEMENT_TABS}
+          value={movementFilter}
+          onChange={(id) => setMovementFilter(id as MovementFilter)}
+          variant="segmented"
+          label="Filtrer les mouvements"
+        />
         {summary.transactions.length === 0 ? (
           <EmptyState
             title="Aucun mouvement"
@@ -184,9 +229,14 @@ export default function ClientSoldePage() {
               </Link>
             }
           />
+        ) : visibleTransactions.length === 0 ? (
+          <EmptyState
+            title="Aucun mouvement"
+            description="Aucun mouvement dans cette catégorie pour le moment."
+          />
         ) : (
           <div className="space-y-2">
-            {summary.transactions.map((t) => (
+            {visibleTransactions.map((t) => (
               <TransactionRow key={t.id} txn={t} currency={summary.currency} />
             ))}
           </div>
@@ -196,6 +246,13 @@ export default function ClientSoldePage() {
           onChanged={() => void loadSummary()}
         />
       </section>
+
+      {/* Mention réglementaire */}
+      <p className="text-center text-xs text-muted-foreground">
+        Les fonds déposés sont sécurisés et ne sont crédités ou débités qu&apos;après
+        confirmation officielle des opérateurs Mobile Money (MTN / Orange). Des frais
+        d&apos;opérateur peuvent s&apos;appliquer lors des retraits.
+      </p>
     </div>
   );
 }
@@ -265,6 +322,7 @@ function TransactionRow({
   currency: string;
 }) {
   const credit = txn.direction === 'CREDIT';
+  const statusMeta = TXN_STATUS_META[txn.status];
   return (
     <Card>
       <CardContent className="flex items-center gap-3">
@@ -276,18 +334,20 @@ function TransactionRow({
           <Icon name={credit ? 'check-circle' : 'arrow-right'} size="sm" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{txnLabel(txn.type)}</p>
+          <p className="flex flex-wrap items-center gap-2 truncate text-sm font-medium">
+            <span className="truncate">{txnLabel(txn.type)}</span>
+            {statusMeta ? <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge> : null}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
-            {formatDateTime(txn.createdAt)}
+            {formatRelative(txn.createdAt)} · {formatDateTime(txn.createdAt)}
             {txn.demande?.reference ? ` · ${txn.demande.reference}` : ''}
-            {txn.reversalOfId ? ' · contrepassé' : ''}
           </p>
           {txn.demande?.status ? (
             <DemandeStatusBadge status={txn.demande.status} context="client" className="mt-1" />
           ) : null}
         </div>
         <span
-          className={`shrink-0 text-sm font-semibold tabular-nums ${credit ? 'text-success-ink' : 'text-error-ink'}`}
+          className={`shrink-0 text-sm font-semibold tabular-nums ${credit ? 'text-success-ink' : 'text-foreground'}`}
         >
           {formatCurrencySigned(credit ? txn.amount : -txn.amount, currency)}
         </span>
