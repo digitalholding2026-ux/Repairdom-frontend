@@ -61,7 +61,11 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
       }
     };
     load();
-    const timer = setInterval(load, POLL_INTERVAL_MS);
+    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour. */
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void load();
+    }, POLL_INTERVAL_MS);
     return () => {
       active = false;
       clearInterval(timer);

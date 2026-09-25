@@ -34,8 +34,10 @@ export function Reveal({ children, className, delay = 0 }: RevealProps) {
       ref={ref}
       style={{ transitionDelay: `${delay}ms` }}
       className={cn(
-        'transition-all duration-700 ease-out will-change-transform',
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
+        /* UI-7 : will-change réservé à la phase d'apparition (coût
+         * compositeur nul une fois visible). */
+        'transition-all duration-700 ease-out',
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 will-change-transform',
         className,
       )}
     >

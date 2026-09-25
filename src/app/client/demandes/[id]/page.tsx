@@ -107,7 +107,11 @@ export default function ClientDemandeDetailPage() {
     };
 
     load(true);
-    const timer = setInterval(() => load(false), POLL_INTERVAL_MS);
+    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour. */
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void load(false);
+    }, POLL_INTERVAL_MS);
     return () => {
       active = false;
       clearInterval(timer);

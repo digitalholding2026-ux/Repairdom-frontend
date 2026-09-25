@@ -29,7 +29,12 @@ function subscribe(listener: (count: number) => void): () => void {
   subscriberCount += 1;
   if (subscriberCount === 1) {
     void refreshShared();
-    timer = setInterval(() => void refreshShared(), POLL_INTERVAL_MS);
+    /* UI-7 : pas de polling onglet masqué (batterie/réseau mobile) ; le
+     * compteur se rafraîchit au prochain tick visible. */
+    timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      void refreshShared();
+    }, POLL_INTERVAL_MS);
   } else {
     listener(cachedCount);
   }
