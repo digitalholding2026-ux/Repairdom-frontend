@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
@@ -11,15 +10,13 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
-import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
-import { MissionSummaryCard } from '@/components/mission/mission-summary';
+import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
-import { formatTime, fullName } from '@/lib/format';
-import { demandeStatusConfig } from '@/lib/request-status';
+import { formatDate, formatTime, fullName } from '@/lib/format';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getDemande,
@@ -221,373 +218,392 @@ export default function ClientDemandeDetailPage() {
   const canDiscuss = baseCanDiscuss && (!catalogFlow || negotiationUnlocked);
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
-  const lastActivityLabel =
-    events.length > 0
-      ? events[events.length - 1].label
-      : demandeStatusConfig(demande.status, 'client').label;
   const deviceLabel = [
     demande.domain?.name,
     demande.brand?.name,
     demande.model?.name,
-    demande.problem?.name,
   ]
     .filter(Boolean)
     .join(' — ');
+  const locationLabel = [
+    demande.city,
+    demande.neighborhood,
+    demande.address,
+    demande.landmark,
+  ]
+    .filter(Boolean)
+    .join(' — ');
+  const technicianName = demande.technician
+    ? fullName(demande.technician.firstName, demande.technician.lastName)
+    : null;
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Détail de la demande" backHref="/client/demandes" />
+      {/* Fil d'Ariane discret */}
+      <nav aria-label="Fil d'Ariane">
+        <Link
+          href="/client/demandes"
+          aria-label="Retour à mes missions"
+          className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
+        >
+          <Icon name="arrow-left" size="sm" />
+          Mes missions
+        </Link>
+      </nav>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-mono text-lg font-semibold text-primary">{demande.reference}</span>
-            <DemandeStatusBadge status={demande.status} context="client" />
-          </div>
-          <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {deviceLabel ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
-              <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
-              <p className="text-sm text-foreground">{deviceLabel}</p>
-            </div>
-          ) : null}
+      {/* En-tête de mission */}
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
+          Mission {demande.reference}
+          <DemandeStatusBadge status={demande.status} context="client" />
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {demande.categoryLabel} • Créée le {formatDate(demande.createdAt)}
+        </p>
+      </div>
 
-          <MissionInfo
-            description={demande.description}
-            city={demande.city}
-            requestedMode={demande.requestedMode}
-            requestedAt={demande.requestedAt}
-            createdAt={demande.createdAt}
-            scheduledAt={demande.scheduledAt}
-          />
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
-          {/* Phase C : avancement d'abord (lecture unique), photos ensuite. */}
-          {demande.status !== 'CANCELED' ? (
-            <div className="space-y-3">
-              <SectionHeader title="Avancement" />
-              <div className="rounded-xl border border-border bg-card p-4">
-                <DemandeProgress status={demande.status} />
-              </div>
-            </div>
-          ) : null}
-
-          {demande.medias && demande.medias.length > 0 ? (
-            <div className="space-y-2">
-              <SectionHeader title={`Photos jointes (${demande.medias.length})`} />
-              <ul className="space-y-2">
-                {demande.medias.map((media) => (
-                  <li
-                    key={media.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2.5"
-                  >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon name="file" size="sm" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{media.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(media.sizeBytes)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="space-y-3">
-            <SectionHeader title={demande.technician ? 'Technicien assigné' : 'Technicien'} />
-            {demande.technician ? (
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <Avatar
-                    size="lg"
-                    firstName={demande.technician.firstName ?? ''}
-                    lastName={demande.technician.lastName}
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold">{fullName(demande.technician.firstName, demande.technician.lastName)}</p>
-                    {demande.technician.city ? (
-                      <p className="text-xs text-muted-foreground">{demande.technician.city}</p>
-                    ) : null}
-                  </div>
-                </div>
-                <Link href={`/client/technicien/${demande.technician.id}`} className="shrink-0">
-                  <Button variant="outline" size="sm">
-                    Voir le profil
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <Alert variant="neutral" icon="search">
-                Recherche d&apos;un technicien adapté à votre panne…
-              </Alert>
-            )}
-          </div>
-
-          {error ? <Alert variant="error">{error}</Alert> : null}
-
+      {/* Actions principales */}
+      {demande.status === 'COMPLETED' || canCancel ? (
+        <div className="flex flex-col gap-2 sm:flex-row">
           {demande.status === 'COMPLETED' ? (
             <Button
               onClick={() => setConfirmAction({ kind: 'confirm' })}
               isLoading={actionBusy === 'CONFIRMED'}
-              className="w-full"
-              size="lg"
             >
               Confirmer l&apos;intervention
             </Button>
           ) : null}
-
           {canCancel ? (
             <Button
               onClick={() => setConfirmAction({ kind: 'cancel' })}
               variant="destructive"
               isLoading={actionBusy === 'CANCELED'}
-              className="w-full"
-              size="lg"
             >
               Annuler la demande
             </Button>
           ) : null}
-        </CardContent>
-      </Card>
-
-      {events.length > 0 ? (
-        <Link
-          href={`/client/chronologies/${demande.id}`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
-        >
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
-            <p className="truncate text-sm font-medium">{lastActivityLabel}</p>
-          </div>
-          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
-            Voir la chronologie
-            <Icon name="chevron-right" size="sm" />
-          </span>
-        </Link>
+        </div>
       ) : null}
 
-      {demande.technician ? (
-        <MissionSummaryCard demandeId={demande.id} />
-      ) : null}
-
-      {demande.technician ? (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Icon name="file" size="sm" className="text-muted-foreground" />
-                Diagnostic proposé par le technicien
-              </CardTitle>
-              {latestDiagnostic?.mode === 'MANUAL' ? (
-                <Badge variant="neutral">Diagnostic non référencé</Badge>
-              ) : null}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {latestDiagnostic ? (
-              <div className="space-y-3">
-                <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
-                {latestDiagnostic.proposedIntervention ? (
-                  <Alert variant="info" title="Intervention proposée">
-                    <p className="whitespace-pre-line">{latestDiagnostic.proposedIntervention}</p>
-                  </Alert>
-                ) : null}
-                {latestDiagnostic.justification ? (
-                  <Alert variant="info" title="Justification">
-                    <p className="whitespace-pre-line">{latestDiagnostic.justification}</p>
-                  </Alert>
-                ) : null}
-                {latestDiagnostic.notes ? (
-                  <Alert variant="neutral" title="Note complémentaire">
-                    <p className="whitespace-pre-line">{latestDiagnostic.notes}</p>
-                  </Alert>
-                ) : null}
-                {latestDiagnostic.recommendation ? (
-                  <Alert variant="info" title="Recommandation">
-                    <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
-                  </Alert>
-                ) : null}
-                <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Icon name="user" size="3.5" />
-                  {fullName(latestDiagnostic.technician.firstName, latestDiagnostic.technician.lastName)}
-                  <span aria-hidden>·</span>
-                  {formatTime(latestDiagnostic.createdAt)}
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Le technicien n&apos;a pas encore publié de diagnostic.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {demande.technician ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="badge-check" size="sm" className="text-muted-foreground" />
-              Proposition d&apos;intervention
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {latestQuote ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="figure text-lg font-bold">{formatQuoteAmount(latestQuote)}</span>
-                  <QuoteStatusBadge status={latestQuote.status} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        {/* Colonne principale : rapport & suivi */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Carte 1 : diagnostic & solution */}
+          {demande.technician ? (
+            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <SectionHeader
+                title="Diagnostic & Solution proposée"
+                icon="wrench"
+                action={
+                  latestDiagnostic?.mode === 'MANUAL' ? (
+                    <Badge variant="neutral">Diagnostic non référencé</Badge>
+                  ) : undefined
+                }
+              />
+              {latestDiagnostic ? (
+                <div className="space-y-4">
+                  <p className="border-l-2 border-primary pl-3 text-base font-semibold">
+                    {latestDiagnostic.content}
+                  </p>
+                  {latestDiagnostic.proposedIntervention ? (
+                    <div className="overflow-hidden rounded-xl border border-primary/20">
+                      <p className="bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">
+                        Intervention proposée
+                      </p>
+                      <p className="whitespace-pre-line px-3 py-2 text-sm">
+                        {latestDiagnostic.proposedIntervention}
+                      </p>
+                    </div>
+                  ) : null}
+                  {[
+                    { label: 'Justification', value: latestDiagnostic.justification },
+                    { label: 'Note complémentaire', value: latestDiagnostic.notes },
+                    { label: 'Recommandation', value: latestDiagnostic.recommendation },
+                  ]
+                    .filter((item) => item.value)
+                    .map((item) => (
+                      <blockquote
+                        key={item.label}
+                        className="space-y-1 rounded-xl border-l-2 border-border bg-muted/40 py-2 pl-3 pr-2"
+                      >
+                        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          <Icon name="info" size="3.5" />
+                          {item.label}
+                        </p>
+                        <p className="whitespace-pre-line text-sm">{item.value}</p>
+                      </blockquote>
+                    ))}
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Icon name="user" size="3.5" />
+                    {fullName(latestDiagnostic.technician.firstName, latestDiagnostic.technician.lastName)}
+                    <span aria-hidden>·</span>
+                    {formatTime(latestDiagnostic.createdAt)}
+                  </p>
                 </div>
-                <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Le technicien n&apos;a pas encore publié de diagnostic.
+                </p>
+              )}
+            </section>
+          ) : null}
 
-                {latestQuote.repair != null || latestQuote.travel != null ? (
-                  <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
-                    {latestQuote.catalogDiagnostic?.name ? (
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Diagnostic</span>
-                        <span className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</span>
+          {/* Proposition d'intervention (devis) */}
+          {demande.technician ? (
+            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <SectionHeader title="Proposition d'intervention" icon="badge-check" />
+              {latestQuote ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="figure text-lg font-bold">{formatQuoteAmount(latestQuote)}</span>
+                    <QuoteStatusBadge status={latestQuote.status} />
+                  </div>
+                  <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
+
+                  {latestQuote.repair != null || latestQuote.travel != null ? (
+                    <dl className="space-y-1 rounded-xl border border-border bg-muted/20 p-3 text-sm tabular-nums">
+                      {latestQuote.catalogDiagnostic?.name ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-muted-foreground">Diagnostic</dt>
+                          <dd className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</dd>
+                        </div>
+                      ) : null}
+                      {latestQuote.catalogIntervention?.name ? (
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-muted-foreground">Intervention</dt>
+                          <dd className="text-right font-medium">{latestQuote.catalogIntervention.name}</dd>
+                        </div>
+                      ) : null}
+                      <div className="flex items-center justify-between">
+                        <dt className="text-muted-foreground">Réparation</dt>
+                        <dd className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</dd>
                       </div>
-                    ) : null}
-                    {latestQuote.catalogIntervention?.name ? (
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-muted-foreground">Intervention</span>
-                        <span className="text-right font-medium">{latestQuote.catalogIntervention.name}</span>
+                      <div className="flex items-center justify-between">
+                        <dt className="text-muted-foreground">Déplacement</dt>
+                        <dd className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</dd>
                       </div>
-                    ) : null}
-                    {(latestQuote.catalogDiagnostic?.name || latestQuote.catalogIntervention?.name) ? (
-                      <div className="my-1 h-px bg-border" />
-                    ) : null}
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Réparation</span>
-                      <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
+                      <div className="my-1 h-px bg-border" aria-hidden />
+                      <div className="flex items-center justify-between">
+                        <dt className="font-semibold">Total à payer</dt>
+                        <dd className="font-semibold tabular-nums">
+                          {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
+                        </dd>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">Montant débité de votre solde après acceptation.</p>
+                    </dl>
+                  ) : null}
+
+                  {insufficientBalance ? (
+                    <div className="space-y-2 rounded-xl border border-error/30 bg-error/5 p-4">
+                      <p className="text-sm font-semibold text-error">Votre solde est insuffisant.</p>
+                      <p className="text-sm">
+                        Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'FCFA')} pour valider cette intervention.
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        La recharge en ligne n’est pas encore disponible. Suivez votre solde depuis la page dédiée.
+                      </p>
+                      <Link href="/client/solde">
+                        <Button variant="secondary" className="w-full">Voir mon solde</Button>
+                      </Link>
+                      {canCancel ? (
+                        <Button
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => setConfirmAction({ kind: 'cancel' })}
+                        >
+                          Annuler la demande
+                        </Button>
+                      ) : null}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Déplacement</span>
-                      <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
+                  ) : null}
+
+                  {latestQuote.status === 'PENDING' && !insufficientBalance ? (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setConfirmAction({ kind: 'accept', quoteId: latestQuote.id })}
+                          isLoading={actionBusy === 'quote:accept'}
+                          className="flex-1"
+                        >
+                          Accepter le devis
+                        </Button>
+                        <Button
+                          onClick={() => setConfirmAction({ kind: 'reject', quoteId: latestQuote.id })}
+                          variant="destructive"
+                          isLoading={actionBusy === 'quote:reject'}
+                          className="flex-1"
+                        >
+                          Refuser
+                        </Button>
+                      </div>
+                      {latestQuote.source === 'CATALOG' && !demande.negotiationRequestedAt ? (
+                        <Button
+                          onClick={() => handleNegotiate(latestQuote.id)}
+                          variant="secondary"
+                          isLoading={actionBusy === 'negotiate'}
+                          className="w-full"
+                        >
+                          <Icon name="chat" size="sm" />
+                          Négocier avec le technicien
+                        </Button>
+                      ) : null}
                     </div>
-                    <div className="my-1 h-px bg-border" />
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold">Total à payer</span>
-                      <span className="font-semibold tabular-nums">
-                        {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
+                  ) : null}
+
+                  {latestQuote.status === 'ACCEPTED' ? (
+                    <Alert variant="success" dense>
+                      Devis accepté. Le technicien peut maintenant planifier l&apos;intervention.
+                    </Alert>
+                  ) : null}
+
+                  {latestQuote.status === 'REJECTED' ? (
+                    <Alert variant="neutral" dense>
+                      Devis refusé. Le technicien peut proposer un nouveau devis.
+                    </Alert>
+                  ) : null}
+
+                  {demande.negotiationRequestedAt ? (
+                    <Alert variant="info" dense>
+                      Négociation ouverte : discutez maintenant avec le technicien.
+                    </Alert>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Le technicien n&apos;a pas encore proposé de devis.
+                </p>
+              )}
+            </section>
+          ) : null}
+
+          {/* Carte 2 : fichiers & photos */}
+          {demande.medias && demande.medias.length > 0 ? (
+            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <SectionHeader
+                title="Photos & Pièces jointes"
+                icon="camera"
+                description={`${demande.medias.length} fichier${demande.medias.length > 1 ? 's' : ''} illustrant la panne déclarée.`}
+              />
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {demande.medias.map((media) => {
+                  const isImage = media.kind === 'IMAGE' || media.mimeType.startsWith('image/');
+                  return (
+                    <li
+                      key={media.id}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-3"
+                    >
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground">
+                        <Icon name={isImage ? 'camera' : 'file'} size="sm" />
                       </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">Montant débité de votre solde après acceptation.</p>
-                  </div>
-                ) : null}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium" title={media.name}>
+                          {media.name}
+                        </span>
+                        <span className="block text-xs text-muted-foreground tabular-nums">
+                          {formatFileSize(media.sizeBytes)} • {isImage ? 'Image' : 'Fichier'}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ) : null}
 
-                {insufficientBalance ? (
-                  <div className="space-y-2 rounded-lg border border-error/30 bg-error/5 p-4">
-                    <p className="text-sm font-semibold text-error">Votre solde est insuffisant.</p>
-                    <p className="text-sm text-foreground">
-                      Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'FCFA')} pour valider cette intervention.
+          {/* Discussion juste après le devis */}
+          {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
+            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+              <SectionHeader title="Discussion avec votre technicien" icon="chat" />
+              <ConversationSection
+                demandeId={demande.id}
+                canSend={canDiscuss}
+                peerName={technicianName}
+              />
+            </section>
+          ) : null}
+
+          {/* Carte 3 : chronologie */}
+          <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <SectionHeader title="Chronologie de la mission" icon="clock" />
+            {events.length > 0 ? (
+              <div className="space-y-4 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                <MissionTimeline events={events} />
+              </div>
+            ) : (
+              <DemandeProgress status={demande.status} />
+            )}
+          </section>
+
+          {demande.technician && demande.status === 'CONFIRMED' ? (
+            <RatingSection
+              demandeId={demande.id}
+              title="Votre avis sur le technicien"
+              alreadyRatedLabel="Vous avez déjà évalué cette intervention."
+            />
+          ) : null}
+        </div>
+
+        {/* Colonne secondaire : fiche synthèse */}
+        <div className="space-y-6 lg:col-span-1">
+          {/* Carte 4 : synthèse de la demande */}
+          <section className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
+            <SectionHeader title="Synthèse de la demande" icon="file" />
+            <dl className="space-y-3 text-sm">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Appareil</dt>
+                <dd className="mt-0.5 font-medium">{deviceLabel || demande.categoryLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Problème déclaré</dt>
+                <dd className="mt-0.5 text-foreground">“{demande.description}”</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lieu d&apos;intervention</dt>
+                <dd className="mt-0.5">{locationLabel || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact</dt>
+                <dd className="mt-0.5 font-medium tabular-nums">{demande.contactPhone || '—'}</dd>
+              </div>
+            </dl>
+          </section>
+
+          {/* Carte 5 : technicien assigné */}
+          <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+            <SectionHeader title="Technicien assigné" icon="user" />
+            {demande.technician ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Avatar
+                    firstName={demande.technician.firstName}
+                    lastName={demande.technician.lastName}
+                    size="lg"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{technicianName}</p>
+                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Icon name="pin" size="3.5" />
+                      {demande.technician.city || 'Ville non renseignée'}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      La recharge en ligne n’est pas encore disponible. Suivez votre solde depuis la page dédiée.
-                    </p>
-                    <Link href="/client/solde">
-                      <Button variant="secondary" className="w-full">Voir mon solde</Button>
-                    </Link>
-                    {canCancel ? (
-                      <Button
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => setConfirmAction({ kind: 'cancel' })}
-                      >
-                        Annuler la demande
-                      </Button>
-                    ) : null}
                   </div>
-                ) : null}
-
-                {latestQuote.status === 'PENDING' && !insufficientBalance ? (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setConfirmAction({ kind: 'accept', quoteId: latestQuote.id })}
-                        isLoading={actionBusy === 'quote:accept'}
-                        className="flex-1"
-                      >
-                        Accepter le devis
-                      </Button>
-                      <Button
-                        onClick={() => setConfirmAction({ kind: 'reject', quoteId: latestQuote.id })}
-                        variant="destructive"
-                        isLoading={actionBusy === 'quote:reject'}
-                        className="flex-1"
-                      >
-                        Refuser
-                      </Button>
-                    </div>
-                    {latestQuote.source === 'CATALOG' && !demande.negotiationRequestedAt ? (
-                      <Button
-                        onClick={() => handleNegotiate(latestQuote.id)}
-                        variant="secondary"
-                        isLoading={actionBusy === 'negotiate'}
-                        className="w-full"
-                      >
-                        <Icon name="chat" size="sm" />
-                        Négocier avec le technicien
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {latestQuote.status === 'ACCEPTED' ? (
-                  <Alert variant="success" dense>
-                    Devis accepté. Le technicien peut maintenant planifier l&apos;intervention.
-                  </Alert>
-                ) : null}
-
-                {latestQuote.status === 'REJECTED' ? (
-                  <Alert variant="neutral" dense>
-                    Devis refusé. Le technicien peut proposer un nouveau devis.
-                  </Alert>
-                ) : null}
-
-                {demande.negotiationRequestedAt ? (
-                  <Alert variant="info" dense>
-                    Négociation ouverte : discutez maintenant avec le technicien.
-                  </Alert>
-                ) : null}
+                </div>
+                <Link href={`/client/technicien/${demande.technician.id}`}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    <Icon name="user" size="sm" />
+                    Voir le profil
+                  </Button>
+                </Link>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Le technicien n&apos;a pas encore proposé de devis.
+                Aucun technicien assigné pour le moment. Nous recherchons un professionnel disponible.
               </p>
             )}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {/* Phase C : discussion juste après le devis (négociation au même endroit). */}
-      {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="chat" size="sm" className="text-muted-foreground" />
-              Discussion avec votre technicien
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConversationSection
-              demandeId={demande.id}
-              canSend={canDiscuss}
-              peerName={fullName(demande.technician.firstName, demande.technician.lastName)}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {demande.technician && demande.status === 'CONFIRMED' ? (
-        <RatingSection
-          demandeId={demande.id}
-          title="Votre avis sur le technicien"
-          alreadyRatedLabel="Vous avez déjà évalué cette intervention."
-        />
-      ) : null}
+          </section>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={confirmAction !== null}
