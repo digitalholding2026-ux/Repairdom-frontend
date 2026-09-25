@@ -83,10 +83,13 @@ export default function ConditionsPage() {
 
           <Section title="8. Finances et solde">
             <p>
-              Le solde Relio est un portefeuille de simulation permettant d&apos;expérimenter le
-              parcours client. Les montants affichés sont fictifs et n&apos;impliquent aucun
-              débit réel, encaissement ou frais. Le paiement réel des interventions fera l&apos;objet
-              d&apos;une mise à jour ultérieure de la plateforme.
+              Le solde Relio est un portefeuille électronique réel. Il peut être rechargé par
+              Mobile Money : toute recharge n&apos;est créditée qu&apos;après confirmation
+              effective du paiement par l&apos;opérateur. Le solde disponible peut être retiré
+              vers un numéro Mobile Money bénéficiaire : la demande de retrait est réellement
+              transmise à l&apos;opérateur de paiement, des frais d&apos;opérateur peuvent
+              s&apos;appliquer, et le débit du solde n&apos;intervient qu&apos;après confirmation
+              du versement. En cas d&apos;échec du versement, aucun débit n&apos;est effectué.
             </p>
           </Section>
 
