@@ -12,7 +12,7 @@ import { ParrainageOverview } from '@/components/client/parrainage/parrainage-ov
 import { ParrainageSkeleton } from '@/components/client/parrainage/parrainage-skeleton';
 
 function buildReferralCode(id: string): string {
-  // Code basé sur l'identifiant unique (non cryptographique — simulation uniquement).
+  // Code basé sur l'identifiant unique (non cryptographique).
   return `RD-${id.slice(0, 6).toUpperCase()}`;
 }
 

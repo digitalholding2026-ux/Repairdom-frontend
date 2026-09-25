@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { GradientHeroCard, HeroStat } from '@/components/ui/gradient-hero-card';
-import { SimulationBadge } from '@/components/ui/simulation-badge';
 import type { ClientFinanceSummary } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
 
@@ -22,7 +21,6 @@ export function BalanceCard({ balance }: { balance: ClientFinanceSummary }) {
               Paiement sécurisé · bonus inclus
             </p>
           </div>
-          {balance.mode === 'SIMULATION' ? <SimulationBadge /> : null}
         </div>
 
         <div className="relative mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">

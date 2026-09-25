@@ -25,7 +25,7 @@ import { SpendChart } from '@/components/client/solde/spend-chart';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
-  INITIAL_TEST_CREDIT: 'Crédit initial (simulation)',
+  INITIAL_TEST_CREDIT: 'Crédit initial',
   CLIENT_TOPUP: 'Recharge SasPay',
   CLIENT_WITHDRAWAL: 'Retrait',
   CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
@@ -77,20 +77,12 @@ export default function ClientSoldePage() {
 
   if (!summary) return null;
 
-  const simulation = summary.mode === 'SIMULATION';
   const missionCount = summary.missions.length;
   const avgPerMission = missionCount > 0 ? summary.totals.debit / missionCount : 0;
 
   return (
     <div className="space-y-5">
       <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
-
-      {simulation ? (
-        <Alert variant="info" icon="sparkles">
-          <span className="font-semibold">Mode simulation</span> — les montants affichés sont
-          fictifs et n&apos;impliquent aucun débit, encaissement ou frais réel.
-        </Alert>
-      ) : null}
 
       {/* Hero gradient */}
       <SoldeOverview summary={summary} />

@@ -15,8 +15,7 @@ import { getAdminFinanceSummary } from '@/lib/api/finance-service';
 /* Tableau de bord admin : UNIQUEMENT des données réellement disponibles via
  * les API existantes (aucun KPI inventé).
  * - KYC en attente : GET /admin/kyc?status=PENDING (décompte réel).
- * - Missions tracées + revenu Relio : GET /admin/finances (ledger, SIMULATION
- *   + RÉEL). « Missions tracées » = missions présentes dans la synthèse
+ * - Missions tracées + revenu Relio : GET /admin/finances (ledger réel). « Missions tracées » = missions présentes dans la synthèse
  *   financière, pas l’intégralité de la base.
  * - Catalogue / villes : décomptes des listes admin.
  * - Supervision missions : accès par référence uniquement (aucun endpoint de
@@ -52,7 +51,7 @@ export default function AdminDashboardPage() {
     ])
       .then(([kyc, finance, domains, cities]) => {
         if (cancelled) return;
-        const modes = [finance.results.SIMULATION, finance.results.REAL].filter(Boolean);
+        const modes = [finance.results.REAL].filter(Boolean);
         setData({
           pendingKyc: kyc.items.length,
           financeMissions: modes.reduce((sum, mode) => sum + mode.totals.missionsCount, 0),
@@ -154,7 +153,7 @@ export default function AdminDashboardPage() {
           </div>
           <p className="text-xs text-muted-foreground">
             « Missions tracées » et « Revenu Relio » proviennent de la synthèse financière
-            (simulation + réel). Les missions en attente, les techniciens inscrits et les
+            (réel). Les missions en attente, les techniciens inscrits et les
             missions récentes ne sont pas affichés : aucun endpoint dédié ne les expose.
           </p>
         </>

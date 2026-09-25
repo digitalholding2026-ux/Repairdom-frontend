@@ -99,18 +99,9 @@ export default function TechnicianRevenusPage() {
 
   if (!summary) return null;
 
-  const simulation = summary.mode === 'SIMULATION';
-
   return (
     <div className="space-y-5">
       <PageHeader title="Mes revenus" description="Vos gains sur les interventions réglées." />
-
-      {simulation ? (
-        <Alert variant="info" icon="sparkles">
-          <span className="font-semibold">Mode simulation</span> — les montants affichés sont
-          fictifs : aucun encaissement ou virement réel n&apos;est effectué.
-        </Alert>
-      ) : null}
 
       {/* Hero gradient */}
       <RevenueOverview summary={summary} />

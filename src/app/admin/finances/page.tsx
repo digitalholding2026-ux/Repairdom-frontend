@@ -13,13 +13,11 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Spinner } from '@/components/ui/spinner';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { FinancesSkeleton } from '@/components/admin/finances/finances-skeleton';
 import { RelioFundsSection } from '@/components/admin/finances/relio-funds-section';
 import {
   getAdminFinanceSummary,
   getAdminMissionFinance,
-  createTestCredit,
   type AdminFinanceMission,
   type AdminFinanceModeResult,
   type AdminFinanceSummary,
@@ -27,10 +25,8 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
-import { toUserErrorMessage } from '@/lib/ui-error-message';
-import { searchAdminClients, type AdminClientUser } from '@/lib/api/admin-service';
 
-const MODES: FinancialMode[] = ['SIMULATION', 'REAL'];
+const MODES: FinancialMode[] = ['REAL'];
 
 const ADMIN_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial',
@@ -45,9 +41,6 @@ const ADMIN_TXN_LABELS: Record<string, string> = {
 function txnLabel(type: string): string {
   return ADMIN_TXN_LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase();
 }
-
-const DEFAULT_TEST_CREDIT_AMOUNT = 50_000;
-const MAX_TEST_CREDIT_AMOUNT = 1_000_000;
 
 export default function AdminFinancesPage() {
   const [data, setData] = useState<AdminFinanceSummary | null>(null);
@@ -135,19 +128,10 @@ export default function AdminFinancesPage() {
         description="Supervision des missions, fonds Relio (commissions 2 %) et retraits."
       />
 
-      {mode !== 'REAL' ? (
-        <Alert variant="info" icon="sparkles">
-          <span className="font-semibold">Mode simulation</span> — les volumes « SIMULATION »
-          regroupent les écritures fictives du simulateur ; ils sont strictement séparés des
-          écritures réelles.
-        </Alert>
-      ) : null}
-
       <nav aria-label="Sections finances" className="flex flex-wrap gap-2">
         {[
           { href: '#synthese', label: 'Synthèse' },
           { href: '#missions', label: 'Missions' },
-          { href: '#credit-test', label: 'Crédit test' },
           { href: '#fonds-relio', label: 'Fonds Relio' },
         ].map((item) => (
           <Link
@@ -173,7 +157,6 @@ export default function AdminFinancesPage() {
                   }
                 >
                   <option value="ALL">Tous</option>
-                  <option value="SIMULATION">Simulation</option>
                   <option value="REAL">Réel</option>
                 </Select>
               </Field>
@@ -252,7 +235,6 @@ export default function AdminFinancesPage() {
             return (
               <ModeSection
                 key={m}
-                mode={m}
                 result={result}
                 currency={data.currency}
                 expectedPerMission={data.expectedPerMission}
@@ -268,8 +250,6 @@ export default function AdminFinancesPage() {
         </div>
       ) : null}
 
-      <TestCreditSection />
-
       <div id="fonds-relio" className="scroll-mt-20">
         <RelioFundsSection />
       </div>
@@ -278,7 +258,6 @@ export default function AdminFinancesPage() {
 }
 
 function ModeSection({
-  mode,
   result,
   currency,
   expectedPerMission,
@@ -288,7 +267,6 @@ function ModeSection({
   detailError,
   onToggle,
 }: {
-  mode: FinancialMode;
   result: AdminFinanceModeResult;
   currency: string;
   expectedPerMission: {
@@ -305,7 +283,6 @@ function ModeSection({
   detailError: Record<string, string>;
   onToggle: (demandeId: string) => void;
 }) {
-  const simulation = mode === 'SIMULATION';
   const reconciliation = result.reconciliation;
 
   return (
@@ -314,7 +291,7 @@ function ModeSection({
         title={
           <span className="flex items-center gap-2">
             Mode
-            {simulation ? <Badge variant="warning">SIMULATION</Badge> : <Badge variant="outline">RÉEL</Badge>}
+            <Badge variant="outline">RÉEL</Badge>
           </span>
         }
         action={
@@ -485,11 +462,9 @@ function MissionRow({
 
 function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance; currency: string }) {
   const f = detail.financials;
-  const simulation = detail.transactions.some((t) => t.mode === 'SIMULATION');
 
   return (
     <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
-      {simulation ? <Badge variant="warning">SIMULATION</Badge> : null}
       <div className="grid grid-cols-2 gap-3">
         <Metric label="Débité au client" value={formatCurrency(f.clientMissionDebit, currency)} />
         <Metric label="Frais client (historique)" value={formatCurrency(f.clientFee, currency)} />
@@ -547,7 +522,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
                 <div className="min-w-0">
                   <p className="truncate font-medium">{txnLabel(t.type)}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {t.reference} · {t.mode}
+                    {t.reference}
                     {t.user ? ` · ${fullName(t.user.firstName, t.user.lastName)} (${t.user.role})` : ''}
                     {t.reversalOfId ? ' · contrepassé' : ''}
                   </p>
@@ -561,194 +536,5 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         )}
       </div>
     </div>
-  );
-}
-
-function TestCreditSection() {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<AdminClientUser[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AdminClientUser | null>(null);
-  const [amount, setAmount] = useState<string>(String(DEFAULT_TEST_CREDIT_AMOUNT));
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const q = query.trim();
-    if (q.length < 2) {
-      setResults([]);
-      setSearchError(null);
-      return () => { cancelled = true; };
-    }
-
-    setSearchLoading(true);
-    const timer = setTimeout(() => {
-      searchAdminClients(q)
-        .then((res) => {
-          if (!cancelled) {
-            setResults(res.items);
-            setSearchError(null);
-          }
-        })
-        .catch((err) => {
-          if (!cancelled) {
-            setSearchError(err instanceof Error ? err.message : 'Erreur de recherche.');
-          }
-        })
-        .finally(() => {
-          if (!cancelled) setSearchLoading(false);
-        });
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [query]);
-
-  const selectedAmount = Math.floor(Number(amount));
-  const amountValid = Number.isFinite(selectedAmount) && selectedAmount >= 1 && selectedAmount <= MAX_TEST_CREDIT_AMOUNT;
-
-  const openConfirm = () => {
-    if (!selected || !amountValid || submitting) return;
-    setError(null);
-    setNotice(null);
-    setConfirmOpen(true);
-  };
-
-  const submitCredit = async () => {
-    if (!selected || !amountValid) return;
-    setSubmitting(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const result = await createTestCredit(selected.id, selectedAmount);
-      if (result.created) {
-        setNotice(`Compte crédité de ${formatCurrency(result.transaction.amount, 'XAF')}.`);
-      } else {
-        setNotice('Ce compte a déjà été crédité (crédit initial unique SIMULATION).');
-      }
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Erreur lors du crédit du compte.'));
-    } finally {
-      setSubmitting(false);
-      setConfirmOpen(false);
-    }
-  };
-
-  return (
-    <section id="credit-test" className="space-y-3 scroll-mt-20">
-      <SectionHeader
-        title={
-          <span className="flex items-center gap-2">
-            Créditer un compte de test
-            <Badge variant="warning">SIMULATION</Badge>
-          </span>
-        }
-      />
-
-      <Card>
-        <CardContent className="space-y-4">
-          {notice ? <Alert variant="success" icon="check-circle">{notice}</Alert> : null}
-          {error ? <Alert variant="error">{error}</Alert> : null}
-
-          <Field htmlFor="clientSearch" label="Rechercher un client">
-            <Input
-              id="clientSearch"
-              placeholder="Nom, prénom ou email…"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setSelected(null);
-                setNotice(null);
-                setError(null);
-              }}
-              maxLength={80}
-            />
-            {searchError ? <p className="mt-1 text-xs text-error-ink">{searchError}</p> : null}
-          </Field>
-
-          {results.length > 0 ? (
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border bg-card p-1">
-              {results.map((user) => (
-                <label
-                  key={user.id}
-                  className={`flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors ${
-                    selected?.id === user.id ? 'bg-primary/10' : 'hover:bg-muted/50'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="testCreditClient"
-                    className="h-5 w-5 shrink-0 border-border text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                    checked={selected?.id === user.id}
-                    onChange={() => setSelected(user)}
-                  />
-                  <span className="min-w-0 truncate">
-                    {fullName(user.firstName, user.lastName)}
-                    <span className="ml-2 text-xs text-muted-foreground">{user.email}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          ) : query.trim().length >= 2 && !searchLoading && !searchError ? (
-            <EmptyState
-              icon={<Icon name="users" size="md" />}
-              title="Aucun client trouvé"
-              description={`Aucun résultat pour « ${query.trim()} ».`}
-            />
-          ) : null}
-
-          {selected ? (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Client sélectionné : <span className="font-medium text-foreground">{fullName(selected.firstName, selected.lastName)}</span> ({selected.email})
-              </p>
-              <Field htmlFor="creditAmount" label="Montant à créditer (XAF)">
-                <Input
-                  id="creditAmount"
-                  type="number"
-                  min={1}
-                  max={MAX_TEST_CREDIT_AMOUNT}
-                  value={amount}
-                  onChange={(event) => setAmount(event.target.value)}
-                />
-                {!amountValid ? (
-                  <p className="mt-1 text-xs text-error-ink">
-                    Montant invalide : doit être un entier compris entre 1 et 1 000 000 XAF.
-                  </p>
-                ) : null}
-              </Field>
-              <Button
-                onClick={openConfirm}
-                disabled={!amountValid || submitting}
-                isLoading={submitting}
-              >
-                Créditer le compte
-              </Button>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Confirmer le crédit de test"
-        description={
-          selected && amountValid
-            ? `Vous êtes sur le point d'ajouter ${formatCurrency(selectedAmount, 'XAF')} au solde de simulation de ce compte client (${fullName(selected.firstName, selected.lastName)}).`
-            : ''
-        }
-        confirmLabel={submitting ? 'Créditation en cours…' : 'Créditer le compte'}
-        cancelLabel="Annuler"
-        loading={submitting}
-        onConfirm={submitCredit}
-        onCancel={() => { if (!submitting) setConfirmOpen(false); }}
-      />
-    </section>
   );
 }

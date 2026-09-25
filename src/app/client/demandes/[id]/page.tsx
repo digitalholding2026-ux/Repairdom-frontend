@@ -142,7 +142,7 @@ export default function ClientDemandeDetailPage() {
     setError(null);
     setInsufficientBalance(null);
 
-    // Vérification du solde avant acceptation (mode simulation).
+    // Vérification du solde disponible avant acceptation.
     if (action === 'accept') {
       const quote = quotes.find((q) => q.id === quoteId);
       if (quote && balance) {

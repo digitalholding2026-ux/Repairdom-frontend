@@ -98,8 +98,8 @@ export default function RechargerPage() {
 
       {result && !result.saspayEnabled ? (
         <Alert variant="info">
-          Intention {result.intent.reference} enregistrée en mode simulation — aucun paiement
-          réel n&apos;a été initié.
+          Intention {result.intent.reference} enregistrée — aucun paiement réel
+          n&apos;a été initié (service de paiement indisponible).
         </Alert>
       ) : null}
 

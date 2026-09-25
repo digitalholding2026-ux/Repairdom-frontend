@@ -1,13 +1,10 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { GradientHeroCard, HeroStat } from '@/components/ui/gradient-hero-card';
-import { SimulationBadge } from '@/components/ui/simulation-badge';
 import { formatCurrency } from '@/lib/format';
 import type { TechnicianFinanceSummary } from '@/lib/api/finance-service';
 
 export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary }) {
-  const simulation = summary.mode === 'SIMULATION';
-
   return (
     <GradientHeroCard tone="primary">
       <div className="relative flex items-start justify-between gap-3">
@@ -24,7 +21,6 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white/20 text-white shadow-float">
             <Icon name="briefcase" size="lg" />
           </span>
-          {simulation ? <SimulationBadge /> : null}
         </div>
       </div>
 

@@ -40,7 +40,6 @@ export {
   type GradientHeroCardProps,
   type HeroTone,
 } from './gradient-hero-card';
-export { SimulationBadge } from './simulation-badge';
 export { Tabs, type TabsProps, type TabItem } from './tabs';
 export { DashboardHero } from './app-header';
 export { RewardProgressCard, type RewardProgressCardProps } from './reward-progress-card';
