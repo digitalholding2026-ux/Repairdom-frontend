@@ -64,6 +64,7 @@ export function WithdrawalPanel({
   open: controlledOpen,
   onOpenChange,
   showHistory = true,
+  bare = false,
 }: {
   available: number;
   currency: string;
@@ -71,9 +72,13 @@ export function WithdrawalPanel({
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   showHistory?: boolean;
+  /** Mode épuré (ex. dans une modale) : sans en-tête ni carte
+   *  déclencheuse, le formulaire est affiché directement. */
+  bare?: boolean;
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
+  const effectiveOpen = bare || open;
   const setOpen = (value: boolean) => {
     setInternalOpen(value);
     onOpenChange?.(value);
@@ -139,7 +144,8 @@ export function WithdrawalPanel({
 
   return (
     <section className="space-y-3">
-      <SectionHeader title="Retirer des fonds" />
+      {!bare ? <SectionHeader title="Retirer des fonds" /> : null}
+      {!bare ? (
       <Card>
         <CardContent className="space-y-3 py-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -147,13 +153,16 @@ export function WithdrawalPanel({
               <p className="text-xs text-muted-foreground">Solde disponible</p>
               <p className="text-xl font-bold tabular-nums">{formatCurrency(available, currency)}</p>
             </div>
-            <Button variant={open ? 'outline' : undefined} onClick={() => { setOpen(!open); setConfirming(false); setResult(null); setError(null); }}>
-              {open ? 'Fermer' : 'Retirer des fonds'}
+            <Button variant={effectiveOpen ? 'outline' : undefined} onClick={() => { setOpen(!effectiveOpen); setConfirming(false); setResult(null); setError(null); }}>
+              {effectiveOpen ? 'Fermer' : 'Retirer des fonds'}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+      ) : null}
 
-          {open ? (
-            <div className="space-y-3 border-t border-border pt-3">
+      {effectiveOpen ? (
+        <div className="space-y-3">
               {error ? <Alert variant="error">{error}</Alert> : null}
 
               {!confirming && !result ? (
@@ -256,8 +265,6 @@ export function WithdrawalPanel({
               ) : null}
             </div>
           ) : null}
-        </CardContent>
-      </Card>
 
       {showHistory ? (
         <WithdrawalHistory refreshToken={historyToken} onChanged={onChanged} />
@@ -273,9 +280,11 @@ export function WithdrawalPanel({
 export function WithdrawalHistory({
   refreshToken,
   onChanged,
+  showTitle = true,
 }: {
   refreshToken?: number;
   onChanged?: () => void;
+  showTitle?: boolean;
 }) {
   const [history, setHistory] = useState<WithdrawalRequest[]>([]);
   const [verifying, setVerifying] = useState<string | null>(null);
@@ -325,9 +334,11 @@ export function WithdrawalHistory({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Demandes de retrait
-      </p>
+      {showTitle ? (
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Demandes de retrait
+        </p>
+      ) : null}
       {error ? <Alert variant="error">{error}</Alert> : null}
       {history.map((item) => (
             <Card key={item.id}>

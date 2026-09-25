@@ -8,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
+import { Modal } from '@/components/ui/modal';
 import { Tabs } from '@/components/ui/tabs';
-import { PageHeader, SectionHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import {
   getClientFinanceSummary,
   type ClientFinanceSummary,
   type ClientFinanceTransaction,
-  type ClientFinanceMission,
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatCurrencySigned, formatDateTime, formatRelative } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
@@ -38,6 +37,14 @@ function txnLabel(type: string): string {
 }
 
 type MovementFilter = 'ALL' | 'TOPUP' | 'WITHDRAW' | 'HOLD';
+
+type SoldeTab = 'MOVEMENTS' | 'WITHDRAWALS' | 'CHART';
+
+const SOLDE_TABS = [
+  { id: 'MOVEMENTS', label: 'Historique des mouvements' },
+  { id: 'WITHDRAWALS', label: 'Demandes de retrait' },
+  { id: 'CHART', label: 'Évolution' },
+] as const;
 
 const MOVEMENT_TABS = [
   { id: 'ALL', label: 'Tous' },
@@ -72,12 +79,14 @@ export default function ClientSoldePage() {
   const [summary, setSummary] = useState<ClientFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Pilotage du formulaire de retrait depuis la carte « Mon solde ».
+  // Pilotage du formulaire de retrait (modale) depuis la carte « Mon solde ».
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   // Rafraîchit l'historique des retraits après chaque demande créée.
   const [withdrawToken, setWithdrawToken] = useState(0);
   // Filtre d'onglets de la liste des mouvements.
   const [movementFilter, setMovementFilter] = useState<MovementFilter>('ALL');
+  // Onglet principal du conteneur d'activité financière.
+  const [mainTab, setMainTab] = useState<SoldeTab>('MOVEMENTS');
 
   useEffect(() => {
     void loadSummary();
@@ -126,126 +135,121 @@ export default function ClientSoldePage() {
       <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
 
       {/* Hero gradient */}
-      <SoldeOverview
-        summary={summary}
-        onWithdraw={() => {
-          setWithdrawOpen(true);
-          document.getElementById('retrait')?.scrollIntoView({ behavior: 'smooth' });
-        }}
-      />
+      <SoldeOverview summary={summary} onWithdraw={() => setWithdrawOpen(true)} />
 
-      {/* Retrait des fonds (visible même à 0 FCFA) */}
-      <div id="retrait" className="scroll-mt-20">
+      {/* Modale de retrait (le héros porte déjà les CTA) */}
+      <Modal
+        open={withdrawOpen}
+        onClose={() => setWithdrawOpen(false)}
+        title="Retirer des fonds"
+        description="Retrait réel vers votre compte Mobile Money."
+      >
         <WithdrawalPanel
+          bare
           available={summary.balance}
           currency={summary.currency}
-          open={withdrawOpen}
-          onOpenChange={setWithdrawOpen}
           showHistory={false}
           onChanged={() => {
             void loadSummary();
             setWithdrawToken((t) => t + 1);
           }}
         />
-      </div>
+      </Modal>
 
-      {/* Stats rapides */}
-      <div className="grid grid-cols-2 gap-2.5">
-        <StatCard
-          icon="briefcase"
-          label="Dépense moy. / mission"
-          value={missionCount > 0 ? formatCurrency(avgPerMission, summary.currency) : '—'}
-          variant="revenue"
-        />
-        <StatCard
-          icon="check-circle"
-          label="Missions débitées"
-          value={missionCount}
-          href="/client/demandes/historique"
-        />
-      </div>
-
-      {/* Évolution dépenses */}
-      <section className="space-y-3">
-        <SectionHeader title="Évolution des dépenses" />
-        <Card>
-          <CardContent className="py-4">
-            <SpendChart
-              transactions={summary.transactions}
-              currency={summary.currency}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Dépenses par mission */}
-      <section className="space-y-3">
-        <SectionHeader
-          title="Dépenses par mission"
-          action={
-            missionCount > 0 ? (
-              <Badge variant="outline">
-                {missionCount} mission{missionCount !== 1 ? 's' : ''}
-              </Badge>
-            ) : undefined
-          }
-        />
-        {missionCount === 0 ? (
-          <EmptyState
-            title="Aucune dépense enregistrée"
-            description="Vos interventions débitées de votre solde apparaîtront ici."
-            action={
-              <Link href="/client/demandes">
-                <Button>Voir mes missions</Button>
-              </Link>
-            }
+      {/* Dashboard 2 colonnes */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Colonne principale : activité financière unifiée */}
+        <div className="rounded-2xl border border-slate-200 bg-card p-6 shadow-sm dark:border-slate-800 lg:col-span-2">
+          <Tabs
+            items={SOLDE_TABS}
+            value={mainTab}
+            onChange={(id) => setMainTab(id as SoldeTab)}
+            variant="segmented"
+            label="Sections du solde"
           />
-        ) : (
-          <div className="space-y-3">
-            {summary.missions.map((m) => (
-              <MissionDebitCard key={m.demandeId} mission={m} currency={summary.currency} />
-            ))}
+          <div className="mt-4">
+            {mainTab === 'MOVEMENTS' ? (
+              <div className="space-y-3">
+                <Tabs
+                  items={MOVEMENT_TABS}
+                  value={movementFilter}
+                  onChange={(id) => setMovementFilter(id as MovementFilter)}
+                  variant="segmented"
+                  label="Filtrer les mouvements"
+                />
+                {summary.transactions.length === 0 ? (
+                  <EmptyState
+                    title="Aucun mouvement"
+                    description="Vos crédits et débits apparaîtront ici au fil des interventions."
+                    action={
+                      <Link href="/client/demandes">
+                        <Button variant="outline">Voir mes missions</Button>
+                      </Link>
+                    }
+                  />
+                ) : visibleTransactions.length === 0 ? (
+                  <EmptyState
+                    title="Aucun mouvement"
+                    description="Aucun mouvement dans cette catégorie pour le moment."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {visibleTransactions.map((t) => (
+                      <TransactionRow key={t.id} txn={t} currency={summary.currency} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+            {mainTab === 'WITHDRAWALS' ? (
+              <WithdrawalHistory
+                refreshToken={withdrawToken}
+                showTitle={false}
+                onChanged={() => void loadSummary()}
+              />
+            ) : null}
+            {mainTab === 'CHART' ? (
+              <Card>
+                <CardContent className="py-4">
+                  <SpendChart
+                    transactions={summary.transactions}
+                    currency={summary.currency}
+                  />
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
-        )}
-      </section>
+        </div>
 
-      {/* Détail des mouvements */}
-      <section id="mouvements" className="space-y-3 scroll-mt-20">
-        <SectionHeader title="Détail des mouvements" />
-        <Tabs
-          items={MOVEMENT_TABS}
-          value={movementFilter}
-          onChange={(id) => setMovementFilter(id as MovementFilter)}
-          variant="segmented"
-          label="Filtrer les mouvements"
-        />
-        {summary.transactions.length === 0 ? (
-          <EmptyState
-            title="Aucun mouvement"
-            description="Vos crédits et débits apparaîtront ici au fil des interventions."
-            action={
-              <Link href="/client/demandes">
-                <Button variant="outline">Voir mes missions</Button>
-              </Link>
-            }
-          />
-        ) : visibleTransactions.length === 0 ? (
-          <EmptyState
-            title="Aucun mouvement"
-            description="Aucun mouvement dans cette catégorie pour le moment."
-          />
-        ) : (
-          <div className="space-y-2">
-            {visibleTransactions.map((t) => (
-              <TransactionRow key={t.id} txn={t} currency={summary.currency} />
-            ))}
+        {/* Colonne secondaire : synthèse & sécurité */}
+        <aside className="space-y-6 lg:col-span-1">
+          <Card>
+            <CardContent className="space-y-3 py-4">
+              <p className="text-sm font-semibold">Résumé des dépenses</p>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Dépense moy. / mission</span>
+                <span className="font-semibold tabular-nums">
+                  {missionCount > 0 ? formatCurrency(avgPerMission, summary.currency) : '—'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Total missions débitées</span>
+                <span className="font-semibold tabular-nums">{missionCount}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <div className="space-y-2 rounded-xl border border-primary/10 bg-primary/5 p-4 text-xs">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <Icon name="shield-check" className="h-5 w-5 text-primary" />
+              Sécurité SasPay
+            </p>
+            <p className="leading-relaxed text-muted-foreground">
+              Toutes vos transactions sont sécurisées par SasPay. Vos retraits sont crédités
+              directement sur votre compte Mobile Money (MTN / Orange).
+            </p>
           </div>
-        )}
-        <WithdrawalHistory
-          refreshToken={withdrawToken}
-          onChanged={() => void loadSummary()}
-        />
-      </section>
+        </aside>
+      </div>
 
       {/* Mention réglementaire */}
       <p className="text-center text-xs text-muted-foreground">
@@ -254,63 +258,6 @@ export default function ClientSoldePage() {
         d&apos;opérateur peuvent s&apos;appliquer lors des retraits.
       </p>
     </div>
-  );
-}
-
-function MissionDebitCard({
-  mission,
-  currency,
-}: {
-  mission: ClientFinanceMission;
-  currency: string;
-}) {
-  return (
-    <Link href={`/client/demandes/${mission.demandeId}`} className="block">
-      <Card className="transition-colors hover:bg-muted/50">
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-mono text-sm font-semibold text-primary">{mission.reference}</span>
-            <DemandeStatusBadge status={mission.status} context="client" />
-          </div>
-          {mission.refunded ? (
-            <Alert variant="success" dense icon="check-circle">
-              Remboursé — {formatCurrency(mission.refundAmount, currency)}
-            </Alert>
-          ) : null}
-          <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Réparation</span>
-              <span className="font-medium">{formatCurrency(mission.repair, currency)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Déplacement</span>
-              <span className="font-medium">{formatCurrency(mission.travel, currency)}</span>
-            </div>
-            {mission.fee > 0 ? (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Frais Relio (client, historique)</span>
-                <span className="font-medium text-muted-foreground">
-                  {formatCurrency(mission.fee, currency)}
-                </span>
-              </div>
-            ) : null}
-            <div className="my-1 h-px bg-border" />
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-semibold">Total débité</span>
-              <span className="font-semibold text-error-ink tabular-nums">
-                {formatCurrency(mission.totalDebit, currency)}
-              </span>
-            </div>
-          </div>
-          {mission.scheduledAt ? (
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Icon name="calendar" size="3.5" />
-              {formatDateTime(mission.scheduledAt)}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
 
