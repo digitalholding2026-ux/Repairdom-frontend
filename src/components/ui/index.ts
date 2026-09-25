@@ -28,6 +28,7 @@ export {
 } from './status-badge';
 export { Modal, type ModalProps } from './modal';
 export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog';
+export { Toaster } from './toast';
 export { BottomNav, type BottomNavProps, type BottomNavItem } from './bottom-nav';
 export { Switch, type SwitchProps } from './switch';
 export { Spinner, type SpinnerProps } from './spinner';
@@ -43,3 +44,7 @@ export { SimulationBadge } from './simulation-badge';
 export { Tabs, type TabsProps, type TabItem } from './tabs';
 export { DashboardHero } from './app-header';
 export { RewardProgressCard, type RewardProgressCardProps } from './reward-progress-card';
+export { StatCard, type StatCardProps } from './stat-card';
+export { Breadcrumbs, type BreadcrumbsProps, type BreadcrumbItem } from './breadcrumbs';
+export { UserAvatar, type UserAvatarProps } from './user-avatar';
+export { ScrollToTop } from './scroll-to-top';

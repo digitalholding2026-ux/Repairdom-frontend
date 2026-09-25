@@ -158,7 +158,7 @@ export default function HomePage() {
             className="mt-14 overflow-hidden rounded-3xl shadow-float"
             aria-labelledby="cta-title"
           >
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 text-center text-white sm:p-10">
+            <div className="brand-gradient relative overflow-hidden rounded-3xl p-6 text-center text-white sm:p-10">
               <div aria-hidden className="animate-float absolute -right-10 -top-12 size-36 rounded-full bg-white/15 blur-2xl" />
               <div className="relative">
                 <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-float">

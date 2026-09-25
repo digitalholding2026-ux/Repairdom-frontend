@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Timeline } from '@/components/ui/timeline';
 import { MissionStepper } from '@/components/mission/mission-stepper';
 import { TrackingHero } from '@/components/mission/tracking-hero';
@@ -95,9 +96,10 @@ export default function SuiviPage() {
         {loading ? (
           <div className="space-y-4" role="status">
             <span className="sr-only">Recherche de la demande…</span>
-            <div className="h-44 animate-pulse rounded-3xl bg-muted/50" />
-            <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
-            <div className="h-32 animate-pulse rounded-2xl bg-muted/50" />
+            {/* UI-0 : shimmer unifié du design system (`Skeleton`, 1.6 s). */}
+            <Skeleton className="h-44 rounded-3xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
           </div>
         ) : null}
 

@@ -9,6 +9,7 @@ import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
@@ -364,9 +365,7 @@ export default function ClientDemandeDetailPage() {
                 Diagnostic proposé par le technicien
               </CardTitle>
               {latestDiagnostic?.mode === 'MANUAL' ? (
-                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                  Diagnostic non référencé
-                </span>
+                <Badge variant="neutral">Diagnostic non référencé</Badge>
               ) : null}
             </div>
           </CardHeader>

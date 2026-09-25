@@ -50,6 +50,11 @@
   --color-brand-gradient-via: var(--brand-gradient-via);
   --color-brand-gradient-to: var(--brand-gradient-to);
 
+  /* Référence officielle Relio (valeurs brutes, usage décoratif/grands
+   * aplats uniquement — jamais pour du texte courant). */
+  --color-brand: var(--brand);
+  --color-brand-secondary: var(--brand-secondary);
+
   --color-reward-from: var(--reward-from);
   --color-reward-via: var(--reward-via);
   --color-reward-to: var(--reward-to);
@@ -97,6 +102,14 @@
   --brand-gradient-from: #00aeef;
   --brand-gradient-via: #8e1bff;
   --brand-gradient-to: #8a2be2;
+
+  /* Valeurs officielles brutes (UI-0) : Primary #007BFF et Secondary
+   * #8E1BFF. `--primary` reste volontairement à #0062CC en clair car
+   * #007BFF n'atteint pas AA ≥ 4.5:1 en texte/CTA sur blanc ; utiliser
+   * `bg-brand`/`text-brand` uniquement en décoratif/grands aplats, et
+   * `bg-primary`/`text-primary` pour tout texte ou CTA. */
+  --brand: #007bff;
+  --brand-secondary: #8e1bff;
 
   /* Gradient gamification/récompenses (ambre → orange). */
   --reward-from: #f59e0b;
@@ -328,6 +341,20 @@
   background-image: linear-gradient(135deg, #00aeef, #8a2be2);
   background-size: 280% 280%;
   animation: gradient-pan 16s ease-in-out infinite;
+}
+
+/* Référence commune du gradient Relio (UI-0, statique, 3 stops tokens) :
+ * `.brand-gradient` = aplats/cartes/sections ; `.hero-gradient` = variante
+ * animée 2 stops pour le hero landing ; `GradientHeroCard` (`tone`) =
+ * coque décorative partagée (brand/primary/success/neutral) ; les gradients
+ * `reward`/`success` restent réservés à leurs usages fonctionnels. */
+.brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--brand-gradient-from),
+    var(--brand-gradient-via),
+    var(--brand-gradient-to)
+  );
 }
 
 .reward-gradient {

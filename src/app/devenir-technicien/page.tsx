@@ -68,7 +68,7 @@ export default function DevenirTechnicienPage() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         {/* HERO */}
-        <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-gradient-from to-brand-gradient-to p-6 sm:p-8 lg:p-12">
+        <section className="brand-gradient overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-12">
           <div className="flex h-full flex-col items-start gap-4 text-white lg:max-w-3xl">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
               <Icon name="briefcase" size="sm" />

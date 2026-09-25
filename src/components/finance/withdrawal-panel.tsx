@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SectionHeader } from '@/components/ui/page-header';
@@ -24,12 +25,14 @@ const NETWORKS: Array<{ code: WithdrawalNetwork; label: string }> = [
   { code: 'orange_cm', label: 'Orange Money' },
 ];
 
+/* UI-0 : badge centralisé sur le design system (`Badge`), libellés
+ * métier conservés (statuts de retrait ≠ statuts de demande). */
 function StatusBadge({ status }: { status: WithdrawalRequestStatus }) {
-  const styles: Record<string, string> = {
-    PENDING: 'bg-muted text-muted-foreground',
-    SUCCESS: 'bg-success-soft text-success-ink',
-    FAILED: 'bg-error-soft text-error-ink',
-    CANCELLED: 'bg-error-soft text-error-ink',
+  const variants: Record<string, BadgeVariant> = {
+    PENDING: 'neutral',
+    SUCCESS: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'danger',
   };
   const labels: Record<string, string> = {
     PENDING: 'En attente',
@@ -38,9 +41,9 @@ function StatusBadge({ status }: { status: WithdrawalRequestStatus }) {
     CANCELLED: 'Annulé',
   };
   return (
-    <span className={`shrink-0 rounded-full px-2.5 py-1 text-2xs font-medium ${styles[status] ?? styles.PENDING}`}>
+    <Badge variant={variants[status] ?? 'neutral'} className="shrink-0">
       {labels[status] ?? status}
-    </span>
+    </Badge>
   );
 }
 
@@ -192,6 +195,7 @@ export function WithdrawalPanel({
                       <button
                         key={preset}
                         type="button"
+                        aria-pressed={!custom && amount === preset}
                         onClick={() => { setAmount(preset); setCustom(''); }}
                         className={`rounded-xl border px-2 py-2 text-sm font-semibold tabular-nums transition-colors ${
                           !custom && amount === preset
@@ -215,6 +219,7 @@ export function WithdrawalPanel({
                       <button
                         key={net.code}
                         type="button"
+                        aria-pressed={network === net.code}
                         onClick={() => setNetwork(net.code)}
                         className={`rounded-xl border p-3 text-left text-sm font-semibold transition-colors ${
                           network === net.code ? 'border-primary bg-primary/10' : 'border-border bg-card'

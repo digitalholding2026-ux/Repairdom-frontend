@@ -136,6 +136,7 @@ export default function RechargerPage() {
             <button
               key={preset}
               type="button"
+              aria-pressed={!custom && amount === preset}
               onClick={() => {
                 setAmount(preset);
                 setCustom('');
@@ -166,6 +167,7 @@ export default function RechargerPage() {
             <button
               key={net.code}
               type="button"
+              aria-pressed={network === net.code}
               onClick={() => setNetwork(net.code)}
               className={`rounded-xl border p-3 text-left transition-colors ${
                 network === net.code

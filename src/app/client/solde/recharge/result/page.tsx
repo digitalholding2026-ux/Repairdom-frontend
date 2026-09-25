@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -175,12 +176,14 @@ export default function RechargeResultPage() {
   );
 }
 
+/* UI-0 : badge centralisé sur le design system (`Badge`), libellés
+ * métier conservés (statuts de recharge ≠ statuts de demande). */
 function StatusBadge({ status }: { status: TopupIntent['status'] }) {
-  const styles: Record<string, string> = {
-    PENDING: 'bg-muted text-muted-foreground',
-    SUCCESS: 'bg-success-soft text-success-ink',
-    FAILED: 'bg-error-soft text-error-ink',
-    CANCELLED: 'bg-error-soft text-error-ink',
+  const variants: Record<string, BadgeVariant> = {
+    PENDING: 'neutral',
+    SUCCESS: 'success',
+    FAILED: 'danger',
+    CANCELLED: 'danger',
   };
   const labels: Record<string, string> = {
     PENDING: 'En attente',
@@ -189,8 +192,8 @@ function StatusBadge({ status }: { status: TopupIntent['status'] }) {
     CANCELLED: 'Annulée',
   };
   return (
-    <span className={`shrink-0 rounded-full px-2.5 py-1 text-2xs font-medium ${styles[status] ?? styles.PENDING}`}>
+    <Badge variant={variants[status] ?? 'neutral'} className="shrink-0">
       {labels[status] ?? status}
-    </span>
+    </Badge>
   );
 }

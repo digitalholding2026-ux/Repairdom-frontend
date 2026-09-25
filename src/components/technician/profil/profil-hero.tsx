@@ -31,7 +31,10 @@ export function ProfilHero({ profile }: ProfilHeroProps) {
               {profile.completedInterventions} intervention{profile.completedInterventions > 1 ? 's' : ''} réalisée
               {profile.completedInterventions > 1 ? 's' : ''}
             </span>
-            <Badge variant={kycVariantFor(profile.kycStatus)} className="!bg-white/20 !text-white">
+            {/* UI-0 : pill sur gradient via token blanc translucide ; `className`
+                suit la variante dans `cn()` donc `bg-white/20` l'emporte sans
+                `!important`. */}
+            <Badge variant={kycVariantFor(profile.kycStatus)} className="bg-white/20 text-white">
               {kycStatusLabel(profile.kycStatus)}
             </Badge>
             {profile.createdAt ? (

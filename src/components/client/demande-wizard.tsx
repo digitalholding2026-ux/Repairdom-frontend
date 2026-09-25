@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Icon, ICON_NAMES, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
@@ -337,7 +338,8 @@ export function DemandeWizard() {
                 {catalogLoading ? (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-hidden>
                     {Array.from({ length: 6 }).map((_, index) => (
-                      <div key={index} className="h-28 animate-pulse rounded-xl border border-border bg-muted" />
+                      /* UI-0 : shimmer unifié du design system (`Skeleton`, 1.6 s). */
+                      <Skeleton key={index} className="h-28 rounded-xl" />
                     ))}
                   </div>
                 ) : domains.length === 0 ? (

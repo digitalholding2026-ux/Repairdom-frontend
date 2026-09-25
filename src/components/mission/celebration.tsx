@@ -2,11 +2,12 @@ import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { Icon } from '@/components/ui/icon';
 
-/* Confettis décoratifs : palette festive fixe (conservée — pas de token). */
+/* Confettis décoratifs : palette festive ancrée Relio (gradient officiel
+ * #00AEEF / #8E1BFF / #8A2BE2 + succès, complétée de tons festifs). */
 const CONFETTI_COLORS = [
-  '#4f46e5',
-  '#7c3aed',
-  '#0ea5e9',
+  '#00aeef',
+  '#8e1bff',
+  '#8a2be2',
   '#059669',
   '#f59e0b',
   '#ef4444',

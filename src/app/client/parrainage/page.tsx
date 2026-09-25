@@ -43,7 +43,10 @@ export default function ClientParrainagePage() {
   if (!user) return null;
 
   const code = buildReferralCode(user.id);
-  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://repairdom.vercel.app';
+  // UI-0 : fallback public canonique Relio (l'origin navigateur prime ;
+  // `siteConfig.url` pointe vers localhost en dev, inutilisable en lien
+  // de partage). Ne plus utiliser l'ancien domaine public.
+  const shareUrl = typeof window !== 'undefined' ? window.location.origin : 'https://relioo.space';
   const shareText = encodeURIComponent(
     `Rejoins Relio avec mon lien et bénéficie d'un dépannage vérifié !\n${shareUrl}?parrain=${code}`,
   );
