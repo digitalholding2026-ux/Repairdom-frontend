@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   description:
     "La plateforme mobile-first qui met en relation les clients et les techniciens locaux pour le dépannage et la réparation à domicile.",
   applicationName: 'Relio',
-  /* Identité : favicon vectoriel (monogramme), net à toutes les tailles. */
+  /* Identité : favicon pin orange (app/icon.svg + brand/relio-mark.svg), net à toutes les tailles. */
   icons: {
     icon: [{ url: '/brand/relio-mark.svg', type: 'image/svg+xml' }],
     apple: [{ url: '/brand/relio-mark.svg', type: 'image/svg+xml' }],
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0062cc',
+  themeColor: '#FF6A00',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

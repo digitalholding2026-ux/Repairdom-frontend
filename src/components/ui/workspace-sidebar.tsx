@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from './icon';
+import { BrandLogo } from '@/components/public/brand-logo';
 import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
 
 export interface WorkspaceNavItem {
@@ -27,6 +28,9 @@ export function WorkspaceSidebar({
   return (
     <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label={`Navigation ${label}`}>
       <div className="rounded-2xl border border-border bg-card p-2 shadow-card">
+        <div className="flex justify-center px-3 pb-1 pt-3">
+          <BrandLogo href={items[0]?.href ?? '/'} />
+        </div>
         <p className="px-3 pb-2 pt-2 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>

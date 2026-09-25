@@ -1,5 +1,5 @@
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
-import { BrandLogo } from '@/components/public/brand-logo';
+import { Logo } from '@/components/ui/logo';
 
 export default function Loading() {
   return (
@@ -8,7 +8,9 @@ export default function Loading() {
       role="status"
     >
       <span className="sr-only">Chargement…</span>
-      <BrandLogo href="/" />
+      <div className="flex justify-center py-6">
+        <Logo variant="icon" className="h-14 w-auto animate-pulse" />
+      </div>
       <Skeleton className="h-8 w-1/2" />
       <Skeleton className="h-4 w-3/5" />
       <SkeletonCard />

@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     lang: 'fr',
     background_color: '#0b1120',
-    theme_color: '#0062cc',
+    theme_color: '#FF6A00',
     icons: [
       {
         src: '/brand/relio-mark.svg',

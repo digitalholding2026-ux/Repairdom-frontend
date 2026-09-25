@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { cn } from '@/lib/cn';
 import { siteConfig } from '@/lib/site-config';
+import { Logo } from '@/components/ui/logo';
 
 interface BrandLogoProps {
   href?: string;
@@ -9,11 +9,9 @@ interface BrandLogoProps {
   className?: string;
 }
 
-/* Identité Relio (refonte vectorielle) : monogramme « R » gradient officiel
- * (#00AEEF → #8A2BE2) + wordmark. Version claire (marine) / sombre (blanc)
- * commutée en CSS — lisible dans les deux modes, sans slogan (réservé au
- * footer/landing). `showText` conservé pour compatibilité. */
-export function BrandLogo({ href = '/', className }: BrandLogoProps) {
+/* Identité Relio : logo vectoriel « Reli » + pin orange (composant `Logo`
+ * inline, adaptatif clair/sombre). `showText=false` n'affiche que le pin. */
+export function BrandLogo({ href = '/', showText = true, className }: BrandLogoProps) {
   return (
     <Link
       href={href}
@@ -23,22 +21,7 @@ export function BrandLogo({ href = '/', className }: BrandLogoProps) {
       )}
       aria-label={`${siteConfig.name} — retour à l’accueil`}
     >
-      <Image
-        src="/brand/relio-logo-light.svg"
-        alt={siteConfig.name}
-        width={147}
-        height={48}
-        className="h-9 w-auto dark:hidden"
-        priority
-      />
-      <Image
-        src="/brand/relio-logo-dark.svg"
-        alt={siteConfig.name}
-        width={147}
-        height={48}
-        className="hidden h-9 w-auto dark:block"
-        priority
-      />
+      <Logo variant={showText ? 'full' : 'icon'} className="h-9 w-auto" />
     </Link>
   );
 }
