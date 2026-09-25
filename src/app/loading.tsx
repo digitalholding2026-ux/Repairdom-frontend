@@ -1,4 +1,5 @@
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import { BrandLogo } from '@/components/public/brand-logo';
 
 export default function Loading() {
   return (
@@ -7,6 +8,7 @@ export default function Loading() {
       role="status"
     >
       <span className="sr-only">Chargement…</span>
+      <BrandLogo href="/" />
       <Skeleton className="h-8 w-1/2" />
       <Skeleton className="h-4 w-3/5" />
       <SkeletonCard />

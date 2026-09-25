@@ -192,7 +192,7 @@ export default function SuiviPage() {
                   {success ? (
                     <Celebration
                       title={status === 'CONFIRMED' ? 'Mission confirmée' : 'Intervention terminée'}
-                      subtitle="Un récapitulatif vous a été envoyé. Merci pour votre confiance !"
+                      subtitle="Merci pour votre confiance !"
                     />
                   ) : null}
                 </>
