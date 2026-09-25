@@ -16,6 +16,8 @@ import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { ConversationSection } from '@/components/mission/conversation-section';
+import { FloatingChat } from '@/components/client/chat/floating-chat';
+import { MediaGallery } from '@/components/client/missions/media-gallery';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatTime, fullName } from '@/lib/format';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
@@ -32,7 +34,7 @@ import {
   type MissionQuote,
 } from '@/lib/api/request-service';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
-import { formatCurrency, formatFileSize } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useToast } from '@/lib/toast-context';
 
@@ -63,6 +65,7 @@ export default function ClientDemandeDetailPage() {
     | { kind: 'reject'; quoteId: string }
     | null
   >(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const runConfirmedAction = () => {
     if (!confirmAction || actionBusy) return;
@@ -217,6 +220,7 @@ export default function ClientDemandeDetailPage() {
   const negotiationUnlocked =
     Boolean(demande.negotiationRequestedAt) || quotes.some((q) => q.status === 'ACCEPTED');
   const canDiscuss = baseCanDiscuss && (!catalogFlow || negotiationUnlocked);
+  const showChat = Boolean(demande.technician) && (!catalogFlow || negotiationUnlocked);
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
   const deviceLabel = [
@@ -484,42 +488,13 @@ export default function ClientDemandeDetailPage() {
             </section>
           ) : null}
 
-          {/* Carte 2 : fichiers & photos */}
-          {demande.medias && demande.medias.length > 0 ? (
-            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <SectionHeader
-                title="Photos & Pièces jointes"
-                icon="camera"
-                description={`${demande.medias.length} fichier${demande.medias.length > 1 ? 's' : ''} illustrant la panne déclarée.`}
-              />
-              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {demande.medias.map((media) => {
-                  const isImage = media.kind === 'IMAGE' || media.mimeType.startsWith('image/');
-                  return (
-                    <li
-                      key={media.id}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-muted/20 p-3"
-                    >
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground">
-                        <Icon name={isImage ? 'camera' : 'file'} size="sm" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium" title={media.name}>
-                          {media.name}
-                        </span>
-                        <span className="block text-xs text-muted-foreground tabular-nums">
-                          {formatFileSize(media.sizeBytes)} • {isImage ? 'Image' : 'Fichier'}
-                        </span>
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ) : null}
+          {/* Carte 2 : galerie médias & pièces jointes */}
+          <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <MediaGallery medias={demande.medias} />
+          </section>
 
           {/* Discussion juste après le devis */}
-          {demande.technician && (!catalogFlow || negotiationUnlocked) ? (
+          {showChat ? (
             <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
               <SectionHeader title="Discussion avec votre technicien" icon="chat" />
               <ConversationSection
@@ -604,6 +579,12 @@ export default function ClientDemandeDetailPage() {
                     Voir le profil
                   </Button>
                 </Link>
+                {showChat ? (
+                  <Button size="sm" className="w-full" onClick={() => setChatOpen(true)}>
+                    <Icon name="chat" size="sm" />
+                    Discuter
+                  </Button>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -613,6 +594,18 @@ export default function ClientDemandeDetailPage() {
           </section>
         </div>
       </div>
+
+      {showChat ? (
+        <FloatingChat
+          demandeId={demande.id}
+          peerName={technicianName}
+          peerFirstName={demande.technician?.firstName}
+          peerLastName={demande.technician?.lastName}
+          canSend={canDiscuss}
+          open={chatOpen}
+          onOpenChange={setChatOpen}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmAction !== null}
