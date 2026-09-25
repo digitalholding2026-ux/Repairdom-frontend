@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { Icon } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
@@ -52,7 +53,14 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
   const [pending, setPending] = useState<PendingMedia[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<SelectedMedia>(null);
+  const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /* Portail body pour la lightbox (même raison que le chat flottant :
+   * le `fixed` serait capturé par le transform du layout animé). */
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -287,15 +295,16 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
         </p>
       ) : null}
 
-      {/* Lightbox */}
-      {selected && selectedMeta ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedMeta.name}
-          onClick={() => setSelected(null)}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-        >
+      {/* Lightbox (portail body : suit le viewport quel que soit le scroll) */}
+      {selected && selectedMeta && mounted
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={selectedMeta.name}
+              onClick={() => setSelected(null)}
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+            >
           <div
             onClick={(event) => event.stopPropagation()}
             className="animate-pop-in w-full max-w-3xl overflow-hidden rounded-2xl border border-border bg-card shadow-pop"
@@ -342,8 +351,10 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
               )}
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+        : null}
     </div>
   );
 }

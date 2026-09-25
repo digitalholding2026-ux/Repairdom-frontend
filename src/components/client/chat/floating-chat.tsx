@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/cn';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
@@ -37,7 +38,15 @@ export function FloatingChat({
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const [unread, setUnread] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const lastSeenRef = useRef<string>(new Date().toISOString());
+
+  /* Portail vers body : les ancêtres animés (transform persistant du
+   * `slide-up` du layout) captureraient sinon le `fixed`, qui défilerait
+   * avec la page au lieu de suivre le viewport. */
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -83,7 +92,9 @@ export function FloatingChat({
 
   const toggle = () => setOpen(!open);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed bottom-24 right-4 z-50 flex flex-col items-end gap-3 lg:bottom-6 lg:right-6">
       {open ? (
         <div
@@ -136,6 +147,7 @@ export function FloatingChat({
           </span>
         ) : null}
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
