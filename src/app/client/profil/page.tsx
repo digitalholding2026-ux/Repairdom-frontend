@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { ProfilHero } from '@/components/client/profil/profil-hero';
-import { AvatarUpload } from '@/components/client/profil/avatar-upload';
 import { ProfilSkeleton } from '@/components/client/profil/profil-skeleton';
 import {
   getMe,
@@ -21,6 +23,9 @@ import {
 } from '@/lib/api/auth-service';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+
+const CARD_CLASS =
+  'rounded-2xl border border-slate-200 bg-card p-6 shadow-sm dark:border-slate-800';
 
 export default function ClientProfilPage() {
   const router = useRouter();
@@ -36,7 +41,8 @@ export default function ClientProfilPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [loggedOut, setLoggedOut] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +90,7 @@ export default function ClientProfilPage() {
   };
 
   const handleLogout = async () => {
-    setLoggedOut(true);
+    setLoggingOut(true);
     await logoutAndGoHome();
   };
 
@@ -96,9 +102,12 @@ export default function ClientProfilPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Mon profil" description="Gérez vos informations personnelles." backHref="/client" />
+      <PageHeader
+        title="Mon profil"
+        description="Gérez vos informations personnelles et vos coordonnées de contact."
+      />
 
-      <ProfilHero user={user} />
+      <ProfilHero user={user} onUpdated={setUser} />
 
       {user.emailVerified === false ? (
         <Alert variant="warning" dense title="Email non vérifié">
@@ -116,75 +125,120 @@ export default function ClientProfilPage() {
         </Alert>
       ) : null}
 
-      <div className="space-y-3">
-        <AvatarUpload user={user} onUpdated={setUser} />
-      </div>
-
-      <div className="space-y-4">
-        <SectionHeader title="Coordonnées" />
-        <div className="space-y-4">
-          <Field label="Prénom" htmlFor="profil-firstName" required>
-            <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          </Field>
-          <Field label="Nom" htmlFor="profil-lastName" required>
-            <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </Field>
-          <Field label="Ville" htmlFor="profil-city">
-            <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
-              <option value="">Sélectionnez votre ville</option>
-              {cities.map((c) => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Adresse précise" htmlFor="profil-address">
-            <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </Field>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <SectionHeader title="Contact" />
-        <div className="space-y-4">
-          <Field label="Téléphone" htmlFor="profil-phone">
-            <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
-          </Field>
-          <Field label="WhatsApp" htmlFor="profil-whatsapp" hint="WhatsApp de préférence">
-            <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" />
-          </Field>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <SectionHeader title="Compte" />
-        <Field label="Email" htmlFor="profil-email" hint="L'email sert à la connexion et aux notifications.">
-          <Input id="profil-email" value={user.email} disabled className="opacity-60" />
-        </Field>
-      </div>
-
       {error ? <Alert variant="error">{error}</Alert> : null}
       {saved ? <Alert variant="success" dense>Profil mis à jour.</Alert> : null}
 
-      <Button
-        onClick={handleSave}
-        className="w-full"
-        size="lg"
-        isLoading={saving}
-        disabled={!firstName.trim()}
-      >
-        Enregistrer les modifications
-      </Button>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Colonne principale : coordonnées */}
+        <div className="space-y-6 lg:col-span-2">
+          <section className={`${CARD_CLASS} space-y-6`}>
+            <SectionHeader title="Informations personnelles" icon="user" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Prénom" htmlFor="profil-firstName" required>
+                <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              </Field>
+              <Field label="Nom" htmlFor="profil-lastName" required>
+                <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </Field>
+              <Field label="Ville" htmlFor="profil-city">
+                <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
+                  <option value="">Sélectionnez votre ville</option>
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Adresse précise / Quartier" htmlFor="profil-address">
+                <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Akwa, Rue de la Joie" />
+              </Field>
+            </div>
+          </section>
 
-      <div className="flex flex-col gap-2 pt-2">
-        <Link href="/client/demandes" className="block">
-          <Button variant="secondary" className="w-full">
-            Voir mes missions
-          </Button>
-        </Link>
-        <Button variant="ghost" className="w-full text-error-ink hover:bg-error-soft" onClick={handleLogout} isLoading={loggedOut}>
-          Se déconnecter
-        </Button>
+          <section className={`${CARD_CLASS} space-y-6`}>
+            <SectionHeader title="Moyens de contact" icon="phone" />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Téléphone principal (MTN / Orange)" htmlFor="profil-phone">
+                <div className="flex gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground"
+                  >
+                    +237
+                  </span>
+                  <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
+                </div>
+              </Field>
+              <Field label="Numéro WhatsApp" htmlFor="profil-whatsapp">
+                <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
+              </Field>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Ce numéro sera utilisé par les techniciens pour vous joindre lors des interventions.
+            </p>
+          </section>
+        </div>
+
+        {/* Colonne secondaire : compte & sécurité */}
+        <aside className="space-y-6 lg:col-span-1">
+          <section className={`${CARD_CLASS} space-y-6`}>
+            <SectionHeader title="Compte & Connexion" icon="shield-check" />
+            <Field
+              label={
+                <span className="inline-flex items-center gap-2">
+                  Adresse e-mail
+                  <Badge variant="outline">Identifiant unique</Badge>
+                </span>
+              }
+              htmlFor="profil-email"
+            >
+              <Input id="profil-email" value={user.email} disabled className="opacity-60" />
+            </Field>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-muted-foreground">Statut du compte</span>
+              {user.emailVerified ? (
+                <Badge variant="success">Email vérifié</Badge>
+              ) : (
+                <Badge variant="warning">Email non vérifié</Badge>
+              )}
+            </div>
+          </section>
+
+          <section className={`${CARD_CLASS} space-y-4`}>
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full shadow-md shadow-primary/20"
+              onClick={handleSave}
+              isLoading={saving}
+              disabled={!firstName.trim()}
+            >
+              <Icon name="check" size="sm" />
+              Enregistrer les modifications
+            </Button>
+            <div className="h-px bg-border" aria-hidden />
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setConfirmLogout(true)}
+            >
+              <Icon name="logout" size="sm" />
+              Se déconnecter
+            </Button>
+          </section>
+        </aside>
       </div>
+
+      <ConfirmDialog
+        open={confirmLogout}
+        title="Se déconnecter ?"
+        description="Vous devrez vous reconnecter pour accéder à votre espace client."
+        confirmLabel="Se déconnecter"
+        cancelLabel="Rester connecté"
+        tone="danger"
+        loading={loggingOut}
+        onConfirm={() => void handleLogout()}
+        onCancel={() => { if (!loggingOut) setConfirmLogout(false); }}
+      />
     </div>
   );
 }
