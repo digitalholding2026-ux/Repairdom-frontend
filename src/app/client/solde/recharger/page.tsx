@@ -53,7 +53,7 @@ export default function RechargerPage() {
     setError(null);
     setResult(null);
     if (!Number.isInteger(effectiveAmount) || effectiveAmount < 100) {
-      setError('Montant invalide : minimum 100 XAF.');
+      setError('Montant invalide : minimum 100 FCFA.');
       return;
     }
     if (!phone.trim()) {
@@ -132,7 +132,7 @@ export default function RechargerPage() {
       ) : null}
 
       <section className="space-y-3">
-        <SectionHeader title="Montant (XAF)" />
+        <SectionHeader title="Montant (FCFA)" />
         <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
           {PRESETS.map((preset) => (
             <button
@@ -149,13 +149,13 @@ export default function RechargerPage() {
                   : 'border-border bg-card text-foreground'
               }`}
             >
-              {formatCurrency(preset, 'XAF')}
+              {formatCurrency(preset, 'FCFA')}
             </button>
           ))}
         </div>
         <Input
           inputMode="numeric"
-          placeholder="Ou montant libre (min. 100 XAF)"
+          placeholder="Ou montant libre (min. 100 FCFA)"
           value={custom}
           onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
           className="tabular-nums"
@@ -191,7 +191,7 @@ export default function RechargerPage() {
       </section>
 
       <Button onClick={submit} isLoading={submitting} className="w-full">
-        {`Payer ${formatCurrency(Number.isInteger(effectiveAmount) ? effectiveAmount : 0, 'XAF')}`}
+        {`Payer ${formatCurrency(Number.isInteger(effectiveAmount) ? effectiveAmount : 0, 'FCFA')}`}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">

@@ -114,7 +114,7 @@ export default function TechnicianRevenusPage() {
         interventions en attente ou annulées ne génèrent aucun gain.
       </Alert>
 
-      {/* Retrait des fonds (visible même à 0 XAF) */}
+      {/* Retrait des fonds (visible même à 0 FCFA) */}
       <WithdrawalPanel
         available={summary.available}
         currency={summary.currency}

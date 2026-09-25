@@ -252,7 +252,7 @@
   }
 }
 
-/* Montants XAF : chiffres tabulaires alignés, police display. */
+/* Montants FCFA : chiffres tabulaires alignés, police display. */
 @utility figure {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;

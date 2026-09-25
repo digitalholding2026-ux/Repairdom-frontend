@@ -10,7 +10,7 @@ import { formatDateTime } from '@/lib/format';
 import { categoryLabel } from '@/lib/technician-profile';
 
 const formatPrice = (value: number | null | undefined) =>
-  value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
+  value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;
 
 function formatCatalogBreakdown(quote: NonNullable<MissionSummary['quote']>) {
   const lines = [

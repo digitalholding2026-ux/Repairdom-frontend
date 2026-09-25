@@ -90,7 +90,7 @@ export default function ClientSoldePage() {
       {/* Bandeau recharge / retrait */}
       <UpcomingBanner />
 
-      {/* Retrait des fonds (visible même à 0 XAF) */}
+      {/* Retrait des fonds (visible même à 0 FCFA) */}
       <WithdrawalPanel
         available={summary.balance}
         currency={summary.currency}

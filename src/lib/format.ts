@@ -29,9 +29,16 @@ export function formatTime(iso: string | null | undefined): string {
   return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
+/* Devise d'affichage : le backend expose le code ISO « XAF », mais
+ * l'unité présentée à l'utilisateur est « FCFA ». Toute autre devise
+ * passe telle quelle (aucune conversion de montant ici). */
+function displayCurrency(currency: string): string {
+  return currency === 'XAF' ? 'FCFA' : currency;
+}
+
 export function formatCurrency(value: number | null | undefined, currency = 'XAF'): string {
   if (value == null) return '—';
-  return `${value.toLocaleString('fr-FR')} ${currency}`;
+  return `${value.toLocaleString('fr-FR')} ${displayCurrency(currency)}`;
 }
 
 export function formatCurrencySigned(

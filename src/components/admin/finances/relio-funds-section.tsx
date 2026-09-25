@@ -65,7 +65,7 @@ export function RelioFundsSection() {
     try {
       const result = await withdrawRelioFunds(parsedAmount, note.trim() || undefined);
       setNotice(
-        `Retrait ${result.reference} effectué : ${formatCurrency(result.amount, funds?.currency ?? 'XAF')}. Disponible restant : ${formatCurrency(result.availableAfter, funds?.currency ?? 'XAF')}.`,
+        `Retrait ${result.reference} effectué : ${formatCurrency(result.amount, funds?.currency ?? 'FCFA')}. Disponible restant : ${formatCurrency(result.availableAfter, funds?.currency ?? 'FCFA')}.`,
       );
       setConfirmOpen(false);
       setAmount('');
@@ -117,7 +117,7 @@ export function RelioFundsSection() {
             <CardContent className="space-y-3 pt-4">
               <p className="text-sm font-semibold">Retirer des fonds</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Montant (XAF)" htmlFor="relioAmount" required>
+                <Field label="Montant (FCFA)" htmlFor="relioAmount" required>
                   <Input
                     id="relioAmount"
                     type="number"

@@ -51,7 +51,7 @@ function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string 
 }
 
 function formatPrice(value: number | null | undefined): string {
-  return value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
+  return value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;
 }
 
 export default function TechnicianDemandeDetailPage() {
@@ -937,7 +937,7 @@ export default function TechnicianDemandeDetailPage() {
 
           {showQuoteForm ? (
             <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-              <Field htmlFor="quoteAmount" label="Montant (XAF)">
+              <Field htmlFor="quoteAmount" label="Montant (FCFA)">
                 <Input
                   id="quoteAmount"
                   type="number"

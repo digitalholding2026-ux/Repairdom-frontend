@@ -175,7 +175,7 @@ export default function TechnicianDashboardPage() {
         title: confirmed ? 'Intervention terminée' : 'Mission annulée',
         subtitle: `${d.reference} · ${d.categoryLabel}`,
         amount: confirmed ? (d.finalAmount ?? undefined) : undefined,
-        currency: confirmed ? 'XAF' : undefined,
+        currency: confirmed ? 'FCFA' : undefined,
         createdAt: d.createdAt,
         href: '/technicien/historique',
       });

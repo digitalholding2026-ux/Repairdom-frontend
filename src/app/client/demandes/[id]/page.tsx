@@ -41,7 +41,7 @@ import { useToast } from '@/lib/toast-context';
 const POLL_INTERVAL_MS = 5000;
 
 function formatPrice(value: number | null | undefined): string {
-  return value == null ? '—' : `${value.toLocaleString('fr-FR')} XAF`;
+  return value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;
 }
 
 export default function ClientDemandeDetailPage() {
@@ -482,7 +482,7 @@ export default function ClientDemandeDetailPage() {
                   <div className="space-y-2 rounded-lg border border-error/30 bg-error/5 p-4">
                     <p className="text-sm font-semibold text-error">Votre solde est insuffisant.</p>
                     <p className="text-sm text-foreground">
-                      Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'XAF')} pour valider cette intervention.
+                      Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'FCFA')} pour valider cette intervention.
                     </p>
                     <p className="text-sm text-muted-foreground">
                       La recharge en ligne n’est pas encore disponible. Suivez votre solde depuis la page dédiée.

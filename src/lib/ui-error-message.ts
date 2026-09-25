@@ -70,5 +70,7 @@ export function toUserErrorMessage(err: unknown, fallback = GENERIC_MESSAGE): st
   if (raw.length > 220 || TECHNICAL_PATTERNS.some((pattern) => pattern.test(raw))) {
     return fallback;
   }
-  return raw;
+  // Unité d'affichage : les messages métier backend exposent le code ISO
+  // « XAF », l'utilisateur voit « FCFA ».
+  return raw.replace(/\bXAF\b/g, 'FCFA');
 }

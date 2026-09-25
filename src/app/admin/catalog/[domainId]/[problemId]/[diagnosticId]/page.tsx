@@ -463,19 +463,19 @@ export default function AdminDiagnosticPage() {
                   </div>
                 ) : null}
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Prix min (XAF)" htmlFor="pMin" hint="Interne Relio">
+                  <Field label="Prix min (FCFA)" htmlFor="pMin" hint="Interne Relio">
                     <Input id="pMin" type="number" step="1" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix référence (XAF)" htmlFor="pRef">
+                  <Field label="Prix référence (FCFA)" htmlFor="pRef">
                     <Input id="pRef" type="number" step="1" value={refPrice} onChange={(e) => setRefPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix max (XAF)" htmlFor="pMax" hint="Interne Relio">
+                  <Field label="Prix max (FCFA)" htmlFor="pMax" hint="Interne Relio">
                     <Input id="pMax" type="number" step="1" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Frais déplacement (XAF)" htmlFor="pTravel">
+                  <Field label="Frais déplacement (FCFA)" htmlFor="pTravel">
                     <Input id="pTravel" type="number" step="1" value={travelFee} onChange={(e) => setTravelFee(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Frais Relio (XAF)" htmlFor="pService">
+                  <Field label="Frais Relio (FCFA)" htmlFor="pService">
                     <Input id="pService" type="number" step="1" value={serviceFee} onChange={(e) => setServiceFee(e.target.value)} placeholder="0" />
                   </Field>
                 </div>

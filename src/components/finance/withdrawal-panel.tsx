@@ -52,7 +52,7 @@ function StatusBadge({ status }: { status: WithdrawalRequestStatus }) {
 /* Panneau de retrait partagé CLIENT / TECHNICIAN (même endpoint backend,
  * rôle porté par le JWT). Le solde affiché vient de l'API (jamais calculé
  * ici) ; les frais sont appliqués par SasPay (jamais calculés ici).
- * L'action reste visible à 0 XAF : le formulaire explique alors le solde
+ * L'action reste visible à 0 FCFA : le formulaire explique alors le solde
  * insuffisant au lieu de disparaître.
  * Retrait réel : aucun blocage frontend sur le solde, seul le backend
  * décide (refus solde insuffisant avant création du payout SasPay).
@@ -110,7 +110,7 @@ export function WithdrawalPanel({
   async function submit() {
     setError(null);
     if (!Number.isInteger(effectiveAmount) || effectiveAmount < 100) {
-      setError('Montant invalide : minimum 100 XAF.');
+      setError('Montant invalide : minimum 100 FCFA.');
       return;
     }
     // Retrait réel : aucun blocage frontend sur le solde disponible ;
@@ -205,7 +205,7 @@ export function WithdrawalPanel({
                   </div>
                   <Input
                     inputMode="numeric"
-                    placeholder="Ou montant libre (min. 100 XAF)"
+                    placeholder="Ou montant libre (min. 100 FCFA)"
                     value={custom}
                     onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                     className="tabular-nums"
