@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 
 export function ParrainageOverview({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to p-5 text-white shadow-pop">
+    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A] p-5 text-white shadow-pop">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"
@@ -19,9 +19,9 @@ export function ParrainageOverview({ code, copied, onCopy }: { code: string; cop
 
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/70">Votre code parrain</p>
-          <p className="mt-1 font-mono text-3xl font-bold tracking-wider">{code}</p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Votre code parrain</p>
+          <p className="mt-1 font-mono text-3xl font-bold tracking-wider text-relio-orange-bright">{code}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
             <Icon name="users" size="3.5" />
             Partagez-le et faites découvrir Relio.
           </p>
@@ -33,10 +33,9 @@ export function ParrainageOverview({ code, copied, onCopy }: { code: string; cop
 
       <div className="relative mt-4">
         <Button
-          variant="secondary"
           size="lg"
           onClick={onCopy}
-          className="w-full gap-2 bg-white/20 text-white hover:bg-white/30"
+          className="w-full gap-2"
         >
           <Icon name="check" size="md" />
           {copied ? 'Code copié !' : 'Copier mon code'}

@@ -20,7 +20,7 @@ export function CategoryMarquee() {
       href="/client/inscription"
       className="group inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium shadow-card transition-colors hover:border-primary/40 hover:bg-primary/5"
     >
-      <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+      <span className="flex size-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-colors group-hover:bg-primary group-hover:text-primary-foreground dark:bg-white/10 dark:text-slate-200">
         <Icon name={CATEGORY_ICONS[category.id] ?? 'sparkles'} size="3.5" />
       </span>
       {category.label}

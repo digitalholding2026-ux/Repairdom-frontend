@@ -61,7 +61,7 @@ export function AccountSection({ profile }: AccountSectionProps) {
       <Link href="/conditions-utilisation" className="block">
         <Card className="transition-colors hover:bg-muted/50">
           <CardContent className="flex items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
               <Icon name="file" />
             </span>
             <p className="text-sm font-semibold">Conditions d&apos;utilisation</p>

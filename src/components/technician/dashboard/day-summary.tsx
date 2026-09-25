@@ -28,7 +28,7 @@ export function DaySummary({ activeMissions, completedToday }: DaySummaryProps) 
             <Link key={m.id} href={`/technicien/demandes/${m.id}`} className="block">
               <Card className="transition-colors hover:bg-muted/50">
                 <div className="flex items-center gap-3 p-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     <Icon name="calendar" size="sm" />
                   </span>
                   <div className="min-w-0 flex-1">

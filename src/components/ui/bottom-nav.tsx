@@ -98,7 +98,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
       <span
         className={cn(
           'relative flex h-7 items-center justify-center rounded-full transition-all duration-300',
-          active ? 'bg-primary/10 px-4 text-primary' : 'px-2 text-muted-foreground hover:text-foreground',
+          active ? 'bg-slate-100 px-4 text-slate-900 dark:bg-white/10 dark:text-white' : 'px-2 text-muted-foreground hover:text-foreground',
         )}
       >
         <Icon
@@ -112,7 +112,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
       <span
         className={cn(
           'max-w-full truncate leading-none transition-colors duration-300',
-          active ? 'text-primary' : 'text-muted-foreground',
+          active ? 'text-slate-900 dark:text-white' : 'text-muted-foreground',
         )}
       >
         {item.label}

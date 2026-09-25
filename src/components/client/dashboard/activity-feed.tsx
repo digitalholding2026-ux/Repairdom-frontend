@@ -21,7 +21,7 @@ export interface ActivityItem {
 }
 
 const TONE_CLASSES: Record<ActivityTone, string> = {
-  primary: 'bg-primary/10 text-primary',
+  primary: 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200',
   success: 'bg-success-soft text-success-ink',
   info: 'bg-info-soft text-info-ink',
   warning: 'bg-warning-soft text-warning-ink',

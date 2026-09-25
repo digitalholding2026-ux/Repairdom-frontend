@@ -31,13 +31,13 @@ export function SoldeOverview({
     <GradientHeroCard>
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Solde disponible
           </p>
-          <p className="figure mt-1.5 text-3xl font-bold tabular-nums text-white lg:text-4xl">
+          <p className="figure mt-1.5 text-3xl font-bold tabular-nums text-relio-orange-bright lg:text-4xl">
             {formatCurrency(summary.balance, summary.currency)}
           </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/70">
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
             <Icon name="shield-check" size="3.5" />
             Solde disponible sous protection SasPay
           </p>
@@ -51,10 +51,7 @@ export function SoldeOverview({
 
       <div className="relative mt-3 flex gap-2">
         <Link href="/client/solde/recharger" className="flex-1">
-          <Button
-            variant="outline"
-            className="w-full border-none bg-white font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
-          >
+          <Button className="w-full font-semibold">
             <Icon name="plus" size="sm" />
             Recharger
           </Button>

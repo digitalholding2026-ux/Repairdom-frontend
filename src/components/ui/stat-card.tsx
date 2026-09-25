@@ -34,7 +34,7 @@ export function StatCard({
           'mx-auto mb-1.5 flex size-8 items-center justify-center rounded-lg',
           variant === 'revenue'
             ? 'bg-success-soft text-success-ink'
-            : 'bg-primary/10 text-primary',
+            : 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200',
         )}
       >
         <Icon name={icon} size="sm" />

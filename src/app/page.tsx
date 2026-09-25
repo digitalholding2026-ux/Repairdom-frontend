@@ -109,7 +109,7 @@ export default function HomePage() {
                   <Reveal delay={index * 60} className="relative z-10">
                     <span
                       aria-hidden
-                      className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-gradient-to-br from-secondary to-secondary/60 text-primary shadow-float"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-700 shadow-float dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
                     >
                       <Icon name={step.icon} size="md" />
                     </span>
@@ -141,7 +141,7 @@ export default function HomePage() {
               {trust.map((item, index) => (
                 <Reveal key={item.title} delay={index * 70} className="h-full">
                   <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30">
-                    <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                       <Icon name={item.icon} size="md" />
                     </span>
                     <p className="mt-3 text-sm font-semibold">{item.title}</p>

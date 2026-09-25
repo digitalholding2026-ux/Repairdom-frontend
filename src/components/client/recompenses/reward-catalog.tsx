@@ -84,7 +84,7 @@ function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount
         </span>
       ) : null}
       <div>
-        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
           <Icon name={tier.icon} size="md" />
         </span>
         <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">

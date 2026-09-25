@@ -242,7 +242,7 @@ export default function TechnicienZonesPage() {
             />
             <Card>
               <CardContent className="flex items-center gap-3 pt-4">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                   <Icon name="pin" size="sm" />
                 </span>
                 <p className="text-sm font-semibold">{referenceCity.name}</p>
@@ -258,7 +258,7 @@ export default function TechnicienZonesPage() {
             <Card>
               <CardContent className="space-y-3 pt-4">
                 <div className="flex items-center gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     <Icon name="pin" size="sm" />
                   </span>
                   <div className="min-w-0 flex-1">

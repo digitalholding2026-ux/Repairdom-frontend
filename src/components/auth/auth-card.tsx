@@ -13,7 +13,7 @@ export function AuthCard({ icon, title, description, children }: AuthCardProps) 
   return (
     <Card>
       <CardHeader>
-        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
           <Icon name={icon} size="lg" />
         </span>
         <div className="mt-1">

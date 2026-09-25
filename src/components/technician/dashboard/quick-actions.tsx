@@ -12,7 +12,7 @@ const ACTIONS: Array<{ label: string; href: string; icon: IconName; color: strin
     label: 'Nouvelles demandes',
     href: '/technicien/demandes',
     icon: 'search',
-    color: 'bg-primary/10 text-primary',
+    color: 'bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200',
   },
   {
     label: 'Chronologies',

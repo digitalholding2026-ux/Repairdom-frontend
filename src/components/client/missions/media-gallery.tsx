@@ -158,7 +158,7 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
                 className={cn(
                   'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   filter === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    ? 'bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -199,7 +199,7 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
               : 'border-border bg-muted/20 hover:border-primary/60 hover:bg-muted/40',
           )}
         >
-          <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
             <Icon name="plus" size="sm" />
           </span>
           <span className="text-xs font-semibold">Ajouter des photos</span>
@@ -341,7 +341,7 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
                 />
               ) : (
                 <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-                  <span className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <span className="flex size-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                     <Icon name="file" size="xl" />
                   </span>
                   <p className="text-sm text-muted-foreground">

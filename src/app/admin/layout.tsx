@@ -86,11 +86,11 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'flex items-center gap-3 rounded-xl border-l-4 border-transparent px-3 py-2.5 text-sm font-medium transition-colors',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       active
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                        ? 'border-l-relio-orange bg-slate-100 font-semibold text-slate-900 dark:bg-white/5 dark:text-white'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white',
                     )}
                   >
                     <Icon name={item.icon} size="sm" />
@@ -131,13 +131,13 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
                     className={cn(
                       'flex min-w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-2xs font-medium',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      active ? 'text-primary' : 'text-muted-foreground',
+                      active ? 'text-slate-900 dark:text-white' : 'text-muted-foreground',
                     )}
                   >
                     <span
                       className={cn(
                         'flex h-6 items-center justify-center rounded-full px-3',
-                        active && 'bg-primary/10',
+                        active && 'bg-slate-100 dark:bg-white/10',
                       )}
                     >
                       <Icon name={item.icon} size="sm" strokeWidth={active ? 2.4 : 1.9} />

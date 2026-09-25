@@ -66,7 +66,7 @@ export function StatsBand() {
         {STATS.map((stat, index) => (
           <Reveal key={stat.label} delay={index * 80} className="h-full">
             <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30 md:p-5">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 <Icon name={stat.icon} size="md" />
               </span>
               <p className="mt-3 text-2xl font-bold leading-none tracking-tight">

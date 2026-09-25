@@ -3,16 +3,17 @@ import { cn } from '@/lib/cn';
 
 /* Phase B — carte hero gradient unique : coque décorative partagée (halo,
  * reflet, liseré) pour les cartes solde/revenus client + technicien.
- * `tone` distingue les dégradés en usage (`brand` client, `primary`
- * technicien, `success` disponibilité, `neutral` état inactif fixe).
- * Le contenu (titre, montant, stats, pied) reste en `children`
- * pour ne pas figer les variantes métier. */
+ * Règle 60-30-10 : `brand`/`primary` = Bleu Nuit structurel (#0F172A, fixe
+ * clair/sombre), l'orange ne subsiste qu'en accent (chiffres, CTA) porté
+ * par le contenu. `success` = disponibilité, `neutral` = état inactif. */
 
 export type HeroTone = 'brand' | 'primary' | 'success' | 'neutral';
 
 const TONE_CLASSES: Record<HeroTone, string> = {
-  brand: 'from-brand-gradient-from via-brand-gradient-via to-brand-gradient-to',
-  primary: 'from-primary via-brand-gradient-via to-brand-gradient-to',
+  /* Bleu Nuit Deep fixe : fond volontairement non adaptatif, le texte
+   * blanc reste lisible en mode sombre comme en mode clair. */
+  brand: 'bg-[#0F172A]',
+  primary: 'bg-[#0F172A]',
   success: 'success-gradient',
   /* Fixe (ardoise sombre) : fond volontairement non adaptatif, le texte
    * blanc doit rester lisible en mode sombre comme en mode clair. */
@@ -63,7 +64,7 @@ export function HeroStat({
 }) {
   return (
     <div className="rounded-xl bg-white/15 px-3 py-2 backdrop-blur-sm">
-      <p className="text-2xs font-medium uppercase tracking-wider text-white/85">{label}</p>
+      <p className="text-2xs font-medium uppercase tracking-wider text-slate-300">{label}</p>
       <p className={cn('figure text-base font-bold', muted && 'text-white/85')}>{value}</p>
     </div>
   );

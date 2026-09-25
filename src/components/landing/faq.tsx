@@ -41,7 +41,7 @@ export function Faq() {
             <details className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-colors open:border-primary/30">
               <summary className="flex list-none cursor-pointer items-center justify-between gap-3 p-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
                 {item.question}
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-300 group-open:rotate-180">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-transform duration-300 group-open:rotate-180 dark:bg-white/10 dark:text-slate-200">
                   <Icon name="chevron-down" size="sm" />
                 </span>
               </summary>

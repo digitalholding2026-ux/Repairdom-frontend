@@ -77,7 +77,7 @@ function MissionTabs({ current }: { current: 'missions' | 'history' }) {
             aria-current={active ? 'page' : undefined}
             className={
               active
-                ? 'rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary shadow-xs transition-all duration-200 dark:bg-slate-900'
+                ? 'rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-xs transition-all duration-200 dark:bg-slate-900 dark:text-white'
                 : 'rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-200 hover:text-foreground'
             }
           >
@@ -111,9 +111,9 @@ const REASSURANCE_CARDS: Array<{ icon: IconName; title: string; text: string }> 
 function MissionsEmptyState() {
   return (
     <div className="flex flex-col items-center px-4 py-12 text-center">
-      <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-2xl bg-primary/20 opacity-75" />
-        <Icon name="wrench" size="xl" className="relative z-10 h-10 w-10 text-primary" />
+      <div className="relative mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-100 dark:bg-white/10">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-2xl bg-slate-300/40 opacity-75 dark:bg-white/10" />
+        <Icon name="wrench" size="xl" className="relative z-10 h-10 w-10 text-slate-500 dark:text-slate-300" />
       </div>
       <h3 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">
         Aucune intervention en cours
@@ -137,7 +137,7 @@ function MissionsEmptyState() {
             key={card.title}
             className="rounded-xl border border-slate-200/50 bg-slate-50/80 p-4 text-left dark:border-slate-700/40 dark:bg-slate-800/40"
           >
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
               <Icon name={card.icon} size="md" />
             </span>
             <p className="mt-3 text-sm font-semibold">{card.title}</p>

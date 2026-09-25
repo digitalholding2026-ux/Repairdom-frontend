@@ -48,7 +48,7 @@ export function Tabs({ items, value, onChange, variant = 'pills', label, classNa
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 variant === 'segmented' ? 'flex-1 rounded-lg px-3 py-2 text-center' : 'shrink-0 rounded-full px-3.5 py-2',
                 active
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                   : variant === 'segmented'
                     ? 'text-muted-foreground hover:text-foreground'
                     : 'bg-secondary text-secondary-foreground hover:opacity-90',
@@ -79,7 +79,7 @@ export function Tabs({ items, value, onChange, variant = 'pills', label, classNa
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           variant === 'segmented' ? 'flex-1 rounded-lg px-3 py-2' : 'shrink-0 rounded-full px-3.5 py-2',
           active
-            ? 'bg-primary text-primary-foreground'
+            ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
             : variant === 'segmented'
               ? 'text-muted-foreground hover:text-foreground'
               : 'bg-secondary text-secondary-foreground hover:opacity-90',

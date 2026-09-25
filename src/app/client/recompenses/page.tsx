@@ -55,16 +55,16 @@ export default function ClientRecompensesPage() {
       <GradientHeroCard tone="brand">
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-white/70">
+            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
               Niveau actuel
             </p>
             <p className="mt-1.5">
-              <span className="figure tabular-nums text-4xl font-extrabold text-white">
+              <span className="figure tabular-nums text-4xl font-extrabold text-relio-orange-bright">
                 {completedCount} / {FIRST_REWARD_TARGET}
               </span>{' '}
-              <span className="text-sm font-medium text-white/80">dépannages</span>
+              <span className="text-sm font-medium text-slate-300">dépannages</span>
             </p>
-            <p className="mt-1 text-xs text-white/70">
+            <p className="mt-1 text-xs text-slate-400">
               {remaining === 0 ? (
                 'Première récompense débloquée, bravo !'
               ) : (
@@ -88,7 +88,7 @@ export default function ClientRecompensesPage() {
           aria-label="Progression vers la première récompense"
         >
           <div
-            className="h-full rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.7)] transition-all"
+            className="h-full rounded-full bg-relio-orange-bright shadow-[0_0_12px_rgba(255,149,0,0.7)] transition-all"
             style={{ width: `${Math.round(progress * 100)}%` }}
           />
         </div>

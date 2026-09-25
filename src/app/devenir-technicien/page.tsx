@@ -114,7 +114,7 @@ export default function DevenirTechnicienPage() {
                 ) : null}
                 <span
                   aria-hidden
-                  className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-secondary text-primary"
+                  className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
                 >
                   <Icon name={step.icon} size="md" />
                 </span>
@@ -135,7 +135,7 @@ export default function DevenirTechnicienPage() {
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {benefits.map((item) => (
               <div key={item.title} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                   <Icon name={item.icon} size="md" />
                 </span>
                 <p className="mt-3 text-sm font-semibold">{item.title}</p>
@@ -153,7 +153,7 @@ export default function DevenirTechnicienPage() {
           <ul className="mt-5 grid gap-3 md:grid-cols-2">
             {requirements.map((item) => (
               <li key={item.label} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                   <Icon name={item.icon} size="sm" />
                 </span>
                 <p className="pt-1 text-sm">{item.label}</p>
@@ -186,7 +186,7 @@ export default function DevenirTechnicienPage() {
 
         {/* CTA FINAL */}
         <section className="mt-12 overflow-hidden rounded-2xl border border-border bg-card p-6 text-center">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
             <Icon name="sparkles" size="lg" />
           </span>
           <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à rejoindre Relio ?</h2>

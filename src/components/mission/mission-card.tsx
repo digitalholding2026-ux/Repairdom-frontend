@@ -70,7 +70,7 @@ export function MissionCard({
         </div>
 
         <div className="mt-3 flex items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
             <Icon name="wrench" size="sm" />
           </span>
           <div className="min-w-0">
@@ -130,7 +130,7 @@ export function MissionCardPerson({
   return (
     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/20 px-3.5 py-2.5">
       <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
           <Icon name="user" size="3.5" />
         </span>
         <span className="truncate font-medium text-foreground">{name}</span>
@@ -219,7 +219,7 @@ export function LiveMissionCard({
 
           <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-2.5">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700 dark:bg-white/10 dark:text-slate-200">
                 {personAvatar}
               </span>
               <div className="min-w-0">

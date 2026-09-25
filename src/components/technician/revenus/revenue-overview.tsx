@@ -9,13 +9,13 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
     <GradientHeroCard tone="primary">
       <div className="relative flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-white/70">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
             Mes revenus
           </p>
-          <p className="figure mt-1.5 text-3xl font-bold tracking-tight">
+          <p className="figure mt-1.5 text-3xl font-bold tracking-tight text-relio-orange-bright">
             {formatCurrency(summary.netRevenue, summary.currency)}
           </p>
-          <p className="mt-0.5 text-xs text-white/70">Gain net · missions confirmées</p>
+          <p className="mt-0.5 text-xs text-slate-400">Gain net · missions confirmées</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <span className="flex size-11 items-center justify-center rounded-2xl bg-white/20 text-white shadow-float">
