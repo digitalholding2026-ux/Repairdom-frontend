@@ -19,8 +19,7 @@ import {
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatCurrencySigned, formatDateTime } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
-import { UpcomingBanner } from '@/components/client/solde/upcoming-banner';
-import { WithdrawalPanel } from '@/components/finance/withdrawal-panel';
+import { WithdrawalHistory, WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { SpendChart } from '@/components/client/solde/spend-chart';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 
@@ -41,6 +40,10 @@ export default function ClientSoldePage() {
   const [summary, setSummary] = useState<ClientFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Pilotage du formulaire de retrait depuis la carte « Mon solde ».
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  // Rafraîchit l'historique des retraits après chaque demande créée.
+  const [withdrawToken, setWithdrawToken] = useState(0);
 
   useEffect(() => {
     void loadSummary();
@@ -85,17 +88,28 @@ export default function ClientSoldePage() {
       <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
 
       {/* Hero gradient */}
-      <SoldeOverview summary={summary} />
-
-      {/* Bandeau recharge / retrait */}
-      <UpcomingBanner />
+      <SoldeOverview
+        summary={summary}
+        onWithdraw={() => {
+          setWithdrawOpen(true);
+          document.getElementById('retrait')?.scrollIntoView({ behavior: 'smooth' });
+        }}
+      />
 
       {/* Retrait des fonds (visible même à 0 FCFA) */}
-      <WithdrawalPanel
-        available={summary.balance}
-        currency={summary.currency}
-        onChanged={() => void loadSummary()}
-      />
+      <div id="retrait" className="scroll-mt-20">
+        <WithdrawalPanel
+          available={summary.balance}
+          currency={summary.currency}
+          open={withdrawOpen}
+          onOpenChange={setWithdrawOpen}
+          showHistory={false}
+          onChanged={() => {
+            void loadSummary();
+            setWithdrawToken((t) => t + 1);
+          }}
+        />
+      </div>
 
       {/* Stats rapides */}
       <div className="grid grid-cols-2 gap-2.5">
@@ -177,6 +191,10 @@ export default function ClientSoldePage() {
             ))}
           </div>
         )}
+        <WithdrawalHistory
+          refreshToken={withdrawToken}
+          onChanged={() => void loadSummary()}
+        />
       </section>
     </div>
   );

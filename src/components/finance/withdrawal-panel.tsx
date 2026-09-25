@@ -61,12 +61,23 @@ export function WithdrawalPanel({
   available,
   currency,
   onChanged,
+  open: controlledOpen,
+  onOpenChange,
+  showHistory = true,
 }: {
   available: number;
   currency: string;
   onChanged?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showHistory?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = (value: boolean) => {
+    setInternalOpen(value);
+    onOpenChange?.(value);
+  };
   const [confirming, setConfirming] = useState(false);
   const [amount, setAmount] = useState(5000);
   const [custom, setCustom] = useState('');
@@ -75,8 +86,9 @@ export function WithdrawalPanel({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CreateWithdrawalRequestResult | null>(null);
-  const [history, setHistory] = useState<WithdrawalRequest[]>([]);
-  const [verifying, setVerifying] = useState<string | null>(null);
+  // Jeton de rafraîchissement de l'historique : incrémenté après chaque
+  // demande créée (l'historique peut vivre dans une autre section).
+  const [historyToken, setHistoryToken] = useState(0);
 
   const effectiveAmount = custom.trim() ? Number(custom.replace(/\s/g, '')) : amount;
 
@@ -88,19 +100,6 @@ export function WithdrawalPanel({
     lastSignature.current = signature;
     setIdempotencyKey(crypto.randomUUID());
   }
-
-  const refreshHistory = async () => {
-    try {
-      const { items } = await listWithdrawalRequests();
-      setHistory(items);
-    } catch {
-      /* Historique optionnel : un échec ne bloque pas le parcours. */
-    }
-  };
-
-  useEffect(() => {
-    void refreshHistory();
-  }, []);
 
   // Retrait réel : pas de contrôle de solde côté frontend.
   // `available` reste purement informatif (affichage). Seul le backend
@@ -129,39 +128,12 @@ export function WithdrawalPanel({
       });
       setResult(created);
       setConfirming(false);
-      await refreshHistory();
+      setHistoryToken((t) => t + 1);
       onChanged?.();
     } catch (err) {
       setError(toUserErrorMessage(err, 'Retrait impossible pour le moment.'));
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function refreshOne(reference: string) {
-    try {
-      const { request } = await getWithdrawalRequest(reference);
-      setHistory((prev) => prev.map((item) => (item.reference === reference ? request : item)));
-      onChanged?.();
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Statut indisponible.'));
-    }
-  }
-
-  async function verifyOne(reference: string) {
-    if (verifying) return;
-    setVerifying(reference);
-    try {
-      const { request, verificationError } = await verifyWithdrawalRequest(reference);
-      if (request) {
-        setHistory((prev) => prev.map((item) => (item.reference === reference ? request : item)));
-      }
-      if (verificationError) setError(verificationError.message);
-      onChanged?.();
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Vérification impossible.'));
-    } finally {
-      setVerifying(null);
     }
   }
 
@@ -277,7 +249,8 @@ export function WithdrawalPanel({
                     </Alert>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Référence {result.request.reference} — suivez son statut ci-dessous.
+                    Référence {result.request.reference} — suivez son statut{' '}
+                    {showHistory ? 'ci-dessous.' : 'dans le détail des mouvements.'}
                   </p>
                 </div>
               ) : null}
@@ -286,9 +259,77 @@ export function WithdrawalPanel({
         </CardContent>
       </Card>
 
-      {history.length > 0 ? (
-        <div className="space-y-2">
-          {history.map((item) => (
+      {showHistory ? (
+        <WithdrawalHistory refreshToken={historyToken} onChanged={onChanged} />
+      ) : null}
+    </section>
+  );
+}
+
+/* Historique des demandes de retrait (Actualiser / Vérifier).
+ * Composant autonome : peut vivre sous le formulaire ou dans une autre
+ * section (ex. « Détail des mouvements » côté client). `refreshToken`
+ * force un rechargement (ex. après création d'une demande ailleurs). */
+export function WithdrawalHistory({
+  refreshToken,
+  onChanged,
+}: {
+  refreshToken?: number;
+  onChanged?: () => void;
+}) {
+  const [history, setHistory] = useState<WithdrawalRequest[]>([]);
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshHistory = async () => {
+    try {
+      const { items } = await listWithdrawalRequests();
+      setHistory(items);
+    } catch {
+      /* Historique optionnel : un échec ne bloque pas le parcours. */
+    }
+  };
+
+  useEffect(() => {
+    void refreshHistory();
+  }, [refreshToken]);
+
+  async function refreshOne(reference: string) {
+    try {
+      const { request } = await getWithdrawalRequest(reference);
+      setHistory((prev) => prev.map((item) => (item.reference === reference ? request : item)));
+      onChanged?.();
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Statut indisponible.'));
+    }
+  }
+
+  async function verifyOne(reference: string) {
+    if (verifying) return;
+    setVerifying(reference);
+    try {
+      const { request, verificationError } = await verifyWithdrawalRequest(reference);
+      if (request) {
+        setHistory((prev) => prev.map((item) => (item.reference === reference ? request : item)));
+      }
+      if (verificationError) setError(verificationError.message);
+      onChanged?.();
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Vérification impossible.'));
+    } finally {
+      setVerifying(null);
+    }
+  }
+
+  if (history.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        Demandes de retrait
+      </p>
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {history.map((item) => (
             <Card key={item.id}>
               <CardContent className="space-y-2 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -342,8 +383,6 @@ export function WithdrawalPanel({
               </CardContent>
             </Card>
           ))}
-        </div>
-      ) : null}
-    </section>
+    </div>
   );
 }
