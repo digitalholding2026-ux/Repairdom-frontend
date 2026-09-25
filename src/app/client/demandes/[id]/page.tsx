@@ -15,7 +15,6 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
-import { ConversationSection } from '@/components/mission/conversation-section';
 import { FloatingChat } from '@/components/client/chat/floating-chat';
 import { MediaGallery } from '@/components/client/missions/media-gallery';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -492,18 +491,6 @@ export default function ClientDemandeDetailPage() {
           <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
             <MediaGallery medias={demande.medias} />
           </section>
-
-          {/* Discussion juste après le devis */}
-          {showChat ? (
-            <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-              <SectionHeader title="Discussion avec votre technicien" icon="chat" />
-              <ConversationSection
-                demandeId={demande.id}
-                canSend={canDiscuss}
-                peerName={technicianName}
-              />
-            </section>
-          ) : null}
 
           {/* Carte 3 : chronologie */}
           <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
