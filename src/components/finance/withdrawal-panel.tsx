@@ -54,10 +54,9 @@ function StatusBadge({ status }: { status: WithdrawalRequestStatus }) {
  * ici) ; les frais sont appliqués par SasPay (jamais calculés ici).
  * L'action reste visible à 0 XAF : le formulaire explique alors le solde
  * insuffisant au lieu de disparaître.
- * RECETTE PAYOUT (temporaire) : aucun blocage frontend sur le solde. Même à
- * 0 XAF, la demande est envoyée à POST /finances/withdrawals et seul le
- * backend décide (refus solde insuffisant accepté). Ne pas recalculer de
- * solde ici, ne pas toucher au backend/ledger/FundsHold/SasPay. */
+ * Retrait réel : aucun blocage frontend sur le solde, seul le backend
+ * décide (refus solde insuffisant avant création du payout SasPay).
+ * Ne pas recalculer de solde ici, ne pas toucher au backend/ledger/FundsHold/SasPay. */
 export function WithdrawalPanel({
   available,
   currency,
@@ -103,7 +102,7 @@ export function WithdrawalPanel({
     void refreshHistory();
   }, []);
 
-  // RECETTE PAYOUT (temporaire) : pas de contrôle de solde côté frontend.
+  // Retrait réel : pas de contrôle de solde côté frontend.
   // `available` reste purement informatif (affichage). Seul le backend
   // refuse éventuellement pour solde insuffisant après POST /finances/withdrawals.
   const insufficient = !Number.isInteger(effectiveAmount) || effectiveAmount <= 0;
@@ -114,9 +113,8 @@ export function WithdrawalPanel({
       setError('Montant invalide : minimum 100 XAF.');
       return;
     }
-    // RECETTE PAYOUT (temporaire) : blocage frontend `effectiveAmount > available`
-    // volontairement désactivé pour laisser POST /finances/withdrawals atteindre
-    // le backend (qui applique le contrôle financier réel).
+    // Retrait réel : aucun blocage frontend sur le solde disponible ;
+    // le backend applique le contrôle financier réel après POST /finances/withdrawals.
     if (!msisdn.trim()) {
       setError('Numéro Mobile Money bénéficiaire requis.');
       return;
@@ -185,10 +183,6 @@ export function WithdrawalPanel({
           {open ? (
             <div className="space-y-3 border-t border-border pt-3">
               {error ? <Alert variant="error">{error}</Alert> : null}
-
-              {/* RECETTE PAYOUT (temporaire) : bandeau bloquant `available <= 0`
-                  désactivé. Le solde affiché reste informatif ; le backend
-                  décide après POST /finances/withdrawals. */}
 
               {!confirming && !result ? (
                 <>
