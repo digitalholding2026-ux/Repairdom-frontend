@@ -9,7 +9,7 @@ export function RewardsCard({ completedCount }: { completedCount: number }) {
   return (
     <RewardProgressCard
       href="/client/recompenses"
-      eyebrow="Mes récompenses"
+      eyebrow="Programme Récompenses"
       completedCount={completedCount}
       target={REWARD_TARGET}
       unit="dépannages terminés"

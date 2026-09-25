@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatCurrencySigned, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -11,6 +12,8 @@ export interface ActivityItem {
   tone: ActivityTone;
   title: string;
   subtitle?: string;
+  /** Badge de statut optionnel (ex. statut de demande via request-status). */
+  badge?: ReactNode;
   amount?: number;
   currency?: string;
   createdAt: string;
@@ -42,7 +45,10 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
               <Icon name={item.icon} size="md" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{item.title}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-medium">{item.title}</p>
+                {item.badge}
+              </div>
               {item.subtitle ? (
                 <p className="truncate text-xs text-muted-foreground">{item.subtitle}</p>
               ) : null}

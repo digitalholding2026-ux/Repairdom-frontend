@@ -6,15 +6,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { SectionHeader } from '@/components/ui/page-header';
+import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DashboardHero } from '@/components/ui/app-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
+import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
-import { BalanceCard } from '@/components/client/dashboard/balance-card';
-import { QuickActions } from '@/components/client/dashboard/quick-actions';
 import { LiveMissionCard } from '@/components/client/dashboard/live-mission-card';
 import { RewardsCard } from '@/components/client/dashboard/rewards-card';
-import { ClientAccountSection } from '@/components/client/dashboard/client-account-section';
 import { ClientDashboardSkeleton } from '@/components/client/dashboard/client-dashboard-skeleton';
 import {
   ActivityFeed,
@@ -27,7 +25,7 @@ import {
   listMyDemandeHistory,
   type DemandeListItem,
 } from '@/lib/api/request-service';
-import { demandeStatusConfig } from '@/lib/request-status';
+import { formatCurrency } from '@/lib/format';
 import { Tabs } from '@/components/ui/tabs';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 
@@ -125,11 +123,6 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     [historique],
   );
 
-  const activeCount = useMemo(
-    () => demandes.filter((d) => ACTIVE_STATUSES.includes(d.status)).length,
-    [demandes],
-  );
-
   const currentMission = useMemo(() => {
     const active = demandes
       .filter((d) => ACTIVE_STATUSES.includes(d.status))
@@ -141,27 +134,27 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     const items: ActivityItem[] = [];
 
     for (const d of demandes) {
-      const config = demandeStatusConfig(d.status, 'client');
       const tone: ActivityTone = d.status === 'IN_PROGRESS' ? 'primary' : 'info';
       items.push({
         id: `d-${d.id}`,
         icon: STATUS_FEED_ICONS[d.status] ?? 'wrench',
         tone,
         title: `Demande ${d.reference}`,
-        subtitle: `${config.label} · ${d.categoryLabel}`,
+        subtitle: d.categoryLabel,
+        badge: <DemandeStatusBadge status={d.status} context="client" className="shrink-0" />,
         createdAt: d.createdAt,
         href: `/client/demandes/${d.id}`,
       });
     }
 
     for (const d of historique) {
-      const config = demandeStatusConfig(d.status, 'history');
       items.push({
         id: `h-${d.id}`,
         icon: d.status === 'CONFIRMED' ? 'badge-check' : 'x',
         tone: d.status === 'CONFIRMED' ? 'success' : 'warning',
         title: `Mission ${d.reference}`,
-        subtitle: `${config.label} · ${d.categoryLabel}`,
+        subtitle: d.categoryLabel,
+        badge: <DemandeStatusBadge status={d.status} context="history" className="shrink-0" />,
         createdAt: d.createdAt,
         href: '/client/demandes/historique',
       });
@@ -258,97 +251,103 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
   }
 
   const firstName = user?.firstName ?? '';
+  // Fonds engagés (holds ACTIFS) = brut validé − disponible.
+  const engaged = balance
+    ? Math.max(0, balance.totals.credit - balance.totals.debit - balance.balance)
+    : 0;
+  // L'état vide ne s'affiche que sans demande ET sans activité récente.
+  const isEmpty = demandes.length === 0 && activities.length === 0;
 
   return (
-    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
-      {/* ── Hero: salut + stats inline ─────────────────────────── */}
-      <section className="space-y-4 lg:col-span-2">
-        <DashboardHero
-          title={
-            <>
-              {getGreeting()}
-              {firstName ? `, ${firstName}` : ''} 👋
-            </>
-          }
-          subtitle="Que pouvons-nous réparer pour vous ?"
-          onLogout={handleLogout}
-        />
+    <div className="space-y-6">
+      {/* ── En-tête ──────────────────────────────────────────── */}
+      <PageHeader
+        title={
+          <>
+            {getGreeting()}
+            {firstName ? `, ${firstName}` : ''} 👋
+          </>
+        }
+        description="Ravi de vous revoir. Gérez vos dépannages et votre solde en toute simplicité."
+      />
 
-        {/* Stats inline */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-          <StatCard icon="truck" label="En cours" value={activeCount} />
-          <StatCard
-            icon="check-circle"
-            label="Terminées"
-            value={doneCount}
-            href="/client/demandes/historique"
-          />
-          <StatCard
-            icon="sparkles"
-            label="Récompense"
-            value={`${doneCount}/5`}
-            href="/client/recompenses"
-          />
-        </div>
-      </section>
+      {/* ── Grille principale : Solde + Fidélité ─────────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {balance ? (
+          <GradientHeroCard tone="primary">
+            <p className="text-xs font-medium uppercase tracking-wider text-white/70">
+              Solde disponible
+            </p>
+            <p className="figure mt-1 text-3xl font-bold tabular-nums text-white">
+              {formatCurrency(balance.balance, balance.currency)}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/80">
+              <span>Crédits reçus · {formatCurrency(balance.totals.credit, balance.currency)}</span>
+              <span>Engagé · {formatCurrency(engaged, balance.currency)}</span>
+            </div>
+            <Link href="/client/solde" className="mt-4 block">
+              <Button variant="outline" size="sm" className="w-full">
+                Gérer mon solde
+                <Icon name="arrow-right" size="sm" />
+              </Button>
+            </Link>
+          </GradientHeroCard>
+        ) : null}
 
-      {/* CTA principal (action immédiate dominante) */}
-      <section className="lg:col-span-2">
-        <Link href="/client/demande" className="block">
-          <Button size="lg" className="w-full gap-2 text-base">
-            <Icon name="wrench" size="md" strokeWidth={2} />
-            J&apos;ai besoin d&apos;un dépannage
+        <RewardsCard completedCount={doneCount} />
+      </div>
+
+      {/* ── Bannière d'action rapide ─────────────────────────── */}
+      <section className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="text-base font-semibold tracking-tight sm:text-lg">
+          Une panne à la maison ou au bureau ?
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Décrivez votre panne en quelques étapes et recevez l&apos;aide d&apos;un technicien vérifié près de chez vous.
+        </p>
+        <Link href="/client/demande" className="mt-4 block">
+          <Button className="w-full gap-2 sm:w-auto">
+            <Icon name="plus" size="sm" />
+            Créer une demande de dépannage
           </Button>
         </Link>
       </section>
 
-      {/* Solde — carte dégradée */}
-      {balance ? (
-        <section>
-          <BalanceCard balance={balance} />
-        </section>
-      ) : null}
-
-      {/* Quick actions */}
-      <section className="self-center">
-        <QuickActions />
-      </section>
-
-      {/* Intervention en cours — carte « live » animée */}
+      {/* ── Intervention en cours ────────────────────────────── */}
       {currentMission ? (
-        <section className="space-y-3 lg:col-span-2">
+        <section className="space-y-3">
           <SectionHeader title="Intervention en cours" />
           <LiveMissionCard mission={currentMission} />
         </section>
-      ) : demandes.length === 0 ? (
-        <div className="lg:col-span-2">
-        <EmptyState
-          title="Vous n’avez encore aucune demande"
-          description="Décrivez votre panne et nous trouvons le technicien adapté près de chez vous."
+      ) : null}
+
+      {/* ── Activité récente ─────────────────────────────────── */}
+      <section className="space-y-3">
+        <SectionHeader
+          title="Activité récente"
+          icon="clock"
           action={
-            <Link href="/client/demande">
-              <Button>Déposer une demande</Button>
+            <Link
+              href="/client/demandes"
+              className="text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Tout voir
             </Link>
           }
         />
-        </div>
-      ) : null}
-
-      {/* Feed d'activité */}
-      <section className="space-y-3 lg:col-span-1">
-        <SectionHeader title="Activité récente" />
-        <ActivityFeed items={activities} />
-      </section>
-
-      {/* Gamification — récompenses */}
-      <div className="lg:col-span-1">
-        <RewardsCard completedCount={doneCount} />
-      </div>
-
-      {/* Mon compte */}
-      <section className="space-y-3 lg:col-span-2">
-        <SectionHeader title="Mon compte" />
-        {user ? <ClientAccountSection user={user} /> : null}
+        {isEmpty ? (
+          <EmptyState
+            title="Aucune demande pour le moment"
+            description="Vous n'avez pas encore créé de demande de dépannage."
+            action={
+              <Link href="/client/demande">
+                <Button>Créer une demande</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <ActivityFeed items={activities} />
+        )}
       </section>
     </div>
   );
