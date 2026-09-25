@@ -14,6 +14,7 @@ import { SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
+import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatTime, fullName } from '@/lib/format';
@@ -236,6 +237,11 @@ export default function ClientDemandeDetailPage() {
   const technicianName = demande.technician
     ? fullName(demande.technician.firstName, demande.technician.lastName)
     : null;
+  /* Vagues de dispatch agrégées en hub radar (anti-bruit) : une vague isolée
+   * reste dans la timeline, 2+ vagues basculent dans le widget. */
+  const { waves: dispatchWaves, rest: nonDispatchEvents } = partitionDispatchWaves(events);
+  const showDispatchRadar = dispatchWaves.length >= 2;
+  const timelineEvents = showDispatchRadar ? nonDispatchEvents : events;
 
   return (
     <div className="space-y-4">
@@ -527,11 +533,14 @@ export default function ClientDemandeDetailPage() {
           {/* Carte 3 : chronologie */}
           <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
             <SectionHeader title="Chronologie de la mission" icon="clock" />
-            {events.length > 0 ? (
+            {showDispatchRadar ? (
+              <DispatchSonarWidget waves={dispatchWaves} active={!demande.technician && canCancel} />
+            ) : null}
+            {timelineEvents.length > 0 ? (
               <div className="space-y-4 relative before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                <MissionTimeline events={events} />
+                <MissionTimeline events={timelineEvents} />
               </div>
-            ) : (
+            ) : showDispatchRadar ? null : (
               <DemandeProgress status={demande.status} />
             )}
           </section>
