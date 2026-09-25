@@ -227,7 +227,7 @@ export default function TechnicianDemandeDetailPage() {
       setShowQuoteForm(false);
       toast({ title: 'Devis envoyé.', variant: 'success' });
     } catch (err) {
-      setActionError(toUserErrorMessage(err, 'Erreur lors de la création du tarif.'));
+      setActionError(toUserErrorMessage(err, 'Erreur lors de la création du devis.'));
     } finally {
       setActionBusy(null);
     }
@@ -340,11 +340,11 @@ export default function TechnicianDemandeDetailPage() {
         <div className="space-y-4">
           <Alert variant="info" title="Vérification d’identité requise">
             Désolé, vous ne pouvez pas accepter de mission sans avoir vérifié votre identité.
-            Merci de vous rendre sur l’onglet Profil afin de terminer votre KYC.
+            Merci de vous rendre sur l’onglet Profil afin de terminer votre vérification.
           </Alert>
           <Link href="/technicien/profil" className="block">
             <Button className="w-full" size="lg">
-              Terminer mon KYC
+              Terminer ma vérification
             </Button>
           </Link>
           <Link href="/technicien/demandes" className="block">
@@ -484,7 +484,7 @@ export default function TechnicianDemandeDetailPage() {
               </Alert>
               <Link href="/technicien/profil">
                 <Button variant="secondary" className="w-full" size="lg">
-                  Compléter mon KYC
+                  Compléter ma vérification
                 </Button>
               </Link>
             </div>
@@ -920,18 +920,18 @@ export default function TechnicianDemandeDetailPage() {
               ) : null}
               {latestQuote.status === 'ACCEPTED' ? (
                 <Alert variant="success" dense>
-                  Tarif accepté. Vous pouvez maintenant planifier l&apos;intervention.
+                  Devis accepté. Vous pouvez maintenant planifier l&apos;intervention.
                 </Alert>
               ) : null}
               {latestQuote.status === 'REJECTED' ? (
                 <Alert variant="neutral" dense>
-                  Tarif refusé. Vous pouvez proposer une nouvelle proposition.
+                  Devis refusé. Vous pouvez proposer un nouveau devis.
                 </Alert>
               ) : null}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Vous n&apos;avez pas encore proposé de tarif.
+              Vous n&apos;avez pas encore proposé de devis.
             </p>
           )}
 

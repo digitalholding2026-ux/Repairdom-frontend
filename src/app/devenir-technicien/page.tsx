@@ -50,7 +50,7 @@ const requirements: Array<{ icon: IconName; label: string }> = [
   { icon: 'user', label: 'Un compte technicien' },
   { icon: 'file', label: 'Un profil professionnel complet (zone et compétences)' },
   { icon: 'phone', label: 'Vos informations professionnelles (téléphone, ville, catégories)' },
-  { icon: 'shield-check', label: 'Une vérification d\u2019identité (KYC) par l\u2019équipe Relio' },
+  { icon: 'shield-check', label: 'Une vérification d\u2019identité par l\u2019équipe Relio' },
 ];
 
 const framework: Array<{ icon: IconName; label: string }> = [

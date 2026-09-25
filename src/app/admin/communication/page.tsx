@@ -81,7 +81,7 @@ export default function AdminCommunicationPage() {
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
               maxLength={1000}
-              placeholder="Ex. : Votre dossier KYC doit être complété avant…"
+              placeholder="Ex. : Votre vérification d’identité doit être complétée avant…"
             />
           </Field>
           <Button

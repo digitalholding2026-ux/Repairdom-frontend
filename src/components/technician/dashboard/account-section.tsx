@@ -40,7 +40,7 @@ export function AccountSection({ profile }: AccountSectionProps) {
                 ) : (
                   <Badge variant="warning" className="shrink-0 gap-0.5">
                     <Icon name="alert" size="3.5" />
-                    KYC en cours
+                    Vérification en cours
                   </Badge>
                 )}
               </div>

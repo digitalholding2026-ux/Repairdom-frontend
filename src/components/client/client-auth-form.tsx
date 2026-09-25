@@ -166,7 +166,7 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="vous@exemple.com"
+          placeholder="vous@exemple.cm"
           autoComplete="email"
         />
       </Field>

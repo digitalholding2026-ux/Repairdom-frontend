@@ -159,11 +159,11 @@ export default function ClientDemandeDetailPage() {
       const updated = await respondToQuote(params.id, quoteId, action);
       setQuotes((prev) => prev.map((q) => (q.id === updated.id ? updated : q)));
       toast({
-        title: action === 'accept' ? 'Tarif accepté.' : 'Tarif refusé.',
+        title: action === 'accept' ? 'Devis accepté.' : 'Devis refusé.',
         variant: 'success',
       });
     } catch (err) {
-      setError(toUserErrorMessage(err, 'Erreur lors de la réponse au tarif.'));
+      setError(toUserErrorMessage(err, 'Erreur lors de la réponse au devis.'));
     } finally {
       setActionBusy(null);
     }
@@ -510,7 +510,7 @@ export default function ClientDemandeDetailPage() {
                         isLoading={actionBusy === 'quote:accept'}
                         className="flex-1"
                       >
-                        Accepter le tarif
+                        Accepter le devis
                       </Button>
                       <Button
                         onClick={() => setConfirmAction({ kind: 'reject', quoteId: latestQuote.id })}
@@ -537,13 +537,13 @@ export default function ClientDemandeDetailPage() {
 
                 {latestQuote.status === 'ACCEPTED' ? (
                   <Alert variant="success" dense>
-                    Tarif accepté. Le technicien peut maintenant planifier l&apos;intervention.
+                    Devis accepté. Le technicien peut maintenant planifier l&apos;intervention.
                   </Alert>
                 ) : null}
 
                 {latestQuote.status === 'REJECTED' ? (
                   <Alert variant="neutral" dense>
-                    Tarif refusé. Le technicien peut proposer une nouvelle proposition.
+                    Devis refusé. Le technicien peut proposer un nouveau devis.
                   </Alert>
                 ) : null}
 
@@ -555,7 +555,7 @@ export default function ClientDemandeDetailPage() {
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Le technicien n&apos;a pas encore proposé de tarif.
+                Le technicien n&apos;a pas encore proposé de devis.
               </p>
             )}
           </CardContent>
@@ -599,9 +599,9 @@ export default function ClientDemandeDetailPage() {
           confirmAction?.kind === 'cancel'
             ? 'Annuler la demande ?'
             : confirmAction?.kind === 'accept'
-              ? 'Accepter ce tarif ?'
+              ? 'Accepter ce devis ?'
               : confirmAction?.kind === 'reject'
-                ? 'Refuser ce tarif ?'
+                ? 'Refuser ce devis ?'
                 : 'Confirmer l’intervention ?'
         }
         description={
@@ -610,7 +610,7 @@ export default function ClientDemandeDetailPage() {
             : confirmAction?.kind === 'accept'
               ? 'Le montant sera débité de votre solde et le technicien pourra planifier l’intervention.'
               : confirmAction?.kind === 'reject'
-                ? 'Le technicien pourra vous proposer un nouveau tarif.'
+                ? 'Le technicien pourra vous proposer un nouveau devis.'
                 : 'Vous validez que l’intervention est terminée. Cette action déclenche le règlement.'
         }
         confirmLabel={

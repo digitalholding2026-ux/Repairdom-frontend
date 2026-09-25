@@ -138,7 +138,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             id="tech-phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="06 12 34 56 78"
+            placeholder="+237 6XX XX XX XX"
             inputMode="tel"
             autoComplete="tel"
           />
@@ -151,7 +151,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
-          placeholder="vous@exemple.fr"
+          placeholder="vous@exemple.cm"
           autoComplete="email"
         />
       </Field>
@@ -197,7 +197,7 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             id="tech-city"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="Ex. : Lyon"
+            placeholder="Ex. : Douala"
             autoComplete="address-level2"
           />
         </Field>
