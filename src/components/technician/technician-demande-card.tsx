@@ -22,8 +22,24 @@ export function TechnicianDemandeCard({ demande, detailHref }: TechnicianDemande
       requestedMode={demande.requestedMode}
       requestedAt={demande.requestedAt}
       href={detailHref}
+      footer={
+        typeof demande.distanceMeters === 'number' ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+            <Icon name="pin" size="3.5" />
+            {formatDistance(demande.distanceMeters)}
+          </span>
+        ) : undefined
+      }
     />
   );
+}
+
+/* GPS V2 — distance informative (jamais de coordonnées brutes). */
+function formatDistance(meters: number): string {
+  if (!Number.isFinite(meters) || meters < 0) return '';
+  if (meters < 1000) return `à ~${Math.round(meters)} m`;
+  const km = meters / 1000;
+  return `à ~${km.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km`;
 }
 
 /** Carte d'historique technicien (missions confirmées / annulées) :

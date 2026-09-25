@@ -143,6 +143,17 @@ export default function TechnicienZonesPage() {
     }
   };
 
+  /* GPS V2 — fraîcheur miroir du backend (24 h) : une position récente
+   * permet le classement par proximité, sinon le technicien reste candidat
+   * sans distance. Aucun tracking, aucune carte. */
+  const isLocationFresh = useMemo(() => {
+    if (!profile?.locationUpdatedAt) return false;
+    const updated = Date.parse(profile.locationUpdatedAt);
+    if (!Number.isFinite(updated)) return false;
+    const ageMs = Date.now() - updated;
+    return ageMs >= 0 && ageMs <= 24 * 60 * 60 * 1000;
+  }, [profile?.locationUpdatedAt]);
+
   const handleUpdateLocation = () => {
     setLocationError(null);
     if (locating || mutating) return;
@@ -242,7 +253,7 @@ export default function TechnicienZonesPage() {
           <section className="space-y-3">
             <SectionHeader
               title="Ma position"
-              description="Position ponctuelle transmise explicitement. Elle servira plus tard à estimer la distance aux missions — aucun suivi continu."
+              description="Position ponctuelle transmise explicitement. Elle sert à vous proposer en priorité les missions proches — aucun suivi continu."
             />
             <Card>
               <CardContent className="space-y-3 pt-4">
@@ -250,11 +261,23 @@ export default function TechnicienZonesPage() {
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon name="pin" size="sm" />
                   </span>
-                  <p className="min-w-0 flex-1 text-sm text-muted-foreground">
-                    {profile?.locationUpdatedAt
-                      ? `Dernière mise à jour : ${formatDateTime(profile.locationUpdatedAt)}`
-                      : 'Aucune position transmise pour le moment.'}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold">
+                        {profile?.locationUpdatedAt ? 'Position enregistrée' : 'Aucune position'}
+                      </p>
+                      {profile?.locationUpdatedAt ? (
+                        <Badge variant={isLocationFresh ? 'success' : 'neutral'}>
+                          {isLocationFresh ? 'À jour' : 'À actualiser'}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {profile?.locationUpdatedAt
+                        ? `Dernière mise à jour : ${formatDateTime(profile.locationUpdatedAt)}`
+                        : 'Transmettez votre position pour apparaître en priorité sur les missions proches.'}
+                    </p>
+                  </div>
                 </div>
                 {locationError ? <Alert variant="error" dense>{locationError}</Alert> : null}
                 <Button
@@ -267,6 +290,9 @@ export default function TechnicienZonesPage() {
                   <Icon name="pin" size="sm" />
                   <span className="ml-1">Mettre à jour ma position</span>
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                  Une position de moins de 24 h permet à Relio de classer les missions par proximité.
+                </p>
               </CardContent>
             </Card>
           </section>
