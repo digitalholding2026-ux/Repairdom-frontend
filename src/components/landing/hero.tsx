@@ -34,13 +34,9 @@ export function Hero() {
             sizes="(max-width: 1280px) 100vw, 1280px"
             className="object-cover object-center"
           />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-2/5 bg-gradient-to-t from-black/70 via-black/25 to-transparent sm:block"
-          />
-          <div className="absolute inset-x-0 bottom-0 hidden justify-center p-4 sm:flex lg:p-6">
-            <div className="w-full max-w-2xl rounded-2xl border border-white/20 bg-black/45 p-3 shadow-float backdrop-blur-md">
-              <HeroActions />
+          <div className="absolute inset-0 hidden items-center justify-center p-6 sm:flex">
+            <div className="w-full max-w-sm">
+              <HeroActions stacked />
             </div>
           </div>
         </div>
