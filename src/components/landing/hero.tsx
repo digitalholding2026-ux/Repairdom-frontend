@@ -2,81 +2,93 @@ import Image from 'next/image';
 import { Icon } from '@/components/ui/icon';
 import { HeroActions } from './hero-actions';
 
-/* Hero immersif pleine largeur navigateur (full-width bleed 100vw) :
- * l'affiche marketing `/hero/hero_main.png` couvre tout l'écran
- * (object-cover, sans max-width ni bandes latérales). Aucun texte HTML en
- * doublon : h1 + description en `sr-only` (SEO/a11y). Boutons translucides
- * (glassmorphism) repositionnés en bas-gauche pour ne pas masquer le texte
- * ni le visage. */
+function TrustBadges({ className = '' }: { className?: string }) {
+  return (
+    <p className={`inline-flex flex-wrap items-center gap-2 text-sm text-white/80 ${className}`}>
+      <span className="flex items-center gap-0.5 text-amber-300">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Icon key={i} name="star" size="3.5" filled />
+        ))}
+      </span>
+      <span className="font-medium text-white">4,9/5</span>
+      <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
+      <span>5000+ interventions réalisées</span>
+      <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
+      <span>350+ techniciens vérifiés</span>
+    </p>
+  );
+}
+
+/* Hero fully responsive + full-width (100vw, fond uni #0B0D12 sans motif) :
+ * - Desktop (lg+) : bannière 100% largeur en fill/object-cover, boutons
+ *   translucides en overlay absolu bas-gauche (ni texte ni visage masqués).
+ * - Mobile/Tablette (< lg) : carte image non déformée aspect-[4/3] puis
+ *   aspect-[16/10] en sm, boutons en flux sous l'image (flex-col -> sm:row).
+ * SEO/a11y : h1 + description en sr-only (l'affiche contient déjà le texte). */
 export function Hero() {
   return (
-    <>
-      <section className="w-full relative min-h-[80vh] flex items-center justify-center bg-[#0B0D12] overflow-hidden">
+    <section className="w-full relative bg-[#0B0D12] overflow-hidden px-0">
       <h1 className="sr-only">Votre panne, notre priorité.</h1>
       <p className="sr-only">
         Déposez votre demande, trouvez un technicien qualifié près de chez vous et obtenez une
         intervention rapide.
       </p>
 
-      {/* Bannière pleine largeur navigateur : de l'extrême gauche à l'extrême droite, sans bandes latérales */}
-      <div className="absolute inset-0 w-full h-full">
-        <Image
-          src="/hero/hero_main.png"
-          alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center w-full h-full"
-        />
-        {/* Voile bas pour lisibilité des boutons translucides */}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
-        />
+      {/* ── Desktop (lg+) : bannière full-width 100% fill/object-cover ── */}
+      <div className="relative hidden w-full min-h-[80vh] overflow-hidden lg:flex lg:items-center lg:justify-center">
+        <div className="absolute inset-0 w-full h-full">
+          <Image
+            src="/hero/hero_main.png"
+            alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center w-full h-full"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
+          />
+        </div>
+
+        {/* Overlay bas-gauche : ne cache ni "priorité." ni le visage */}
+        <div className="absolute bottom-8 left-8 lg:left-16 z-10 flex flex-row items-center gap-4">
+          <HeroActions />
+        </div>
+
+        {/* Reassurance bas-droite desktop */}
+        <div className="absolute bottom-8 right-8 xl:right-16 z-10 hidden xl:flex">
+          <TrustBadges />
+        </div>
       </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F97316]/10 blur-[120px]"
-      />
+      {/* ── Mobile & Tablette (< lg) : image non tronquée + boutons en flux ── */}
+      <div className="w-full px-4 pt-6 pb-8 sm:px-6 lg:hidden">
+        <div className="relative w-full h-auto aspect-[4/3] sm:aspect-[16/10] overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+          <Image
+            src="/hero/hero_main.png"
+            alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center w-full h-full"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
+          />
+        </div>
 
-      {/* Bloc d'actions repositionné bas-gauche pour ne plus masquer le texte ni le visage */}
-      <div className="absolute bottom-8 left-6 md:left-16 lg:left-24 z-10 flex flex-wrap items-center gap-4 max-w-[calc(100vw-3rem)]">
-        <HeroActions />
-      </div>
+        {/* Boutons : colonne sur mobile, ligne dès sm, centrés, sous l'image */}
+        <div className="flex flex-col sm:flex-row gap-3 mt-4 px-0 w-full justify-center items-stretch sm:items-center">
+          <HeroActions />
+        </div>
 
-      {/* Preuves sociales : bas-droite sur desktop, sous la bannière sur mobile */}
-      <div className="absolute bottom-8 right-6 md:right-16 z-10 hidden lg:flex">
-        <p className="inline-flex flex-wrap items-center gap-2 text-sm text-white/80">
-          <span className="flex items-center gap-0.5 text-amber-300">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon key={i} name="star" size="3.5" filled />
-            ))}
-          </span>
-          <span className="font-medium text-white">4,9/5</span>
-          <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-          <span>5000+ interventions réalisées</span>
-          <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-          <span>350+ techniciens vérifiés</span>
-        </p>
+        {/* Reassurance centrée sur mobile */}
+        <div className="mt-4 flex w-full justify-center text-center">
+          <TrustBadges className="justify-center text-center" />
+        </div>
       </div>
-
-      {/* Preuves sociales mobile : sous la bannière pour ne pas chevaucher l'image */}
-      </section>
-      <div className="w-full bg-[#0B0D12] px-6 py-3 lg:hidden">
-        <p className="inline-flex flex-wrap items-center gap-2 text-sm text-white/80">
-          <span className="flex items-center gap-0.5 text-amber-300">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Icon key={i} name="star" size="3.5" filled />
-            ))}
-          </span>
-          <span className="font-medium text-white">4,9/5</span>
-          <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-          <span>5000+ interventions réalisées</span>
-          <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-          <span>350+ techniciens vérifiés</span>
-        </p>
-      </div>
-    </>
+    </section>
   );
 }

@@ -8,25 +8,26 @@ import { homePathForRole } from '@/lib/api/auth-service';
 import { cn } from '@/lib/cn';
 
 /** Rangée d'actions du hero : personnalisée selon l'état de connexion.
- * Affichée en bas-gauche de la bannière full-width en boutons translucides
- * (glassmorphism) pour ne pas masquer le texte ni le visage de l'affiche.
+ * Boutons translucides (glassmorphism), responsive :
+ * - Mobile (< lg) : empilés (flex-col -> sm:flex-row), centrés, sous l'image.
+ * - Desktop (lg+) : en ligne dans l'overlay bas-gauche de la bannière.
  * `stacked` force l'empilement vertical (conservé pour compatibilité). */
 export function HeroActions({ stacked = false }: { stacked?: boolean }) {
   const { user, authenticated, loading } = useAuth();
 
   const rowClass = stacked
     ? 'flex w-full flex-col items-stretch gap-2.5'
-    : 'flex flex-wrap items-center gap-4';
-  const linkClass = stacked ? 'w-full' : 'w-auto';
+    : 'flex w-full flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 lg:gap-4';
+  const linkClass = stacked ? 'w-full' : 'w-full sm:w-auto';
   const primaryBtnClass =
-    'group relative bg-[#F97316]/30 backdrop-blur-md border border-[#F97316]/50 text-white hover:bg-[#F97316]/50 shadow-lg shadow-orange-500/10 transition-all px-6 py-3 rounded-xl font-medium active:scale-[0.98]';
+    'group relative w-full sm:w-auto bg-[#F97316]/30 backdrop-blur-md border border-[#F97316]/50 text-white hover:bg-[#F97316]/60 transition-all shadow-lg shadow-orange-500/10 px-6 py-3 rounded-xl font-medium text-sm md:text-base active:scale-[0.98]';
   const ghostBtnClass =
-    'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all px-6 py-3 rounded-xl font-medium active:scale-[0.98]';
+    'w-full sm:w-auto bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all px-6 py-3 rounded-xl font-medium text-sm md:text-base active:scale-[0.98]';
 
   if (!loading && authenticated) {
     const home = homePathForRole(user?.role);
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex w-full flex-col items-center sm:items-start gap-3">
         <div className={rowClass}>
           <Link href={home} className={linkClass}>
             <Button size="lg" className={primaryBtnClass}>
@@ -48,7 +49,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
         </div>
         <p
           className={cn(
-            'mt-3 flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit',
+            'mt-0 flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit mx-auto sm:mx-0 lg:mx-0 text-center sm:text-left',
             stacked && 'justify-center text-center',
           )}
         >
@@ -60,7 +61,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex w-full flex-col items-center sm:items-start gap-3">
       <div className={rowClass}>
         <Link href="/client/inscription" className={linkClass}>
           <Button size="lg" className={primaryBtnClass}>
@@ -82,7 +83,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
       <Link
         href="/suivi"
         className={cn(
-          'mt-3 inline-flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit font-medium underline-offset-4 hover:underline',
+          'mt-0 inline-flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit font-medium underline-offset-4 hover:underline mx-auto sm:mx-0 lg:mx-0 text-center sm:text-left',
           stacked && 'flex justify-center text-center',
         )}
       >
