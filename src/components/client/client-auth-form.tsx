@@ -1,6 +1,7 @@
 'use client';
 
 import { type FormEvent, useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
@@ -43,6 +44,9 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [cities, setCities] = useState<City[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* Formulaire multi-step (inscription uniquement) :
+   * étape 1 = Identité & Contact, étape 2 = Localisation & Sécurité. */
+  const [step, setStep] = useState<1 | 2>(1);
 
   useEffect(() => {
     if (!isSignUp) return;
@@ -52,6 +56,14 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const passwordValid = password.length >= 8;
   const passwordsMatch = isSignUp ? password === confirmPassword : true;
   const cityValue = city || '';
+  const emailValid = /\S+@\S+\.\S+/.test(email.trim());
+
+  /* Passage à l'étape 2 : identité + contact valides. */
+  const canContinue =
+    firstName.trim() !== '' && lastName.trim() !== '' && emailValid;
+
+  const darkCtaClass =
+    'h-auto w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-lg shadow-orange-500/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 min-h-12 text-sm sm:text-base';
 
   const canSubmit =
     email.trim() !== '' &&
@@ -137,6 +149,36 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {isSignUp ? (
+        <div role="group" aria-label="Étapes d'inscription">
+          <ol className="flex items-center gap-2 text-xs font-semibold">
+            <li aria-current={step === 1 ? 'step' : undefined} className={step === 1 ? 'text-orange-400' : 'text-emerald-300'}>
+              1. Identité &amp; Contact
+            </li>
+            <li aria-hidden className="h-px flex-1 bg-white/10" />
+            <li aria-current={step === 2 ? 'step' : undefined} className={step === 2 ? 'text-orange-400' : 'text-slate-400'}>
+              2. Localisation &amp; Sécurité
+            </li>
+          </ol>
+          <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden>
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-[width] duration-500 ease-out"
+              style={{ width: step === 1 ? '50%' : '100%' }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={isSignUp ? `signup-step-${step}` : 'signin'}
+        initial={{ opacity: 0, x: 24 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -24 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="space-y-4"
+      >
+      {isSignUp && step === 1 ? (
+        <div className="grid grid-cols-2 gap-3">
         <Field label="Prénom" htmlFor="client-firstName" required>
           <Input
             id="client-firstName"
@@ -146,9 +188,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
             autoComplete="given-name"
           />
         </Field>
-      ) : null}
-
-      {isSignUp ? (
         <Field label="Nom" htmlFor="client-lastName" required>
           <Input
             id="client-lastName"
@@ -158,9 +197,11 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
             autoComplete="family-name"
           />
         </Field>
+        </div>
       ) : null}
 
       {isSignUp ? (
+        step === 1 ? (
         <Field label="Téléphone" htmlFor="client-phone" hint="WhatsApp de préférence" required>
           <Input
             id="client-phone"
@@ -171,9 +212,11 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
             autoComplete="tel"
           />
         </Field>
+        ) : null
       ) : null}
 
       {isSignUp ? (
+        step === 1 ? (
         <Field label="WhatsApp (facultatif)" htmlFor="client-whatsapp">
           <Input
             id="client-whatsapp"
@@ -183,8 +226,10 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
             inputMode="tel"
           />
         </Field>
+        ) : null
       ) : null}
 
+      {!isSignUp || step === 1 ? (
       <Field label="Adresse e-mail" htmlFor="client-email" required>
         <Input
           id="client-email"
@@ -195,8 +240,9 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           autoComplete="email"
         />
       </Field>
+      ) : null}
 
-      {isSignUp ? (
+      {isSignUp && step === 2 ? (
         <Field label="Ville" htmlFor="client-city" required>
           <Select id="client-city" value={cityValue} onChange={(e) => setCity(e.target.value)}>
             <option value="">Sélectionnez votre ville</option>
@@ -209,7 +255,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
         </Field>
       ) : null}
 
-      {isSignUp ? (
+      {isSignUp && step === 2 ? (
         <Field
           label="Adresse précise"
           htmlFor="client-address"
@@ -226,6 +272,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
         </Field>
       ) : null}
 
+      {!isSignUp || step === 2 ? (
       <Field label="Mot de passe" htmlFor="client-password" required>
         <div className="relative">
           <Input
@@ -266,8 +313,9 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           <p className="text-xs text-success-ink">Mot de passe valide</p>
         ) : null}
       </Field>
+      ) : null}
 
-      {isSignUp ? (
+      {isSignUp && step === 2 ? (
         <Field label="Confirmer le mot de passe" htmlFor="client-confirmPassword" required>
           <Input
             id="client-confirmPassword"
@@ -283,7 +331,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
         </Field>
       ) : null}
 
-      {isSignUp ? (
+      {isSignUp && step === 2 ? (
         <label className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${dark ? 'border-slate-700/80 bg-slate-800/60' : 'border-border bg-card'}`}>
           <input
             type="checkbox"
@@ -304,15 +352,57 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
+      {isSignUp && step === 1 ? (
+        <Button
+          type="button"
+          size="lg"
+          disabled={!canContinue}
+          onClick={() => setStep(2)}
+          className={dark ? darkCtaClass : 'w-full'}
+        >
+          Continuer
+          <span aria-hidden>→</span>
+        </Button>
+      ) : null}
+
+      {isSignUp && step === 2 ? (
+        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+          <Button
+            type="button"
+            size="lg"
+            variant="secondary"
+            onClick={() => setStep(1)}
+            disabled={isSubmitting}
+            className={dark ? 'min-h-12 w-full border-slate-700/80 bg-slate-800/60 text-slate-100 hover:bg-slate-800 text-sm sm:w-auto sm:text-base' : 'w-full sm:w-auto'}
+          >
+            <span aria-hidden>←</span>
+            Retour
+          </Button>
+          <Button
+            type="submit"
+            size="lg"
+            isLoading={isSubmitting}
+            disabled={!canSubmit}
+            className={dark ? `${darkCtaClass} sm:w-auto sm:flex-1` : 'w-full flex-1'}
+          >
+            Créer mon compte
+          </Button>
+        </div>
+      ) : null}
+
+      {!isSignUp ? (
       <Button
         type="submit"
         size="lg"
         isLoading={isSubmitting}
         disabled={!canSubmit}
-        className={dark ? 'h-auto w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-lg shadow-orange-500/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 min-h-12 text-sm sm:text-base' : 'w-full'}
+        className="w-full"
       >
-        {isSignUp ? 'Créer mon compte' : 'Se connecter'}
+        Se connecter
       </Button>
+      ) : null}
+      </motion.div>
+      </AnimatePresence>
     </form>
   );
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
-import { RegisterBrandPanel } from '@/components/auth/RegisterBrandPanel';
+import { RegisterPhoneMockup } from '@/components/auth/RegisterPhoneMockup';
 import { Icon } from '@/components/ui/icon';
 
 /* Page d'inscription : fond lumineux en dégradé + halos, double colonne
@@ -19,9 +19,9 @@ export function RegisterSplit() {
       <div aria-hidden className="absolute -bottom-40 -right-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        {/* Colonne gauche : panneau de réassurance */}
-        <div className="lg:col-span-5 flex">
-          <RegisterBrandPanel />
+        {/* Colonne gauche : mockup smartphone flottant */}
+        <div className="lg:col-span-5 flex items-center">
+          <RegisterPhoneMockup />
         </div>
 
         {/* Colonne droite : formulaire soigné & contrasté */}
