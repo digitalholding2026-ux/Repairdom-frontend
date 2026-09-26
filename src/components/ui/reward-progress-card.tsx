@@ -28,7 +28,7 @@ export function RewardProgressCard({
   const progress = Math.min(completedCount / target, 1);
   return (
     <Link href={href} className="block active:scale-[0.99] transition-transform">
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A] p-5 text-white shadow-float">
+      <div className="animate-float-wave-delayed relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/95 p-5 text-white shadow-float backdrop-blur-sm">
         <div
           aria-hidden
           className="pointer-events-none absolute -left-8 -top-10 size-36 rounded-full bg-white/20 blur-2xl"

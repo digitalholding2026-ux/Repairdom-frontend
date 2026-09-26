@@ -116,7 +116,7 @@ export function TrackingPreview() {
         })}
       </ol>
 
-      <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-xl border border-primary/20 bg-primary/5 p-4 dark:bg-primary/10 sm:flex-row">
+      <div className="mt-8 flex flex-col items-center justify-between gap-4 rounded-xl border border-primary/20 bg-relio-tint p-4 dark:bg-primary/10 sm:flex-row">
         <p className="text-center text-sm font-medium sm:text-left">
           Vous avez une urgence ou un problème technique ?
         </p>

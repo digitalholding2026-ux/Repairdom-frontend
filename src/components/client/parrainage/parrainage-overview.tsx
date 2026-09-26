@@ -3,7 +3,7 @@ import { Icon } from '@/components/ui/icon';
 
 export function ParrainageOverview({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A] p-5 text-white shadow-pop">
+    <div className="animate-float-wave relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/95 p-5 text-white shadow-pop backdrop-blur-sm">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"

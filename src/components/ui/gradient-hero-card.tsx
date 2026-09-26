@@ -10,10 +10,10 @@ import { cn } from '@/lib/cn';
 export type HeroTone = 'brand' | 'primary' | 'success' | 'neutral';
 
 const TONE_CLASSES: Record<HeroTone, string> = {
-  /* Bleu Nuit Deep fixe : fond volontairement non adaptatif, le texte
-   * blanc reste lisible en mode sombre comme en mode clair. */
-  brand: 'bg-[#0F172A]',
-  primary: 'bg-[#0F172A]',
+  /* Bleu Nuit Deep fixe + verre translucide flottant : fond volontairement
+   * non adaptatif, le texte blanc reste lisible en mode sombre comme clair. */
+  brand: 'animate-float-wave bg-[#0F172A]/95 backdrop-blur-sm',
+  primary: 'animate-float-wave bg-[#0F172A]/95 backdrop-blur-sm',
   success: 'success-gradient',
   /* Fixe (ardoise sombre) : fond volontairement non adaptatif, le texte
    * blanc doit rester lisible en mode sombre comme en mode clair. */

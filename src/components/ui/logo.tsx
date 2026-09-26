@@ -21,9 +21,9 @@ function PinGradient({ id }: { id: string }) {
   return (
     <defs>
       <linearGradient id={id} x1="0" y1="0" x2="0.85" y2="1">
-        <stop offset="0%" stopColor="#FF9500" />
-        <stop offset="58%" stopColor="#FF6A00" />
-        <stop offset="100%" stopColor="#FF4D00" />
+        <stop offset="0%" stopColor="#FB923C" />
+        <stop offset="58%" stopColor="#F97316" />
+        <stop offset="100%" stopColor="#EA580C" />
       </linearGradient>
     </defs>
   );
@@ -43,7 +43,7 @@ export function Logo({ variant = 'full', className }: LogoProps) {
       >
         <PinGradient id={gradientId} />
         <path d={PIN_BODY} fill={`url(#${gradientId})`} fillRule="evenodd" />
-        <circle cx="854" cy="164" r="20" fill="#FF8A00" />
+        <circle cx="854" cy="164" r="20" fill="#FB923C" />
       </svg>
     );
   }
@@ -68,7 +68,7 @@ export function Logo({ variant = 'full', className }: LogoProps) {
         Reli
       </text>
       <path d={PIN_BODY} fill={`url(#${gradientId})`} fillRule="evenodd" />
-      <circle cx="854" cy="164" r="20" fill="#FF8A00" />
+      <circle cx="854" cy="164" r="20" fill="#FB923C" />
     </svg>
   );
 }

@@ -55,10 +55,12 @@
   --color-brand: var(--brand);
   --color-brand-secondary: var(--brand-secondary);
 
-  /* Palette officielle Relio (logo 2026) : orange #FF6A00 / #FF9500, fond
-   * sombre #0B0D12, surface #151922, texte #F8FAFC, muted #A1A1AA. */
-  --color-relio-orange: #ff6a00;
-  --color-relio-orange-bright: #ff9500;
+  /* Palette officielle Relio adoucie (ambré premium) : orange #F97316 /
+   * #FB923C, tint rgba(249,115,22,0.08), fond sombre #0B0D12, surface
+   * #151922, texte #F8FAFC, muted #A1A1AA. */
+  --color-relio-orange: #f97316;
+  --color-relio-orange-bright: #fb923c;
+  --color-relio-tint: rgba(249, 115, 22, 0.08);
   --color-relio-bg: #0b0d12;
   --color-relio-card: #151922;
   --color-relio-text: #f8fafc;
@@ -91,34 +93,34 @@
 :root {
   --background: #f6f7f9;
   --foreground: #0f172a;
-  /* Identité Relio : primaire #FF6A00. Contraste blanc insuffisant (~2.9:1),
-   * donc texte sombre #0B0D12 sur fond primaire (ratio ~6.5:1, AA validé). */
-  --primary: #ff6a00;
-  --primary-hover: #ff9500;
+  /* Identité Relio : primaire adouci #F97316, texte sombre #0B0D12
+   * (ratio ~6.7:1, AA validé). */
+  --primary: #f97316;
+  --primary-hover: #fb923c;
   --primary-foreground: #0b0d12;
   --secondary: #fff0e6;
   --secondary-foreground: #b44300;
   --muted: #eef0f3;
   --muted-foreground: #64748b;
-  /* Accent lumineux Relio (stops décoratifs, glows, progressions). */
-  --accent: #ff9500;
+  /* Accent lumineux Relio adouci (stops décoratifs, glows, progressions). */
+  --accent: #fb923c;
   --accent-foreground: #0b0d12;
   --destructive: #dc2626;
   --card: #ffffff;
   --card-foreground: #0f172a;
   --border: #e2e8f0;
-  --ring: #ff6a00;
+  --ring: #f97316;
 
-  /* Gradient officiel Relio (orange lumineux → orange → orange profond). */
-  --brand-gradient-from: #ff9500;
-  --brand-gradient-via: #ff6a00;
-  --brand-gradient-to: #ff4d00;
+  /* Gradient officiel Relio adouci (ambré premium). */
+  --brand-gradient-from: #fb923c;
+  --brand-gradient-via: #f97316;
+  --brand-gradient-to: #ea580c;
 
-  /* Valeurs officielles brutes : orange primaire et orange lumineux.
+  /* Valeurs officielles brutes : orange primaire adouci et orange lumineux.
    * `bg-brand`/`text-brand` restent réservés au décoratif/grands aplats,
    * `bg-primary`/`text-primary` pour tout texte ou CTA. */
-  --brand: #ff6a00;
-  --brand-secondary: #ff9500;
+  --brand: #f97316;
+  --brand-secondary: #fb923c;
 
   /* Gradient gamification/récompenses (ambre → orange). */
   --reward-from: #f59e0b;
@@ -158,25 +160,25 @@
   :root {
     --background: #0b0d12;
     --foreground: #f8fafc;
-    /* Sombre : primaire #FF6A00 officiel, texte #0B0D12 (ratio ~6.5:1). */
-    --primary: #ff6a00;
-    --primary-hover: #ff9500;
+    /* Sombre : primaire adouci #F97316 officiel, texte #0B0D12 (ratio ~6.7:1). */
+    --primary: #f97316;
+    --primary-hover: #fb923c;
     --primary-foreground: #0b0d12;
     --secondary: #202634;
     --secondary-foreground: #e8eaf0;
     --muted: #1b2230;
     --muted-foreground: #a1a1aa;
-    --accent: #ff9500;
+    --accent: #fb923c;
     --accent-foreground: #0b0d12;
     --destructive: #f87171;
     --card: #151922;
     --card-foreground: #f8fafc;
     --border: #252d3d;
-    --ring: #ff6a00;
+    --ring: #f97316;
 
-    --brand-gradient-from: #ff9500;
-    --brand-gradient-via: #ff6a00;
-    --brand-gradient-to: #ff4d00;
+    --brand-gradient-from: #fb923c;
+    --brand-gradient-via: #f97316;
+    --brand-gradient-to: #ea580c;
 
     --reward-from: #fbbf24;
     --reward-via: #fb923c;
@@ -325,6 +327,18 @@
   }
 }
 
+/* Flottaison douce « wave » (glassmorphism) : micro-mouvement -5px, lent,
+ * respecté par la règle `prefers-reduced-motion` ci-dessus. */
+@keyframes floatWave {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
 @keyframes word-rise {
   from {
     opacity: 0;
@@ -351,7 +365,7 @@
 }
 
 .hero-gradient {
-  background-image: linear-gradient(135deg, #ff9500, #ff4d00);
+  background-image: linear-gradient(135deg, #fb923c, #ea580c);
   background-size: 280% 280%;
   animation: gradient-pan 16s ease-in-out infinite;
 }
@@ -409,6 +423,14 @@
 
 .animate-float {
   animation: float-y 6s ease-in-out infinite;
+}
+
+.animate-float-wave {
+  animation: floatWave 6s ease-in-out infinite;
+}
+
+.animate-float-wave-delayed {
+  animation: floatWave 7s ease-in-out infinite 1.5s;
 }
 
 .animate-pulse-dot {
