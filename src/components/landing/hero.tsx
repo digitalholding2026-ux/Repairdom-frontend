@@ -18,10 +18,9 @@ export function Hero() {
         intervention rapide.
       </p>
 
-      <div aria-hidden className="animate-float absolute -right-20 -top-24 size-72 rounded-full bg-[#F97316]/20 blur-3xl" />
       <div
         aria-hidden
-        className="animate-float absolute -bottom-36 -left-24 size-80 rounded-full bg-[#FB923C]/10 blur-3xl [animation-delay:3s]"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F97316]/10 blur-[120px]"
       />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
