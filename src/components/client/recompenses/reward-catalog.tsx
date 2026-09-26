@@ -1,72 +1,82 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Icon, type IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 import { useToast } from '@/lib/toast-context';
 
-interface RewardTier {
+export interface RewardItem {
   id: string;
+  tier: string;
   title: string;
-  requiredCount: number;
-  icon: IconName;
   description: string;
-  /** Variante du badge quand le lot est encore verrouillé. */
-  lockedVariant: BadgeVariant;
-  grandPrize?: boolean;
+  imageSrc: string;
+  requiredServices: number;
+  badge?: string;
+  isMystery?: boolean;
 }
 
-/* Catalogue des lots fidélité (données de présentation ; le compteur de
- * dépannages confirmés, lui, est réel). */
-const REWARD_TIERS: RewardTier[] = [
+/* Catalogue des lots fidélité (le compteur de dépannages confirmés, lui,
+ * est réel). Visuels servis depuis `/public/recompense/`. */
+export const REWARDS_CATALOG: RewardItem[] = [
   {
     id: 'free-repair',
+    tier: 'PALIER 5 DÉPANNAGES',
     title: 'Dépannage 100% Gratuit',
-    requiredCount: 5,
-    icon: 'wrench',
-    description: 'Une main d\u2019œuvre entièrement offerte sur votre prochaine intervention.',
-    lockedVariant: 'warning',
+    description: 'Une main d’œuvre entièrement offerte sur votre prochaine intervention.',
+    imageSrc: '/recompense/free_repair.png',
+    requiredServices: 5,
   },
   {
-    id: 'relio-pack',
+    id: 'tshirt-cap',
+    tier: 'PALIER 5 DÉPANNAGES',
     title: 'T-shirt & Casquette Relio',
-    requiredCount: 5,
-    icon: 'sparkles',
     description: 'Pack collector officiel Relio livré gratuitement chez vous.',
-    lockedVariant: 'warning',
+    imageSrc: '/recompense/tshirt_cap.png',
+    requiredServices: 5,
   },
   {
-    id: 'iron',
+    id: 'iron-pro',
+    tier: 'PALIER 12 DÉPANNAGES',
     title: 'Fer à Repasser Qualité Pro',
-    requiredCount: 12,
-    icon: 'zap',
     description: 'Un fer à repasser performant pour votre maison.',
-    lockedVariant: 'neutral',
+    imageSrc: '/recompense/iron.png',
+    requiredServices: 12,
   },
   {
-    id: 'tv',
+    id: 'smart-tv',
+    tier: 'PALIER 25 DÉPANNAGES',
     title: 'Écran TV LED Smart',
-    requiredCount: 25,
-    icon: 'cpu',
     description: 'Téléviseur Haute Définition offert aux clients les plus fidèles.',
-    lockedVariant: 'neutral',
+    imageSrc: '/recompense/tv.png',
+    requiredServices: 25,
   },
   {
-    id: 'fridge',
-    title: 'Réfrigérateur Familial',
-    requiredCount: 50,
-    icon: 'thermometer',
-    description: 'Le gros lot électroménager livré et installé chez vous.',
-    lockedVariant: 'neutral',
-    grandPrize: true,
+    id: 'smartphone',
+    tier: 'PALIER 50 DÉPANNAGES',
+    title: 'Smartphone Moderne',
+    description: 'Un smartphone performant offert pour accompagner votre quotidien.',
+    imageSrc: '/recompense/smartphone.png',
+    requiredServices: 50,
+  },
+  {
+    id: 'mystery-grand-prize',
+    tier: 'PALIER 100 DÉPANNAGES',
+    title: 'Un cadeau surprise',
+    description: 'Le lot ultime réservé exclusivement aux membres d’exception.',
+    imageSrc: '/recompense/mystery_box.png',
+    requiredServices: 100,
+    badge: 'Grand Prix',
+    isMystery: true,
   },
 ];
 
-function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount: number }) {
+function RewardCard({ reward, completedCount }: { reward: RewardItem; completedCount: number }) {
   const { toast } = useToast();
-  const unlocked = completedCount >= tier.requiredCount;
-  const progress = Math.min(completedCount / tier.requiredCount, 1);
+  const unlocked = completedCount >= reward.requiredServices;
+  const progress = Math.min(completedCount / reward.requiredServices, 1);
 
   const claimReward = () => {
     toast({
@@ -77,27 +87,41 @@ function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount
   };
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-card p-5 shadow-sm transition-all hover:border-primary/50 hover:shadow-md dark:border-slate-800">
-      {tier.grandPrize ? (
-        <span className="absolute right-3 top-3">
-          <Badge variant="outline">Grand Prix</Badge>
-        </span>
-      ) : null}
-      <div>
-        <span className="flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
-          <Icon name={tier.icon} size="md" />
-        </span>
-        <p className="mt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Palier {tier.requiredCount} dépannages
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-sm transition-all hover:border-primary/50 hover:shadow-md dark:border-slate-800">
+      <div className="relative h-40 overflow-hidden rounded-t-xl bg-slate-50 dark:bg-slate-800/50">
+        <Image
+          src={reward.imageSrc}
+          alt={reward.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+        />
+        {reward.isMystery ? (
+          <span
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center text-6xl font-extrabold text-[#F97316] drop-shadow-[0_0_18px_rgba(249,115,22,0.55)]"
+          >
+            ?
+          </span>
+        ) : null}
+        {reward.badge ? (
+          <span className="absolute right-3 top-3">
+            <Badge variant="outline">{reward.badge}</Badge>
+          </span>
+        ) : null}
+      </div>
+      <div className="flex flex-1 flex-col p-5">
+        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          {reward.tier}
         </p>
-        <p className="mt-1 text-base font-semibold">{tier.title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{tier.description}</p>
+        <p className="mt-1 text-base font-semibold">{reward.title}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{reward.description}</p>
         <div className="mt-3">
           {unlocked ? (
             <Badge variant="success">Débloqué</Badge>
           ) : (
-            <Badge variant={tier.lockedVariant}>
-              Verrouillé ({completedCount}/{tier.requiredCount})
+            <Badge variant={reward.requiredServices > 5 ? 'neutral' : 'warning'}>
+              Verrouillé ({completedCount}/{reward.requiredServices})
             </Badge>
           )}
         </div>
@@ -107,7 +131,7 @@ function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount
           aria-valuenow={Math.round(progress * 100)}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`Progression vers ${tier.title}`}
+          aria-label={`Progression vers ${reward.title}`}
         >
           <div
             className="h-full rounded-full bg-primary transition-all"
@@ -115,7 +139,7 @@ function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount
           />
         </div>
       </div>
-      <div className="mt-4">
+      <div className="px-5 pb-5">
         {unlocked ? (
           <Button size="sm" className="w-full animate-bounce" onClick={claimReward}>
             Réclamer le cadeau
@@ -133,8 +157,8 @@ function RewardCard({ tier, completedCount }: { tier: RewardTier; completedCount
 export function RewardCatalog({ completedCount }: { completedCount: number }) {
   return (
     <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {REWARD_TIERS.map((tier) => (
-        <RewardCard key={tier.id} tier={tier} completedCount={completedCount} />
+      {REWARDS_CATALOG.map((reward) => (
+        <RewardCard key={reward.id} reward={reward} completedCount={completedCount} />
       ))}
     </div>
   );
