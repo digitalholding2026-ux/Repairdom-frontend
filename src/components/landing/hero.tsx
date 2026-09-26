@@ -3,8 +3,8 @@ import { Icon } from '@/components/ui/icon';
 import { HeroActions } from './hero-actions';
 
 /* Hero immersif plein format : l'affiche marketing `/hero/hero_main.png`
- * (1536×1024, ratio 3:2 exact) contient déjà le titre, les badges et les
- * visuels — elle s'affiche EN ENTIER sans rognage (conteneur aspect-[3/2]
+ * (1536×730, ratio 768:365 exact) contient déjà le titre, les badges et les
+ * visuels — elle s'affiche EN ENTIER sans rognage (conteneur aspect-768/365
  * + object-cover aux proportions identiques = zéro coupe). Aucun texte
  * HTML en doublon : le h1 et la description restent accessibles aux
  * lecteurs d'écran et au SEO en `sr-only`. Les boutons HTML réels
@@ -24,7 +24,7 @@ export function Hero() {
       />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
-        <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
+        <div className="relative aspect-[768/365] w-full overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
           <Image
             src="/hero/hero_main.png"
             alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
