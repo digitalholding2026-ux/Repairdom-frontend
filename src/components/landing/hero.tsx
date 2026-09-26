@@ -64,7 +64,7 @@ export function Hero() {
 
       {/* ── Mobile & Tablette (< lg) : image non tronquée + boutons en flux ── */}
       <div className="w-full px-4 pt-6 pb-8 sm:px-6 lg:hidden">
-        <div className="relative w-full h-auto aspect-[4/3] sm:aspect-[16/10] overflow-hidden rounded-xl border border-white/10 shadow-2xl">
+        <div className="relative w-full h-auto aspect-[4/3] sm:aspect-[16/10] overflow-hidden rounded-xl border border-white/10 shadow-lg transform-gpu">
           <Image
             src="/hero/hero_main.png"
             alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"

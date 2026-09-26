@@ -27,7 +27,7 @@ export function WorkspaceSidebar({
 
   return (
     <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label={`Navigation ${label}`}>
-      <div className="rounded-2xl border border-slate-200/60 bg-white/60 p-2 shadow-xl shadow-slate-200/40 backdrop-blur-lg transition-all duration-300 dark:border-white/10 dark:bg-[#151922]/60 dark:shadow-black/50">
+      <div className="rounded-2xl border border-slate-200/60 bg-white/60 p-2 shadow-xl shadow-slate-200/40 backdrop-blur-md transition-all duration-300 dark:border-white/10 dark:bg-[#151922]/60 dark:shadow-black/50">
         <div className="flex justify-center px-3 pb-1 pt-3">
           <BrandLogo href={items[0]?.href ?? '/'} />
         </div>

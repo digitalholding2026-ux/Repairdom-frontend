@@ -3,14 +3,14 @@ import { Icon } from '@/components/ui/icon';
 
 export function ParrainageOverview({ code, copied, onCopy }: { code: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="animate-float-wave relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/95 p-5 text-white shadow-pop backdrop-blur-sm">
+    <div className="motion-safe:animate-float-wave relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/95 p-5 text-white shadow-pop backdrop-blur-sm transform-gpu">
       <div
         aria-hidden
         className="pointer-events-none absolute -right-10 -top-14 size-40 rounded-full bg-white/15 blur-2xl"
       />
       <div
         aria-hidden
-        className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="motion-safe:animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
       <div
         aria-hidden

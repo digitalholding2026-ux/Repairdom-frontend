@@ -131,7 +131,7 @@ export function PublicHeader() {
 
       {/* Drawer mobile : overlay sombre translucide avec tous les liens + CTA */}
       {isOpen ? (
-        <div className="fixed inset-0 z-50 bg-[#0B0D12]/95 backdrop-blur-xl lg:hidden" role="dialog" aria-modal="true" aria-label="Menu de navigation">
+        <div className="fixed inset-0 z-50 bg-[#0B0D12]/95 backdrop-blur-md lg:hidden" role="dialog" aria-modal="true" aria-label="Menu de navigation">
           <div className="flex h-full flex-col px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4">
             <div className="flex h-14 items-center justify-between">
               <BrandLogo href="/" />

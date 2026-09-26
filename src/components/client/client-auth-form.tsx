@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -72,7 +72,10 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
     (isSignUp ? firstName.trim() !== '' && lastName.trim() !== '' && cityValue.trim() !== '' && address.trim() !== '' && acceptTerms : true);
 
   /* Complétion (inscription) : prénom, nom, e-mail, ville, adresse,
-   * mot de passe valide, confirmation concordante, CGU acceptées. */
+   * mot de passe valide, confirmation concordante, CGU acceptées.
+   * Garde anti-recalcul : le parent n'est notifié que si le % ou
+   * l'identité a réellement changé (pas de setState à chaque frappe). */
+  const lastProgress = useRef<{ percent: number; firstName: string; lastName: string } | null>(null);
   useEffect(() => {
     if (!isSignUp || !onProgressChange) return;
     const steps = [
@@ -85,10 +88,18 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       confirmPassword !== '' && passwordsMatch,
       acceptTerms,
     ];
-    onProgressChange(Math.round((steps.filter(Boolean).length / steps.length) * 100), {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-    });
+    const percent = Math.round((steps.filter(Boolean).length / steps.length) * 100);
+    const identity = { firstName: firstName.trim(), lastName: lastName.trim() };
+    const prev = lastProgress.current;
+    if (
+      !prev ||
+      prev.percent !== percent ||
+      prev.firstName !== identity.firstName ||
+      prev.lastName !== identity.lastName
+    ) {
+      lastProgress.current = { percent, ...identity };
+      onProgressChange(percent, identity);
+    }
   }, [isSignUp, onProgressChange, firstName, lastName, email, cityValue, address, passwordValid, confirmPassword, passwordsMatch, acceptTerms]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

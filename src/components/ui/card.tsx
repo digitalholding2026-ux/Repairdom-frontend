@@ -7,7 +7,7 @@ export function Card({ className, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        'glass-card animate-float-wave rounded-lg text-card-foreground hover:shadow-2xl',
+        'glass-card motion-safe:animate-float-wave rounded-lg text-card-foreground hover:shadow-lg',
         className,
       )}
       {...props}

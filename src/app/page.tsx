@@ -178,7 +178,7 @@ export default function HomePage() {
                     >
                       {/* Contraste volontairement fixe : bouton blanc sur hero gradient
                         (inchangé en sombre) — un token adaptatif casserait le ratio. */}
-                      <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
+                      <span aria-hidden className="motion-safe:animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
                       J&apos;ai besoin d&apos;un dépannage
                     </Button>
                   </Link>

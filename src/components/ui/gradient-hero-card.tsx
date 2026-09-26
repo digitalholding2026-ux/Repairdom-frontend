@@ -13,8 +13,8 @@ const TONE_CLASSES: Record<HeroTone, string> = {
   /* Bleu Nuit translucide flottant (#0F172A/85, verre dépoli) + halo
    * orange ambré adouci : fond volontairement non adaptatif, le texte
    * blanc reste lisible en mode sombre comme clair. */
-  brand: 'animate-float-wave bg-[#0F172A]/85 backdrop-blur-lg',
-  primary: 'animate-float-wave-delayed bg-[#0F172A]/85 backdrop-blur-lg',
+  brand: 'motion-safe:animate-float-wave bg-[#0F172A]/85 backdrop-blur-sm transform-gpu',
+  primary: 'motion-safe:animate-float-wave-delayed bg-[#0F172A]/85 backdrop-blur-sm transform-gpu',
   success: 'success-gradient',
   /* Fixe (ardoise sombre) : fond volontairement non adaptatif, le texte
    * blanc doit rester lisible en mode sombre comme en mode clair. */
@@ -42,7 +42,7 @@ export function GradientHeroCard({ tone = 'brand', className, children }: Gradie
       />
       <div
         aria-hidden
-        className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+        className="motion-safe:animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
       />
       <div
         aria-hidden

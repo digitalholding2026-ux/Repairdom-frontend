@@ -20,7 +20,7 @@ export function RegisterSplit() {
       <div className="relative w-full max-w-xl">
         {/* Formulaire premium glassmorphism, centré */}
         <div>
-          <div className="bg-slate-900/70 backdrop-blur-xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 w-full">
+          <div className="bg-slate-900/70 backdrop-blur-md border border-white/15 rounded-3xl p-6 sm:p-8 shadow-lg transform-gpu space-y-6 w-full">
             {/* Barre de progression */}
             <div role="group" aria-label="Progression du formulaire">
               <div className="flex items-baseline justify-between gap-2">

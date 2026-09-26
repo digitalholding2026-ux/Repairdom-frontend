@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -894,7 +894,9 @@ function DomainTile({ icon, title, description, selected, onClick }: DomainTileP
   );
 }
 
-function StepProgress({ current, labels }: { current: number; labels: string[] }) {
+/* Mémoïsé : props stables (index + labels constants) — ne se re-rend pas
+ * à chaque frappe dans les champs du wizard. */
+const StepProgress = memo(function StepProgress({ current, labels }: { current: number; labels: string[] }) {
   const percent = Math.round(((current + 1) / labels.length) * 100);
   return (
     <div className="space-y-2" role="group" aria-label="Progression">
@@ -909,7 +911,7 @@ function StepProgress({ current, labels }: { current: number; labels: string[] }
           className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-[width] duration-500 ease-out"
           style={{ width: `${percent}%` }}
         />
-        <div className="animate-sheen absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
+        <div className="motion-safe:animate-sheen absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
       </div>
       <ol className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Étapes">
         {labels.map((label, index) => (
@@ -926,7 +928,7 @@ function StepProgress({ current, labels }: { current: number; labels: string[] }
       </ol>
     </div>
   );
-}
+});
 
 interface StickyRecapProps {
   device: string;

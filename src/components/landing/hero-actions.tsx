@@ -31,7 +31,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
         <div className={rowClass}>
           <Link href={home} className={linkClass}>
             <Button size="lg" className={primaryBtnClass}>
-              <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+              <span aria-hidden className="motion-safe:animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
               Continuer ma mission
               <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
             </Button>
@@ -65,7 +65,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
       <div className={rowClass}>
         <Link href="/client/inscription" className={linkClass}>
           <Button size="lg" className={primaryBtnClass}>
-            <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+            <span aria-hidden className="motion-safe:animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
             J&apos;ai besoin d&apos;un dépannage
             <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
           </Button>

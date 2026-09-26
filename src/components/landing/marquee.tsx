@@ -24,7 +24,7 @@ export function Marquee({
       style={{ ...style, '--marquee-duration': `${duration}s` } as CSSProperties}
       className={cn('marquee-pause overflow-hidden', className)}
     >
-      <div className={cn('marquee-track flex w-max gap-3 pr-3', reverse && 'marquee-reverse')}>
+      <div className={cn('marquee-track flex w-max gap-3 pr-3 transform-gpu will-change-transform', reverse && 'marquee-reverse')}>
         {doubled.map((item, index) => (
           /* UI-6 : la moitié dupliquée (boucle infinie) est masquée aux
            * lecteurs d'écran pour éviter la double lecture. */
