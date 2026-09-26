@@ -67,7 +67,7 @@ export default function HomePage() {
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
 
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-clip">
         <Hero />
 
         <div className="relative mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
@@ -97,13 +97,13 @@ export default function HomePage() {
                 Comment ça marche ?
               </h2>
             </Reveal>
-            <ol className="mt-6 space-y-0 lg:grid lg:grid-cols-5 lg:gap-4">
+            <ol className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-5">
               {steps.map((step, index) => (
-                <li key={step.title} className="relative flex gap-4 pb-7 last:pb-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5 lg:pb-5">
+                <li key={step.title} className="relative flex gap-4 pb-7 last:pb-0 sm:pb-0 lg:flex-col lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5 lg:pb-5">
                   {index < steps.length - 1 ? (
                     <Reveal
                       delay={index * 60}
-                      className="absolute left-[19px] top-11 bottom-0 w-px bg-border lg:hidden"
+                      className="absolute left-[19px] top-11 bottom-0 w-px bg-border sm:hidden"
                     />
                   ) : null}
                   <Reveal delay={index * 60} className="relative z-10">
@@ -137,7 +137,7 @@ export default function HomePage() {
                 Le dépannage en confiance
               </h2>
             </Reveal>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
               {trust.map((item, index) => (
                 <Reveal key={item.title} delay={index * 70} className="h-full">
                   <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30">

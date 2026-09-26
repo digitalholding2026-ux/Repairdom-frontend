@@ -61,7 +61,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
-      <body className="min-h-dvh font-sans antialiased">
+      <body className="min-h-dvh overflow-x-clip font-sans antialiased">
         <ToastProvider>
           <AuthProvider>{children}</AuthProvider>
           <Toaster />

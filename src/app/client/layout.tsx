@@ -69,7 +69,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
             action={{ href: '/client/demande', label: 'Nouvelle demande', icon: 'plus' }}
           />
         ) : null}
-        <main className="min-w-0 w-full flex-1 pb-28 lg:pb-10">
+        <main className="min-w-0 w-full flex-1 overflow-x-clip pb-28 lg:pb-10">
           <div key={pathname} className="animate-slide-up">
             <RoleGuard expectedRole="CLIENT" publicPaths={CLIENT_PUBLIC_PATHS}>
               {children}

@@ -62,7 +62,7 @@ export function StatsBand() {
       <p id="stats-title" className="sr-only">
         Relio en chiffres
       </p>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         {STATS.map((stat, index) => (
           <Reveal key={stat.label} delay={index * 80} className="h-full">
             <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30 md:p-5">

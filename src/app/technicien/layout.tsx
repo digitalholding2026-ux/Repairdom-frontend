@@ -58,7 +58,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar label="Espace technicien" items={TECHNICIAN_NAV} />
         ) : null}
-        <main className="min-w-0 w-full flex-1 pb-28 lg:pb-10">
+        <main className="min-w-0 w-full flex-1 overflow-x-clip pb-28 lg:pb-10">
           <div key={pathname} className="animate-slide-up">
             <RoleGuard expectedRole="TECHNICIAN" publicPaths={TECHNICIAN_PUBLIC_PATHS}>
               {children}

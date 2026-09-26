@@ -79,7 +79,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-describedby={description ? descriptionId : undefined}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-describedby={description ? descriptionId : undefined}>
       <div
         aria-hidden
         onClick={onClose}
@@ -89,8 +89,7 @@ export function Modal({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden animate-[slide-up_180ms_ease-out] rounded-t-2xl border border-border bg-card shadow-pop focus:outline-none',
-          'sm:rounded-2xl',
+          'relative z-10 flex max-h-[90dvh] w-[95%] sm:w-full max-w-lg mx-auto flex-col overflow-hidden animate-[slide-up_180ms_ease-out] rounded-2xl border border-border bg-card shadow-pop focus:outline-none',
           centered ? 'sm:max-w-sm' : 'sm:mx-4',
           className,
         )}
@@ -98,7 +97,7 @@ export function Modal({
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
         <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4">
           <div className="min-w-0 space-y-1">
-            {title ? <h2 id={titleId} className="text-base font-semibold tracking-tight">{title}</h2> : null}
+            {title ? <h2 id={titleId} className="text-sm sm:text-base font-semibold tracking-tight">{title}</h2> : null}
             {description ? <p id={descriptionId} className="text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <button
@@ -111,7 +110,7 @@ export function Modal({
           </button>
         </div>
         {children ? <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div> : null}
-        {footer ? <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end">{footer}</div> : null}
+        {footer ? <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end [&_button]:min-h-12 [&_button]:text-sm sm:[&_button]:text-base">{footer}</div> : null}
       </div>
     </div>
   );

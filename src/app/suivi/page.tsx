@@ -62,7 +62,7 @@ export default function SuiviPage() {
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader
           title="Suivre une intervention"
           description="Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l'avancement de votre mission."

@@ -46,7 +46,7 @@ export function CategoryMarquee() {
         />
         <Marquee items={chips} duration={26} />
       </div>
-      <div className="mt-6 hidden grid-cols-2 gap-3 md:grid lg:grid-cols-4">
+      <div className="mt-6 hidden grid-cols-1 gap-4 sm:grid-cols-2 md:grid lg:grid-cols-3 lg:gap-6">
         {chips}
       </div>
     </section>

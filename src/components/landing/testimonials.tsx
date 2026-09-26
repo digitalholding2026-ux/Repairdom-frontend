@@ -40,7 +40,7 @@ export function Testimonials() {
           Des clients satisfaits, à chaque intervention
         </h2>
       </Reveal>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
         {TESTIMONIALS.map((item, index) => (
           <Reveal key={item.firstName} delay={index * 80} className="h-full">
             <figure className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-card transition-colors hover:border-primary/30">

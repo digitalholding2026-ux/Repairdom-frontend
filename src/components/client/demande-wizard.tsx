@@ -767,19 +767,19 @@ export function DemandeWizard() {
             ) : null}
           </div>
 
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center">
             {step > 0 ? (
-              <Button type="button" variant="secondary" onClick={goBack} disabled={isSubmitting}>
+              <Button type="button" variant="secondary" onClick={goBack} disabled={isSubmitting} className="min-h-12 w-full text-sm sm:w-auto sm:text-base">
                 Retour
               </Button>
             ) : null}
 
             {step < STEPS.length - 1 ? (
-              <Button type="button" onClick={goNext} disabled={!canContinue} className="flex-1">
+              <Button type="button" onClick={goNext} disabled={!canContinue} className="min-h-12 w-full flex-1 text-sm sm:text-base">
                 Continuer
               </Button>
             ) : (
-              <Button type="button" onClick={handleSubmit} isLoading={isSubmitting} className="flex-1" size="lg">
+              <Button type="button" onClick={handleSubmit} isLoading={isSubmitting} className="min-h-12 w-full flex-1 text-sm sm:text-base" size="lg">
                 Envoyer la demande
               </Button>
             )}

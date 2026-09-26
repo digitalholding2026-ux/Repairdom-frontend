@@ -192,7 +192,7 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
 
 export function RewardCatalog({ completedCount }: { completedCount: number }) {
   return (
-    <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
       {REWARDS_CATALOG.map((reward) => (
         <RewardCard key={reward.id} reward={reward} completedCount={completedCount} />
       ))}
@@ -219,7 +219,7 @@ export function HowItWorks() {
   return (
     <div className="mt-10 rounded-2xl border border-slate-200/60 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-900/60">
       <p className="text-base font-semibold tracking-tight sm:text-lg">Comment ça marche ?</p>
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
         {HOW_IT_WORKS_STEPS.map((item) => (
           <div key={item.step} className="rounded-xl bg-card p-4 shadow-sm">
             <p className="text-sm font-semibold text-primary">{item.step}</p>
