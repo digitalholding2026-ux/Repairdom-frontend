@@ -3,47 +3,18 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
-import { RegisterMascot3D } from '@/components/auth/RegisterMascot3D';
-import { mascotStageForPercent } from '@/components/auth/register-mascot';
 import { Icon } from '@/components/ui/icon';
 
-const STAGE_MESSAGE = {
-  idle: 'Mon équipement est prêt ! Remplissez vos informations pour lancer votre première demande.',
-  filling: 'Plus que quelques champs… votre technicien se prépare déjà.',
-  ready: 'Rien n’est laissé au hasard, votre compte est prêt !',
-} as const;
-
-/* Page d'inscription : layout split-screen moderne sur fond sombre uni.
- * - Desktop (lg+) : 2 colonnes (mascotte animée | formulaire glass).
- * - Mobile : empilé (mascotte compacte au-dessus du formulaire).
- * Le seul logo affiché est celui du header du layout — aucun doublon. */
+/* Page d'inscription : formulaire premium glassmorphism centré sur fond
+ * sombre uni. Le seul logo affiché est celui du header du layout. */
 export function RegisterSplit() {
   const [percent, setPercent] = useState(0);
-  const [identity, setIdentity] = useState({ firstName: '', lastName: '' });
-  const stage = mascotStageForPercent(percent);
-
-  const handleProgress = (value: number, id?: { firstName: string; lastName: string }) => {
-    setPercent(value);
-    if (id) setIdentity(id);
-  };
 
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] text-white flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center lg:items-stretch">
-        {/* Colonne gauche : player Lottie pro + aperçu profil live (même hauteur que le formulaire) */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <RegisterMascot3D
-            completionPercentage={percent}
-            firstName={identity.firstName}
-            lastName={identity.lastName}
-          />
-          <p aria-live="polite" className="mx-auto min-h-12 max-w-sm text-center text-sm leading-relaxed text-slate-200">
-            {STAGE_MESSAGE[stage]}
-          </p>
-        </div>
-
-        {/* Colonne droite : formulaire premium glassmorphism */}
-        <div className="lg:col-span-7">
+      <div className="w-full max-w-xl">
+        {/* Formulaire premium glassmorphism, centré */}
+        <div>
           <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
             {/* Barre de progression */}
             <div role="group" aria-label="Progression du formulaire">
@@ -74,7 +45,7 @@ export function RegisterSplit() {
 
             {/* Champs en style sombre (surcharges ciblées du formulaire partagé) */}
             <div className="[&_label]:text-slate-100 [&_input]:border-white/15 [&_input]:bg-white/5 [&_input]:text-white [&_input]:placeholder:text-gray-400 [&_input]:focus:border-[#F97316] [&_input]:focus-visible:ring-[#F97316]/30 [&_select]:border-white/15 [&_select]:bg-white/5 [&_select]:text-white [&_option]:bg-[#151922] [&_option]:text-white [&_.text-muted-foreground]:text-slate-400 [&_.text-error-ink]:text-red-300 [&_.text-success-ink]:text-emerald-300">
-              <ClientAuthForm mode="signup" dark onProgressChange={handleProgress} />
+              <ClientAuthForm mode="signup" dark onProgressChange={setPercent} />
             </div>
 
             <p className="text-center text-sm text-slate-400">
