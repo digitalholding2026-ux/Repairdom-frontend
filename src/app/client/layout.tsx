@@ -35,6 +35,9 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
   const { user, authenticated, loading } = useAuth();
   const isPublicPath = CLIENT_PUBLIC_PATHS.includes(pathname);
   const showPrivateChrome = authenticated && user?.role === 'CLIENT';
+  /* Page d'inscription : mise en page immersive — le split-screen sombre
+   * occupe toute la largeur (pas de conteneur max-w-lg). */
+  const isImmersiveAuth = pathname === '/client/inscription';
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -61,7 +64,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
         </div>
       </header>
 
-      <div className={`mx-auto flex w-full flex-1 items-start gap-8 py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${showPrivateChrome && !isImmersiveAuth ? 'max-w-7xl px-4 py-6 sm:px-6 lg:px-8' : isImmersiveAuth ? 'max-w-none px-0 py-0' : 'max-w-lg px-4 py-6'}`}>
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar
             label="Espace client"

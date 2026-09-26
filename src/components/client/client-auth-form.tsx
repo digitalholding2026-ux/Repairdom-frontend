@@ -17,9 +17,13 @@ export type ClientAuthMode = 'signup' | 'signin';
 
 interface ClientAuthFormProps {
   mode: ClientAuthMode;
+  /** Style sombre (panneau glassmorphism sur fond #0B0D12). */
+  dark?: boolean;
+  /** Remonte le % de complétion (mode inscription) pour la mascotte / progression. */
+  onProgressChange?: (percent: number) => void;
 }
 
-export function ClientAuthForm({ mode }: ClientAuthFormProps) {
+export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientAuthFormProps) {
   const router = useRouter();
   const { refresh } = useAuth();
   const isSignUp = mode === 'signup';
@@ -53,6 +57,23 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
     passwordValid &&
     passwordsMatch &&
     (isSignUp ? firstName.trim() !== '' && lastName.trim() !== '' && cityValue.trim() !== '' && address.trim() !== '' && acceptTerms : true);
+
+  /* Complétion (inscription) : prénom, nom, e-mail, ville, adresse,
+   * mot de passe valide, confirmation concordante, CGU acceptées. */
+  useEffect(() => {
+    if (!isSignUp || !onProgressChange) return;
+    const steps = [
+      firstName.trim() !== '',
+      lastName.trim() !== '',
+      email.trim() !== '',
+      cityValue.trim() !== '',
+      address.trim() !== '',
+      passwordValid,
+      confirmPassword !== '' && passwordsMatch,
+      acceptTerms,
+    ];
+    onProgressChange(Math.round((steps.filter(Boolean).length / steps.length) * 100));
+  }, [isSignUp, onProgressChange, firstName, lastName, email, cityValue, address, passwordValid, confirmPassword, passwordsMatch, acceptTerms]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -259,7 +280,7 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
       ) : null}
 
       {isSignUp ? (
-        <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-sm">
+        <label className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${dark ? 'border-white/15 bg-white/5' : 'border-border bg-card'}`}>
           <input
             type="checkbox"
             checked={acceptTerms}
@@ -267,7 +288,7 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
             className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
             required
           />
-          <span className="text-muted-foreground">
+          <span className={dark ? 'text-slate-300' : 'text-muted-foreground'}>
             J&apos;accepte les{' '}
             <Link href="/conditions-utilisation" className="font-medium text-primary underline-offset-2 hover:underline">
               Conditions d&apos;utilisation
@@ -279,7 +300,13 @@ export function ClientAuthForm({ mode }: ClientAuthFormProps) {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting} disabled={!canSubmit}>
+      <Button
+        type="submit"
+        size="lg"
+        isLoading={isSubmitting}
+        disabled={!canSubmit}
+        className={dark ? 'h-auto w-full py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-[#F97316] to-[#EA580C] hover:opacity-90 shadow-lg shadow-orange-500/25 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 min-h-12 text-sm sm:text-base' : 'w-full'}
+      >
         {isSignUp ? 'Créer mon compte' : 'Se connecter'}
       </Button>
     </form>
