@@ -37,7 +37,11 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
       <ScrollToTop />
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <BrandLogo href={showPrivateChrome ? '/technicien' : '/'} />
+          {/* Logo unique : la sidebar latérale affiche déjà le logo sur
+            desktop (lg+) — le header ne le répète que sur mobile. */}
+          <span className={showPrivateChrome && !isPublicPath ? 'lg:hidden' : undefined}>
+            <BrandLogo href={showPrivateChrome ? '/technicien' : '/'} />
+          </span>
           <div className="flex items-center gap-2">
             {loading ? (
               <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />

@@ -5,21 +5,18 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { type IconName } from '@/components/ui/icon';
-import { SectionHeader } from '@/components/ui/page-header';
-import { DashboardHero } from '@/components/ui/app-header';
-import { StatCard } from '@/components/ui/stat-card';
-import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
-import { AvailabilityCard } from '@/components/technician/dashboard/availability-card';
-import { QuickActions } from '@/components/technician/dashboard/quick-actions';
-import { TechnicianLiveMissionCard } from '@/components/technician/dashboard/live-mission-card';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { InterventionsCard } from '@/components/technician/dashboard/interventions-card';
-import { RevenueCard } from '@/components/technician/dashboard/revenue-card';
-import { DaySummary } from '@/components/technician/dashboard/day-summary';
-import { AccountSection } from '@/components/technician/dashboard/account-section';
 import { DashboardSkeleton } from '@/components/technician/dashboard/dashboard-skeleton';
 import {
-  ActivityFeed,
+  TechAccountRow,
+  TechActivityCard,
+  TechKpiCard,
+  TechMissionRow,
+  TechRadarCard,
+  TechStatusCard,
+} from '@/components/technician/dashboard/tech-overview';
+import {
   type ActivityItem,
   type ActivityTone,
 } from '@/components/client/dashboard/activity-feed';
@@ -35,6 +32,7 @@ import {
 } from '@/lib/api/technician-service';
 import { getTechnicianFinanceSummary, type TechnicianFinanceSummary } from '@/lib/api/finance-service';
 import { demandeStatusConfig } from '@/lib/request-status';
+import { formatCurrency, fullName } from '@/lib/format';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
 
@@ -64,6 +62,7 @@ export default function TechnicianDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [availabilityBusy, setAvailabilityBusy] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +125,17 @@ export default function TechnicianDashboardPage() {
     }
   };
 
+  const refreshAvailable = async () => {
+    setRefreshing(true);
+    try {
+      setAvailable(await listAvailableDemandes());
+    } catch {
+      /* Le radar garde les dernières données en cas d'échec réseau. */
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const currentMission = useMemo(() => {
     const active = mine
       .filter((d) => ACTIVE_STATUSES.includes(d.status))
@@ -138,16 +148,23 @@ export default function TechnicianDashboardPage() {
     [mine, currentMission],
   );
 
-  const activeCount = mine.filter((d) => ACTIVE_STATUSES.includes(d.status)).length;
-  const doneCount = history.filter((d) => d.status === 'CONFIRMED').length;
-
-  const completedToday = useMemo(() => {
+  const todayRange = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    return today;
+  }, []);
+
+  const completedToday = useMemo(() => {
     return history.filter(
-      (d) => d.status === 'CONFIRMED' && new Date(d.createdAt) >= today,
+      (d) => d.status === 'CONFIRMED' && new Date(d.createdAt) >= todayRange,
     ).length;
-  }, [history]);
+  }, [history, todayRange]);
+
+  const todayRevenue = useMemo(() => {
+    return history
+      .filter((d) => d.status === 'CONFIRMED' && new Date(d.createdAt) >= todayRange)
+      .reduce((sum, d) => sum + (d.finalAmount ?? 0), 0);
+  }, [history, todayRange]);
 
   const activities = useMemo<ActivityItem[]>(() => {
     const items: ActivityItem[] = [];
@@ -204,162 +221,156 @@ export default function TechnicianDashboardPage() {
 
   const firstName = profile?.user.firstName ?? null;
   const greeting = getGreeting();
+  const zone = profile?.city?.trim() || 'votre zone';
+  const verified = profile?.kycStatus === 'VERIFIED';
+  const interventions = profile?.completedInterventions ?? history.filter((d) => d.status === 'CONFIRMED').length;
+  const clientName = currentMission?.client
+    ? fullName(currentMission.client.firstName, currentMission.client.lastName)
+    : null;
 
   return (
-    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-6 lg:space-y-0">
-      {/* ── Hero: salut + stats inline ─────────────────────────── */}
-      <section className="space-y-4 lg:col-span-2">
-        <DashboardHero
-          title={
-            <>
-              {greeting}
-              {firstName ? `, ${firstName}` : ''} 👋
-            </>
-          }
-          subtitle={
-            profile?.isAvailable
-              ? 'Vous êtes en ligne. Les demandes de votre zone vous sont proposées.'
-              : 'Activez votre disponibilité pour recevoir de nouvelles demandes.'
-          }
-          onLogout={handleLogout}
-        />
+    <div className="flex min-h-screen flex-col gap-6 rounded-3xl bg-[#0B0D12] p-4 text-slate-100 sm:p-6">
+      {/* ── Header contenu : salutation + statut + déconnexion ── */}
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Espace technicien
+          </p>
+          <h1 className="mt-1 break-words text-xl font-bold tracking-tight text-white sm:text-2xl">
+            {greeting}{firstName ? `, ${firstName}` : ''} 👋
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge variant={verified ? 'success' : 'warning'} className="gap-1">
+              <Icon name={verified ? 'shield-check' : 'alert'} size="3.5" />
+              {verified ? 'Technicien Vérifié' : 'Vérification en cours'}
+            </Badge>
+            <Badge variant="neutral" className="gap-1 border-white/10 bg-white/5 text-slate-300">
+              <Icon name="pin" size="3.5" />
+              {zone}
+            </Badge>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleLogout}
+          className="shrink-0 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
+        >
+          <Icon name="logout" size="sm" />
+          <span className="ml-1 hidden sm:inline">Déconnexion</span>
+        </Button>
+      </header>
 
-        {/* Stats inline */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
-          <StatCard
-            icon="search"
-            label="Disponibles"
-            value={available.length}
-            href="/technicien/demandes"
-          />
-          <StatCard
-            icon="truck"
-            label="En cours"
-            value={activeCount}
-            href={currentMission ? `/technicien/demandes/${currentMission.id}` : undefined}
-          />
-          <StatCard
-            icon="check-circle"
-            label="Terminées"
-            value={doneCount}
-            href="/technicien/historique"
+      {/* ── A + B : statut + KPIs ─────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="md:col-span-2 lg:col-span-1">
+          <TechStatusCard
+            isAvailable={profile?.isAvailable ?? false}
+            busy={availabilityBusy}
+            error={availabilityError}
+            zone={zone}
+            onToggle={() => void handleToggleAvailability()}
           />
         </div>
-      </section>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:col-span-2 lg:col-span-2 lg:grid-cols-3">
+          <TechKpiCard
+            icon="briefcase"
+            label="Revenus du jour"
+            value={formatCurrency(todayRevenue, finance?.currency ?? 'XAF')}
+            sub={`${completedToday} dépannage${completedToday !== 1 ? 's' : ''} aujourd'hui`}
+            href="/technicien/revenus"
+            accent="emerald"
+          />
+          <TechKpiCard
+            icon="wrench"
+            label="Interventions"
+            value={`${interventions} / 10`}
+            sub="Palier 1 · dépannages réalisés"
+            href="/technicien/historique"
+            accent="orange"
+          />
+          <TechKpiCard
+            icon="star"
+            label="Note & Avis"
+            value="–"
+            sub="Aucun avis client pour le moment"
+            accent="amber"
+          />
+        </div>
+      </div>
 
-      {/* ── Mode mission : l'intervention en cours d'abord ─────── */}
+      {/* ── Intervention en cours (bandeau prioritaire) ───────── */}
       {currentMission ? (
-        <section id="intervention-en-cours" className="space-y-3 scroll-mt-20 lg:col-span-2">
-          <SectionHeader title="Intervention en cours" />
-          <TechnicianLiveMissionCard mission={currentMission} />
-        </section>
+        <Link
+          href={`/technicien/demandes/${currentMission.id}`}
+          className="block rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-transparent p-4 transition-colors hover:border-orange-500/50 sm:p-5"
+        >
+          <div className="flex items-center gap-3">
+            <span className="relative flex size-3 shrink-0" aria-hidden>
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-400 opacity-75" />
+              <span className="relative inline-flex size-3 rounded-full bg-orange-400" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
+                Intervention en cours
+              </p>
+              <p className="mt-0.5 truncate text-sm font-semibold text-white">
+                {currentMission.reference} · {currentMission.categoryLabel}
+                {clientName ? ` · ${clientName}` : ''}
+              </p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-orange-200">
+              Reprendre
+              <Icon name="chevron-right" size="sm" />
+            </span>
+          </div>
+        </Link>
       ) : null}
 
-      {/* ── Nouvelles demandes (résumé compact → page complète) ── */}
-      <section id="nouvelles-demandes" className="space-y-3 scroll-mt-20 lg:col-span-2">
-        <SectionHeader
-          title="Nouvelles demandes"
-          action={
-            <Badge variant={available.length > 0 ? 'info' : 'neutral'}>
-              {available.length} disponible{available.length !== 1 ? 's' : ''}
-            </Badge>
-          }
-        />
-        {available.length === 0 ? (
-          <EmptyState
-            title="Aucune demande disponible"
-            description="Il n'y a pas de demande correspondant à votre profil et votre zone pour le moment."
-            action={
-              <Link href="/technicien/demandes">
-                <Button variant="secondary" size="sm">Voir les missions</Button>
-              </Link>
-            }
-          />
-        ) : (
-          <div className="grid gap-3 xl:grid-cols-2">
-            {available.slice(0, 3).map((d) => (
-              <TechnicianDemandeCard
-                key={d.id}
-                demande={d}
-                detailHref={`/technicien/demandes/${d.id}`}
-              />
-            ))}
-            {available.length > 3 ? (
-              <Link href="/technicien/demandes">
-                <Button variant="secondary" className="w-full">
-                  Voir les {available.length} missions disponibles
-                </Button>
-              </Link>
-            ) : null}
-          </div>
-        )}
-      </section>
+      {/* ── C : radar live ────────────────────────────────────── */}
+      <TechRadarCard
+        zone={zone}
+        missions={available.slice(0, 3)}
+        total={available.length}
+        refreshing={refreshing}
+        onRefresh={() => void refreshAvailable()}
+      />
 
-      {/* ── Disponibilité ──────────────────────────────────────── */}
-      <section id="disponibilite" className="scroll-mt-20">
-        <AvailabilityCard
-          isAvailable={profile?.isAvailable ?? false}
-          busy={availabilityBusy}
-          error={availabilityError}
-          onToggle={() => void handleToggleAvailability()}
-        />
-      </section>
+      {/* ── D : activité + progression ────────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <TechActivityCard items={activities} />
+        </div>
+        <div>
+          <InterventionsCard completedCount={interventions} />
+        </div>
+      </div>
 
-      {/* ── Revenus ────────────────────────────────────────────── */}
-      <section>
-        <RevenueCard finance={finance} completedToday={completedToday} />
-      </section>
-
-      {/* ── Quick actions (contextuelles, pas de doublon BottomNav) */}
-      <section className="lg:col-span-2">
-        <QuickActions />
-      </section>
-
-      {/* ── Ma journée ─────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <SectionHeader title="Ma journée" />
-        <DaySummary activeMissions={mine.filter((d) => ACTIVE_STATUSES.includes(d.status))} completedToday={completedToday} />
-      </section>
-
-      {/* ── Mes interventions ──────────────────────────────────── */}
+      {/* ── Mes interventions ─────────────────────────────────── */}
       {mineList.length > 0 ? (
-        <section className="space-y-3 lg:col-span-2">
-          <SectionHeader
-            title="Mes interventions"
-            action={
-              <Badge variant="success">
-                {mineList.length} intervention{mineList.length !== 1 ? 's' : ''}
-              </Badge>
-            }
-          />
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold tracking-tight text-white">
+              <Icon name="briefcase" size="sm" className="text-orange-400" />
+              Mes interventions
+            </h2>
+            <Badge variant="success" className="shrink-0">
+              {mineList.length} intervention{mineList.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
           <div className="grid gap-3 xl:grid-cols-2">
             {mineList.map((d) => (
-              <TechnicianDemandeCard
-                key={d.id}
-                demande={d}
-                detailHref={`/technicien/demandes/${d.id}`}
-              />
+              <TechMissionRow key={d.id} demande={d} />
             ))}
           </div>
-        </section>
+        </div>
       ) : null}
 
-      {/* ── Activité récente ───────────────────────────────────── */}
-      <section className="space-y-3">
-        <SectionHeader title="Activité récente" />
-        <ActivityFeed items={activities} />
-      </section>
+      {/* ── Mon compte ────────────────────────────────────────── */}
+      {profile ? <TechAccountRow profile={profile} /> : null}
 
-      {/* ── Gamification ───────────────────────────────────────── */}
-      <section>
-        <InterventionsCard completedCount={doneCount} />
-      </section>
-
-      {/* ── Mon compte ─────────────────────────────────────────── */}
-      <section className="space-y-3 lg:col-span-2">
-        <SectionHeader title="Mon compte" />
-        {profile ? <AccountSection profile={profile} /> : null}
-      </section>
+      {/* Espace de respiration au-dessus de la navigation basse mobile */}
+      <div aria-hidden className="lg:hidden" />
     </div>
   );
 }
