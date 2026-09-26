@@ -18,9 +18,9 @@ export function HeroActions() {
           <Link href={home} className="w-full sm:w-auto">
             <Button
               size="lg"
-              className="group relative w-full overflow-hidden bg-white font-semibold text-orange-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+              className="group relative w-full overflow-hidden bg-[#F97316] font-semibold text-white shadow-md shadow-[#F97316]/20 hover:-translate-y-0.5 hover:bg-[#FB923C] active:scale-[0.98] sm:w-auto"
             >
-              <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
+              <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
               Continuer ma mission
               <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
             </Button>
@@ -29,7 +29,7 @@ export function HeroActions() {
             <Button
               variant="ghost"
               size="lg"
-              className="w-full border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 active:scale-[0.98] sm:w-auto"
+              className="w-full border border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20 active:scale-[0.98] sm:w-auto"
             >
               <Icon name="pin" size="sm" />
               Suivre une intervention
@@ -50,9 +50,9 @@ export function HeroActions() {
         <Link href="/client/inscription" className="w-full sm:w-auto">
           <Button
             size="lg"
-            className="group relative w-full overflow-hidden bg-white font-semibold text-orange-700 shadow-pop hover:-translate-y-0.5 active:scale-[0.98] sm:w-auto"
+            className="group relative w-full overflow-hidden bg-[#F97316] font-semibold text-white shadow-md shadow-[#F97316]/20 hover:-translate-y-0.5 hover:bg-[#FB923C] active:scale-[0.98] sm:w-auto"
           >
-            <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-orange-200/60 to-transparent" />
+            <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
             J&apos;ai besoin d&apos;un dépannage
             <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
           </Button>
@@ -61,7 +61,7 @@ export function HeroActions() {
           <Button
             variant="ghost"
             size="lg"
-            className="w-full border border-white/25 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20 active:scale-[0.98] sm:w-auto"
+            className="w-full border border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20 active:scale-[0.98] sm:w-auto"
           >
             J&apos;ai déjà un compte
           </Button>
