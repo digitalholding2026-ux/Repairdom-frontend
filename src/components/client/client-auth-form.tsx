@@ -284,7 +284,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       ) : null}
 
       {isSignUp ? (
-        <label className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${dark ? 'border-white/15 bg-white/5' : 'border-border bg-card'}`}>
+        <label className={`flex items-start gap-3 rounded-lg border p-3 text-sm ${dark ? 'border-slate-700/80 bg-slate-800/60' : 'border-border bg-card'}`}>
           <input
             type="checkbox"
             checked={acceptTerms}
@@ -309,7 +309,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
         size="lg"
         isLoading={isSubmitting}
         disabled={!canSubmit}
-        className={dark ? 'h-auto w-full py-4 rounded-xl font-semibold text-white bg-gradient-to-r from-[#F97316] to-[#EA580C] hover:opacity-90 shadow-lg shadow-orange-500/25 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 min-h-12 text-sm sm:text-base' : 'w-full'}
+        className={dark ? 'h-auto w-full py-4 rounded-xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 shadow-lg shadow-orange-500/20 transition-all transform active:scale-[0.99] flex items-center justify-center gap-2 min-h-12 text-sm sm:text-base' : 'w-full'}
       >
         {isSignUp ? 'Créer mon compte' : 'Se connecter'}
       </Button>
