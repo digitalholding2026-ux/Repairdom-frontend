@@ -8,27 +8,28 @@ import { homePathForRole } from '@/lib/api/auth-service';
 import { cn } from '@/lib/cn';
 
 /** Rangée d'actions du hero : personnalisée selon l'état de connexion.
- * `stacked` force l'empilement vertical centré (overlay au milieu de
- * l'image hero), sinon disposition responsive ligne sur desktop. */
+ * Affichée en bas-gauche de la bannière full-width en boutons translucides
+ * (glassmorphism) pour ne pas masquer le texte ni le visage de l'affiche.
+ * `stacked` force l'empilement vertical (conservé pour compatibilité). */
 export function HeroActions({ stacked = false }: { stacked?: boolean }) {
   const { user, authenticated, loading } = useAuth();
 
   const rowClass = stacked
     ? 'flex w-full flex-col items-stretch gap-2.5'
-    : 'flex w-full flex-col gap-2.5 sm:flex-row sm:items-center';
-  const linkClass = stacked ? 'w-full' : 'w-full sm:w-auto';
+    : 'flex flex-wrap items-center gap-4';
+  const linkClass = stacked ? 'w-full' : 'w-auto';
   const primaryBtnClass =
-    'group relative w-full overflow-hidden bg-[#F97316] font-semibold text-white shadow-md shadow-[#F97316]/20 hover:-translate-y-0.5 hover:bg-[#FB923C] active:scale-[0.98]';
+    'group relative bg-[#F97316]/30 backdrop-blur-md border border-[#F97316]/50 text-white hover:bg-[#F97316]/50 shadow-lg shadow-orange-500/10 transition-all px-6 py-3 rounded-xl font-medium active:scale-[0.98]';
   const ghostBtnClass =
-    'w-full border border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20 active:scale-[0.98]';
+    'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 transition-all px-6 py-3 rounded-xl font-medium active:scale-[0.98]';
 
   if (!loading && authenticated) {
     const home = homePathForRole(user?.role);
     return (
-      <div className="mt-1 w-full">
+      <div className="flex flex-col gap-3">
         <div className={rowClass}>
           <Link href={home} className={linkClass}>
-            <Button size="lg" className={cn(primaryBtnClass, !stacked && 'sm:w-auto')}>
+            <Button size="lg" className={primaryBtnClass}>
               <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
               Continuer ma mission
               <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
@@ -38,7 +39,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
             <Button
               variant="ghost"
               size="lg"
-              className={cn(ghostBtnClass, !stacked && 'sm:w-auto')}
+              className={ghostBtnClass}
             >
               <Icon name="pin" size="sm" />
               Suivre une intervention
@@ -47,7 +48,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
         </div>
         <p
           className={cn(
-            'mt-3 flex items-center gap-1.5 text-xs text-white/75',
+            'mt-3 flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit',
             stacked && 'justify-center text-center',
           )}
         >
@@ -59,10 +60,10 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
   }
 
   return (
-    <div className="mt-1 w-full">
+    <div className="flex flex-col gap-3">
       <div className={rowClass}>
         <Link href="/client/inscription" className={linkClass}>
-          <Button size="lg" className={cn(primaryBtnClass, !stacked && 'sm:w-auto')}>
+          <Button size="lg" className={primaryBtnClass}>
             <span aria-hidden className="animate-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent" />
             J&apos;ai besoin d&apos;un dépannage
             <Icon name="arrow-right" size="sm" className="transition-transform group-hover:translate-x-0.5" />
@@ -72,7 +73,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
           <Button
             variant="ghost"
             size="lg"
-            className={cn(ghostBtnClass, !stacked && 'sm:w-auto')}
+            className={ghostBtnClass}
           >
             J&apos;ai déjà un compte
           </Button>
@@ -81,7 +82,7 @@ export function HeroActions({ stacked = false }: { stacked?: boolean }) {
       <Link
         href="/suivi"
         className={cn(
-          'mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white/85 underline-offset-4 hover:underline',
+          'mt-3 inline-flex items-center gap-1.5 text-xs text-white/80 backdrop-blur-sm bg-black/20 px-3 py-1 rounded-lg w-fit font-medium underline-offset-4 hover:underline',
           stacked && 'flex justify-center text-center',
         )}
       >
