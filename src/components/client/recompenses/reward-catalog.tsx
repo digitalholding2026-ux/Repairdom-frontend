@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { Modal } from '@/components/ui/modal';
 import { useToast } from '@/lib/toast-context';
 
 export interface RewardItem {
@@ -73,8 +75,12 @@ export const REWARDS_CATALOG: RewardItem[] = [
   },
 ];
 
+/* Carte récompense : affiche marketing plein format (full-bleed cover) —
+ * le poster remplit tout son conteneur sans marge interne pour rester
+ * lisible. Clic sur l'affiche → lightbox plein écran pour lecture complète. */
 function RewardCard({ reward, completedCount }: { reward: RewardItem; completedCount: number }) {
   const { toast } = useToast();
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const unlocked = completedCount >= reward.requiredServices;
   const progress = Math.min(completedCount / reward.requiredServices, 1);
 
@@ -87,36 +93,47 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
   };
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-card shadow-sm transition-all hover:border-primary/50 hover:shadow-md dark:border-slate-800">
-      <div className="relative h-40 overflow-hidden rounded-t-xl bg-slate-50 dark:bg-slate-800/50">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-300 hover:shadow-xl dark:border-white/10 dark:bg-[#151922]">
+      <button
+        type="button"
+        onClick={() => setLightboxOpen(true)}
+        aria-label={`Voir l’affiche ${reward.title} en grand`}
+        className="relative block w-full cursor-zoom-in overflow-hidden rounded-t-2xl bg-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset aspect-[4/3] sm:aspect-[3/4]"
+      >
         <Image
           src={reward.imageSrc}
           alt={reward.title}
           fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
         />
         {reward.isMystery ? (
           <span
             aria-hidden
-            className="absolute inset-0 flex items-center justify-center text-6xl font-extrabold text-[#F97316] drop-shadow-[0_0_18px_rgba(249,115,22,0.55)]"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center text-6xl font-extrabold text-[#F97316] drop-shadow-[0_0_18px_rgba(249,115,22,0.55)]"
           >
             ?
           </span>
         ) : null}
-        {reward.badge ? (
-          <span className="absolute right-3 top-3">
-            <Badge variant="outline">{reward.badge}</Badge>
+        <span className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <span className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
+            <Icon name="zoom-in" size="sm" />
+            Voir l’affiche en grand
           </span>
-        ) : null}
-      </div>
-      <div className="flex flex-1 flex-col p-5">
+        </span>
+      </button>
+      {reward.badge ? (
+        <span className="absolute right-3 top-3">
+          <Badge variant="outline">{reward.badge}</Badge>
+        </span>
+      ) : null}
+      <div className="flex flex-1 flex-col space-y-2 p-4">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {reward.tier}
         </p>
-        <p className="mt-1 text-base font-semibold">{reward.title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{reward.description}</p>
-        <div className="mt-3">
+        <p className="text-base font-semibold">{reward.title}</p>
+        <p className="text-sm text-muted-foreground">{reward.description}</p>
+        <div>
           {unlocked ? (
             <Badge variant="success">Débloqué</Badge>
           ) : (
@@ -126,7 +143,7 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
           )}
         </div>
         <div
-          className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
           role="progressbar"
           aria-valuenow={Math.round(progress * 100)}
           aria-valuemin={0}
@@ -139,7 +156,7 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
           />
         </div>
       </div>
-      <div className="px-5 pb-5">
+      <div className="px-4 pb-4">
         {unlocked ? (
           <Button size="sm" className="w-full animate-bounce" onClick={claimReward}>
             Réclamer le cadeau
@@ -150,6 +167,25 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
           </Button>
         )}
       </div>
+
+      <Modal
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        title={reward.title}
+        description={reward.tier}
+        className="sm:max-w-2xl"
+      >
+        <div className="relative w-full overflow-hidden rounded-xl bg-slate-900 aspect-[4/3] sm:aspect-[16/10]">
+          <Image
+            src={reward.imageSrc}
+            alt={reward.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 672px"
+            className="object-contain"
+          />
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">{reward.description}</p>
+      </Modal>
     </div>
   );
 }

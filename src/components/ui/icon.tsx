@@ -8,7 +8,7 @@ export const ICON_NAMES = [
   'shield-check', 'plus', 'search', 'file', 'alert', 'info', 'x', 'menu',
   'truck', 'badge-check', 'send', 'sparkles', 'settings', 'briefcase',
   'zap', 'droplet', 'thermometer', 'cpu',
-  'wallet', 'copy', 'eye', 'camera',
+  'wallet', 'copy', 'eye', 'camera', 'zoom-in',
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
@@ -242,6 +242,14 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
       <circle cx="12" cy="13" r="3" />
+    </>
+  ),
+  'zoom-in': (
+    <>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+      <path d="M11 8v6" />
+      <path d="M8 11h6" />
     </>
   ),
 };
