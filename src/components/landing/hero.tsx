@@ -8,7 +8,8 @@ import { HeroActions } from './hero-actions';
  * + object-cover aux proportions identiques = zéro coupe). Aucun texte
  * HTML en doublon : le h1 et la description restent accessibles aux
  * lecteurs d'écran et au SEO en `sr-only`. Les boutons HTML réels
- * (HeroActions) sont rendus sous la bannière, hors de l'image. */
+ * (HeroActions) sont superposés en bas de la bannière (overlay cliquable
+ * sur sm+, bloc sous l'image sur mobile pour ne pas masquer l'affiche). */
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-[#0B0D12]">
@@ -33,6 +34,19 @@ export function Hero() {
             sizes="(max-width: 1280px) 100vw, 1280px"
             className="object-cover object-center"
           />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-2/5 bg-gradient-to-t from-black/70 via-black/25 to-transparent sm:block"
+          />
+          <div className="absolute inset-x-0 bottom-0 hidden justify-center p-4 sm:flex lg:p-6">
+            <div className="w-full max-w-2xl rounded-2xl border border-white/20 bg-black/45 p-3 shadow-float backdrop-blur-md">
+              <HeroActions />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 sm:hidden">
+          <HeroActions />
         </div>
 
         <div className="mt-6 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -48,9 +62,6 @@ export function Hero() {
             <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
             <span>350+ techniciens vérifiés</span>
           </p>
-          <div className="w-full lg:w-auto lg:min-w-[22rem]">
-            <HeroActions />
-          </div>
         </div>
       </div>
     </section>
