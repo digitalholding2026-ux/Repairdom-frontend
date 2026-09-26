@@ -3,8 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ClientAuthForm } from '@/components/client/client-auth-form';
-import { RegisterMascot, mascotStageForPercent } from '@/components/auth/register-mascot';
+import { RegisterMascot3D } from '@/components/auth/RegisterMascot3D';
+import { mascotStageForPercent } from '@/components/auth/register-mascot';
 import { Icon } from '@/components/ui/icon';
+
+const STAGE_MESSAGE = {
+  idle: 'Mon équipement est prêt ! Remplissez vos informations pour lancer votre première demande.',
+  filling: 'Plus que quelques champs… votre technicien se prépare déjà.',
+  ready: 'Rien n’est laissé au hasard, votre compte est prêt !',
+} as const;
 
 /* Page d'inscription : layout split-screen moderne sur fond sombre uni.
  * - Desktop (lg+) : 2 colonnes (mascotte animée | formulaire glass).
@@ -16,10 +23,13 @@ export function RegisterSplit() {
 
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] text-white flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Colonne gauche : mascotte animée */}
-        <div className="lg:col-span-5">
-          <RegisterMascot stage={stage} percent={percent} />
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center lg:items-stretch">
+        {/* Colonne gauche : mascotte 3D interactive (même hauteur que le formulaire) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <RegisterMascot3D completionPercentage={percent} />
+          <p aria-live="polite" className="mx-auto min-h-12 max-w-sm text-center text-sm leading-relaxed text-slate-200">
+            {STAGE_MESSAGE[stage]}
+          </p>
         </div>
 
         {/* Colonne droite : formulaire premium glassmorphism */}
