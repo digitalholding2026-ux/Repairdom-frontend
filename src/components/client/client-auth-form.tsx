@@ -19,8 +19,9 @@ interface ClientAuthFormProps {
   mode: ClientAuthMode;
   /** Style sombre (panneau glassmorphism sur fond #0B0D12). */
   dark?: boolean;
-  /** Remonte le % de complétion (mode inscription) pour la mascotte / progression. */
-  onProgressChange?: (percent: number) => void;
+  /** Remonte le % de complétion + l'identité saisie (mode inscription)
+   * pour la mascotte / progression / aperçu profil en direct. */
+  onProgressChange?: (percent: number, identity?: { firstName: string; lastName: string }) => void;
 }
 
 export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientAuthFormProps) {
@@ -72,7 +73,10 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       confirmPassword !== '' && passwordsMatch,
       acceptTerms,
     ];
-    onProgressChange(Math.round((steps.filter(Boolean).length / steps.length) * 100));
+    onProgressChange(Math.round((steps.filter(Boolean).length / steps.length) * 100), {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+    });
   }, [isSignUp, onProgressChange, firstName, lastName, email, cityValue, address, passwordValid, confirmPassword, passwordsMatch, acceptTerms]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {

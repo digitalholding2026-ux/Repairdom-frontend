@@ -19,14 +19,24 @@ const STAGE_MESSAGE = {
  * Le seul logo affiché est celui du header du layout — aucun doublon. */
 export function RegisterSplit() {
   const [percent, setPercent] = useState(0);
+  const [identity, setIdentity] = useState({ firstName: '', lastName: '' });
   const stage = mascotStageForPercent(percent);
+
+  const handleProgress = (value: number, id?: { firstName: string; lastName: string }) => {
+    setPercent(value);
+    if (id) setIdentity(id);
+  };
 
   return (
     <div className="min-h-screen w-full bg-[#0B0D12] text-white flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-center lg:items-stretch">
-        {/* Colonne gauche : mascotte 3D interactive (même hauteur que le formulaire) */}
+        {/* Colonne gauche : player Lottie pro + aperçu profil live (même hauteur que le formulaire) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          <RegisterMascot3D completionPercentage={percent} />
+          <RegisterMascot3D
+            completionPercentage={percent}
+            firstName={identity.firstName}
+            lastName={identity.lastName}
+          />
           <p aria-live="polite" className="mx-auto min-h-12 max-w-sm text-center text-sm leading-relaxed text-slate-200">
             {STAGE_MESSAGE[stage]}
           </p>
@@ -64,7 +74,7 @@ export function RegisterSplit() {
 
             {/* Champs en style sombre (surcharges ciblées du formulaire partagé) */}
             <div className="[&_label]:text-slate-100 [&_input]:border-white/15 [&_input]:bg-white/5 [&_input]:text-white [&_input]:placeholder:text-gray-400 [&_input]:focus:border-[#F97316] [&_input]:focus-visible:ring-[#F97316]/30 [&_select]:border-white/15 [&_select]:bg-white/5 [&_select]:text-white [&_option]:bg-[#151922] [&_option]:text-white [&_.text-muted-foreground]:text-slate-400 [&_.text-error-ink]:text-red-300 [&_.text-success-ink]:text-emerald-300">
-              <ClientAuthForm mode="signup" dark onProgressChange={setPercent} />
+              <ClientAuthForm mode="signup" dark onProgressChange={handleProgress} />
             </div>
 
             <p className="text-center text-sm text-slate-400">
