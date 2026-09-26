@@ -1,17 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
-const TechnicianLottie = dynamic(() => import('./technician-lottie'), {
-  ssr: false,
-  loading: () => (
-    <div
-      aria-hidden
-      className="h-56 w-full max-w-[280px] animate-pulse rounded-3xl bg-white/5"
-    />
-  ),
-});
-
 export interface RegisterMascotIdentity {
   firstName: string;
   lastName: string;
@@ -55,11 +43,6 @@ export function RegisterMascot3D({
         <span className="px-3 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full" aria-live="polite">
           {percent}%
         </span>
-      </div>
-
-      {/* Animation Lottie */}
-      <div className="relative w-full max-w-[280px] my-6">
-        <TechnicianLottie className="h-auto w-full" />
       </div>
 
       {/* Carte d'aperçu client en direct */}
