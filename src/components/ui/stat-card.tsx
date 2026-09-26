@@ -24,7 +24,7 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        'rounded-xl border border-border bg-card p-3 text-center shadow-card',
+        'glass-card animate-float-wave rounded-xl p-3 text-center hover:shadow-2xl transition-all duration-300',
         href && 'transition-colors hover:bg-muted/50',
         className,
       )}

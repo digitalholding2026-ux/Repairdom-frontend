@@ -90,18 +90,18 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
   return (
     <div
       className={cn(
-        'bg-slate-900 border border-orange-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden',
+        'bg-slate-900 border border-[#F97316]/30 rounded-2xl p-6 shadow-xl relative overflow-hidden',
         className,
       )}
     >
       {/* Ondes radar en arrière-plan */}
       <div aria-hidden className="pointer-events-none absolute -right-20 -top-20 size-72">
-        <span className="absolute inset-6 rounded-full border border-orange-500/20" />
-        <span className="absolute inset-12 rounded-full border border-orange-500/20" />
+        <span className="absolute inset-6 rounded-full border border-[#F97316]/20" />
+        <span className="absolute inset-12 rounded-full border border-[#F97316]/20" />
         {[0, 1, 2].map((ring) => (
           <span
             key={ring}
-            className="absolute inset-0 animate-ping rounded-full border border-orange-500/30"
+            className="absolute inset-0 animate-ping rounded-full border border-[#F97316]/30"
             style={{ animationDelay: `${ring}s`, animationDuration: '3s' }}
           />
         ))}
@@ -109,7 +109,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
 
       <div className="relative space-y-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-orange-400">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F97316]/15 text-[#FB923C]">
             <Icon name="zap" size="md" />
           </span>
           <div className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
 
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-xl bg-white/5 px-2 py-3">
-            <p className="text-xl font-bold tabular-nums text-orange-400">{waveCount}</p>
+            <p className="text-xl font-bold tabular-nums text-[#FB923C]">{waveCount}</p>
             <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
               Vagues émises
             </p>
@@ -163,7 +163,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
           aria-expanded={open}
           aria-controls={logsId}
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-200/70 underline-offset-4 hover:text-orange-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#FB923C]/70 underline-offset-4 hover:text-[#FB923C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316]"
         >
           <Icon
             name="chevron-down"

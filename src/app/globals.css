@@ -433,6 +433,48 @@
   animation: floatWave 7s ease-in-out infinite 1.5s;
 }
 
+/* Cartes translucides flottantes (Glassmorphism Relio) :
+ * Light : verre blanc dépoli + ombre douce slate.
+ * Dark : surface #151922 translucide + bordure blanche subtile.
+ * L'animation `animate-float-wave(-delayed)` se combine à part pour le
+ * mouvement de vague entre les cartes. */
+.glass-card {
+  background-color: rgb(255 255 255 / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgb(226 232 240 / 0.6);
+  box-shadow:
+    0 20px 25px -5px rgb(226 232 240 / 0.4),
+    0 8px 10px -6px rgb(226 232 240 / 0.4);
+  transition:
+    box-shadow 300ms ease,
+    transform 300ms ease,
+    background-color 300ms ease;
+}
+
+.glass-card:hover {
+  box-shadow:
+    0 25px 50px -12px rgb(226 232 240 / 0.55),
+    0 12px 24px -8px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background-color: rgb(21 25 34 / 0.75);
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* Halo orange ambré adouci (#F97316) pour les cartes Bleu Nuit. */
+.glass-halo-orange {
+  background: radial-gradient(
+    closest-side,
+    rgb(249 115 22 / 0.16),
+    transparent
+  );
+}
+
 .animate-pulse-dot {
   animation: pulse-dot 1.8s ease-in-out infinite;
 }

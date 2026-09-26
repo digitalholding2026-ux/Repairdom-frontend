@@ -27,7 +27,7 @@ export function WorkspaceSidebar({
 
   return (
     <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label={`Navigation ${label}`}>
-      <div className="rounded-2xl border border-border bg-card p-2 shadow-card">
+      <div className="rounded-2xl border border-slate-200/60 bg-white/60 p-2 shadow-xl shadow-slate-200/40 backdrop-blur-lg transition-all duration-300 dark:border-white/10 dark:bg-[#151922]/60 dark:shadow-black/50">
         <div className="flex justify-center px-3 pb-1 pt-3">
           <BrandLogo href={items[0]?.href ?? '/'} />
         </div>
@@ -63,7 +63,7 @@ export function WorkspaceSidebar({
         {action ? (
           <Link
             href={action.href}
-            className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-3 text-sm font-semibold text-primary-foreground shadow-md shadow-[#F97316]/20 transition-all hover:bg-[#FB923C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <Icon name={action.icon} size="sm" />
             {action.label}

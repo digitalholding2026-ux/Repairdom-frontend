@@ -28,14 +28,14 @@ export function RewardProgressCard({
   const progress = Math.min(completedCount / target, 1);
   return (
     <Link href={href} className="block active:scale-[0.99] transition-transform">
-      <div className="animate-float-wave-delayed relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/95 p-5 text-white shadow-float backdrop-blur-sm">
+      <div className="animate-float-wave-delayed relative overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A]/85 p-5 text-white shadow-float backdrop-blur-lg">
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-8 -top-10 size-36 rounded-full bg-white/20 blur-2xl"
+          className="glass-halo-orange pointer-events-none absolute -left-8 -top-10 size-36 rounded-full blur-2xl"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -bottom-12 -right-6 size-32 rounded-full bg-white/20 blur-2xl"
+          className="pointer-events-none absolute -bottom-12 -right-6 size-32 rounded-full bg-[#FB923C]/15 blur-2xl"
         />
 
         <div className="relative flex items-start justify-between gap-3">

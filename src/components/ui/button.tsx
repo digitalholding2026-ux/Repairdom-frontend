@@ -23,7 +23,7 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary text-primary-foreground shadow-lg shadow-relio-orange/20 hover:bg-relio-orange-bright',
+    'bg-[#F97316] text-primary-foreground shadow-md shadow-[#F97316]/20 hover:bg-[#FB923C]',
   secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
   ghost: 'text-foreground hover:bg-muted',
   destructive: 'bg-destructive text-error-foreground hover:opacity-90',

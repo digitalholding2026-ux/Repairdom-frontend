@@ -37,8 +37,8 @@ const NETWORKS: Array<{
     code: 'orange_cm',
     label: 'Orange Money',
     badge: 'Validation Mobile / Web',
-    activeClass: 'border-2 border-[#FF6600] bg-[#FF6600]/10 shadow-md scale-[1.02]',
-    checkClass: 'text-[#FF6600]',
+    activeClass: 'border-2 border-[#F97316] bg-[#F97316]/10 shadow-md scale-[1.02]',
+    checkClass: 'text-[#F97316]',
   },
 ];
 
