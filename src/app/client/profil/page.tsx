@@ -4,14 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
-import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { PageHeader } from '@/components/ui/page-header';
 import { ProfilHero } from '@/components/client/profil/profil-hero';
 import { ProfilSkeleton } from '@/components/client/profil/profil-skeleton';
 import {
@@ -23,9 +20,6 @@ import {
 } from '@/lib/api/auth-service';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
-
-const CARD_CLASS =
-  'rounded-2xl border border-slate-200 bg-card p-6 shadow-sm dark:border-slate-800';
 
 export default function ClientProfilPage() {
   const router = useRouter();
@@ -101,7 +95,7 @@ export default function ClientProfilPage() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Mon profil"
         description="Gérez vos informations personnelles et vos coordonnées de contact."
@@ -128,105 +122,69 @@ export default function ClientProfilPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
       {saved ? <Alert variant="success" dense>Profil mis à jour.</Alert> : null}
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Colonne principale : coordonnées */}
-        <div className="space-y-6 lg:col-span-2">
-          <section className={`${CARD_CLASS} space-y-6`}>
-            <SectionHeader title="Informations personnelles" icon="user" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Prénom" htmlFor="profil-firstName" required>
-                <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-              </Field>
-              <Field label="Nom" htmlFor="profil-lastName" required>
-                <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-              </Field>
-              <Field label="Ville" htmlFor="profil-city">
-                <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
-                  <option value="">Sélectionnez votre ville</option>
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Adresse précise / Quartier" htmlFor="profil-address">
-                <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Akwa, Rue de la Joie" />
-              </Field>
+      {/* Formulaire compact : une seule carte, champs en grille 2 colonnes */}
+      <section
+        aria-label="Informations du profil"
+        className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-relio-card"
+      >
+        <div className="grid grid-cols-2 gap-3 [&_label]:text-xs">
+          <Field label="Prénom" htmlFor="profil-firstName" required>
+            <Input id="profil-firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+          </Field>
+          <Field label="Nom" htmlFor="profil-lastName" required>
+            <Input id="profil-lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          </Field>
+          <Field label="Ville" htmlFor="profil-city">
+            <Select id="profil-city" value={city} onChange={(e) => setCity(e.target.value)}>
+              <option value="">Sélectionnez votre ville</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.name}>{c.name}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Adresse / Quartier" htmlFor="profil-address">
+            <Input id="profil-address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Akwa, Rue de la Joie" />
+          </Field>
+          <Field label="Téléphone principal" htmlFor="profil-phone">
+            <div className="flex gap-2">
+              <span
+                aria-hidden
+                className="inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground"
+              >
+                +237
+              </span>
+              <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
             </div>
-          </section>
-
-          <section className={`${CARD_CLASS} space-y-6`}>
-            <SectionHeader title="Moyens de contact" icon="phone" />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Téléphone principal (MTN / Orange)" htmlFor="profil-phone">
-                <div className="flex gap-2">
-                  <span
-                    aria-hidden
-                    className="inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground"
-                  >
-                    +237
-                  </span>
-                  <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
-                </div>
-              </Field>
-              <Field label="Numéro WhatsApp" htmlFor="profil-whatsapp">
-                <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
-              </Field>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Ce numéro sera utilisé par les techniciens pour vous joindre lors des interventions.
-            </p>
-          </section>
+          </Field>
+          <Field label="Numéro WhatsApp" htmlFor="profil-whatsapp">
+            <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
+          </Field>
+          <Field label="Adresse e-mail" htmlFor="profil-email" className="col-span-2">
+            <Input id="profil-email" value={user.email} disabled className="opacity-60" />
+          </Field>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Ces coordonnées permettent aux techniciens de vous joindre lors des interventions.
+        </p>
 
-        {/* Colonne secondaire : compte & sécurité */}
-        <aside className="space-y-6 lg:col-span-1">
-          <section className={`${CARD_CLASS} space-y-6`}>
-            <SectionHeader title="Compte & Connexion" icon="shield-check" />
-            <Field
-              label={
-                <span className="inline-flex items-center gap-2">
-                  Adresse e-mail
-                  <Badge variant="outline">Identifiant unique</Badge>
-                </span>
-              }
-              htmlFor="profil-email"
-            >
-              <Input id="profil-email" value={user.email} disabled className="opacity-60" />
-            </Field>
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-muted-foreground">Statut du compte</span>
-              {user.emailVerified ? (
-                <Badge variant="success">Email vérifié</Badge>
-              ) : (
-                <Badge variant="warning">Email non vérifié</Badge>
-              )}
-            </div>
-          </section>
-
-          <section className={`${CARD_CLASS} space-y-4`}>
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full shadow-md shadow-primary/20"
-              onClick={handleSave}
-              isLoading={saving}
-              disabled={!firstName.trim()}
-            >
-              <Icon name="check" size="sm" />
-              Enregistrer les modifications
-            </Button>
-            <div className="h-px bg-border" aria-hidden />
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={() => setConfirmLogout(true)}
-            >
-              <Icon name="logout" size="sm" />
-              Se déconnecter
-            </Button>
-          </section>
-        </aside>
-      </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            onClick={() => void handleSave()}
+            disabled={saving || !firstName.trim()}
+            className="flex-1 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99] disabled:opacity-60"
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmLogout(true)}
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.99]"
+          >
+            Déconnexion
+          </button>
+        </div>
+      </section>
 
       <ConfirmDialog
         open={confirmLogout}

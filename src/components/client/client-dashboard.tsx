@@ -12,13 +12,14 @@ import { DashboardHero } from '@/components/ui/app-header';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
 import { ClientDashboardSkeleton } from '@/components/client/dashboard/client-dashboard-skeleton';
 import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
+import { Avatar } from '@/components/ui/avatar';
 import { getMe, logoutAndGoHome, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
   listMyDemandeHistory,
   type DemandeListItem,
 } from '@/lib/api/request-service';
-import { formatCurrency, formatDateTime, initials } from '@/lib/format';
+import { formatCurrency, formatDateTime } from '@/lib/format';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
@@ -357,10 +358,15 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
         <div className="relative">
           {/* Top bar : avatar + salutation | support + notifications */}
           <div className="flex items-center justify-between gap-3">
-            <Link href="/client/profil" className="flex min-w-0 items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF6B00] text-sm font-bold text-white shadow-lg shadow-orange-500/30">
-                {initials(user?.firstName, user?.lastName)}
-              </span>
+            <Link href="/client/profil" className="flex min-w-0 items-center gap-3" aria-label="Mon profil">
+              <Avatar
+                src={user?.avatarUrl}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                size="md"
+                alt="Photo de profil"
+                className="rounded-full shadow-lg shadow-orange-500/30 ring-2 ring-orange-500/70"
+              />
               <span className="min-w-0">
                 <span className="block text-xs text-white/60">{getGreeting()},</span>
                 <span className="block truncate text-base font-bold leading-tight">
