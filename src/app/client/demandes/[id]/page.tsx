@@ -17,9 +17,11 @@ import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { FloatingChat } from '@/components/client/chat/floating-chat';
 import { TravelBanner } from '@/components/mission/travel-banner';
+import { MissionMap } from '@/components/mission/mission-map';
+import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location';
 import { MediaGallery } from '@/components/client/missions/media-gallery';
 import { RatingSection } from '@/components/mission/rating-section';
-import { formatDate, formatTime, fullName } from '@/lib/format';
+import { formatDate, formatDateTime, formatTime, fullName } from '@/lib/format';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getDemande,
@@ -275,6 +277,16 @@ export default function ClientDemandeDetailPage() {
       {/* GPS V3 — déplacement temporaire (statut + fraîcheur + distance,
           jamais de coordonnées brutes). */}
       <TravelBanner travel={demande.travel} />
+
+      {/* GPS V4 — carte de mission (données V1/V3 existantes uniquement). */}
+      {demande.travel?.enRoute || demande.travel?.arrived ? (
+        <TravelMapSection
+          latitude={demande.latitude}
+          longitude={demande.longitude}
+          travel={demande.travel}
+          travelMap={demande.travelMap}
+        />
+      ) : null}
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
@@ -634,5 +646,71 @@ export default function ClientDemandeDetailPage() {
         }
       />
     </div>
+  );
+}
+
+/* GPS V4 — section « Localisation du technicien » : carte du lieu
+ * d'intervention + position récente du technicien (si fraîche, V3),
+ * distance approximative et heure de mise à jour. Aucune coordonnée
+ * chiffrée affichée ; aucun état ne bloque la page. */
+function TravelMapSection({
+  latitude,
+  longitude,
+  travel,
+  travelMap,
+}: {
+  latitude: number | null;
+  longitude: number | null;
+  travel: NonNullable<DemandeListItem['travel']>;
+  travelMap: DemandeListItem['travelMap'];
+}) {
+  const hasIntervention =
+    typeof latitude === 'number' &&
+    typeof longitude === 'number' &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
+  const distance = travel.fresh ? formatTravelDistance(travel.distanceMeters) : null;
+  const recency = formatTravelRecency(travel.minutesSinceUpdate);
+
+  return (
+    <section aria-label="Localisation du technicien" className="space-y-3">
+      <SectionHeader title="Localisation du technicien" icon="pin" />
+      {!hasIntervention ? (
+        <Alert variant="neutral" dense>
+          Lieu d&apos;intervention non localisé : la carte sera disponible une fois la position
+          enregistrée.
+        </Alert>
+      ) : (
+        <div className="space-y-2">
+          <MissionMap
+            intervention={{ latitude, longitude }}
+            technician={travelMap?.technician ?? null}
+          />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
+              Lieu d&apos;intervention
+            </span>
+            {travelMap?.technician ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="size-2.5 rounded-full bg-blue-600" />
+                Technicien{distance ? ` ${distance}` : ''}
+              </span>
+            ) : null}
+            {travel.locationUpdatedAt ? (
+              <span>
+                Dernière mise à jour : {formatDateTime(travel.locationUpdatedAt)}
+                {recency ? ` (${recency})` : ''}
+              </span>
+            ) : null}
+          </div>
+          {!travelMap?.technician && travel.enRoute ? (
+            <Alert variant="neutral" dense>
+              Dernière position indisponible ou trop ancienne.
+            </Alert>
+          ) : null}
+        </div>
+      )}
+    </section>
   );
 }

@@ -18,6 +18,8 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { TravelSection } from '@/components/mission/travel-section';
+import { MissionMap } from '@/components/mission/mission-map';
+import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -379,6 +381,21 @@ export default function TechnicianDemandeDetailPage() {
   if (!demande) return null;
 
   const canAccept = demande.status === 'SUBMITTED' || demande.status === 'PENDING';
+  /* GPS V4 — carte de mission : lieu d'intervention + position personnelle
+   * (données V1/V3 existantes, jamais de collecte supplémentaire). */
+  const hasInterventionCoords =
+    typeof demande.latitude === 'number' && typeof demande.longitude === 'number';
+  const ownTravelPoint =
+    demande.travel?.latitude !== null &&
+    demande.travel?.latitude !== undefined &&
+    demande.travel?.longitude !== null &&
+    demande.travel?.longitude !== undefined
+      ? { latitude: demande.travel.latitude, longitude: demande.travel.longitude }
+      : null;
+  const ownTravelDistance = demande.travel?.fresh
+    ? formatTravelDistance(demande.travel.distanceMeters)
+    : null;
+  const ownTravelRecency = formatTravelRecency(demande.travel?.minutesSinceUpdate);
   const isPreAcceptance = canAccept;
   const kycRequired = canAccept && !kycVerified;
   const baseCanDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
@@ -451,6 +468,37 @@ export default function TechnicianDemandeDetailPage() {
 
           {demande.technicianId ? (
             <TravelSection demande={demande} onChanged={(d) => setDemande(d)} />
+          ) : null}
+
+          {/* GPS V4 — carte de la mission (lieu + position personnelle).
+              L'actualisation reste manuelle via la section Déplacement. */}
+          {demande.technicianId && hasInterventionCoords ? (
+            <div className="space-y-3">
+              <SectionHeader title="Localisation de la mission" icon="pin" />
+              <MissionMap
+                intervention={{ latitude: demande.latitude as number, longitude: demande.longitude as number }}
+                technician={ownTravelPoint}
+              />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1.5">
+                  <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
+                  Lieu d&apos;intervention
+                </span>
+                {ownTravelPoint ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden className="size-2.5 rounded-full bg-blue-600" />
+                    Ma position
+                    {demande.travel?.fresh
+                      ? [ownTravelDistance, ownTravelRecency].filter(Boolean).length > 0
+                        ? ` (${[ownTravelDistance, ownTravelRecency].filter(Boolean).join(' · ')})`
+                        : ''
+                      : ' (périmée — pensez à l\u2019actualiser)'}
+                  </span>
+                ) : (
+                  <span>Aucune position transmise pour cette mission.</span>
+                )}
+              </div>
+            </div>
           ) : null}
 
           {demande.client ? (

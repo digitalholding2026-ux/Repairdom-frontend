@@ -64,6 +64,13 @@ export interface ClientTravelInfo {
   distanceMeters: number | null;
 }
 
+/* GPS V4 — point technicien pour le RENDU carte (détail de LA mission
+ * uniquement, déplacement actif ET position fraîche, jamais de chiffres
+ * affichés côté UI). */
+export interface ClientTravelMap {
+  technician: { latitude: number; longitude: number } | null;
+}
+
 export interface CreateDemandeResult {
   id: string;
   reference: string;
@@ -82,6 +89,8 @@ export interface CreateDemandeResult {
   /* GPS V3 — déplacement temporaire (détail uniquement, jamais de
    * coordonnées brutes côté client). */
   travel?: ClientTravelInfo | null;
+  /* GPS V4 — point carte (rendu marqueurs uniquement). */
+  travelMap?: ClientTravelMap | null;
   technicianId: string | null;
   technician: TechnicianInfo | null;
   scheduledAt: string | null;
