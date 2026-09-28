@@ -18,8 +18,9 @@ import { toUserErrorMessage } from '@/lib/ui-error-message';
 /* Retour navigateur SasPay → Relio (?intent=TOPUP-…).
  * Ce retour NE prouve jamais le paiement : la page relit le statut RÉEL
  * du TopupIntent côté backend (webhook/vérification serveur), avec une
- * actualisation douce (quelques essais espacés + bouton manuel, jamais de
- * polling agressif). */
+ * actualisation douce (quelques essais espacés + UNE vérification serveur
+ * automatique si le PENDING persiste + bouton manuel, jamais de polling
+ * agressif). Aucun SUCCESS n'est inventé côté frontend. */
 const AUTO_REFRESH_ATTEMPTS = 6;
 const AUTO_REFRESH_INTERVAL_MS = 5000;
 
@@ -29,7 +30,11 @@ export default function RechargeResultPage() {
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
+  // Heure de la vérification automatique (UX : le PENDING reste explicite).
+  const [autoCheckedAt, setAutoCheckedAt] = useState<string | null>(null);
   const attempts = useRef(0);
+  const autoVerified = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -48,6 +53,39 @@ export default function RechargeResultPage() {
     }
   }, []);
 
+  /* Vérification serveur on-demand (même endpoint pour le bouton manuel et
+   * la vérification automatique unique quand le PENDING persiste). Ne crée
+   * jamais de SUCCESS côté frontend : le statut affiché vient du backend
+   * (webhook / verify SasPay). En cas d'échec de vérification, l'intention
+   * reste PENDING avec un message explicite. */
+  const verifyOnce = useCallback(async (ref: string) => {
+    setVerifying(true);
+    setVerifyInfo(null);
+    try {
+      const { intent: current, verificationError } = await verifyTopupIntent(ref);
+      if (current) {
+        setIntent(current);
+        setError(null);
+      }
+      if (verificationError) {
+        setVerifyInfo(verificationError.message);
+      } else if (current?.status === 'PENDING') {
+        setVerifyInfo(
+          'Vérification effectuée : le paiement reste en attente. Patientez puis relancez une vérification.',
+        );
+      }
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Vérification impossible.'));
+    } finally {
+      setVerifying(false);
+    }
+  }, []);
+
+  async function verifyNow() {
+    if (!reference || verifying) return;
+    await verifyOnce(reference);
+  }
+
   useEffect(() => {
     if (!reference) {
       setLoading(false);
@@ -56,6 +94,8 @@ export default function RechargeResultPage() {
     let cancelled = false;
     let timer: ReturnType<typeof setInterval> | null = null;
     attempts.current = 0;
+    autoVerified.current = false;
+    setAutoCheckedAt(null);
     setLoading(true);
     load(reference).finally(() => {
       if (!cancelled) setLoading(false);
@@ -64,41 +104,26 @@ export default function RechargeResultPage() {
       if (cancelled) return;
       attempts.current += 1;
       const status = await load(reference);
-      if (status !== 'PENDING' || attempts.current >= AUTO_REFRESH_ATTEMPTS) {
+      if (status !== 'PENDING') {
         if (timer) clearInterval(timer);
+        return;
+      }
+      if (attempts.current >= AUTO_REFRESH_ATTEMPTS) {
+        if (timer) clearInterval(timer);
+        // Le webhook tarde : UNE vérification serveur explicite (même
+        // endpoint que le bouton manuel), sans jamais inventer de statut.
+        if (!autoVerified.current) {
+          autoVerified.current = true;
+          await verifyOnce(reference);
+          if (!cancelled) setAutoCheckedAt(new Date().toISOString());
+        }
       }
     }, AUTO_REFRESH_INTERVAL_MS);
     return () => {
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [reference, load]);
-
-  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
-
-  async function verifyNow() {
-    if (!reference || verifying) return;
-    setVerifying(true);
-    setVerifyInfo(null);
-    try {
-      const { intent: current, saspayStatus, verificationError } = await verifyTopupIntent(reference);
-      if (current) setIntent(current);
-      setError(null);
-      if (verificationError) {
-        // La vérification serveur n'a pas abouti (l'intention reste PENDING
-        // pour re-vérification) : raison sûre fournie par le backend.
-        setVerifyInfo(verificationError.message);
-      } else if (saspayStatus === 'UNKNOWN') {
-        setVerifyInfo(
-          'Transaction introuvable côté service de paiement. Vérifiez le statut avant toute nouvelle tentative.',
-        );
-      }
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Vérification impossible.'));
-    } finally {
-      setVerifying(false);
-    }
-  }
+  }, [reference, load, verifyOnce]);
 
   return (
     <div className="space-y-5">
@@ -139,6 +164,17 @@ export default function RechargeResultPage() {
             ) : null}
             {verifyInfo && intent.status === 'PENDING' ? (
               <Alert variant="info">{verifyInfo}</Alert>
+            ) : null}
+            {!verifyInfo && autoCheckedAt && intent.status === 'PENDING' ? (
+              <Alert variant="info">
+                Vérification automatique effectuée à{' '}
+                {new Date(autoCheckedAt).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                : le paiement reste en attente. Vous pouvez relancer une vérification ou
+                patienter — votre solde sera crédité dès confirmation de l&apos;opérateur.
+              </Alert>
             ) : null}
             {intent.status === 'SUCCESS' ? (
               <Alert variant="success">

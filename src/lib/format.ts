@@ -38,7 +38,11 @@ function displayCurrency(currency: string): string {
 
 export function formatCurrency(value: number | null | undefined, currency = 'XAF'): string {
   if (value == null) return '—';
-  return `${value.toLocaleString('fr-FR')} ${displayCurrency(currency)}`;
+  /* Les montants XAF du ledger sont entiers : l'affichage est arrondi
+   * (display-only, valeurs comptables inchangées, jamais de décimales
+   * type « 3 333,333 FCFA »). Autres devises : format brut. */
+  const display = currency === 'XAF' ? Math.round(value) : value;
+  return `${display.toLocaleString('fr-FR')} ${displayCurrency(currency)}`;
 }
 
 export function formatCurrencySigned(

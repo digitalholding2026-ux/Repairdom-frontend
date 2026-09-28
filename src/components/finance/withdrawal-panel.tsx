@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,10 @@ import {
   type WithdrawalRequestStatus,
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { validateFinanceAmount } from '@/lib/finance-limits';
+import { normalizeCmPhone } from '@/lib/phone';
+import { feeChargeModeNote } from '@/lib/withdrawal-fees';
+import { useStableIdempotencyKey } from '@/lib/use-stable-idempotency-key';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { OPERATOR_NETWORKS, type OperatorCode } from './operator-network-card';
 import { OperatorNetworkCard } from './operator-network-card';
@@ -104,19 +108,22 @@ export function WithdrawalPanel({
 
   const effectiveAmount = custom.trim() ? Number(custom.replace(/\s/g, '')) : amount;
 
-  // Clé d'idempotence stable par contenu : un retry rejoue la même demande.
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const signature = `${effectiveAmount}|${network}|${msisdn.trim()}`;
-  const lastSignature = useRef(signature);
-  if (lastSignature.current !== signature) {
-    lastSignature.current = signature;
-    setIdempotencyKey(crypto.randomUUID());
-  }
+  // Clé d'idempotence stable par contenu (jamais de setState pendant le
+  // render, repli si `crypto.randomUUID()` indisponible). Renouvelée après
+  // chaque demande créée pour qu'une nouvelle tentative explicite ne rejoue
+  // pas l'ancienne.
+  const { key: idempotencyKey, renew: renewIdempotencyKey } =
+    useStableIdempotencyKey(`${effectiveAmount}|${network}|${msisdn.trim()}`);
 
   // Retrait réel : pas de contrôle de solde côté frontend.
   // `available` reste purement informatif (affichage). Seul le backend
   // refuse éventuellement pour solde insuffisant après POST /finances/withdrawals.
-  const insufficient = !Number.isInteger(effectiveAmount) || effectiveAmount <= 0;
+  // Règle frontend unique et visible : retrait minimum 100 FCFA, maximum
+  // 10 000 000 FCFA (le backend reste la source de vérité).
+  const amountError = validateFinanceAmount(effectiveAmount, 'retrait');
+  const insufficient = amountError !== null;
+  // Numéro affiché normalisé (+237…) dès la confirmation, comme envoyé.
+  const displayMsisdn = normalizeCmPhone(msisdn) ?? msisdn.trim();
   /* Mode modale (bottom-sheet) : champs ultra-compacts pour tenir sans
    * scroll sur petit écran (labels 11px, inputs h-9). */
   const compactInputClass = bare ? 'h-9 rounded-xl bg-slate-50 text-xs sm:text-xs' : undefined;
@@ -126,14 +133,15 @@ export function WithdrawalPanel({
 
   async function submit() {
     setError(null);
-    if (!Number.isInteger(effectiveAmount) || effectiveAmount < 100) {
-      setError('Montant invalide : minimum 100 FCFA.');
+    if (amountError) {
+      setError(`${amountError} Retrait minimum : 100 FCFA.`);
       return;
     }
     // Retrait réel : aucun blocage frontend sur le solde disponible ;
     // le backend applique le contrôle financier réel après POST /finances/withdrawals.
-    if (!msisdn.trim()) {
-      setError('Numéro Mobile Money bénéficiaire requis.');
+    const normalizedMsisdn = normalizeCmPhone(msisdn);
+    if (!normalizedMsisdn) {
+      setError('Numéro Mobile Money bénéficiaire invalide. Vérifiez-le (ex. 690000000).');
       return;
     }
     setSubmitting(true);
@@ -141,11 +149,12 @@ export function WithdrawalPanel({
       const created = await createWithdrawalRequest({
         amount: effectiveAmount,
         network,
-        msisdn: msisdn.trim(),
+        msisdn: normalizedMsisdn,
         idempotencyKey,
       });
       setResult(created);
       setConfirming(false);
+      renewIdempotencyKey();
       setHistoryToken((t) => t + 1);
       onChanged?.();
     } catch (err) {
@@ -205,7 +214,7 @@ export function WithdrawalPanel({
                   <div className="relative">
                     <Input
                       inputMode="numeric"
-                      placeholder="Ou montant libre (min. 100 FCFA)"
+                      placeholder="Ou montant libre (100 – 10 000 000 FCFA)"
                       value={custom}
                       onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                       className={compactInputClass ? `${compactInputClass} pr-16 tabular-nums` : 'pr-16 tabular-nums'}
@@ -215,6 +224,11 @@ export function WithdrawalPanel({
                       FCFA
                     </span>
                   </div>
+                  {amountError ? (
+                    <p className="text-xs font-medium text-error-ink" role="alert">
+                      {amountError} Retrait minimum : 100 FCFA.
+                    </p>
+                  ) : null}
                   {bare ? (
                     <p className={bareLabelClass}>
                       Réseau de retrait
@@ -255,7 +269,17 @@ export function WithdrawalPanel({
                     />
                   </div>
                   {!bare ? (
-                    <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
+                    <Button
+                      onClick={() => {
+                        if (amountError) {
+                          setError(`${amountError} Retrait minimum : 100 FCFA.`);
+                          return;
+                        }
+                        setConfirming(true);
+                      }}
+                      disabled={submitting || insufficient}
+                      className="w-full"
+                    >
                       Continuer
                     </Button>
                   ) : null}
@@ -274,7 +298,7 @@ export function WithdrawalPanel({
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Bénéficiaire</span>
-                    <span className="font-semibold">{msisdn.trim()}</span>
+                    <span className="font-semibold">{displayMsisdn || '—'}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Des frais d&apos;opérateur peuvent s&apos;appliquer (montant exact confirmé par SasPay, aucun calcul local).
@@ -303,6 +327,24 @@ export function WithdrawalPanel({
                       Le débit n&apos;intervient qu&apos;après confirmation SasPay.
                     </Alert>
                   )}
+                  {/* Reçu : montants réels backend (jamais calculés ici).
+                      Montant demandé / frais / débité / reçu + mode facturation. */}
+                  <div className="flex justify-between gap-3 text-sm tabular-nums">
+                    <span className="text-muted-foreground">Montant demandé</span>
+                    <span className="font-semibold">{formatCurrency(result.request.amount, result.request.currency)}</span>
+                  </div>
+                  <WithdrawalFeeBreakdown
+                    fee={result.request.fee}
+                    chargedAmount={result.request.chargedAmount}
+                    netAmount={result.request.netAmount}
+                    feeChargeMode={result.request.feeChargeMode}
+                    currency={result.request.currency}
+                  />
+                  {result.request.fee == null ? (
+                    <p className="text-xs text-muted-foreground">
+                      Frais exacts confirmés par SasPay après traitement (aucun calcul local).
+                    </p>
+                  ) : null}
                   <p className="text-xs text-muted-foreground">
                     Référence {result.request.reference} — suivez son statut{' '}
                     {showHistory ? 'ci-dessous.' : 'dans le détail des mouvements.'}
@@ -316,8 +358,14 @@ export function WithdrawalPanel({
                 <div className="sticky bottom-0 -mx-3 -mb-3 border-t border-border bg-card/95 px-3 py-2.5 backdrop-blur">
                   {!confirming ? (
                     <Button
-                      onClick={() => setConfirming(true)}
-                      disabled={submitting}
+                      onClick={() => {
+                        if (amountError) {
+                          setError(`${amountError} Retrait minimum : 100 FCFA.`);
+                          return;
+                        }
+                        setConfirming(true);
+                      }}
+                      disabled={submitting || insufficient}
                       className="w-full py-2.5 text-xs font-bold shadow-md shadow-orange-500/20"
                     >
                       Continuer
@@ -352,6 +400,46 @@ export function WithdrawalPanel({
  * Composant autonome : peut vivre sous le formulaire ou dans une autre
  * section (ex. « Détail des mouvements » côté client). `refreshToken`
  * force un rechargement (ex. après création d'une demande ailleurs). */
+
+export function WithdrawalFeeBreakdown({
+  fee,
+  chargedAmount,
+  netAmount,
+  feeChargeMode,
+  currency,
+}: {
+  fee: number | null | undefined;
+  chargedAmount: number | null | undefined;
+  netAmount: number | null | undefined;
+  feeChargeMode: string | null | undefined;
+  currency: string;
+}) {
+  if (fee == null && chargedAmount == null && netAmount == null) return null;
+  const modeNote = feeChargeModeNote(feeChargeMode);
+  return (
+    <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-2.5 text-xs tabular-nums">
+      {fee != null ? (
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">Frais SasPay</span>
+          <span>{formatCurrency(fee, currency)}</span>
+        </div>
+      ) : null}
+      {chargedAmount != null ? (
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">Débité de votre solde</span>
+          <span className="font-medium">{formatCurrency(chargedAmount, currency)}</span>
+        </div>
+      ) : null}
+      {netAmount != null ? (
+        <div className="flex justify-between gap-2">
+          <span className="text-muted-foreground">Reçu bénéficiaire</span>
+          <span className="font-medium">{formatCurrency(netAmount, currency)}</span>
+        </div>
+      ) : null}
+      {modeNote ? <p className="text-muted-foreground">{modeNote}</p> : null}
+    </div>
+  );
+}
 export function WithdrawalHistory({
   refreshToken,
   onChanged,
@@ -364,13 +452,20 @@ export function WithdrawalHistory({
   const [history, setHistory] = useState<WithdrawalRequest[]>([]);
   const [verifying, setVerifying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Distingue « aucun retrait » (état vide légitime) d'un échec de
+  // chargement (état d'erreur avec réessai) : l'historique ne reste plus
+  // silencieux.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const refreshHistory = async () => {
     try {
       const { items } = await listWithdrawalRequests();
       setHistory(items);
+      setLoadFailed(false);
     } catch {
-      /* Historique optionnel : un échec ne bloque pas le parcours. */
+      /* Historique optionnel : un échec ne bloque pas le parcours, mais il
+       * est signalé explicitement avec une action de réessai. */
+      setLoadFailed(true);
     }
   };
 
@@ -405,7 +500,26 @@ export function WithdrawalHistory({
     }
   }
 
-  if (history.length === 0) return null;
+  if (history.length === 0) {
+    if (!loadFailed) return null;
+    return (
+      <div className="space-y-2">
+        {showTitle ? (
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Demandes de retrait
+          </p>
+        ) : null}
+        <Alert variant="error">
+          Historique des retraits indisponible pour le moment.
+          <span className="mt-2 block">
+            <Button size="sm" variant="outline" onClick={() => void refreshHistory()}>
+              Réessayer
+            </Button>
+          </span>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -427,26 +541,13 @@ export function WithdrawalHistory({
                   <span className="font-semibold">{formatCurrency(item.amount, item.currency)}</span>
                 </div>
                 {item.fee != null || item.chargedAmount != null || item.netAmount != null ? (
-                  <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-2.5 text-xs tabular-nums">
-                    {item.fee != null ? (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Frais SasPay</span>
-                        <span>{formatCurrency(item.fee, item.currency)}</span>
-                      </div>
-                    ) : null}
-                    {item.chargedAmount != null ? (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Débité</span>
-                        <span className="font-medium">{formatCurrency(item.chargedAmount, item.currency)}</span>
-                      </div>
-                    ) : null}
-                    {item.netAmount != null ? (
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">Reçu bénéficiaire</span>
-                        <span className="font-medium">{formatCurrency(item.netAmount, item.currency)}</span>
-                      </div>
-                    ) : null}
-                  </div>
+                  <WithdrawalFeeBreakdown
+                    fee={item.fee}
+                    chargedAmount={item.chargedAmount}
+                    netAmount={item.netAmount}
+                    feeChargeMode={item.feeChargeMode}
+                    currency={item.currency}
+                  />
                 ) : null}
                 {item.userMessage ? (
                   <p className="text-xs text-muted-foreground">{item.userMessage}</p>

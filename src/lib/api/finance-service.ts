@@ -384,6 +384,10 @@ export interface TopupIntent {
   netAmount: number | null;
   creditedTransactionId: string | null;
   errorMessage: string | null;
+  /** Mode de facturation des frais constaté par SasPay (`ADD_ON` : frais
+   *  ajoutés au montant débité ; `DEDUCTED` : frais déduits du montant reçu).
+   *  Exposé par le backend depuis SASPAY-03+ (null tant qu'inconnu). */
+  feeChargeMode: string | null;
   /** Message utilisateur sûr calculé côté backend (l'UI ne lit jamais
    *  errorMessage, réservé aux logs). */
   userMessage: string | null;
@@ -486,6 +490,9 @@ export interface WithdrawalRequest {
   chargedAmount: number | null;
   netAmount: number | null;
   errorMessage: string | null;
+  /** Mode de facturation des frais constaté par SasPay (`ADD_ON` /
+   *  `DEDUCTED`, null tant qu'inconnu). Jamais calculé côté frontend. */
+  feeChargeMode: string | null;
   /** Message utilisateur sûr calculé côté backend. */
   userMessage: string | null;
   createdAt: string;

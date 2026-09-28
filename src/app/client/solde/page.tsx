@@ -125,7 +125,15 @@ export default function ClientSoldePage() {
   if (!summary) return null;
 
   const missionCount = summary.missions.length;
-  const avgPerMission = missionCount > 0 ? summary.totals.debit / missionCount : 0;
+  // Les montants XAF du ledger sont entiers : la moyenne d'affichage est
+  // arrondie (jamais de décimales type « 3 333,333 FCFA »). Les valeurs
+  // comptables ne sont pas modifiées, seul l'affichage est corrigé.
+  const avgPerMission = missionCount > 0 ? Math.round(summary.totals.debit / missionCount) : 0;
+  // Fonds engagés (holds ACTIFS) = brut validé − disponible. Le clamp à 0
+  // protège l'affichage, mais un brut négatif signalerait une incohérence
+  // ledger : il est alors exposé en état d'anomalie au lieu d'être masqué.
+  const rawEngaged = summary.totals.credit - summary.totals.debit - summary.balance;
+  const hasEngagedAnomaly = rawEngaged < 0;
   const visibleTransactions = summary.transactions.filter((t) =>
     matchesMovementFilter(t.type, movementFilter),
   );
@@ -136,6 +144,13 @@ export default function ClientSoldePage() {
 
       {/* Carte principale : solde + actions */}
       <SoldeOverview summary={summary} onWithdraw={() => setWithdrawOpen(true)} />
+
+      {hasEngagedAnomaly ? (
+        <Alert variant="warning">
+          Un écart a été détecté dans le calcul des fonds engagés. Vos fonds disponibles
+          restent corrects ; contactez le support si ce message persiste.
+        </Alert>
+      ) : null}
 
       {/* Modale de retrait (la carte porte déjà les CTA) */}
       <Modal

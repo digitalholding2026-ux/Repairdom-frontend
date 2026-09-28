@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,10 @@ import {
   type TopupNetwork,
 } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
+import { validateFinanceAmount } from '@/lib/finance-limits';
 import { triggerHaptic } from '@/lib/haptics';
+import { normalizeCmPhone } from '@/lib/phone';
+import { useStableIdempotencyKey } from '@/lib/use-stable-idempotency-key';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { OPERATOR_NETWORKS, type OperatorCode } from '@/components/finance/operator-network-card';
 import { OperatorNetworkCard } from '@/components/finance/operator-network-card';
@@ -53,26 +56,28 @@ export default function RechargerPage() {
 
   const effectiveAmount = custom.trim() ? Number(custom.replace(/\s/g, '')) : amount;
 
+  // Pré-validation UX (100 ≤ montant ≤ 10 000 000, backend = source de vérité).
+  const amountError = validateFinanceAmount(effectiveAmount, 'recharge');
+
   // Clé d'idempotence stable par contenu : un retry (timeout, 503) rejoue la
   // MÊME intention côté backend au lieu de créer un second paiement. Elle
-  // est régénérée dès que le contenu change (montant, réseau, téléphone).
-  const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
-  const payloadSignature = `${effectiveAmount}|${network}|${phone.trim()}`;
-  const lastSignature = useRef(payloadSignature);
-  if (lastSignature.current !== payloadSignature) {
-    lastSignature.current = payloadSignature;
-    setIdempotencyKey(crypto.randomUUID());
-  }
+  // est régénérée dès que le contenu change (montant, réseau, téléphone),
+  // jamais pendant le render (hook + useEffect), avec repli si
+  // `crypto.randomUUID()` est indisponible.
+  const { key: idempotencyKey, renew: renewIdempotencyKey } = useStableIdempotencyKey(
+    `${effectiveAmount}|${network}|${phone.trim()}`,
+  );
 
   async function submit() {
     setError(null);
     setResult(null);
-    if (!Number.isInteger(effectiveAmount) || effectiveAmount < 100) {
-      setError('Montant invalide : minimum 100 FCFA.');
+    if (amountError) {
+      setError(amountError);
       return;
     }
-    if (!phone.trim()) {
-      setError('Numéro de téléphone requis pour recevoir la demande de paiement.');
+    const normalizedPhone = normalizeCmPhone(phone);
+    if (!normalizedPhone) {
+      setError('Numéro Mobile Money invalide. Vérifiez-le (ex. 690000000).');
       return;
     }
     setSubmitting(true);
@@ -80,9 +85,12 @@ export default function RechargerPage() {
       const created = await createTopupIntent({
         amount: effectiveAmount,
         network,
-        phone: phone.trim(),
+        phone: normalizedPhone,
         idempotencyKey,
       });
+      // Nouvelle tentative explicite avec contenu identique = NOUVELLE clé
+      // (le backend rejoue l'existant pour une clé déjà consommée).
+      renewIdempotencyKey();
       if (created.paymentError) {
         // Paiement refusé à l'init (intention FAILED, aucun débit) : la
         // raison sûre vient du backend, avec la référence pour le suivi.
@@ -206,7 +214,7 @@ export default function RechargerPage() {
               <div className="relative">
                 <Input
                   inputMode="numeric"
-                  placeholder="Ou montant libre (min. 100 FCFA)"
+                  placeholder="Ou montant libre (100 – 10 000 000 FCFA)"
                   value={custom}
                   onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                   className="pr-16 tabular-nums"
@@ -216,6 +224,11 @@ export default function RechargerPage() {
                   FCFA
                 </span>
               </div>
+              {amountError ? (
+                <p className="text-xs font-medium text-error-ink" role="alert">
+                  {amountError}
+                </p>
+              ) : null}
             </section>
 
             <section className="space-y-3">

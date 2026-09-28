@@ -23,5 +23,7 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // Test unitaire Node natif (`npm run test:unit`) : jamais bundlé, imports
+  // `.ts` explicites exigés par Node — exclu du typecheck Next.
+  "exclude": ["node_modules", "src/lib/payment-helpers.test.ts"]
 }

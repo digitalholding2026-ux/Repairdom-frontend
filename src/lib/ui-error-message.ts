@@ -15,6 +15,19 @@ const CODE_MESSAGES: Record<string, string> = {
     'Communication impossible avec le service de paiement. Vérifiez le statut avant de recommencer.',
   TRANSACTION_UNKNOWN: 'Transaction introuvable côté service de paiement.',
   VALIDATION_ERROR: 'Certaines informations sont invalides. Vérifiez votre saisie.',
+  /* CHANTIER PAIEMENT P0/P1 — cas métier paiement explicites (jamais de
+   * stack, de brut technique ni de clé d'idempotence exposés). */
+  CANCELLED: "Opération annulée. Aucun montant n'a été débité.",
+  PAYMENT_CANCELLED: "Paiement annulé. Aucun montant n'a été débité.",
+  WITHDRAWAL_CANCELLED: "Retrait annulé. Aucun montant n'a été débité.",
+  CONFLICT:
+    'Cette opération a déjà été enregistrée. Vérifiez son statut avant toute nouvelle tentative.',
+  PAYMENT_REFUSED: "Le paiement a été refusé. Aucun montant n'a été débité.",
+  PAYMENT_ERROR: "Le paiement n'a pas abouti. Aucun montant n'a été débité.",
+  WITHDRAWAL_REFUSED: "Le retrait a été refusé. Aucun montant n'a été débité.",
+  WITHDRAWAL_ERROR: "Le retrait n'a pas abouti. Aucun montant n'a été débité.",
+  IDEMPOTENCY_CONFLICT:
+    'Cette opération a déjà été enregistrée. Vérifiez son statut avant toute nouvelle tentative.',
 };
 
 const NETWORK_MESSAGE = 'Connexion impossible. Vérifiez votre connexion puis réessayez.';
@@ -57,11 +70,17 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 /** Convertit une erreur en message français sûr pour l'UI. */
 export function toUserErrorMessage(err: unknown, fallback = GENERIC_MESSAGE): string {
   const record = asRecord(err);
-  const code = record?.code;
-  if (typeof code === 'string' && CODE_MESSAGES[code]) return CODE_MESSAGES[code];
+  const rawCode = record?.code;
+  if (typeof rawCode === 'string') {
+    // Les codes SasPay/backend varient en casse/format (`idempotency_conflict`
+    // vs `IDEMPOTENCY_CONFLICT`) : normalisation avant lecture.
+    const code = rawCode.toUpperCase();
+    if (CODE_MESSAGES[code]) return CODE_MESSAGES[code];
+  }
 
   const status = record?.status;
   if (status === 401) return 'Votre session a expiré. Reconnectez-vous.';
+  if (status === 409) return CODE_MESSAGES.IDEMPOTENCY_CONFLICT;
   if (status === 429) return 'Trop de tentatives. Patientez quelques instants puis réessayez.';
 
   const raw = err instanceof Error ? err.message.trim() : '';
