@@ -16,6 +16,10 @@ export interface ModalProps {
   footer?: ReactNode;
   centered?: boolean;
   className?: string;
+  /* Variante bottom-sheet mobile : panneau ancré en bas, coins hauts
+   * arrondis, hauteur plafonnée — le contenu défile, le footer reste
+   * visible. Sur desktop, comportement centré classique. */
+  sheet?: boolean;
 }
 
 export function Modal({
@@ -27,6 +31,7 @@ export function Modal({
   footer,
   centered = false,
   className,
+  sheet = false,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -79,7 +84,7 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-describedby={description ? descriptionId : undefined}>
+    <div className={cn("fixed inset-0 z-50 flex items-end justify-center sm:items-center", sheet ? "p-0 sm:p-6" : "p-4 sm:p-6")} role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined} aria-describedby={description ? descriptionId : undefined}>
       <div
         aria-hidden
         onClick={onClose}
@@ -89,22 +94,29 @@ export function Modal({
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90dvh] w-[95%] sm:w-full max-w-lg mx-auto flex-col overflow-hidden animate-[slide-up_180ms_ease-out] rounded-2xl border border-border bg-card shadow-pop focus:outline-none',
-          centered ? 'sm:max-w-sm' : 'sm:mx-4',
+          'relative z-10 flex w-full flex-col overflow-hidden animate-[slide-up_180ms_ease-out] border bg-card shadow-pop focus:outline-none',
+          sheet
+            ? 'max-h-[92dvh] max-w-md rounded-t-3xl border-border/60 sm:rounded-3xl'
+            : 'mx-auto w-[95%] max-w-lg rounded-2xl border-border sm:w-full',
+          !sheet && 'max-h-[90dvh]',
+          centered && !sheet ? 'sm:max-w-sm' : '',
+          !sheet && !centered ? 'sm:mx-4' : '',
           className,
         )}
       >
         <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
-        <div className="flex shrink-0 items-start justify-between gap-3 px-5 pt-4">
+        <div className={cn("flex shrink-0 items-center justify-between gap-3", sheet ? "border-b border-border p-4" : "items-start px-5 pt-4")}>
           <div className="min-w-0 space-y-1">
-            {title ? <h2 id={titleId} className="text-sm sm:text-base font-semibold tracking-tight">{title}</h2> : null}
-            {description ? <p id={descriptionId} className="text-sm text-muted-foreground">{description}</p> : null}
+            {title ? <h2 id={titleId} className={sheet ? "text-base font-bold tracking-tight text-slate-900 dark:text-white" : "text-sm sm:text-base font-semibold tracking-tight"}>{title}</h2> : null}
+            {description ? <p id={descriptionId} className={sheet ? "text-xs text-slate-500 dark:text-slate-400" : "text-sm text-muted-foreground"}>{description}</p> : null}
           </div>
           <button
             type="button"
             aria-label="Fermer"
             onClick={onClose}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={sheet
+              ? "flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-white/10 dark:text-slate-300"
+              : "flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"}
           >
             <Icon name="x" size="sm" />
           </button>

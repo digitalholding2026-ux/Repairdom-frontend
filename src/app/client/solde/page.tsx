@@ -142,7 +142,8 @@ export default function ClientSoldePage() {
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
         title="Retirer des fonds"
-        description="Retrait vers votre compte Mobile Money."
+        description="Vers votre compte Mobile Money."
+        sheet
       >
         <WithdrawalPanel
           bare

@@ -174,6 +174,11 @@ export function WithdrawalPanel({
 
               {!confirming && !result ? (
                 <>
+                  {bare ? (
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Montant (FCFA)
+                    </p>
+                  ) : null}
                   <div className="grid grid-cols-2 gap-2.5">
                     {PRESETS.map((preset) => (
                       <button
@@ -204,6 +209,11 @@ export function WithdrawalPanel({
                       FCFA
                     </span>
                   </div>
+                  {bare ? (
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Réseau de retrait
+                    </p>
+                  ) : null}
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {OPERATOR_NETWORKS.map((operator) => (
                       <OperatorNetworkCard
@@ -214,6 +224,11 @@ export function WithdrawalPanel({
                       />
                     ))}
                   </div>
+                  {bare ? (
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      Numéro bénéficiaire
+                    </p>
+                  ) : null}
                   <div className="flex gap-2">
                     <span
                       aria-hidden
@@ -229,9 +244,11 @@ export function WithdrawalPanel({
                       aria-label="Numéro Mobile Money bénéficiaire"
                     />
                   </div>
-                  <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
-                    Continuer
-                  </Button>
+                  {!bare ? (
+                    <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
+                      Continuer
+                    </Button>
+                  ) : null}
                 </>
               ) : null}
 
@@ -252,14 +269,16 @@ export function WithdrawalPanel({
                   <p className="text-xs text-muted-foreground">
                     Des frais d&apos;opérateur peuvent s&apos;appliquer (montant exact confirmé par SasPay, aucun calcul local).
                   </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setConfirming(false)} className="flex-1">
-                      Retour
-                    </Button>
-                    <Button onClick={submit} disabled={submitting || insufficient} className="flex-1">
-                      {submitting ? 'Envoi…' : 'Confirmer le retrait'}
-                    </Button>
-                  </div>
+                  {!bare ? (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setConfirming(false)} className="flex-1">
+                        Retour
+                      </Button>
+                      <Button onClick={submit} disabled={submitting || insufficient} className="flex-1">
+                        {submitting ? 'Envoi…' : 'Confirmer le retrait'}
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -278,6 +297,35 @@ export function WithdrawalPanel({
                     Référence {result.request.reference} — suivez son statut{' '}
                     {showHistory ? 'ci-dessous.' : 'dans le détail des mouvements.'}
                   </p>
+                </div>
+              ) : null}
+
+              {/* Footer ancré (mode modale) : l'action reste TOUJOURS visible,
+                  même si le corps défile sur petit écran. */}
+              {bare && !result ? (
+                <div className="sticky bottom-0 -mx-5 -mb-4 border-t border-border bg-card/95 px-5 py-3 backdrop-blur">
+                  {!confirming ? (
+                    <Button
+                      onClick={() => setConfirming(true)}
+                      disabled={submitting}
+                      className="w-full py-3.5 text-sm font-bold shadow-lg shadow-orange-500/25"
+                    >
+                      Continuer
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setConfirming(false)} className="flex-1">
+                        Retour
+                      </Button>
+                      <Button
+                        onClick={submit}
+                        disabled={submitting || insufficient}
+                        className="flex-1 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/25"
+                      >
+                        {submitting ? 'Envoi…' : 'Confirmer le retrait'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
