@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint src/",
-    "test:unit": "node --test src/lib/payment-helpers.test.ts",
+    "test:unit": "node --test src/lib/payment-helpers.test.ts src/lib/gps-helpers.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

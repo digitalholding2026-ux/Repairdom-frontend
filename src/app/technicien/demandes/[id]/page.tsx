@@ -386,12 +386,21 @@ export default function TechnicianDemandeDetailPage() {
   const hasInterventionCoords =
     typeof demande.latitude === 'number' && typeof demande.longitude === 'number';
   const ownTravelPoint =
+    demande.travel?.fresh &&
     demande.travel?.latitude !== null &&
     demande.travel?.latitude !== undefined &&
     demande.travel?.longitude !== null &&
     demande.travel?.longitude !== undefined
       ? { latitude: demande.travel.latitude, longitude: demande.travel.longitude }
       : null;
+  /* Position transmise mais périmée (fenêtre V3 15 min) : le marqueur
+   * n'est plus affiché comme position actuelle, ni ici ni côté client. */
+  const hasStaleTravelPoint =
+    !demande.travel?.fresh &&
+    demande.travel?.latitude !== null &&
+    demande.travel?.latitude !== undefined &&
+    demande.travel?.longitude !== null &&
+    demande.travel?.longitude !== undefined;
   const ownTravelDistance = demande.travel?.fresh
     ? formatTravelDistance(demande.travel.distanceMeters)
     : null;
@@ -479,6 +488,11 @@ export default function TechnicianDemandeDetailPage() {
                 intervention={{ latitude: demande.latitude as number, longitude: demande.longitude as number }}
                 technician={ownTravelPoint}
               />
+              {demande.travel?.enRoute && !ownTravelPoint ? (
+                <Alert variant="neutral" dense>
+                  Dernière position indisponible ou trop ancienne.
+                </Alert>
+              ) : null}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
@@ -488,12 +502,12 @@ export default function TechnicianDemandeDetailPage() {
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden className="size-2.5 rounded-full bg-blue-600" />
                     Ma position
-                    {demande.travel?.fresh
-                      ? [ownTravelDistance, ownTravelRecency].filter(Boolean).length > 0
-                        ? ` (${[ownTravelDistance, ownTravelRecency].filter(Boolean).join(' · ')})`
-                        : ''
-                      : ' (périmée — pensez à l\u2019actualiser)'}
+                    {[ownTravelDistance, ownTravelRecency].filter(Boolean).length > 0
+                      ? ` (${[ownTravelDistance, ownTravelRecency].filter(Boolean).join(' · ')})`
+                      : ''}
                   </span>
+                ) : hasStaleTravelPoint ? (
+                  <span>Dernière position trop ancienne — pensez à l&apos;actualiser.</span>
                 ) : (
                   <span>Aucune position transmise pour cette mission.</span>
                 )}

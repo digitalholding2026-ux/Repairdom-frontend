@@ -22,6 +22,31 @@ export type GpsFailure =
   | 'timeout'
   | 'unknown';
 
+/* CHANTIER GPS P0/P1 — seuil d'exploitabilité d'un fix (miroir backend
+ * `GPS_TRAVEL_MAX_ACCURACY_M`, 500 m) : au-delà, le fix n'est jamais
+ * présenté comme une localisation précise et n'est jamais transmis comme
+ * position « fraîche » — l'action métier (« En route ») part SANS
+ * coordonnées. `null` (navigateur muet) = pas d'information : le fix reste
+ * transmis (compatibilité, les bornes lat/lng restent exigées côté
+ * backend). Pur, sans dépendance. */
+export const TRAVEL_MAX_ACCURACY_M = 500;
+
+export function isUsableTravelAccuracy(accuracy: number | null | undefined): boolean {
+  if (accuracy === null || accuracy === undefined) return true;
+  return Number.isFinite(accuracy) && accuracy >= 0 && accuracy <= TRAVEL_MAX_ACCURACY_M;
+}
+
+/** Message neutre quand l'action métier continue sans GPS (ni erreur
+ *  bloquante, ni jargon) : le départ est bien enregistré. */
+export function gpsDegradedMessage(): string {
+  return 'Mission passée en route. La localisation n\u2019a pas pu être transmise : vous pouvez continuer sans GPS.';
+}
+
+/** Message quand le fix est trop imprécis pour être exploité. */
+export function gpsInaccurateMessage(): string {
+  return 'Position trop imprécise pour être partagée. Mission passée en route sans position : réessayez à ciel ouvert pour actualiser.';
+}
+
 /** Libellé FR d'un échec d'acquisition GPS (rassurant, sans jargon). */
 export function gpsErrorMessage(failure: GpsFailure): string {
   switch (failure) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -10,6 +10,9 @@ import {
   formatTravelDistance,
   formatTravelRecency,
   getCurrentTravelPosition,
+  gpsDegradedMessage,
+  gpsInaccurateMessage,
+  isUsableTravelAccuracy,
 } from '@/lib/travel-location';
 import {
   markTravelArrived,
@@ -24,9 +27,18 @@ import { toUserErrorMessage } from '@/lib/ui-error-message';
  * « Actualiser ma position », « Je suis arrivé ») : aucun tracking, aucun
  * `watchPosition`, aucun arrière-plan. La position n'est partagée avec le
  * client que pour CETTE mission, le temps du déplacement. Les erreurs GPS
- * ne bloquent jamais la mission (affichage en ligne, zone dédiée). */
+ * ne bloquent jamais la mission (affichage en ligne, zone dédiée).
+ * CHANTIER GPS P0/P1 — « Je suis en route » part TOUJOURS (avec ou sans
+ * GPS) : le backend accepte un corps vide. Un fix trop imprécis n'est
+ * jamais transmis comme position fraîche. L'actualisation manuelle est
+ * protégée contre les appels trop rapprochés (30 s, miroir backend). */
 
 const TRAVELABLE_STATUSES = ['SCHEDULED', 'IN_PROGRESS'];
+
+/* Throttle local de l'actualisation manuelle (miroir du backend
+ * `GPS_TRAVEL_REFRESH_THROTTLE_MS`) : évite les écritures DB inutiles
+ * (double-clic) sans empêcher une vraie nouvelle position. */
+const REFRESH_THROTTLE_MS = 30_000;
 
 type TravelAction = 'route' | 'refresh' | 'arrived';
 
@@ -39,7 +51,15 @@ export function TravelSection({
 }) {
   const [busy, setBusy] = useState<TravelAction | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  /* Information non bloquante (départ sans GPS, actualisation ignorée) :
+   * l'action métier a abouti, seule la position manque. */
+  const [gpsInfo, setGpsInfo] = useState<string | null>(null);
   const [arrivedWithoutGps, setArrivedWithoutGps] = useState(false);
+  /* Départ enregistré sans position exploitable (GPS indisponible ou fix
+   * trop imprécis) : la mission est bien « en route ». */
+  const [startedWithoutGps, setStartedWithoutGps] = useState(false);
+  /* Dernier refresh manuel réussi (throttle local, miroir backend). */
+  const lastRefreshAt = useRef<number>(0);
   /* Précision RÉELLE du dernier fix (navigateur uniquement, éphémère —
    * jamais stockée, jamais garantie). */
   const [lastAccuracy, setLastAccuracy] = useState<string | null>(null);
@@ -55,34 +75,76 @@ export function TravelSection({
   const runAction = async (action: TravelAction, withPosition: boolean) => {
     setBusy(action);
     setGpsError(null);
+    setGpsInfo(null);
     setArrivedWithoutGps(false);
     setLastAccuracy(null);
     try {
       let position: { latitude: number; longitude: number; accuracy: number | null } | null = null;
+      /* Échec d'acquisition GPS : « En route » et « Arrivé » continuent
+       * SANS coordonnées (le backend les accepte) ; « Actualiser » n'a
+       * rien à transmettre — information neutre, jamais d'erreur
+       * bloquante, jamais de nouveau statut. */
+      let gpsUnavailable = false;
       if (withPosition) {
         try {
           position = await getCurrentTravelPosition();
         } catch (err) {
-          // Arrivée : la date est toujours enregistrée même sans GPS.
-          if (action !== 'arrived') {
-            setGpsError(err instanceof Error ? err.message : 'Position indisponible.');
+          if (action === 'refresh') {
+            setGpsInfo(err instanceof Error ? err.message : 'Position indisponible pour le moment.');
             return;
           }
-          setArrivedWithoutGps(true);
+          // Arrivée : la date est toujours enregistrée même sans GPS.
+          if (action === 'arrived') setArrivedWithoutGps(true);
+          else setStartedWithoutGps(true);
+          gpsUnavailable = true;
         }
       }
+      /* Fix trop imprécis : jamais transmis comme position fraîche.
+       * « En route » / « Arrivé » continuent sans position exploitable ;
+       * « Actualiser » est ignoré avec une information neutre. */
+      if (position && !isUsableTravelAccuracy(position.accuracy)) {
+        if (action === 'refresh') {
+          setGpsInfo(gpsInaccurateMessage());
+          return;
+        }
+        position = null;
+        if (action === 'arrived') setArrivedWithoutGps(true);
+        else {
+          setStartedWithoutGps(true);
+          setGpsInfo(gpsInaccurateMessage());
+        }
+      }
+      // Throttle local de l'actualisation manuelle (le backend protège
+      // aussi contre les appels trop rapprochés, même sans frontend).
+      if (action === 'refresh' && Date.now() - lastRefreshAt.current < REFRESH_THROTTLE_MS) {
+        setGpsInfo('Position déjà actualisée à l\u2019instant. Réessayez dans quelques secondes.');
+        return;
+      }
       let updated: TechnicianDemande;
-      // `accuracy` reste un affichage local éphémère : seuls lat/lng
-      // partent au backend (ValidationPipe `forbidNonWhitelisted`).
+      // `accuracy` reste une information d'exploitabilité : seuls lat/lng
+      // (+ accuracy brute, whitelistée côté backend) partent au serveur.
       const coords = position ? { latitude: position.latitude, longitude: position.longitude } : null;
       if (action === 'route') {
-        updated = await startTravel(demande.id, coords!.latitude, coords!.longitude);
+        if (coords) {
+          updated = await startTravel(demande.id, coords.latitude, coords.longitude, position?.accuracy);
+          setStartedWithoutGps(false);
+        } else {
+          updated = await startTravel(demande.id);
+          setStartedWithoutGps(true);
+          if (!gpsUnavailable) setGpsInfo((prev) => prev ?? gpsDegradedMessage());
+          else setGpsInfo(gpsDegradedMessage());
+        }
       } else if (action === 'refresh') {
-        updated = await refreshTravelLocation(demande.id, coords!.latitude, coords!.longitude);
+        if (!coords) {
+          setGpsInfo(gpsDegradedMessage());
+          return;
+        }
+        updated = await refreshTravelLocation(demande.id, coords.latitude, coords.longitude, position?.accuracy);
+        lastRefreshAt.current = Date.now();
       } else {
         updated = await markTravelArrived(
           demande.id,
-          coords ?? undefined,
+          coords ? { ...coords, accuracy: position?.accuracy } : undefined,
         );
       }
       onChanged(updated);
@@ -105,6 +167,7 @@ export function TravelSection({
       <SectionHeader title="Déplacement" icon="truck" />
 
       {gpsError ? <Alert variant="error">{gpsError}</Alert> : null}
+      {gpsInfo ? <Alert variant="info">{gpsInfo}</Alert> : null}
 
       {travel?.arrived ? (
         <Alert variant="success" icon="check-circle" dense>
@@ -121,12 +184,21 @@ export function TravelSection({
             En route
           </p>
           <p className="text-xs text-muted-foreground">
-            {recency ? `Dernière position transmise ${recency}` : 'Position en cours de transmission'}
-            {distance ? ` · ${distance} du lieu d\u2019intervention` : null}
-            {lastAccuracy ? ` · ${lastAccuracy}` : null}
-            {!travel.fresh && travel.minutesSinceUpdate !== null && travel.minutesSinceUpdate !== undefined
-              ? ' · position périmée, pensez à l\u2019actualiser'
-              : null}
+            {travel.latitude !== null && travel.latitude !== undefined && travel.fresh ? (
+              <>
+                {recency ? `Dernière position transmise ${recency}` : 'Position en cours de transmission'}
+                {distance ? ` · ${distance} du lieu d\u2019intervention` : null}
+                {lastAccuracy ? ` · ${lastAccuracy}` : null}
+              </>
+            ) : (
+              <>
+                Mission en route
+                {startedWithoutGps || !travel.locationUpdatedAt
+                  ? ' sans position GPS — la localisation n\u2019a pas pu être transmise, vous pouvez continuer sans GPS'
+                  : ' · dernière position indisponible ou trop ancienne, pensez à l\u2019actualiser'}
+                .
+              </>
+            )}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button

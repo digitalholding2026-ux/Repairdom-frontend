@@ -19,6 +19,9 @@ export interface TechnicianProfile {
   lastLatitude: number | null;
   lastLongitude: number | null;
   locationUpdatedAt: string | null;
+  /* CHANTIER GPS P0/P1 — fraîcheur calculée CÔTÉ SERVEUR (fenêtre V2) :
+   * l'UI ne déduit plus « à jour » de l'horloge du téléphone. */
+  isLocationFresh: boolean | null;
   completedInterventions: number;
   createdAt: string;
   user: {
@@ -291,16 +294,24 @@ export async function updateTechnicianDemandeStatus(
 
 /* GPS V3 — déplacement temporaire lié à la mission. Transmissions
  * explicites et ponctuelles uniquement (aucun tracking) ; les erreurs GPS
- * sont gérées par l'appelant et ne bloquent jamais la mission. */
+ * sont gérées par l'appelant et ne bloquent jamais la mission.
+ * CHANTIER GPS P0/P1 — le départ accepte l'absence de coordonnées (« En
+ * route » sans GPS : corps vide) ; `accuracy` optionnelle partout (fix
+ * trop imprécis jamais stocké comme position fraîche côté backend). */
 export async function startTravel(
   id: string,
-  latitude: number,
-  longitude: number,
+  latitude?: number,
+  longitude?: number,
+  accuracy?: number | null,
 ): Promise<TechnicianDemande> {
   return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/en-route`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ latitude, longitude }),
+    body: JSON.stringify(
+      latitude !== undefined && longitude !== undefined
+        ? { latitude, longitude, ...(accuracy != null ? { accuracy } : {}) }
+        : {},
+    ),
   });
 }
 
@@ -308,17 +319,22 @@ export async function refreshTravelLocation(
   id: string,
   latitude: number,
   longitude: number,
+  accuracy?: number | null,
 ): Promise<TechnicianDemande> {
   return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/location`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ latitude, longitude }),
+    body: JSON.stringify({
+      latitude,
+      longitude,
+      ...(accuracy != null ? { accuracy } : {}),
+    }),
   });
 }
 
 export async function markTravelArrived(
   id: string,
-  position?: { latitude: number; longitude: number },
+  position?: { latitude: number; longitude: number; accuracy?: number | null },
 ): Promise<TechnicianDemande> {
   return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/arrived`, {
     method: 'POST',

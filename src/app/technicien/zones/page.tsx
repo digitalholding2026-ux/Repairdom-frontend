@@ -15,6 +15,7 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { useToast } from '@/lib/toast-context';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { formatDateTime } from '@/lib/format';
+import { getCurrentTravelPosition } from '@/lib/travel-location';
 import { listCities, type City } from '@/lib/api/cities-service';
 import {
   getTechnicianProfile,
@@ -143,54 +144,44 @@ export default function TechnicienZonesPage() {
     }
   };
 
-  /* GPS V2 — fraîcheur miroir du backend (24 h) : une position récente
-   * permet le classement par proximité, sinon le technicien reste candidat
-   * sans distance. Aucun tracking, aucune carte. */
+  /* GPS V2 — fraîcheur calculée CÔTÉ SERVEUR (`isLocationFresh`, fenêtre
+   * 24 h) : jamais déduite de l'horloge du téléphone (`Date.now()`),
+   * falsifiable. Repli local uniquement si l'API ne renseigne pas encore
+   * le drapeau (compatibilité) : aucune position = jamais fraîche. */
   const isLocationFresh = useMemo(() => {
+    if (typeof profile?.isLocationFresh === 'boolean') return profile.isLocationFresh;
     if (!profile?.locationUpdatedAt) return false;
     const updated = Date.parse(profile.locationUpdatedAt);
     if (!Number.isFinite(updated)) return false;
     const ageMs = Date.now() - updated;
     return ageMs >= 0 && ageMs <= 24 * 60 * 60 * 1000;
-  }, [profile?.locationUpdatedAt]);
+  }, [profile?.isLocationFresh, profile?.locationUpdatedAt]);
 
+  /* GPS V1 — mise à jour ponctuelle via le helper central
+   * (`getCurrentTravelPosition` : même acquisition que le déplacement,
+   * `enableHighAccuracy` + repli, messages FR unifiés). Aucun second
+   * système GPS parallèle, aucun tracking. */
   const handleUpdateLocation = () => {
     setLocationError(null);
     if (locating || mutating) return;
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocationError('La géolocalisation n’est pas disponible sur cet appareil.');
-      return;
-    }
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const updated = await updateTechnicianLocation(
-            position.coords.latitude,
-            position.coords.longitude,
-          );
-          setProfile(updated);
-          toast({ title: 'Position mise à jour.', variant: 'success' });
-        } catch (err) {
-          const message = toUserErrorMessage(err, 'Envoi de la position impossible.');
-          setLocationError(message);
-          toast({ title: 'Erreur', description: message, variant: 'error' });
-        } finally {
-          setLocating(false);
-        }
-      },
-      (failure) => {
-        if (failure.code === failure.PERMISSION_DENIED) {
-          setLocationError('Position refusée. Autorisez l’accès dans votre navigateur pour réessayer.');
-        } else if (failure.code === failure.TIMEOUT) {
-          setLocationError('Délai dépassé pour obtenir la position. Réessayez.');
-        } else {
-          setLocationError('Position indisponible pour le moment. Réessayez.');
-        }
+    void (async () => {
+      try {
+        const position = await getCurrentTravelPosition();
+        const updated = await updateTechnicianLocation(
+          position.latitude,
+          position.longitude,
+        );
+        setProfile(updated);
+        toast({ title: 'Position transmise.', description: 'Votre position a été mise à jour.', variant: 'success' });
+      } catch (err) {
+        const message = toUserErrorMessage(err, 'Envoi de la position impossible.');
+        setLocationError(message);
+        toast({ title: 'Position non transmise', description: message, variant: 'error' });
+      } finally {
         setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
+      }
+    })();
   };
 
   if (loading) {
@@ -268,9 +259,11 @@ export default function TechnicienZonesPage() {
                       </p>
                       {profile?.locationUpdatedAt ? (
                         <Badge variant={isLocationFresh ? 'success' : 'neutral'}>
-                          {isLocationFresh ? 'À jour' : 'À actualiser'}
+                          {isLocationFresh ? 'À jour' : 'Ancienne — à actualiser'}
                         </Badge>
-                      ) : null}
+                      ) : (
+                        <Badge variant="neutral">Aucune position</Badge>
+                      )}
                     </div>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {profile?.locationUpdatedAt
