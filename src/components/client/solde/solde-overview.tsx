@@ -1,7 +1,5 @@
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
-import { Button } from '@/components/ui/button';
-import { GradientHeroCard, HeroStat } from '@/components/ui/gradient-hero-card';
 import { formatCurrency } from '@/lib/format';
 import type { ClientFinanceSummary } from '@/lib/api/finance-service';
 
@@ -27,60 +25,58 @@ export function SoldeOverview({
     })
     .reduce((acc, t) => acc + t.amount, 0);
 
+  const stats = [
+    { label: 'En attente / Engagé', value: formatCurrency(engaged, summary.currency) },
+    { label: 'Recharges ce mois', value: formatCurrency(topupsThisMonth, summary.currency) },
+    { label: 'Remboursements', value: formatCurrency(totalRefunds, summary.currency) },
+  ];
+
   return (
-    <GradientHeroCard>
-      <div className="relative flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-            Solde disponible
-          </p>
-          <p className="figure mt-1.5 text-3xl font-bold tabular-nums text-relio-orange-bright lg:text-4xl">
-            {formatCurrency(summary.balance, summary.currency)}
-          </p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-400">
-            <Icon name="shield-check" size="3.5" />
-            Solde disponible sous protection SasPay
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-white/20 text-white shadow-float">
-            <Icon name="briefcase" size="lg" />
-          </span>
-        </div>
+    <section
+      aria-label="Solde disponible"
+      className="space-y-4 rounded-3xl border border-slate-800 bg-slate-900 p-6 text-white shadow-xl"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          Solde disponible
+        </p>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-300">
+          <Icon name="shield-check" size="3.5" />
+          SasPay
+        </span>
       </div>
 
-      <div className="relative mt-3 flex gap-2">
+      <p className="truncate text-4xl font-extrabold tabular-nums tracking-tight text-orange-500">
+        {formatCurrency(summary.balance, summary.currency)}
+      </p>
+
+      <div className="flex gap-2">
         <Link href="/client/solde/recharger" className="flex-1">
-          <Button className="w-full font-semibold">
-            <Icon name="plus" size="sm" />
+          <span className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:scale-[0.98]">
+            <Icon name="plus" size="sm" strokeWidth={2.4} />
             Recharger
-          </Button>
+          </span>
         </Link>
         {onWithdraw ? (
-          <Button
-            variant="ghost"
+          <button
+            type="button"
             onClick={onWithdraw}
-            className="flex-1 border border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 py-3 font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:scale-[0.98]"
           >
             <Icon name="wallet" size="sm" />
             Retirer
-          </Button>
+          </button>
         ) : null}
       </div>
 
-      <div className="relative mt-3 grid grid-cols-1 gap-2 min-[420px]:grid-cols-3">
-        <HeroStat label="En attente / Engagé" value={formatCurrency(engaged, summary.currency)} />
-        <HeroStat label="Recharges ce mois" value={formatCurrency(topupsThisMonth, summary.currency)} />
-        <HeroStat label="Remboursements reçus" value={formatCurrency(totalRefunds, summary.currency)} />
-      </div>
-
-      <Link
-        href="#mouvements"
-        className="relative mt-3 flex items-center justify-end gap-1 text-xs font-medium text-white/80"
-      >
-        Voir le détail des mouvements
-        <Icon name="chevron-right" size="sm" />
-      </Link>
-    </GradientHeroCard>
+      <dl className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
+        {stats.map((stat) => (
+          <div key={stat.label} className="min-w-0 text-center">
+            <dt className="text-[11px] font-medium leading-tight text-slate-400">{stat.label}</dt>
+            <dd className="mt-1 truncate text-sm font-bold tabular-nums text-white">{stat.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }

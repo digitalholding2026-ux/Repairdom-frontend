@@ -22,13 +22,21 @@ export interface BottomNavProps {
 /**
  * Barre de navigation inférieure épurée (modèle Neero, charte Relio).
  * Fixée en bas de l'écran mobile, fond blanc flouté, onglet actif en
- * orange Relio (#FF6B00). Avec un `primaryHref`, une action centrale
- * surélevée organise les onglets en 2 + FAB + 2.
+ * orange. Règle d'activation stricte : correspondance exacte pour
+ * l'onglet d'accueil (sinon `/client` resterait actif sur toutes les
+ * pages), préfixe de segment pour les autres onglets (les sous-routes
+ * comme `/client/solde/recharger` gardent leur onglet actif).
+ * Avec un `primaryHref`, une action centrale surélevée organise les
+ * onglets en 2 + FAB + 2.
  */
 export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
-  const pathname = usePathname();
-  const isActive = (href: string) =>
-    href === '/' ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+  const pathname = usePathname() ?? '';
+  const normalize = (href: string) => (href.length > 1 ? href.replace(/\/+$/, '') : href);
+  const isActive = (href: string) => {
+    const target = normalize(href);
+    if (target === '/' || target === '/client' || target === '/technicien') return pathname === target;
+    return pathname === target || pathname.startsWith(`${target}/`);
+  };
   const split = Math.ceil(items.length / 2);
   const leftItems = items.slice(0, split);
   const rightItems = items.slice(split);
@@ -88,7 +96,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
           strokeWidth={active ? 2.4 : 1.9}
           className={cn(
             'transition-all duration-300',
-            active ? 'scale-110 text-[#FF6B00]' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400',
+            active ? 'scale-110 text-orange-500' : 'text-slate-400 hover:text-slate-600',
           )}
         />
         {item.notifications ? <NotificationTabBadge /> : null}
@@ -96,7 +104,7 @@ function BottomNavLink({ item, active }: { item: BottomNavItem; active: boolean 
       <span
         className={cn(
           'max-w-full truncate leading-none transition-colors duration-300',
-          active ? 'font-semibold text-[#FF6B00]' : 'text-slate-500 dark:text-slate-400',
+          active ? 'font-semibold text-orange-500' : 'text-slate-400',
         )}
       >
         {item.label}

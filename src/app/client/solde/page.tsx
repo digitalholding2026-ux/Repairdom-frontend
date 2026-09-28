@@ -134,15 +134,15 @@ export default function ClientSoldePage() {
     <div className="space-y-5">
       <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
 
-      {/* Hero gradient */}
+      {/* Carte principale : solde + actions */}
       <SoldeOverview summary={summary} onWithdraw={() => setWithdrawOpen(true)} />
 
-      {/* Modale de retrait (le héros porte déjà les CTA) */}
+      {/* Modale de retrait (la carte porte déjà les CTA) */}
       <Modal
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
         title="Retirer des fonds"
-        description="Retrait réel vers votre compte Mobile Money."
+        description="Retrait vers votre compte Mobile Money."
       >
         <WithdrawalPanel
           bare
@@ -156,17 +156,20 @@ export default function ClientSoldePage() {
         />
       </Modal>
 
-      {/* Dashboard 2 colonnes */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Colonne principale : activité financière unifiée */}
-        <div className="rounded-2xl border border-slate-200 bg-card p-6 shadow-sm dark:border-slate-800 lg:col-span-2">
-          <Tabs
-            items={SOLDE_TABS}
-            value={mainTab}
-            onChange={(id) => setMainTab(id as SoldeTab)}
-            variant="segmented"
-            label="Sections du solde"
-          />
+      {/* Activité financière : empilée sur mobile, 2 colonnes sur desktop */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
+        {/* Colonne principale : onglets + historique */}
+        <div className="min-w-0 rounded-2xl border border-slate-200 bg-card p-4 shadow-sm dark:border-slate-800 sm:p-6 lg:col-span-2">
+          <div className="overflow-x-auto no-scrollbar">
+            <Tabs
+              items={SOLDE_TABS}
+              value={mainTab}
+              onChange={(id) => setMainTab(id as SoldeTab)}
+              variant="segmented"
+              label="Sections du solde"
+              className="w-max min-w-full [&_button]:whitespace-nowrap"
+            />
+          </div>
           <div className="mt-4">
             {mainTab === 'MOVEMENTS' ? (
               <div className="space-y-3">
@@ -174,7 +177,7 @@ export default function ClientSoldePage() {
                   items={MOVEMENT_TABS}
                   value={movementFilter}
                   onChange={(id) => setMovementFilter(id as MovementFilter)}
-                  variant="segmented"
+                  variant="pills"
                   label="Filtrer les mouvements"
                 />
                 {summary.transactions.length === 0 ? (
@@ -183,7 +186,7 @@ export default function ClientSoldePage() {
                     description="Vos crédits et débits apparaîtront ici au fil des interventions."
                     action={
                       <Link href="/client/demandes">
-                        <Button variant="outline">Voir mes missions</Button>
+                        <Button variant="secondary">Voir mes missions</Button>
                       </Link>
                     }
                   />
@@ -221,29 +224,27 @@ export default function ClientSoldePage() {
           </div>
         </div>
 
-        {/* Colonne secondaire : synthèse & sécurité */}
-        <aside className="space-y-6 lg:col-span-1">
-          <Card>
-            <CardContent className="space-y-3 py-4">
-              <p className="text-sm font-semibold">Résumé des dépenses</p>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">Dépense moy. / mission</span>
-                <span className="font-semibold tabular-nums">
-                  {missionCount > 0 ? formatCurrency(avgPerMission, summary.currency) : '—'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="text-muted-foreground">Total missions débitées</span>
-                <span className="font-semibold tabular-nums">{missionCount}</span>
-              </div>
-            </CardContent>
-          </Card>
-          <div className="space-y-2 rounded-xl border border-primary/10 bg-primary/5 p-4 text-xs">
-            <p className="flex items-center gap-2 text-sm font-semibold">
-              <Icon name="shield-check" className="h-5 w-5 text-primary" />
+        {/* Colonne secondaire : résumé & sécurité */}
+        <aside className="min-w-0 space-y-4 lg:col-span-1">
+          <div className="space-y-2 rounded-2xl border border-slate-200/80 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+            <p className="font-semibold text-slate-900 dark:text-white">Résumé des dépenses</p>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-500 dark:text-slate-400">Dépense moy. / mission</span>
+              <span className="shrink-0 font-semibold tabular-nums">
+                {missionCount > 0 ? formatCurrency(avgPerMission, summary.currency) : '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-slate-500 dark:text-slate-400">Total missions débitées</span>
+              <span className="shrink-0 font-semibold tabular-nums">{missionCount}</span>
+            </div>
+          </div>
+          <div className="space-y-1 rounded-2xl border border-orange-500/15 bg-orange-500/5 p-4 text-xs text-slate-600 dark:text-slate-300">
+            <p className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+              <Icon name="shield-check" size="md" className="text-orange-500" />
               Sécurité SasPay
             </p>
-            <p className="leading-relaxed text-muted-foreground">
+            <p className="leading-relaxed">
               Toutes vos transactions sont sécurisées par SasPay. Vos retraits sont crédités
               directement sur votre compte Mobile Money (MTN / Orange).
             </p>
