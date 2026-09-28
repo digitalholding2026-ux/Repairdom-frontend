@@ -1,93 +1,43 @@
-import Image from 'next/image';
+'use client';
+
+import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
-import { HeroActions } from './hero-actions';
+import { useAuth } from '@/components/auth/auth-provider';
+import { homePathForRole } from '@/lib/api/auth-service';
 
-function TrustBadges({ className = '' }: { className?: string }) {
-  return (
-    <p className={`inline-flex flex-wrap items-center gap-2 text-sm text-white/80 ${className}`}>
-      <span className="flex items-center gap-0.5 text-amber-300">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Icon key={i} name="star" size="3.5" filled />
-        ))}
-      </span>
-      <span className="font-medium text-white">4,9/5</span>
-      <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-      <span>5000+ interventions réalisées</span>
-      <span aria-hidden className="size-0.5 rounded-full bg-white/60" />
-      <span>350+ techniciens vérifiés</span>
-    </p>
-  );
-}
-
-/* Hero fully responsive + full-width (100vw, fond uni #0B0D12 sans motif) :
- * - Desktop (lg+) : bannière 100% largeur en fill/object-cover, boutons
- *   translucides en overlay absolu bas-gauche (ni texte ni visage masqués).
- * - Mobile/Tablette (< lg) : carte image non déformée aspect-[4/3] puis
- *   aspect-[16/10] en sm, boutons en flux sous l'image (flex-col -> sm:row).
- * SEO/a11y : h1 + description en sr-only (l'affiche contient déjà le texte). */
+/* Hero compact style Apple/Uber : dégradé subtil, badge de preuve,
+ * titre centré, CTA XL unique + lien suivi discret. */
 export function Hero() {
+  const { user, authenticated } = useAuth();
+  const primaryHref = authenticated ? homePathForRole(user?.role) : '/client/inscription';
+
   return (
-    <section className="w-full relative bg-[#0B0D12] overflow-hidden px-0">
-      <h1 className="sr-only">Votre panne, notre priorité.</h1>
-      <p className="sr-only">
-        Déposez votre demande, trouvez un technicien qualifié près de chez vous et obtenez une
-        intervention rapide.
-      </p>
-
-      {/* ── Desktop (lg+) : bannière full-width 100% fill/object-cover ── */}
-      <div className="relative hidden w-full min-h-[80vh] overflow-hidden lg:flex lg:items-center lg:justify-center">
-        <div className="absolute inset-0 w-full h-full">
-          <Image
-            src="/hero/hero_main.png"
-            alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center w-full h-full"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
-          />
-        </div>
-
-        {/* Overlay bas-gauche : ne cache ni "priorité." ni le visage */}
-        <div className="absolute bottom-8 left-8 lg:left-16 z-10 flex flex-row items-center gap-4">
-          <HeroActions />
-        </div>
-
-        {/* Reassurance bas-droite desktop */}
-        <div className="absolute bottom-8 right-8 xl:right-16 z-10 hidden xl:flex">
-          <TrustBadges />
-        </div>
-      </div>
-
-      {/* ── Mobile & Tablette (< lg) : image non tronquée + boutons en flux ── */}
-      <div className="w-full px-4 pt-6 pb-8 sm:px-6 lg:hidden">
-        <div className="relative w-full h-auto aspect-[4/3] sm:aspect-[16/10] overflow-hidden rounded-xl border border-white/10 shadow-lg transform-gpu">
-          <Image
-            src="/hero/hero_main.png"
-            alt="Affiche Relio : Votre panne, notre priorité — déposez votre panne, technicien qualifié, diagnostic avec devis et intervention rapide"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center w-full h-full"
-          />
-          <div
-            aria-hidden
-            className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"
-          />
-        </div>
-
-        {/* Boutons : colonne sur mobile, ligne dès sm, centrés, sous l'image */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-4 px-0 w-full justify-center items-stretch sm:items-center">
-          <HeroActions />
-        </div>
-
-        {/* Reassurance centrée sur mobile */}
-        <div className="mt-4 flex w-full justify-center text-center">
-          <TrustBadges className="justify-center text-center" />
-        </div>
+    <section className="bg-gradient-to-b from-orange-500/10 via-slate-50 to-white px-4 pb-6 pt-8">
+      <div className="mx-auto w-full max-w-xl text-center">
+        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-600">
+          <span aria-hidden>⭐</span>
+          4.9/5 (+5 000 interventions réussies)
+        </p>
+        <h1 className="mx-auto max-w-xl text-center text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+          Le dépannage à domicile rapide, clair et sécurisé.
+        </h1>
+        <p className="mx-auto mt-2 max-w-md text-center text-sm text-slate-600">
+          Décrivez votre panne, recevez un devis garanti et suivez votre technicien certifié.
+        </p>
+        <Link
+          href={primaryHref}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99]"
+        >
+          {authenticated ? 'Continuer ma mission' : "J'ai besoin d'un dépannage"}
+          <Icon name="arrow-right" size="md" strokeWidth={2.4} />
+        </Link>
+        <Link
+          href="/suivi"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 underline-offset-4 hover:text-orange-600 hover:underline"
+        >
+          <Icon name="pin" size="3.5" />
+          Déjà une intervention ? Suivre avec votre référence
+        </Link>
       </div>
     </section>
   );

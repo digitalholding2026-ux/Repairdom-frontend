@@ -1,5 +1,4 @@
 import { Icon } from '@/components/ui/icon';
-import { Reveal } from './reveal';
 
 const FAQ = [
   {
@@ -26,30 +25,23 @@ const FAQ = [
 
 export function Faq() {
   return (
-    <section id="faq" className="mt-14 scroll-mt-20" aria-labelledby="faq-title">
-      <Reveal>
-        <p className="px-1 text-xs font-semibold uppercase tracking-wider text-primary">
-          Questions fréquentes
-        </p>
-        <h2 id="faq-title" className="mt-1 px-1 text-xl font-bold tracking-tight sm:text-2xl">
-          On répond à vos questions
-        </h2>
-      </Reveal>
-      <div className="mx-auto mt-6 max-w-4xl space-y-2.5">
-        {FAQ.map((item, index) => (
-          <Reveal key={item.question} delay={index * 60}>
-            <details className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-colors open:border-primary/30">
-              <summary className="flex list-none cursor-pointer items-center justify-between gap-3 p-4 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-                {item.question}
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-transform duration-300 group-open:rotate-180 dark:bg-white/10 dark:text-slate-200">
-                  <Icon name="chevron-down" size="sm" />
-                </span>
-              </summary>
-              <div className="border-t border-border/60 px-4 pb-4 pt-3 text-sm leading-relaxed text-muted-foreground">
-                {item.answer}
-              </div>
-            </details>
-          </Reveal>
+    <section id="faq" className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 pt-6" aria-labelledby="faq-title">
+      <h2 id="faq-title" className="text-center text-lg font-extrabold tracking-tight text-slate-900">
+        Questions fréquentes
+      </h2>
+      <div className="mt-3 space-y-2">
+        {FAQ.map((item) => (
+          <details key={item.question} className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-colors open:border-orange-300">
+            <summary className="flex list-none cursor-pointer items-center justify-between gap-3 p-3.5 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+              {item.question}
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-transform duration-300 group-open:rotate-180">
+                <Icon name="chevron-down" size="3.5" />
+              </span>
+            </summary>
+            <div className="border-t border-slate-100 px-3.5 pb-3.5 pt-2.5 text-xs leading-relaxed text-slate-600">
+              {item.answer}
+            </div>
+          </details>
         ))}
       </div>
     </section>
