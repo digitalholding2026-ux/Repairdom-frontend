@@ -411,10 +411,10 @@ export default function ClientDemandeDetailPage() {
                         Il vous manque {formatCurrency(insufficientBalance.deficit, balance?.currency ?? 'FCFA')} pour valider cette intervention.
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        La recharge en ligne n’est pas encore disponible. Suivez votre solde depuis la page dédiée.
+                        Rechargez votre solde en ligne par Mobile Money pour valider cette intervention.
                       </p>
-                      <Link href="/client/solde">
-                        <Button variant="secondary" className="w-full">Voir mon solde</Button>
+                      <Link href="/client/solde/recharger">
+                        <Button className="w-full">Recharger mon solde</Button>
                       </Link>
                       {canCancel ? (
                         <Button

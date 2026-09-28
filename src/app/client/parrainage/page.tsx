@@ -83,8 +83,8 @@ export default function ClientParrainagePage() {
       </section>
 
       <Alert variant="info" dense icon="info">
-        Aucun crédit fictif n&apos;est attribué pour le moment. Cette fonctionnalité sera activée
-        lors de la mise en place du système de récompenses.
+        Le parrainage permet de faire découvrir Relio à vos proches : aucun crédit
+        n&apos;est attribué pour chaque invitation.
       </Alert>
 
       <Link href="/client" className="block">

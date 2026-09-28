@@ -44,7 +44,7 @@ function kindLabel(media: Pick<MediaGalleryItem, 'kind' | 'mimeType'>): string {
 }
 
 /* Galerie médias de la mission : filtres par type (Tous / Photos /
- * Documents), dropzone d'ajout (aperçus locaux, envoi backend à venir) et
+ * Documents), dropzone d'ajout (aperçus locaux uniquement, sans envoi) et
  * visionneuse lightbox. Les pièces serveur n'exposent que des métadonnées
  * (aucune URL de téléchargement fournie par l'API) : aucun visuel fictif. */
 export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
@@ -102,7 +102,7 @@ export function MediaGallery({ medias }: { medias: MediaGalleryItem[] }) {
     setPending((prev) => [...accepted, ...prev]);
     toast({
       title: 'Aperçu local ajouté.',
-      description: 'L’envoi de nouvelles pièces au technicien sera bientôt disponible.',
+      description: 'Cette pièce reste visible uniquement sur cet écran.',
       variant: 'info',
     });
   };

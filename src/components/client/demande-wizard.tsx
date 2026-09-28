@@ -406,7 +406,7 @@ export function DemandeWizard() {
                   <EmptyState
                     icon={<Icon name="wrench" size="md" />}
                     title="Catalogue indisponible"
-                    description="Le catalogue n'est pas encore publié. Déposez quand même votre demande, un technicien vous la décrira."
+                    description="Le catalogue n'a pas pu être chargé. Déposez quand même votre demande, un technicien vous la décrira."
                     action={
                       <Button variant="secondary" size="sm" onClick={() => handleDomainChange(OTHER_DOMAIN)}>
                         Décrire sans catégorie
@@ -500,7 +500,7 @@ export function DemandeWizard() {
                 <Field
                   label="Photos (facultatif)"
                   htmlFor="demande-photos"
-                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Seul le descriptif des photos est transmis pour l’instant (l’envoi des fichiers image arrive prochainement).`}
+                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Seuls les descriptifs des photos sont transmis au technicien.`}
                   error={photoError}
                 >
                   <label
