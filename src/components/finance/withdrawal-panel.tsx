@@ -19,13 +19,20 @@ import {
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { OPERATOR_NETWORKS, type OperatorCode } from './operator-network-card';
+import { OperatorNetworkCard } from './operator-network-card';
 
 const PRESETS = [2000, 5000, 10000, 25000];
 
-const NETWORKS: Array<{ code: WithdrawalNetwork; label: string }> = [
-  { code: 'mtn_cm', label: 'MTN Mobile Money' },
-  { code: 'orange_cm', label: 'Orange Money' },
-];
+/* Correspondance carte opérateur ↔ code réseau SasPay. */
+const NETWORK_BY_OPERATOR: Record<OperatorCode, WithdrawalNetwork> = {
+  mtn: 'mtn_cm',
+  orange: 'orange_cm',
+};
+
+function operatorOf(network: WithdrawalNetwork): OperatorCode {
+  return network === 'orange_cm' ? 'orange' : 'mtn';
+}
 
 /* UI-0 : badge centralisé sur le design system (`Badge`), libellés
  * métier conservés (statuts de retrait ≠ statuts de demande). */
@@ -167,7 +174,7 @@ export function WithdrawalPanel({
 
               {!confirming && !result ? (
                 <>
-                  <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-2.5">
                     {PRESETS.map((preset) => (
                       <button
                         key={preset}
@@ -184,34 +191,44 @@ export function WithdrawalPanel({
                       </button>
                     ))}
                   </div>
-                  <Input
-                    inputMode="numeric"
-                    placeholder="Ou montant libre (min. 100 FCFA)"
-                    value={custom}
-                    onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-                    className="tabular-nums"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    {NETWORKS.map((net) => (
-                      <button
-                        key={net.code}
-                        type="button"
-                        aria-pressed={network === net.code}
-                        onClick={() => setNetwork(net.code)}
-                        className={`rounded-xl border p-3 text-left text-sm font-semibold transition-colors ${
-                          network === net.code ? 'border-primary bg-primary/10' : 'border-border bg-card'
-                        }`}
-                      >
-                        {net.label}
-                      </button>
+                  <div className="relative">
+                    <Input
+                      inputMode="numeric"
+                      placeholder="Ou montant libre (min. 100 FCFA)"
+                      value={custom}
+                      onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                      className="pr-16 tabular-nums"
+                      aria-label="Montant libre en FCFA"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-muted-foreground">
+                      FCFA
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                    {OPERATOR_NETWORKS.map((operator) => (
+                      <OperatorNetworkCard
+                        key={operator.code}
+                        network={operator}
+                        selected={operatorOf(network) === operator.code}
+                        onSelect={() => setNetwork(NETWORK_BY_OPERATOR[operator.code])}
+                      />
                     ))}
                   </div>
-                  <Input
-                    inputMode="tel"
-                    placeholder="Numéro bénéficiaire (ex. +237690000000)"
-                    value={msisdn}
-                    onChange={(e) => setMsisdn(e.target.value.slice(0, 20))}
-                  />
+                  <div className="flex gap-2">
+                    <span
+                      aria-hidden
+                      className="inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground"
+                    >
+                      +237
+                    </span>
+                    <Input
+                      inputMode="tel"
+                      placeholder="Numéro bénéficiaire (ex. 690000000)"
+                      value={msisdn}
+                      onChange={(e) => setMsisdn(e.target.value.replace(/[^0-9+ ]/g, '').slice(0, 20))}
+                      aria-label="Numéro Mobile Money bénéficiaire"
+                    />
+                  </div>
                   <Button onClick={() => setConfirming(true)} disabled={submitting} className="w-full">
                     Continuer
                   </Button>
@@ -226,7 +243,7 @@ export function WithdrawalPanel({
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Réseau</span>
-                    <span className="font-semibold">{network === 'mtn_cm' ? 'MTN Mobile Money' : 'Orange Money'}</span>
+                    <span className="font-semibold">{network === 'mtn_cm' ? 'MTN MoMo' : 'Orange Money'}</span>
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Bénéficiaire</span>

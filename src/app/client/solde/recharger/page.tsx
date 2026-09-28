@@ -16,31 +16,20 @@ import {
 import { formatCurrency } from '@/lib/format';
 import { triggerHaptic } from '@/lib/haptics';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { OPERATOR_NETWORKS, type OperatorCode } from '@/components/finance/operator-network-card';
+import { OperatorNetworkCard } from '@/components/finance/operator-network-card';
 
 const PRESETS = [2000, 5000, 10000, 25000];
 
-const NETWORKS: Array<{
-  code: TopupNetwork;
-  label: string;
-  badge: string;
-  activeClass: string;
-  checkClass: string;
-}> = [
-  {
-    code: 'mtn_cm',
-    label: 'MTN MoMo',
-    badge: 'Push USSD direct',
-    activeClass: 'border-2 border-[#FFCC00] bg-[#FFCC00]/10 shadow-md scale-[1.02]',
-    checkClass: 'text-[#FFCC00]',
-  },
-  {
-    code: 'orange_cm',
-    label: 'Orange Money',
-    badge: 'Validation Mobile / Web',
-    activeClass: 'border-2 border-[#F97316] bg-[#F97316]/10 shadow-md scale-[1.02]',
-    checkClass: 'text-[#F97316]',
-  },
-];
+/* Correspondance carte opérateur ↔ code réseau SasPay. */
+const NETWORK_BY_OPERATOR: Record<OperatorCode, TopupNetwork> = {
+  mtn: 'mtn_cm',
+  orange: 'orange_cm',
+};
+
+function operatorOf(network: TopupNetwork): OperatorCode {
+  return network === 'orange_cm' ? 'orange' : 'mtn';
+}
 
 const STEPS = [
   { icon: 'wallet', iconClass: 'text-primary', title: '1. Choisir le montant' },
@@ -190,7 +179,7 @@ export default function RechargerPage() {
           >
             <section className="space-y-3">
               <SectionHeader title="Montant (FCFA)" />
-              <div className="grid grid-cols-2 gap-2 min-[420px]:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5">
                 {PRESETS.map((preset) => {
                   const selected = !custom && amount === preset;
                   return (
@@ -231,34 +220,18 @@ export default function RechargerPage() {
 
             <section className="space-y-3">
               <SectionHeader title="Réseau" />
-              <div className="grid grid-cols-2 gap-2">
-                {NETWORKS.map((net) => {
-                  const selected = network === net.code;
-                  return (
-                    <button
-                      key={net.code}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => {
-                        triggerHaptic();
-                        setNetwork(net.code);
-                      }}
-                      className={`relative rounded-xl border p-3 text-left transition-all ${
-                        selected ? net.activeClass : 'border-border bg-card hover:border-primary/50'
-                      }`}
-                    >
-                      {selected ? (
-                        <Icon
-                          name="check-circle"
-                          size="sm"
-                          className={`absolute right-2 top-2 ${net.checkClass}`}
-                        />
-                      ) : null}
-                      <p className="text-sm font-semibold">{net.label}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{net.badge}</p>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                {OPERATOR_NETWORKS.map((operator) => (
+                  <OperatorNetworkCard
+                    key={operator.code}
+                    network={operator}
+                    selected={operatorOf(network) === operator.code}
+                    onSelect={() => {
+                      triggerHaptic();
+                      setNetwork(NETWORK_BY_OPERATOR[operator.code]);
+                    }}
+                  />
+                ))}
               </div>
               <div className="flex gap-2">
                 <span
