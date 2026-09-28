@@ -18,6 +18,8 @@ const NOTIFICATION_META: Record<string, NotificationMeta> = {
   SCHEDULED: { icon: 'calendar', variant: 'primary' },
   COMPLETED: { icon: 'badge-check', variant: 'success' },
   CONFIRMED: { icon: 'shield-check', variant: 'success' },
+  // GPS V3 : technicien en route vers l'intervention.
+  TECHNICIAN_EN_ROUTE: { icon: 'truck', variant: 'primary' },
 };
 
 const FALLBACK: NotificationMeta = { icon: 'bell', variant: 'info' };

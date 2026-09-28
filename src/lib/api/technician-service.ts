@@ -65,6 +65,10 @@ export interface TechnicianDemande {
   latitude?: number | null;
   longitude?: number | null;
   distanceMeters?: number | null;
+  /* GPS V3 — déplacement temporaire (détail de MES missions uniquement :
+   * coordonnées visibles par le technicien assigné, jamais exposées dans
+   * les opportunités ni aux autres techniciens). */
+  travel?: TechnicianTravelInfo | null;
   technicianId: string | null;
   technician: { id: string; firstName: string; lastName: string | null; phone: string | null; city: string | null } | null;
   scheduledAt: string | null;
@@ -95,6 +99,21 @@ export interface DeviceContext {
   id: string;
   name: string;
   slug: string;
+}
+
+/* GPS V3 — vue déplacement technicien (mission assignée, données propres
+ * au technicien connecté). */
+export interface TechnicianTravelInfo {
+  enRoute: boolean;
+  arrived: boolean;
+  enRouteAt: string | null;
+  arrivedAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationUpdatedAt: string | null;
+  fresh: boolean;
+  minutesSinceUpdate: number | null;
+  distanceMeters: number | null;
 }
 
 class ApiError extends Error {
@@ -267,6 +286,44 @@ export async function updateTechnicianDemandeStatus(
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status, scheduledAt }),
+  });
+}
+
+/* GPS V3 — déplacement temporaire lié à la mission. Transmissions
+ * explicites et ponctuelles uniquement (aucun tracking) ; les erreurs GPS
+ * sont gérées par l'appelant et ne bloquent jamais la mission. */
+export async function startTravel(
+  id: string,
+  latitude: number,
+  longitude: number,
+): Promise<TechnicianDemande> {
+  return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/en-route`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ latitude, longitude }),
+  });
+}
+
+export async function refreshTravelLocation(
+  id: string,
+  latitude: number,
+  longitude: number,
+): Promise<TechnicianDemande> {
+  return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/location`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ latitude, longitude }),
+  });
+}
+
+export async function markTravelArrived(
+  id: string,
+  position?: { latitude: number; longitude: number },
+): Promise<TechnicianDemande> {
+  return apiFetch<TechnicianDemande>(`/technician/demandes/${encodeURIComponent(id)}/arrived`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(position ?? {}),
   });
 }
 

@@ -51,6 +51,19 @@ export interface TechnicianInfo {
   city: string | null;
 }
 
+/* GPS V3 — vue déplacement côté client (SANS coordonnées brutes) :
+ * statut, fraîcheur et distance approximative uniquement. */
+export interface ClientTravelInfo {
+  enRoute: boolean;
+  arrived: boolean;
+  enRouteAt: string | null;
+  arrivedAt: string | null;
+  locationUpdatedAt: string | null;
+  fresh: boolean;
+  minutesSinceUpdate: number | null;
+  distanceMeters: number | null;
+}
+
 export interface CreateDemandeResult {
   id: string;
   reference: string;
@@ -66,6 +79,9 @@ export interface CreateDemandeResult {
   /* GPS V1 — null pour les demandes créées sans position. */
   latitude: number | null;
   longitude: number | null;
+  /* GPS V3 — déplacement temporaire (détail uniquement, jamais de
+   * coordonnées brutes côté client). */
+  travel?: ClientTravelInfo | null;
   technicianId: string | null;
   technician: TechnicianInfo | null;
   scheduledAt: string | null;

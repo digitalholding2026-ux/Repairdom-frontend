@@ -80,6 +80,7 @@ function hubIconTheme(type: string): { icon: 'file' | 'check-circle' | 'wallet';
     case 'QUOTE_REJECTED':
       return { icon: 'file', className: 'bg-primary/10 text-primary' };
     case 'TECHNICIAN_ACCEPTED':
+    case 'TECHNICIAN_EN_ROUTE':
     case 'SCHEDULED':
     case 'COMPLETED':
     case 'CONFIRMED':

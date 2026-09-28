@@ -17,6 +17,7 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { DemandeProgress } from '@/components/mission/demande-progress';
+import { TravelSection } from '@/components/mission/travel-section';
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -446,6 +447,10 @@ export default function TechnicianDemandeDetailPage() {
                 <DemandeProgress status={demande.status} />
               </div>
             </div>
+          ) : null}
+
+          {demande.technicianId ? (
+            <TravelSection demande={demande} onChanged={(d) => setDemande(d)} />
           ) : null}
 
           {demande.client ? (

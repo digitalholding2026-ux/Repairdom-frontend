@@ -16,6 +16,7 @@ import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { FloatingChat } from '@/components/client/chat/floating-chat';
+import { TravelBanner } from '@/components/mission/travel-banner';
 import { MediaGallery } from '@/components/client/missions/media-gallery';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatTime, fullName } from '@/lib/format';
@@ -270,6 +271,10 @@ export default function ClientDemandeDetailPage() {
           {demande.categoryLabel} • Créée le {formatDate(demande.createdAt)}
         </p>
       </div>
+
+      {/* GPS V3 — déplacement temporaire (statut + fraîcheur + distance,
+          jamais de coordonnées brutes). */}
+      <TravelBanner travel={demande.travel} />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
