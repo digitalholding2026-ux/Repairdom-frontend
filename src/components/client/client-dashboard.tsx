@@ -7,49 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
-import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { PageHeader } from '@/components/ui/page-header';
 import { DashboardHero } from '@/components/ui/app-header';
-import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
-import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { DemandeCard, HistoryDemandeCard } from '@/components/client/demande-card';
-import { LiveMissionCard } from '@/components/client/dashboard/live-mission-card';
-import { RewardsCard } from '@/components/client/dashboard/rewards-card';
 import { ClientDashboardSkeleton } from '@/components/client/dashboard/client-dashboard-skeleton';
-import {
-  ActivityFeed,
-  type ActivityItem,
-  type ActivityTone,
-} from '@/components/client/dashboard/activity-feed';
+import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
 import { getMe, logoutAndGoHome, homePathForRole, type AuthUser } from '@/lib/api/auth-service';
 import {
   listMyDemandes,
   listMyDemandeHistory,
   type DemandeListItem,
 } from '@/lib/api/request-service';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatDateTime, initials } from '@/lib/format';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
 const ACTIVE_STATUSES = ['SUBMITTED', 'PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
-
-const STATUS_FEED_ICONS: Record<string, IconName> = {
-  SUBMITTED: 'search',
-  PENDING: 'clock',
-  ACCEPTED: 'users',
-  SCHEDULED: 'calendar',
-  IN_PROGRESS: 'truck',
-  COMPLETED: 'check-circle',
-  CONFIRMED: 'badge-check',
-  CANCELED: 'x',
-};
-
-const TX_STATUS_SHORT: Record<string, string> = {
-  VALIDATED: 'Validé',
-  PENDING: 'En attente',
-  REVERSED: 'Annulé',
-  FAILED: 'Échoué',
-};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -149,12 +123,79 @@ function MissionsEmptyState() {
   );
 }
 
+/* ── Accueil Neero-style : helpers ────────────────────────────── */
+
+/** Icône du métier affichée sur fond ambre/orange léger. */
+function categoryIcon(label: string): IconName {
+  const l = label.toLowerCase();
+  if (l.includes('elec')) return 'zap';
+  if (l.includes('plomb') || l.includes('sanitaire') || l.includes('eau')) return 'droplet';
+  if (l.includes('clim') || l.includes('froid') || l.includes('chauff') || l.includes('therm'))
+    return 'thermometer';
+  if (l.includes('info') || l.includes('ordi') || l.includes('télé') || l.includes('tele'))
+    return 'cpu';
+  return 'wrench';
+}
+
+/** Badge de statut pill : En attente (orange), En cours (bleu), Terminé (vert). */
+function RecentStatusPill({ status }: { status: string }) {
+  if (status === 'SUBMITTED' || status === 'PENDING') {
+    return (
+      <span className="shrink-0 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+        En attente
+      </span>
+    );
+  }
+  if (status === 'ACCEPTED' || status === 'SCHEDULED' || status === 'IN_PROGRESS') {
+    return (
+      <span className="shrink-0 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+        En cours
+      </span>
+    );
+  }
+  if (status === 'COMPLETED' || status === 'CONFIRMED') {
+    return (
+      <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+        Terminé
+      </span>
+    );
+  }
+  return (
+    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+      Annulée
+    </span>
+  );
+}
+
+interface RecentItem {
+  key: string;
+  id: string;
+  categoryLabel: string;
+  reference: string;
+  status: string;
+  createdAt: string;
+  href: string;
+}
+
+function toRecentItem(d: DemandeListItem, kind: 'demande' | 'history'): RecentItem {
+  return {
+    key: `${kind}-${d.id}`,
+    id: d.id,
+    categoryLabel: d.categoryLabel,
+    reference: d.reference,
+    status: d.status,
+    createdAt: d.createdAt,
+    href: kind === 'demande' ? `/client/demandes/${d.id}` : '/client/demandes/historique',
+  };
+}
+
 export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboardVariant }) {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [demandes, setDemandes] = useState<DemandeListItem[]>([]);
   const [historique, setHistorique] = useState<DemandeListItem[]>([]);
   const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
+  const [showBalance, setShowBalance] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,67 +237,15 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     };
   }, [router, variant]);
 
-  const doneCount = useMemo(
-    () => historique.filter((d) => d.status === 'CONFIRMED').length,
-    [historique],
-  );
-
-  const currentMission = useMemo(() => {
-    const active = demandes
-      .filter((d) => ACTIVE_STATUSES.includes(d.status))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return active[0] ?? null;
-  }, [demandes]);
-
-  const activities = useMemo<ActivityItem[]>(() => {
-    const items: ActivityItem[] = [];
-
-    for (const d of demandes) {
-      const tone: ActivityTone = d.status === 'IN_PROGRESS' ? 'primary' : 'info';
-      items.push({
-        id: `d-${d.id}`,
-        icon: STATUS_FEED_ICONS[d.status] ?? 'wrench',
-        tone,
-        title: `Demande ${d.reference}`,
-        subtitle: d.categoryLabel,
-        badge: <DemandeStatusBadge status={d.status} context="client" className="shrink-0" />,
-        createdAt: d.createdAt,
-        href: `/client/demandes/${d.id}`,
-      });
-    }
-
-    for (const d of historique) {
-      items.push({
-        id: `h-${d.id}`,
-        icon: d.status === 'CONFIRMED' ? 'badge-check' : 'x',
-        tone: d.status === 'CONFIRMED' ? 'success' : 'warning',
-        title: `Mission ${d.reference}`,
-        subtitle: d.categoryLabel,
-        badge: <DemandeStatusBadge status={d.status} context="history" className="shrink-0" />,
-        createdAt: d.createdAt,
-        href: '/client/demandes/historique',
-      });
-    }
-
-    for (const t of balance?.transactions ?? []) {
-      if (t.status === 'FAILED') continue;
-      const credit = t.direction === 'CREDIT';
-      items.push({
-        id: `t-${t.id}`,
-        icon: credit ? 'check-circle' : 'clock',
-        tone: credit ? 'success' : 'info',
-        title: credit ? 'Crédit reçu' : 'Paiement mission',
-        subtitle: `${t.reference} · ${TX_STATUS_SHORT[t.status] ?? t.status}`,
-        amount: credit ? t.amount : -t.amount,
-        currency: balance?.currency,
-        createdAt: t.createdAt,
-      });
-    }
-
-    return items
+  const recent = useMemo<RecentItem[]>(() => {
+    const all: RecentItem[] = [
+      ...demandes.map((d) => toRecentItem(d, 'demande')),
+      ...historique.map((d) => toRecentItem(d, 'history')),
+    ];
+    return all
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 6);
-  }, [demandes, historique, balance]);
+      .slice(0, 5);
+  }, [demandes, historique]);
 
   const handleLogout = async () => {
     await logoutAndGoHome();
@@ -351,103 +340,167 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
     );
   }
 
-  const firstName = user?.firstName ?? '';
-  // Fonds engagés (holds ACTIFS) = brut validé − disponible.
-  const engaged = balance
-    ? Math.max(0, balance.totals.credit - balance.totals.debit - balance.balance)
-    : 0;
-  // L'état vide ne s'affiche que sans demande ET sans activité récente.
-  const isEmpty = demandes.length === 0 && activities.length === 0;
+  const displayName = user?.firstName?.trim() ? user.firstName.trim() : 'Client';
 
   return (
-    <div className="space-y-6">
-      {/* ── En-tête ──────────────────────────────────────────── */}
-      <PageHeader
-        title={
-          <>
-            {getGreeting()}
-            {firstName ? `, ${firstName}` : ''} 👋
-          </>
-        }
-        description="Ravi de vous revoir. Gérez vos dépannages et votre solde en toute simplicité."
-      />
-
-      {/* ── Grille principale : Solde + Fidélité ─────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {balance ? (
-          <GradientHeroCard tone="primary">
-            <p className="text-xs font-medium uppercase tracking-wider text-white/70">
-              Solde disponible
-            </p>
-            <p className="figure mt-1 text-3xl font-bold tabular-nums text-white">
-              {formatCurrency(balance.balance, balance.currency)}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/80">
-              <span>Crédits reçus · {formatCurrency(balance.totals.credit, balance.currency)}</span>
-              <span>Engagé · {formatCurrency(engaged, balance.currency)}</span>
-            </div>
-            <Link href="/client/solde" className="mt-4 block">
-              <Button variant="outline" size="sm" className="w-full">
-                Gérer mon solde
-                <Icon name="arrow-right" size="sm" />
-              </Button>
+    <div className="min-h-dvh bg-slate-100 pb-28 dark:bg-slate-950">
+      {/* ── Header sombre + carte solde (Neero style) ──────────── */}
+      <header className="relative overflow-hidden rounded-b-[32px] bg-slate-950 p-6 pb-12 text-white shadow-lg">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-[#FF6B00]/25 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 bottom-0 size-56 rounded-full bg-orange-400/10 blur-3xl"
+        />
+        <div className="relative">
+          {/* Top bar : avatar + salutation | support + notifications */}
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/client/profil" className="flex min-w-0 items-center gap-3">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF6B00] text-sm font-bold text-white shadow-lg shadow-orange-500/30">
+                {initials(user?.firstName, user?.lastName)}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs text-white/60">{getGreeting()},</span>
+                <span className="block truncate text-base font-bold leading-tight">
+                  {displayName} 👋
+                </span>
+              </span>
             </Link>
-          </GradientHeroCard>
-        ) : null}
+            <div className="flex shrink-0 items-center gap-2">
+              <Link
+                href="/#faq"
+                className="rounded-full bg-white/10 px-3.5 py-2 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                Support Relio
+              </Link>
+              <Link
+                href="/client/notifications"
+                aria-label="Notifications"
+                className="relative flex size-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95"
+              >
+                <Icon name="bell" size="md" strokeWidth={1.8} />
+                <NotificationTabBadge />
+              </Link>
+            </div>
+          </div>
 
-        <RewardsCard completedCount={doneCount} />
-      </div>
+          {/* Carte solde suspendue */}
+          <div className="relative z-10 mx-auto -mb-16 mt-6 max-w-md rounded-2xl border border-slate-100 bg-white p-6 text-slate-900 shadow-xl">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Compte Client Relio
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowBalance((v) => !v)}
+                aria-label={showBalance ? 'Masquer le solde' : 'Afficher le solde'}
+                aria-pressed={showBalance}
+                className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-95"
+              >
+                <Icon name="eye" size="md" className={showBalance ? undefined : 'opacity-40'} />
+              </button>
+            </div>
+            <p className="mt-2 text-3xl font-extrabold tabular-nums tracking-tight">
+              {showBalance && balance ? formatCurrency(balance.balance, balance.currency) : '*** *** XAF'}
+            </p>
+            <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <span aria-hidden className="size-1.5 rounded-full bg-emerald-500" />
+              Crédits actifs • Dépannages illimités
+            </p>
+            <Link
+              href="/client/solde"
+              className="mt-4 flex items-center justify-between rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+            >
+              Gérer mon solde
+              <Icon name="arrow-right" size="sm" />
+            </Link>
+          </div>
+        </div>
+      </header>
 
-      {/* ── Bannière d'action rapide ─────────────────────────── */}
-      <section className="rounded-2xl border border-border bg-card p-5">
-        <h2 className="text-base font-semibold tracking-tight sm:text-lg">
-          Une panne à la maison ou au bureau ?
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Décrivez votre panne en quelques étapes et recevez l&apos;aide d&apos;un technicien vérifié près de chez vous.
-        </p>
-        <Link href="/client/demande" className="mt-4 block">
-          <Button className="w-full gap-2 sm:w-auto">
-            <Icon name="plus" size="sm" />
-            Créer une demande de dépannage
-          </Button>
+      {/* ── Actions rapides : 3 boutons circulaires ─────────────── */}
+      <section aria-label="Actions rapides" className="mx-auto grid max-w-md grid-cols-3 gap-2 px-6 pt-20">
+        <Link href="/client/demande" className="group flex flex-col items-center gap-2">
+          <span className="flex size-14 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30 transition group-hover:scale-105 group-active:scale-95">
+            <Icon name="plus" size="lg" strokeWidth={2.2} />
+          </span>
+          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+            Créer une demande
+          </span>
+        </Link>
+        <Link href="/client/solde/recharger" className="group flex flex-col items-center gap-2">
+          <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
+            <Icon name="wallet" size="lg" strokeWidth={1.9} />
+          </span>
+          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+            Recharger solde
+          </span>
+        </Link>
+        <Link href="/client/demandes" className="group flex flex-col items-center gap-2">
+          <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
+            <Icon name="search" size="lg" strokeWidth={1.9} />
+          </span>
+          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+            Mes dépannages
+          </span>
         </Link>
       </section>
 
-      {/* ── Intervention en cours ────────────────────────────── */}
-      {currentMission ? (
-        <section className="space-y-3">
-          <SectionHeader title="Intervention en cours" />
-          <LiveMissionCard mission={currentMission} />
-        </section>
-      ) : null}
-
-      {/* ── Activité récente ─────────────────────────────────── */}
-      <section className="space-y-3">
-        <SectionHeader
-          title="Activité récente"
-          icon="clock"
-          action={
+      {/* ── Dépannages récents ──────────────────────────────────── */}
+      <section aria-label="Dépannages récents" className="mx-auto mt-6 max-w-md px-4">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
+            Dépannages récents
+          </h2>
+          <Link
+            href="/client/demandes"
+            className="text-sm font-semibold text-[#FF6B00] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+          >
+            Voir tout →
+          </Link>
+        </div>
+        {recent.length === 0 ? (
+          <div className="rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
+            <p className="text-sm font-semibold text-slate-900">Aucun dépannage pour le moment</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Créez votre première demande en quelques étapes.
+            </p>
             <Link
-              href="/client/demandes"
-              className="text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              href="/client/demande"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#FF6B00] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:brightness-105 active:scale-95"
             >
-              Tout voir
+              <Icon name="plus" size="sm" />
+              Créer une demande
             </Link>
-          }
-        />
-        {isEmpty ? (
-          <EmptyState
-            title="Aucune demande pour le moment"
-            description="Vous n'avez pas encore créé de demande de dépannage."
-            action={
-              <Link href="/client/demande">
-                <Button>Créer une demande</Button>
-              </Link>
-            }
-          />
+          </div>
         ) : (
-          <ActivityFeed items={activities} />
+          <ul>
+            {recent.map((item) => (
+              <li key={item.key} className="mb-3">
+                <Link
+                  href={item.href}
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                >
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                      <Icon name={categoryIcon(item.categoryLabel)} size="md" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold text-slate-900">
+                        {item.categoryLabel}
+                      </span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {item.reference} • {formatDateTime(item.createdAt)}
+                      </span>
+                    </span>
+                  </span>
+                  <RecentStatusPill status={item.status} />
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

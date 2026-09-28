@@ -35,13 +35,21 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
   const { user, authenticated, loading } = useAuth();
   const isPublicPath = CLIENT_PUBLIC_PATHS.includes(pathname);
   const showPrivateChrome = authenticated && user?.role === 'CLIENT';
+  /* Accueil Neero-style : le dashboard fournit son propre header sombre
+   * immersif (top bar + carte solde) — le header global est masqué ici
+   * pour éviter toute duplication. */
+  const isNeeroHome = pathname === '/client';
+  const hideGlobalHeader = isNeeroHome && showPrivateChrome;
+
   /* Page d'inscription : mise en page immersive — le split-screen sombre
    * occupe toute la largeur (pas de conteneur max-w-lg). */
   const isImmersiveAuth = pathname === '/client/inscription';
+  const isFullBleed = isImmersiveAuth || hideGlobalHeader;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
+      {hideGlobalHeader ? null : (
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <BrandLogo href={showPrivateChrome ? '/client' : '/'} />
@@ -63,8 +71,9 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
           </div>
         </div>
       </header>
+      )}
 
-      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${showPrivateChrome && !isImmersiveAuth ? 'max-w-7xl px-4 py-6 sm:px-6 lg:px-8' : isImmersiveAuth ? 'max-w-none px-0 py-0' : 'max-w-lg px-4 py-6'}`}>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${showPrivateChrome && !isFullBleed ? 'max-w-7xl px-4 py-6 sm:px-6 lg:px-8' : isFullBleed ? 'max-w-none px-0 py-0' : 'max-w-lg px-4 py-6'}`}>
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar
             label="Espace client"
@@ -87,10 +96,9 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
             items={[
               { href: '/client', label: 'Accueil', icon: 'home' },
               { href: '/client/demandes', label: 'Missions', icon: 'briefcase' },
-              { href: '/client/solde', label: 'Solde', icon: 'file' },
+              { href: '/client/solde', label: 'Solde', icon: 'wallet' },
               { href: '/client/profil', label: 'Profil', icon: 'user' },
             ]}
-            primaryHref={{ href: '/client/demande', label: 'Déposer une demande', icon: 'plus' }}
           />
         </div>
       ) : null}

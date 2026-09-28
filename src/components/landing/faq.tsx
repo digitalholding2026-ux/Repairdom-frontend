@@ -26,7 +26,7 @@ const FAQ = [
 
 export function Faq() {
   return (
-    <section className="mt-14" aria-labelledby="faq-title">
+    <section id="faq" className="mt-14 scroll-mt-20" aria-labelledby="faq-title">
       <Reveal>
         <p className="px-1 text-xs font-semibold uppercase tracking-wider text-primary">
           Questions fréquentes
