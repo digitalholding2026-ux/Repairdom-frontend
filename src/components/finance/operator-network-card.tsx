@@ -43,11 +43,15 @@ export function OperatorNetworkCard({
   selected,
   onSelect,
   compact = false,
+  dense = false,
 }: {
   network: OperatorNetwork;
   selected: boolean;
   onSelect: () => void;
   compact?: boolean;
+  /** Densité maximale : grille 2 colonnes en bottom-sheet (logos w-6,
+   *  textes 11/9px). */
+  dense?: boolean;
 }) {
   const amber = network.code === 'mtn';
   return (
@@ -57,7 +61,11 @@ export function OperatorNetworkCard({
       onClick={onSelect}
       className={cn(
         'flex w-full items-center text-left transition-all',
-        compact ? 'gap-2.5 rounded-xl border-2 p-2' : 'gap-3 rounded-2xl border-2 p-3.5',
+        dense
+          ? 'gap-2 rounded-lg border-2 p-1.5'
+          : compact
+            ? 'gap-2.5 rounded-xl border-2 p-2'
+            : 'gap-3 rounded-2xl border-2 p-3.5',
         selected
           ? amber
             ? 'border-amber-400 bg-amber-500/10 shadow-sm'
@@ -68,10 +76,10 @@ export function OperatorNetworkCard({
       <span
         className={cn(
           'relative flex flex-shrink-0 items-center justify-center overflow-hidden border p-0.5',
-          compact ? 'h-8 w-8 rounded-lg' : 'h-12 w-12 rounded-xl p-1',
+          dense ? 'h-6 w-6 rounded-md' : compact ? 'h-8 w-8 rounded-lg' : 'h-12 w-12 rounded-xl p-1',
           amber
             ? 'border-amber-200/50 bg-amber-400/20'
-            : network.code === 'orange' && compact
+            : network.code === 'orange' && (compact || dense)
               ? 'border-slate-700 bg-slate-900'
               : 'border-orange-200/50 bg-orange-500/10',
         )}
@@ -85,17 +93,17 @@ export function OperatorNetworkCard({
         />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-bold text-slate-900 dark:text-white">
+        <span className={cn('block truncate font-bold text-slate-900 dark:text-white', dense ? 'text-[11px] leading-tight' : 'text-xs')}>
           {network.title}
         </span>
-        <span className="block truncate text-[10px] text-slate-500">{network.subtitle}</span>
+        <span className={cn('block truncate text-slate-500', dense ? 'text-[9px]' : 'text-[10px]')}>{network.subtitle}</span>
       </span>
       {selected ? (
         <span
           aria-hidden
           className={cn(
             'flex flex-shrink-0 items-center justify-center rounded-full font-bold text-white',
-            compact ? 'h-5 w-5 text-[10px]' : 'h-6 w-6 text-xs',
+            dense ? 'h-5 w-5 text-[10px]' : compact ? 'h-5 w-5 text-[10px]' : 'h-6 w-6 text-xs',
             amber ? 'bg-amber-500' : 'bg-orange-500/90',
           )}
         >

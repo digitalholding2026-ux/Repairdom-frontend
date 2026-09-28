@@ -120,8 +120,9 @@ export function WithdrawalPanel({
   /* Mode modale (bottom-sheet) : champs ultra-compacts pour tenir sans
    * scroll sur petit écran (labels 11px, inputs h-9). */
   const compactInputClass = bare ? 'h-9 rounded-xl bg-slate-50 text-xs sm:text-xs' : undefined;
-  const bareLabelClass =
-    'text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200';
+  const bareLabelClass = bare
+    ? 'text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300'
+    : 'text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200';
 
   async function submit() {
     setError(null);
@@ -184,17 +185,17 @@ export function WithdrawalPanel({
                       Montant (FCFA)
                     </p>
                   ) : null}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {PRESETS.map((preset) => (
                       <button
                         key={preset}
                         type="button"
                         aria-pressed={!custom && amount === preset}
                         onClick={() => { setAmount(preset); setCustom(''); }}
-                        className={`min-w-0 rounded-xl border px-2 py-2 text-xs font-semibold tabular-nums transition-colors sm:text-sm ${
+                        className={`min-w-0 rounded-lg border px-2 py-1.5 text-xs font-bold tabular-nums transition-all ${
                           !custom && amount === preset
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-card text-foreground'
+                            ? 'border-orange-500/50 bg-orange-500/10 text-orange-600 shadow-sm'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100'
                         }`}
                       >
                         {formatCurrency(preset, currency)}
@@ -219,14 +220,14 @@ export function WithdrawalPanel({
                       Réseau de retrait
                     </p>
                   ) : null}
-                  <div className={bare ? 'space-y-1.5' : 'grid grid-cols-1 gap-2.5 sm:grid-cols-2'}>
+                  <div className={bare ? 'grid grid-cols-2 gap-1.5' : 'grid grid-cols-1 gap-2.5 sm:grid-cols-2'}>
                     {OPERATOR_NETWORKS.map((operator) => (
                       <OperatorNetworkCard
                         key={operator.code}
                         network={operator}
                         selected={operatorOf(network) === operator.code}
                         onSelect={() => setNetwork(NETWORK_BY_OPERATOR[operator.code])}
-                        compact={bare}
+                        dense={bare}
                       />
                     ))}
                   </div>
@@ -312,12 +313,12 @@ export function WithdrawalPanel({
               {/* Footer ancré (mode modale) : l'action reste TOUJOURS visible,
                   même si le corps défile sur petit écran. */}
               {bare && !result ? (
-                <div className="sticky bottom-0 -mx-5 -mb-4 border-t border-border bg-card/95 px-5 py-3 backdrop-blur">
+                <div className="sticky bottom-0 -mx-3 -mb-3 border-t border-border bg-card/95 px-3 py-2.5 backdrop-blur">
                   {!confirming ? (
                     <Button
                       onClick={() => setConfirming(true)}
                       disabled={submitting}
-                      className="w-full py-3.5 text-sm font-bold shadow-lg shadow-orange-500/20"
+                      className="w-full py-2.5 text-xs font-bold shadow-md shadow-orange-500/20"
                     >
                       Continuer
                     </Button>
@@ -329,7 +330,7 @@ export function WithdrawalPanel({
                       <Button
                         onClick={submit}
                         disabled={submitting || insufficient}
-                        className="flex-1 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/20"
+                        className="flex-1 py-2.5 text-xs font-bold shadow-md shadow-orange-500/20"
                       >
                         {submitting ? 'Envoi…' : 'Confirmer le retrait'}
                       </Button>
