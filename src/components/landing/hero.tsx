@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { useAuth } from '@/components/auth/auth-provider';
 import { homePathForRole } from '@/lib/api/auth-service';
+import { HeroBackground } from './hero-background';
 
 /* Hero compact style Apple/Uber : dégradé subtil, badge de preuve,
  * titre centré, CTA XL unique + lien suivi discret. */
@@ -12,8 +13,9 @@ export function Hero() {
   const primaryHref = authenticated ? homePathForRole(user?.role) : '/client/inscription';
 
   return (
-    <section className="bg-gradient-to-b from-orange-500/10 via-slate-50 to-white px-4 pb-6 pt-8">
-      <div className="mx-auto w-full max-w-xl text-center">
+    <section className="relative overflow-hidden bg-gradient-to-b from-orange-500/10 via-slate-50 to-white px-4 pt-8 pb-6">
+      <HeroBackground />
+      <div className="relative z-10 mx-auto w-full max-w-xl text-center">
         <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-xs font-bold text-orange-600">
           <span aria-hidden>⭐</span>
           4.9/5 (+5 000 interventions réussies)

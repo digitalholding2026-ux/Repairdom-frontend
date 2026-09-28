@@ -327,6 +327,41 @@
   }
 }
 
+/* Hero « Tech Grid & Light Sweep » : balayage horizontal lent d'un halo
+ * (transform uniquement, 60 FPS mobile) + respiration douce de l'orbe.
+ * La règle `prefers-reduced-motion` globale fige ces animations. */
+@keyframes glow-sweep {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(8%, 0);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.animate-glow-sweep {
+  animation: glow-sweep 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-breathe {
+  animation: breathe 7s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 /* Flottaison douce « wave » (glassmorphism) : micro-mouvement -5px, lent,
  * respecté par la règle `prefers-reduced-motion` ci-dessus. */
 @keyframes floatWave {
