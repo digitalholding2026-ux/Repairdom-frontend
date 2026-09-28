@@ -18,6 +18,7 @@ import { formatCurrency, formatDateTime } from '@/lib/format';
 import { categoryLabel } from '@/lib/technician-profile';
 import { AdminInfoRow } from '@/components/admin/info-row';
 import { MissionDetailSkeleton } from '@/components/admin/missions/mission-detail-skeleton';
+import { toUserErrorMessage, isNotFoundError } from '@/lib/ui-error-message';
 
 function DeviceContext({ mission }: { mission: SupervisedMission }) {
   const device = mission.device;
@@ -61,9 +62,10 @@ export default function AdminMissionsPage() {
       const data = await getAdminMissionByReference(ref);
       setMission(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur de recherche.';
-      setNotFound(message.includes('introuvable'));
-      setError(message);
+      /* Logique sur le statut/code (404), jamais sur le texte affiché
+       * (fragile aux reformulations). */
+      setNotFound(isNotFoundError(err));
+      setError(toUserErrorMessage(err, 'Erreur de recherche.'));
     } finally {
       setLoading(false);
     }

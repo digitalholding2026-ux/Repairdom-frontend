@@ -16,7 +16,13 @@ export interface City {
 /** Liste publique des villes de service (require ?? require no auth). */
 export async function listCities(): Promise<City[]> {
   const res = await fetch(`${siteConfig.apiBaseUrl}/cities`, { credentials: 'include' });
-  if (!res.ok) throw new Error('Erreur chargement des villes.');
+  if (!res.ok) {
+    // Erreur structurée (statut préservé) pour le sanitizer central :
+    // aucun message backend brut n'est exposé tel quel.
+    const err = new Error('Erreur chargement des villes.');
+    (err as { status?: number }).status = res.status;
+    throw err;
+  }
   const body = await res.json().catch(() => null);
   // L'endpoint renvoie un tableau.
   return Array.isArray(body) ? body : ((body as { items?: City[] })?.items ?? []);

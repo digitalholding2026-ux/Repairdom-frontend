@@ -102,7 +102,7 @@ export default function ClientDemandeDetailPage() {
             .catch(() => undefined);
         }
       } catch (err) {
-        if (initial && active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (initial && active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
         // Erreur silencieuse en rafraîchissement périodique.
       } finally {
         if (initial && active) setLoading(false);

@@ -21,6 +21,7 @@ import {
 } from '@/lib/api/request-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export type ClientDashboardVariant = 'home' | 'list' | 'history';
 
@@ -226,7 +227,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           })
           .catch(() => undefined);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) setLoading(false);
       }

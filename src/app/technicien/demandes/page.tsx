@@ -16,6 +16,7 @@ import {
   listAvailableDemandes,
   type TechnicianDemande,
 } from '@/lib/api/technician-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 type SortKey = 'RELEVANT' | 'NEWEST' | 'OLDEST' | 'REQUESTED';
 
@@ -78,7 +79,7 @@ export default function TechnicienMissionsDisponiblesPage() {
     try {
       setMissions(await listAvailableDemandes());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des missions.');
+      setError(toUserErrorMessage(err, 'Erreur lors du chargement des missions.'));
     } finally {
       setLoading(false);
     }

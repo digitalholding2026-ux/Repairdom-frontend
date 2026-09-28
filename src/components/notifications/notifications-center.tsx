@@ -109,7 +109,7 @@ export function NotificationsCenter({ detailHref, hub = false }: NotificationsCe
       setUnreadCount(res.unreadCount);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du chargement des notifications.');
+      setError(toUserErrorMessage(err, 'Erreur lors du chargement des notifications.'));
     } finally {
       setLoading(false);
     }

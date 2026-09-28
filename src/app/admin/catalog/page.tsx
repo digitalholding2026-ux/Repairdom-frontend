@@ -22,6 +22,7 @@ import {
   type CatalogDomain,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function AdminCatalogPage() {
   const [domains, setDomains] = useState<CatalogDomain[]>([]);
@@ -43,7 +44,7 @@ export default function AdminCatalogPage() {
     setLoading(true);
     listDomains()
       .then((data) => { if (!cancelled) setDomains(data); })
-      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.'); })
+      .catch((err) => { if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.')); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [reloadKey]);
@@ -61,7 +62,7 @@ export default function AdminCatalogPage() {
       setNewDesc('');
       setReloadKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la création.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la création.'));
     } finally {
       setCreating(false);
     }
@@ -76,7 +77,7 @@ export default function AdminCatalogPage() {
       setSeedResult(result.message);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors du seed.');
+      setError(toUserErrorMessage(err, 'Erreur lors du seed.'));
     } finally {
       setSeedBusy(false);
     }

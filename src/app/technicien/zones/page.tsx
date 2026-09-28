@@ -63,7 +63,7 @@ export default function TechnicienZonesPage() {
         setCities(list);
         setError(null);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) setLoading(false);
       }

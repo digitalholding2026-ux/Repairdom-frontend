@@ -28,6 +28,7 @@ import {
   type CatalogDomainDetail,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function AdminDomainPage() {
   const params = useParams<{ domainId: string }>();
@@ -55,7 +56,7 @@ export default function AdminDomainPage() {
       const data = await getDomain(params.domainId);
       setDomain(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -89,7 +90,7 @@ export default function AdminDomainPage() {
       await updateDomain(params.domainId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 

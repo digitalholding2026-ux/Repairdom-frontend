@@ -132,10 +132,12 @@ function resolveMediaKind(mimeType: string): string {
 
 class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code: string | null;
+  constructor(message: string, status: number, code?: string | null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code ?? null;
   }
 }
 
@@ -148,9 +150,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => null);
 
   if (!res.ok) {
-    const message = (body as { message?: string | string[] } | null)?.message;
+    const payload = body as { message?: string | string[]; code?: string } | null;
+    const message = payload?.message;
     const text = Array.isArray(message) ? message.join(', ') : message;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status);
+    const code = typeof payload?.code === 'string' ? payload.code : null;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
   }
 
   return body as T;

@@ -73,7 +73,7 @@ export default function AdminUsersPage() {
       setResults(data.items);
       setSearched(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de recherche.');
+      setError(toUserErrorMessage(err, 'Erreur de recherche.'));
     } finally {
       setSearching(false);
     }
@@ -86,7 +86,7 @@ export default function AdminUsersPage() {
     try {
       setAccount(await getAdminUserAccount(id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement du compte.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement du compte.'));
     } finally {
       setAccountLoading(false);
     }

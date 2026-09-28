@@ -55,7 +55,7 @@ export default function AdminKycFolderPage() {
       const folder = await getAdminKycFolder(params.technicianId);
       setDetail(folder);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       if (!quiet) setLoading(false);
     }

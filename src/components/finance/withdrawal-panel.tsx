@@ -454,10 +454,12 @@ export function WithdrawalHistory({
   const [error, setError] = useState<string | null>(null);
   // Distingue « aucun retrait » (état vide légitime) d'un échec de
   // chargement (état d'erreur avec réessai) : l'historique ne reste plus
-  // silencieux.
+  // silencieux. Le chargement initial affiche un placeholder.
   const [loadFailed, setLoadFailed] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
   const refreshHistory = async () => {
+    setLoadingHistory(true);
     try {
       const { items } = await listWithdrawalRequests();
       setHistory(items);
@@ -466,6 +468,8 @@ export function WithdrawalHistory({
       /* Historique optionnel : un échec ne bloque pas le parcours, mais il
        * est signalé explicitement avec une action de réessai. */
       setLoadFailed(true);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -501,6 +505,13 @@ export function WithdrawalHistory({
   }
 
   if (history.length === 0) {
+    if (loadingHistory) {
+      return (
+        <div className="space-y-2" role="status" aria-label="Chargement de l'historique des retraits">
+          <div className="h-16 animate-pulse rounded-xl bg-muted/60" />
+        </div>
+      );
+    }
     if (!loadFailed) return null;
     return (
       <div className="space-y-2">

@@ -18,6 +18,7 @@ import { STATUS_PROGRESS } from '@/lib/mission-progress';
 import { demandeStatusConfig } from '@/lib/request-status';
 import type { StatusContext } from '@/lib/request-status';
 import { fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export interface ChronologyDetailProps {
   missionId?: string;
@@ -49,7 +50,7 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
         setEvents(ev);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       })
       .finally(() => {
         if (active) setLoading(false);

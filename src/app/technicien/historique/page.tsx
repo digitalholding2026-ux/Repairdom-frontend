@@ -11,6 +11,7 @@ import { TechnicianHistoryDemandeCard } from '@/components/technician/technician
 import { getMe } from '@/lib/api/auth-service';
 import { listMyDemandeHistory, type TechnicianDemande } from '@/lib/api/technician-service';
 import { TechnicianHistorySkeleton } from '@/components/technician/historique/technician-history-skeleton';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function TechnicianHistoriquePage() {
   const [history, setHistory] = useState<TechnicianDemande[]>([]);
@@ -32,7 +33,7 @@ export default function TechnicianHistoriquePage() {
         const historyData = await listMyDemandeHistory();
         if (!cancelled) setHistory(historyData);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) setLoading(false);
       }

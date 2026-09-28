@@ -22,6 +22,7 @@ import { SoldeOverview } from '@/components/client/solde/solde-overview';
 import { WithdrawalHistory, WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { SpendChart } from '@/components/client/solde/spend-chart';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial',
@@ -100,7 +101,7 @@ export default function ClientSoldePage() {
       setSummary(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       setLoading(false);
     }

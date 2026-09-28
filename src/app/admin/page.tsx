@@ -11,6 +11,7 @@ import { getAdminKycFolders } from '@/lib/api/admin-service';
 import { listDomains } from '@/lib/api/admin-service';
 import { listAdminCities } from '@/lib/api/admin-service';
 import { getAdminFinanceSummary } from '@/lib/api/finance-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Tableau de bord admin : UNIQUEMENT des données réellement disponibles via
  * les API existantes (aucun KPI inventé).
@@ -65,7 +66,7 @@ export default function AdminDashboardPage() {
         setError(null);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

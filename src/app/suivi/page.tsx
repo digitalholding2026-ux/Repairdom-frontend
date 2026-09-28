@@ -21,6 +21,7 @@ import { trackByReference, type PublicTracking } from '@/lib/api/tracking-servic
 import { STATUS_PROGRESS } from '@/lib/mission-progress';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { formatDateTime } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function SuiviPage() {
   const [reference, setReference] = useState('');
@@ -38,7 +39,7 @@ export default function SuiviPage() {
       setTracking(result);
     } catch (err) {
       setTracking(null);
-      setError(err instanceof Error ? err.message : 'Erreur lors de la recherche.');
+      setError(toUserErrorMessage(err, 'Erreur lors de la recherche.'));
     } finally {
       setLoading(false);
     }

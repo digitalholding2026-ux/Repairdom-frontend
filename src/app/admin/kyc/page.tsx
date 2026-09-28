@@ -16,6 +16,7 @@ import {
 } from '@/lib/api/admin-service';
 import { categoryLabel, kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
 import { KycListSkeleton } from '@/components/admin/kyc/kyc-list-skeleton';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const STATUS_TABS = [
   { id: 'PENDING', label: 'En attente' },
@@ -40,7 +41,7 @@ export default function AdminKycPage() {
         if (!cancelled) setFolders(result.items);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

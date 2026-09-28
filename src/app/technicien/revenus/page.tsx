@@ -29,6 +29,7 @@ import { RevenueChart } from '@/components/technician/revenus/revenue-chart';
 import { TopMissions } from '@/components/technician/revenus/top-missions';
 import { PendingMissionsBanner } from '@/components/technician/revenus/pending-missions-banner';
 import { RevenusSkeleton } from '@/components/technician/revenus/revenus-skeleton';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const PENDING_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 
@@ -62,7 +63,7 @@ export default function TechnicianRevenusPage() {
         setSummary(fin);
         setPendingCount(mine.filter((d) => PENDING_STATUSES.includes(d.status)).length);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) setLoading(false);
       }

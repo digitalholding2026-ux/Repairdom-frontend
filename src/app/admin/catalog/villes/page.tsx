@@ -89,7 +89,7 @@ export default function AdminVillesPage() {
         setSelectedCityId((prev) => (prev && data.some((c) => c.id === prev) ? prev : null));
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -114,7 +114,7 @@ export default function AdminVillesPage() {
         }
       })
       .catch((err) => {
-        if (!cancelled) setZonesError(err instanceof Error ? err.message : 'Erreur de chargement des zones.');
+        if (!cancelled) setZonesError(toUserErrorMessage(err, 'Erreur de chargement des zones.'));
       })
       .finally(() => {
         if (!cancelled) setZonesLoading(false);

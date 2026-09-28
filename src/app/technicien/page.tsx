@@ -33,6 +33,7 @@ import {
 import { getTechnicianFinanceSummary, type TechnicianFinanceSummary } from '@/lib/api/finance-service';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { formatCurrency, fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
 
@@ -92,7 +93,7 @@ export default function TechnicianDashboardPage() {
           .then((f) => { if (!cancelled) setFinance(f); })
           .catch(() => undefined);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -118,7 +119,7 @@ export default function TechnicianDashboardPage() {
       setAvailable(await listAvailableDemandes());
     } catch (err) {
       setAvailabilityError(
-        err instanceof Error ? err.message : 'Erreur lors de la mise à jour de la disponibilité.',
+        toUserErrorMessage(err, 'Erreur lors de la mise à jour de la disponibilité.'),
       );
     } finally {
       setAvailabilityBusy(false);

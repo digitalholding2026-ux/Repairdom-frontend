@@ -26,6 +26,7 @@ import {
   type CatalogProblemDetail,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function AdminProblemPage() {
   const params = useParams<{ domainId: string; problemId: string }>();
@@ -50,7 +51,7 @@ export default function AdminProblemPage() {
       const data = await getProblem(params.problemId);
       setProblem(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function AdminProblemPage() {
       await updateProblem(params.problemId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 

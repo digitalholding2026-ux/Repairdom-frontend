@@ -90,7 +90,7 @@ export function TravelSection({
           position = await getCurrentTravelPosition();
         } catch (err) {
           if (action === 'refresh') {
-            setGpsInfo(err instanceof Error ? err.message : 'Position indisponible pour le moment.');
+            setGpsInfo(toUserErrorMessage(err, 'Position indisponible pour le moment.'));
             return;
           }
           // Arrivée : la date est toujours enregistrée même sans GPS.

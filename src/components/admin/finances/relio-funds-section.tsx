@@ -45,7 +45,7 @@ export function RelioFundsSection() {
       setFunds(summary);
       setWithdrawals(history.items);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement des fonds Relio.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement des fonds Relio.'));
     } finally {
       setLoading(false);
     }

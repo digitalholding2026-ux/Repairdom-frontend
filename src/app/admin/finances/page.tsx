@@ -25,6 +25,7 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const MODES: FinancialMode[] = ['REAL'];
 
@@ -71,7 +72,7 @@ export default function AdminFinancesPage() {
           if (!cancelled) setData(d);
         })
         .catch((err) => {
-          if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+          if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
@@ -102,7 +103,7 @@ export default function AdminFinancesPage() {
         .catch((err) =>
           setDetailError((p) => ({
             ...p,
-            [demandeId]: err instanceof Error ? err.message : 'Erreur de chargement.',
+            [demandeId]: toUserErrorMessage(err, 'Erreur de chargement.'),
           })),
         )
         .finally(() => setDetailLoading((p) => ({ ...p, [demandeId]: false })));

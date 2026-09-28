@@ -35,6 +35,7 @@ import {
   type CatalogPricingHistory,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const PRICING_HISTORY_FIELDS = [
   'minPrice',
@@ -109,7 +110,7 @@ export default function AdminDiagnosticPage() {
       const data = await getDiagnostic(params.diagnosticId);
       setDiagnostic(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -154,7 +155,7 @@ export default function AdminDiagnosticPage() {
       await updateDiagnostic(params.diagnosticId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 
@@ -163,7 +164,7 @@ export default function AdminDiagnosticPage() {
       await updateIntervention(interventionId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 
@@ -228,7 +229,7 @@ export default function AdminDiagnosticPage() {
       setPriceReason('');
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur sauvegarde tarif.');
+      setError(toUserErrorMessage(err, 'Erreur sauvegarde tarif.'));
     } finally {
       setSavingPricing(false);
     }

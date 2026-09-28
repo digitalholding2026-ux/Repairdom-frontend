@@ -18,6 +18,7 @@ import {
 } from '@/lib/api/chronologies-service';
 import { formatRelative, fullName } from '@/lib/format';
 import type { StatusContext } from '@/lib/request-status';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const HISTORY_TITLES: Record<string, string> = {
   CONFIRMED: 'Intervention confirmée',
@@ -140,7 +141,7 @@ export function ChronologiesView({
         if (active) setMissions(data);
       })
       .catch((err) => {
-        if (active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       });
     return () => {
       active = false;

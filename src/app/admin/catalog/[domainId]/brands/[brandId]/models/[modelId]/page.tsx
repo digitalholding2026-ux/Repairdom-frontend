@@ -27,6 +27,7 @@ import {
   type CatalogProblem,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 function ProblemScopeBadge({ problem }: { problem: CatalogProblem }) {
   if (problem.model) {
@@ -68,7 +69,7 @@ export default function AdminModelPage() {
         setProblems([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       setLoading(false);
     }

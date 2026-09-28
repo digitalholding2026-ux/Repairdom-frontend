@@ -77,7 +77,7 @@ export default function TechnicianProfilePage() {
         setServiceDescription(p.serviceDescription ?? '');
         setBio(p.bio ?? '');
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -95,7 +95,7 @@ export default function TechnicianProfilePage() {
         }
       } catch (err) {
         if (!cancelled) {
-          setCitiesError(err instanceof Error ? err.message : 'Impossible de charger les villes.');
+          setCitiesError(toUserErrorMessage(err, 'Impossible de charger les villes.'));
         }
       } finally {
         if (!cancelled) setCitiesLoading(false);

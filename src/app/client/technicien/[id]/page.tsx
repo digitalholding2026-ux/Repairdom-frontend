@@ -24,6 +24,7 @@ import {
 } from '@/lib/technician-profile';
 import { PublicTechnicianHero } from '@/components/technician/public/public-technician-hero';
 import { PublicTechnicianSkeleton } from '@/components/technician/public/public-technician-skeleton';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 function InfoCard({ icon, title, children }: { icon: IconName; title: string; children: ReactNode }) {
   return (
@@ -55,7 +56,7 @@ export default function ClientTechnicianProfilePage() {
         const p = await getPublicTechnicianProfile(params.id);
         if (!cancelled) setProfile(p);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
         if (!cancelled) setLoading(false);
         return;
       }

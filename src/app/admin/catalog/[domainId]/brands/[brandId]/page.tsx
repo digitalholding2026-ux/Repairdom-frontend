@@ -28,6 +28,7 @@ import {
   type CatalogBrandDetail,
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
+import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 export default function AdminBrandPage() {
   const params = useParams<{ domainId: string; brandId: string }>();
@@ -55,7 +56,7 @@ export default function AdminBrandPage() {
       const data = await getBrand(params.brandId);
       setBrand(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -124,7 +125,7 @@ export default function AdminBrandPage() {
       await updateBrand(params.brandId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 
@@ -133,7 +134,7 @@ export default function AdminBrandPage() {
       await updateModel(modelId, { isActive: active });
       await load(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur.');
+      setError(toUserErrorMessage(err, 'Erreur.'));
     }
   };
 

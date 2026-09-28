@@ -140,7 +140,7 @@ export default function TechnicianDemandeDetailPage() {
         setQuotes(quotesList);
         setEvents(eventsList);
       } catch (err) {
-        if (initial && active) setError(err instanceof Error ? err.message : 'Erreur de chargement.');
+        if (initial && active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
         // Erreur silencieuse en rafraîchissement périodique.
       } finally {
         if (initial && active) setLoading(false);
