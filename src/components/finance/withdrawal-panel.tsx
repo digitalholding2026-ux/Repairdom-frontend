@@ -308,7 +308,7 @@ export function WithdrawalPanel({
                     <Button
                       onClick={() => setConfirming(true)}
                       disabled={submitting}
-                      className="w-full py-3.5 text-sm font-bold shadow-lg shadow-orange-500/25"
+                      className="w-full py-3.5 text-sm font-bold shadow-lg shadow-orange-500/20"
                     >
                       Continuer
                     </Button>
@@ -320,7 +320,7 @@ export function WithdrawalPanel({
                       <Button
                         onClick={submit}
                         disabled={submitting || insufficient}
-                        className="flex-1 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/25"
+                        className="flex-1 py-3.5 text-sm font-bold shadow-lg shadow-orange-500/20"
                       >
                         {submitting ? 'Envoi…' : 'Confirmer le retrait'}
                       </Button>

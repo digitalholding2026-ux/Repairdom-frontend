@@ -52,7 +52,7 @@ export function SoldeOverview({
 
       <div className="flex gap-2">
         <Link href="/client/solde/recharger" className="flex-1">
-          <span className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 py-3 font-bold text-white shadow-md shadow-orange-500/20 transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:scale-[0.98]">
+          <span className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500/90 py-3 font-bold text-white shadow-md shadow-orange-500/15 backdrop-blur-sm transition hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:scale-[0.98]">
             <Icon name="plus" size="sm" strokeWidth={2.4} />
             Recharger
           </span>

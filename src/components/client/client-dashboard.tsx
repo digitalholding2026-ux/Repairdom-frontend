@@ -429,7 +429,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       {/* ── Actions rapides : 3 boutons circulaires ─────────────── */}
       <section aria-label="Actions rapides" className="mx-auto grid max-w-md grid-cols-3 gap-2 px-6 pt-20">
         <Link href="/client/demande" className="group flex flex-col items-center gap-2">
-          <span className="flex size-14 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30 transition group-hover:scale-105 group-active:scale-95">
+          <span className="flex size-14 items-center justify-center rounded-full bg-orange-500/90 text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition group-hover:scale-105 group-active:scale-95 group-hover:bg-orange-500">
             <Icon name="plus" size="lg" strokeWidth={2.2} />
           </span>
           <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
@@ -475,7 +475,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
             </p>
             <Link
               href="/client/demande"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#FF6B00] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:brightness-105 active:scale-95"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-orange-500/90 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition hover:bg-orange-500 active:scale-95"
             >
               <Icon name="plus" size="sm" />
               Créer une demande

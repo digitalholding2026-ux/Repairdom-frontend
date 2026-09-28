@@ -26,7 +26,7 @@ export function Hero() {
         </p>
         <Link
           href={primaryHref}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99]"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500/90 py-4 text-base font-bold text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99]"
         >
           {authenticated ? 'Continuer ma mission' : "J'ai besoin d'un dépannage"}
           <Icon name="arrow-right" size="md" strokeWidth={2.4} />

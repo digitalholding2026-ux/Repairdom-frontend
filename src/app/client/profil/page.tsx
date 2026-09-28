@@ -172,7 +172,7 @@ export default function ClientProfilPage() {
             type="submit"
             onClick={() => void handleSave()}
             disabled={saving || !firstName.trim()}
-            className="flex-1 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white shadow-md transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99] disabled:opacity-60"
+            className="flex-1 rounded-xl bg-orange-500/90 py-3 text-sm font-bold text-white shadow-md shadow-orange-500/15 backdrop-blur-sm transition hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-[0.99] disabled:opacity-60"
           >
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>

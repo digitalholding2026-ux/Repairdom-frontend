@@ -22,8 +22,10 @@ const base =
   'disabled:pointer-events-none disabled:opacity-50 select-none active:scale-[0.98]';
 
 const variants: Record<ButtonVariant, string> = {
+  /* Orange adouci/translucide (glassmorphism premium) : teinte pleine au
+   * survol uniquement, ombre légère. */
   primary:
-    'bg-[#F97316] text-primary-foreground shadow-md shadow-[#F97316]/20 hover:bg-[#FB923C]',
+    'bg-orange-500/90 text-primary-foreground shadow-md shadow-orange-500/15 backdrop-blur-sm hover:bg-orange-500 active:bg-orange-600/90',
   secondary: 'bg-secondary text-secondary-foreground hover:opacity-90',
   ghost: 'text-foreground hover:bg-muted',
   destructive: 'bg-destructive text-error-foreground hover:opacity-90',

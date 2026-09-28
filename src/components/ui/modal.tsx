@@ -88,7 +88,10 @@ export function Modal({
       <div
         aria-hidden
         onClick={onClose}
-        className="absolute inset-0 animate-[fade-in_150ms_ease-out] bg-black/50 backdrop-blur-[2px]"
+        className={cn(
+          "absolute inset-0 animate-[fade-in_150ms_ease-out]",
+          sheet ? "bg-slate-900/40 backdrop-blur-md" : "bg-black/50 backdrop-blur-[2px]",
+        )}
       />
       <div
         ref={panelRef}
@@ -96,7 +99,7 @@ export function Modal({
         className={cn(
           'relative z-10 flex w-full flex-col overflow-hidden animate-[slide-up_180ms_ease-out] border bg-card shadow-pop focus:outline-none',
           sheet
-            ? 'max-h-[92dvh] max-w-md rounded-t-3xl border-border/60 sm:rounded-3xl'
+            ? 'max-h-[88vh] max-w-md rounded-t-[2.5rem] border-slate-200/60 bg-white/95 backdrop-blur-xl sm:max-h-[85vh] sm:rounded-3xl dark:bg-slate-950/95'
             : 'mx-auto w-[95%] max-w-lg rounded-2xl border-border sm:w-full',
           !sheet && 'max-h-[90dvh]',
           centered && !sheet ? 'sm:max-w-sm' : '',
@@ -104,7 +107,7 @@ export function Modal({
           className,
         )}
       >
-        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border sm:hidden" />
+        <div className={cn("mx-auto shrink-0 rounded-full sm:hidden", sheet ? "mt-3 h-1.5 w-12 bg-slate-200 dark:bg-white/20" : "mt-2 h-1 w-10 bg-border")} />
         <div className={cn("flex shrink-0 items-center justify-between gap-3", sheet ? "border-b border-border p-4" : "items-start px-5 pt-4")}>
           <div className="min-w-0 space-y-1">
             {title ? <h2 id={titleId} className={sheet ? "text-base font-bold tracking-tight text-slate-900 dark:text-white" : "text-sm sm:text-base font-semibold tracking-tight"}>{title}</h2> : null}

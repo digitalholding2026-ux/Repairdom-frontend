@@ -56,7 +56,7 @@ export function OperatorNetworkCard({
         selected
           ? amber
             ? 'border-amber-400 bg-amber-500/5 shadow-sm ring-2 ring-amber-400/20'
-            : 'border-orange-500 bg-orange-500/5 shadow-sm ring-2 ring-orange-500/20'
+            : 'border-orange-500/60 bg-orange-500/10 shadow-sm ring-2 ring-orange-500/20'
           : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900',
       )}
     >
@@ -87,7 +87,7 @@ export function OperatorNetworkCard({
           aria-hidden
           className={cn(
             'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-            amber ? 'bg-amber-500' : 'bg-orange-500',
+            amber ? 'bg-amber-500' : 'bg-orange-500/90',
           )}
         >
           ✓

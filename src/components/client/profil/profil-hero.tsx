@@ -70,7 +70,7 @@ export function ProfilHero({ user, onUpdated }: ProfilHeroProps) {
           aria-label="Modifier la photo de profil"
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
-          className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-white/40 bg-orange-500 text-white shadow transition hover:bg-orange-600 disabled:opacity-60"
+            className="absolute -bottom-1 -right-1 flex size-7 items-center justify-center rounded-full border border-white/40 bg-orange-500/90 text-white shadow transition hover:bg-orange-500 disabled:opacity-60"
         >
           <Icon name="camera" size="3.5" />
         </button>

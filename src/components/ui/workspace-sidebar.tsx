@@ -63,7 +63,7 @@ export function WorkspaceSidebar({
         {action ? (
           <Link
             href={action.href}
-            className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl bg-[#F97316] px-3 text-sm font-semibold text-primary-foreground shadow-md shadow-[#F97316]/20 transition-all hover:bg-[#FB923C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="mt-3 flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500/90 px-3 text-sm font-semibold text-primary-foreground shadow-md shadow-orange-500/15 backdrop-blur-sm transition-all hover:bg-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <Icon name={action.icon} size="sm" />
             {action.label}

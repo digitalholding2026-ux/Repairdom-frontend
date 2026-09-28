@@ -121,7 +121,7 @@ export function CompactCta() {
         </p>
         <Link
           href="/client/inscription"
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:bg-orange-600 active:scale-[0.99]"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500/90 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition hover:bg-orange-500 active:scale-[0.99]"
         >
           Commencer maintenant
           <Icon name="arrow-right" size="sm" strokeWidth={2.4} />

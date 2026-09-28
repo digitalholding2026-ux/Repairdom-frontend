@@ -61,7 +61,7 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
               <Link
                 href={primaryHref.href}
                 aria-label={primaryHref.label}
-                className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-[#FF6B00] text-white shadow-lg shadow-orange-500/30 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 hover:scale-105 active:scale-95"
+                className="flex size-14 -translate-y-4 items-center justify-center rounded-full bg-orange-500/90 text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 hover:scale-105 hover:bg-orange-500 active:scale-95"
               >
                 <Icon name={primaryHref.icon} size="lg" strokeWidth={2.2} />
               </Link>
