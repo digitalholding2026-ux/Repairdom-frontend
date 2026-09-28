@@ -117,6 +117,11 @@ export function WithdrawalPanel({
   // `available` reste purement informatif (affichage). Seul le backend
   // refuse éventuellement pour solde insuffisant après POST /finances/withdrawals.
   const insufficient = !Number.isInteger(effectiveAmount) || effectiveAmount <= 0;
+  /* Mode modale (bottom-sheet) : champs ultra-compacts pour tenir sans
+   * scroll sur petit écran (labels 11px, inputs h-9). */
+  const compactInputClass = bare ? 'h-9 rounded-xl bg-slate-50 text-xs sm:text-xs' : undefined;
+  const bareLabelClass =
+    'text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200';
 
   async function submit() {
     setError(null);
@@ -150,7 +155,7 @@ export function WithdrawalPanel({
   }
 
   return (
-    <section className="space-y-3">
+    <section className={bare ? 'space-y-2.5' : 'space-y-3'}>
       {!bare ? <SectionHeader title="Retirer des fonds" /> : null}
       {!bare ? (
       <Card>
@@ -175,11 +180,11 @@ export function WithdrawalPanel({
               {!confirming && !result ? (
                 <>
                   {bare ? (
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <p className={bareLabelClass}>
                       Montant (FCFA)
                     </p>
                   ) : null}
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2">
                     {PRESETS.map((preset) => (
                       <button
                         key={preset}
@@ -202,46 +207,50 @@ export function WithdrawalPanel({
                       placeholder="Ou montant libre (min. 100 FCFA)"
                       value={custom}
                       onChange={(e) => setCustom(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-                      className="pr-16 tabular-nums"
+                      className={compactInputClass ? `${compactInputClass} pr-16 tabular-nums` : 'pr-16 tabular-nums'}
                       aria-label="Montant libre en FCFA"
                     />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-medium text-muted-foreground">
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-muted-foreground">
                       FCFA
                     </span>
                   </div>
                   {bare ? (
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <p className={bareLabelClass}>
                       Réseau de retrait
                     </p>
                   ) : null}
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <div className={bare ? 'space-y-1.5' : 'grid grid-cols-1 gap-2.5 sm:grid-cols-2'}>
                     {OPERATOR_NETWORKS.map((operator) => (
                       <OperatorNetworkCard
                         key={operator.code}
                         network={operator}
                         selected={operatorOf(network) === operator.code}
                         onSelect={() => setNetwork(NETWORK_BY_OPERATOR[operator.code])}
+                        compact={bare}
                       />
                     ))}
                   </div>
                   {bare ? (
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <p className={bareLabelClass}>
                       Numéro bénéficiaire
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <span
                       aria-hidden
-                      className="inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground"
+                      className={bare
+                        ? 'flex-shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600'
+                        : 'inline-flex h-11 shrink-0 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground'}
                     >
                       +237
                     </span>
                     <Input
                       inputMode="tel"
-                      placeholder="Numéro bénéficiaire (ex. 690000000)"
+                      placeholder={bare ? '6 XX XX XX XX' : 'Numéro bénéficiaire (ex. 690000000)'}
                       value={msisdn}
                       onChange={(e) => setMsisdn(e.target.value.replace(/[^0-9+ ]/g, '').slice(0, 20))}
                       aria-label="Numéro Mobile Money bénéficiaire"
+                      className={compactInputClass}
                     />
                   </div>
                   {!bare ? (

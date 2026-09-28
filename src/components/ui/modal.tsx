@@ -99,7 +99,7 @@ export function Modal({
         className={cn(
           'relative z-10 flex w-full flex-col overflow-hidden animate-[slide-up_180ms_ease-out] border bg-card shadow-pop focus:outline-none',
           sheet
-            ? 'max-h-[88vh] max-w-md rounded-t-[2.5rem] border-slate-200/60 bg-white/95 backdrop-blur-xl sm:max-h-[85vh] sm:rounded-3xl dark:bg-slate-950/95'
+            ? 'max-h-[82vh] max-w-md rounded-t-[2.5rem] border-slate-200/60 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:max-h-[85vh] sm:rounded-3xl sm:pb-0 dark:bg-slate-950/95'
             : 'mx-auto w-[95%] max-w-lg rounded-2xl border-border sm:w-full',
           !sheet && 'max-h-[90dvh]',
           centered && !sheet ? 'sm:max-w-sm' : '',
@@ -124,7 +124,7 @@ export function Modal({
             <Icon name="x" size="sm" />
           </button>
         </div>
-        {children ? <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div> : null}
+        {children ? <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div> : null}
         {footer ? <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-border px-5 py-4 sm:flex-row sm:justify-end [&_button]:min-h-12 [&_button]:text-sm sm:[&_button]:text-base">{footer}</div> : null}
       </div>
     </div>
