@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
 import {
+  formatTravelAccuracy,
   formatTravelDistance,
   formatTravelRecency,
   getCurrentTravelPosition,
@@ -39,6 +40,9 @@ export function TravelSection({
   const [busy, setBusy] = useState<TravelAction | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [arrivedWithoutGps, setArrivedWithoutGps] = useState(false);
+  /* Précision RÉELLE du dernier fix (navigateur uniquement, éphémère —
+   * jamais stockée, jamais garantie). */
+  const [lastAccuracy, setLastAccuracy] = useState<string | null>(null);
 
   const travel = demande.travel ?? null;
   const travelable = TRAVELABLE_STATUSES.includes(demande.status);
@@ -52,8 +56,9 @@ export function TravelSection({
     setBusy(action);
     setGpsError(null);
     setArrivedWithoutGps(false);
+    setLastAccuracy(null);
     try {
-      let position: { latitude: number; longitude: number } | null = null;
+      let position: { latitude: number; longitude: number; accuracy: number | null } | null = null;
       if (withPosition) {
         try {
           position = await getCurrentTravelPosition();
@@ -67,17 +72,24 @@ export function TravelSection({
         }
       }
       let updated: TechnicianDemande;
+      // `accuracy` reste un affichage local éphémère : seuls lat/lng
+      // partent au backend (ValidationPipe `forbidNonWhitelisted`).
+      const coords = position ? { latitude: position.latitude, longitude: position.longitude } : null;
       if (action === 'route') {
-        updated = await startTravel(demande.id, position!.latitude, position!.longitude);
+        updated = await startTravel(demande.id, coords!.latitude, coords!.longitude);
       } else if (action === 'refresh') {
-        updated = await refreshTravelLocation(demande.id, position!.latitude, position!.longitude);
+        updated = await refreshTravelLocation(demande.id, coords!.latitude, coords!.longitude);
       } else {
         updated = await markTravelArrived(
           demande.id,
-          position ?? undefined,
+          coords ?? undefined,
         );
       }
       onChanged(updated);
+      if (position) {
+        const label = formatTravelAccuracy(position.accuracy);
+        if (label) setLastAccuracy(label);
+      }
     } catch (err) {
       setGpsError(toUserErrorMessage(err, 'Action impossible pour le moment.'));
     } finally {
@@ -111,6 +123,7 @@ export function TravelSection({
           <p className="text-xs text-muted-foreground">
             {recency ? `Dernière position transmise ${recency}` : 'Position en cours de transmission'}
             {distance ? ` · ${distance} du lieu d\u2019intervention` : null}
+            {lastAccuracy ? ` · ${lastAccuracy}` : null}
             {!travel.fresh && travel.minutesSinceUpdate !== null && travel.minutesSinceUpdate !== undefined
               ? ' · position périmée, pensez à l\u2019actualiser'
               : null}

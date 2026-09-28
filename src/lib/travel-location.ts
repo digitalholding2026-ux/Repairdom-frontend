@@ -9,6 +9,10 @@
 export interface TravelPosition {
   latitude: number;
   longitude: number;
+  /* Précision horizontale (mètres) FOURNIE PAR LE NAVIGATEUR (`coords.accuracy`),
+   * `null` si indisponible. Jamais inventée, jamais garantie : dépend du
+   * GPS du téléphone, du signal, des permissions et de l'environnement. */
+  accuracy: number | null;
 }
 
 export type GpsFailure =
@@ -41,32 +45,85 @@ function failureFromCode(code: number): GpsFailure {
   return 'unknown';
 }
 
-/* Acquisition ponctuelle : un seul fix, timeout configurable, haute
- * précision désactivée (économie batterie, suffisante pour « en route »).
- * Rejette avec un `Error` dont `message` est déjà un libellé FR. */
-export function getCurrentTravelPosition(timeoutMs = 15000): Promise<TravelPosition> {
+/* Acquisition ponctuelle en DEUX TEMPS (toujours un seul fix à la fois,
+ * jamais de `watchPosition`) :
+ *  1. position PRÉCISE et FRAÎCHE (`enableHighAccuracy: true`,
+ *     `maximumAge: 0`, 12 s) quand l'appareil le permet ;
+ *  2. en cas de timeout uniquement, repli RAPIDE sur un fix standard
+ *     éventuellement en cache (8 s) plutôt qu'un échec sec.
+ * Résout avec `{ latitude, longitude, accuracy }` (`accuracy` = valeur
+ * réelle du navigateur ou `null`). Rejette avec un `Error` dont `message`
+ * est déjà un libellé FR. */
+export function getCurrentTravelPosition(timeoutMs = 12000): Promise<TravelPosition> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       reject(new Error(gpsErrorMessage('unsupported')));
       return;
     }
+    const pick = (position: GeolocationPosition): TravelPosition => ({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy:
+        typeof position.coords.accuracy === 'number' &&
+        Number.isFinite(position.coords.accuracy) &&
+        position.coords.accuracy >= 0
+          ? Math.round(position.coords.accuracy)
+          : null,
+    });
+    const valid = (position: GeolocationPosition): boolean =>
+      Number.isFinite(position.coords.latitude) && Number.isFinite(position.coords.longitude);
+    const onError = (error: GeolocationPositionError | null, fallback: () => void) => {
+      // Seul le timeout déclenche le repli (les autres échecs — refus,
+      // indisponibilité — sont définitifs pour cette tentative).
+      if (error?.code === 3) {
+        fallback();
+        return;
+      }
+      const failure =
+        typeof error?.code === 'number' ? failureFromCode(error.code) : 'unknown';
+      reject(new Error(gpsErrorMessage(failure)));
+    };
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        if (!valid(position)) {
           reject(new Error(gpsErrorMessage('unavailable')));
           return;
         }
-        resolve({ latitude, longitude });
+        resolve(pick(position));
       },
       (error) => {
-        const failure =
-          typeof error?.code === 'number' ? failureFromCode(error.code) : 'unknown';
-        reject(new Error(gpsErrorMessage(failure)));
+        onError(error, () => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              if (!valid(position)) {
+                reject(new Error(gpsErrorMessage('unavailable')));
+                return;
+              }
+              resolve(pick(position));
+            },
+            (retryError) => {
+              const failure =
+                typeof retryError?.code === 'number'
+                  ? failureFromCode(retryError.code)
+                  : 'unknown';
+              reject(new Error(gpsErrorMessage(failure)));
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+          );
+        });
       },
-      { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60000 },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
     );
   });
+}
+
+/** Précision réelle d'affichage (« précision ~25 m »), `null` si le
+ *  navigateur ne l'a pas fournie (jamais inventée). */
+export function formatTravelAccuracy(accuracy: number | null | undefined): string | null {
+  if (accuracy === null || accuracy === undefined || !Number.isFinite(accuracy) || accuracy < 0) {
+    return null;
+  }
+  return `précision ~${Math.round(accuracy)} m`;
 }
 
 /** Distance approximative d'affichage (« à ~850 m », « à ~2,4 km »),

@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect } from 'react';
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import { LayersControl, MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { MissionMapProps } from './mission-map';
 
 /* GPS V4 — rendu carte (Leaflet + tuiles OSM, aucune clé, aucune donnée
  * envoyée ailleurs que le fond de carte public). Marqueurs 100 % CSS
- * (divIcon) : aucun asset image, aucun chiffre de coordonnées affiché. */
+ * (divIcon) : aucun asset image, aucun chiffre de coordonnées affiché.
+ *
+ * GPS V4.1 — fond Relief (OpenTopoMap : tuiles gratuites, attribution
+ * OSM + SRTM exigée et affichée, zoom max 17) avec bascule Plan/Relief
+ * (contrôle Leaflet natif, zéro dépendance supplémentaire). En cas
+ * d'échec des tuiles relief, le fond Plan reste disponible. */
 
 function interventionIcon(): L.DivIcon {
   return L.divIcon({
@@ -64,11 +69,23 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
         className="relio-map-wrap h-56 w-full sm:h-64"
         attributionControl
       >
-        <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          eventHandlers={{ tileerror: onTileError }}
-        />
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Plan">
+            <TileLayer
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              eventHandlers={{ tileerror: onTileError }}
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Relief">
+            <TileLayer
+              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+              maxZoom={17}
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, SRTM | style <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+              eventHandlers={{ tileerror: onTileError }}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
         <FitBounds points={points} />
         <Marker position={[intervention.latitude, intervention.longitude]} icon={interventionIcon()} />
         {technician ? (
