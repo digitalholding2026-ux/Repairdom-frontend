@@ -297,6 +297,8 @@ export interface MissionDiagnostic {
   proposedIntervention?: string | null;
   justification?: string | null;
   notes?: string | null;
+  /* IA-3 — note vocale (lecture via URL signée, jamais d'URL persistée). */
+  hasAudio?: boolean | null;
   technicianId: string;
   technician: { id: string; firstName: string; lastName: string | null };
   createdAt: string;
@@ -348,6 +350,17 @@ export async function sendDemandeMessage(
 
 export async function listDemandeDiagnostics(demandeId: string): Promise<MissionDiagnostic[]> {
   return apiFetch<MissionDiagnostic[]>(`/demandes/${encodeURIComponent(demandeId)}/diagnostics`);
+}
+
+/* IA-3 — écoute de la note vocale (client propriétaire, URL signée
+ * éphémère). Lazy : appelée à l'ouverture du lecteur uniquement. */
+export async function getDiagnosticAudioUrl(
+  demandeId: string,
+  diagnosticId: string,
+): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(
+    `/demandes/${encodeURIComponent(demandeId)}/diagnostics/${encodeURIComponent(diagnosticId)}/audio`,
+  );
 }
 
 export async function listDemandeQuotes(demandeId: string): Promise<MissionQuote[]> {

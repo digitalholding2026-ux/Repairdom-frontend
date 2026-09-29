@@ -21,6 +21,7 @@ import { MissionMap } from '@/components/mission/mission-map';
 import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
 import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location';
 import { DemandeMediaSection } from '@/components/mission/demande-media-section';
+import { DiagnosticAudioPlayer } from '@/components/mission/diagnostic-audio-player';
 import { getDemandeMediaFileUrl } from '@/lib/api/request-service';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatDateTime, formatTime, fullName } from '@/lib/format';
@@ -28,6 +29,7 @@ import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-s
 import {
   getDemande,
   updateDemandeStatus,
+  getDiagnosticAudioUrl,
   listDemandeDiagnostics,
   listDemandeQuotes,
   respondToQuote,
@@ -335,6 +337,16 @@ export default function ClientDemandeDetailPage() {
                   <p className="border-l-2 border-primary pl-3 text-base font-semibold">
                     {latestDiagnostic.content}
                   </p>
+                  {latestDiagnostic.hasAudio ? (
+                    <DiagnosticAudioPlayer
+                      demandeId={demande.id}
+                      diagnosticId={latestDiagnostic.id}
+                      diagnosticLabel={latestDiagnostic.content.slice(0, 60)}
+                      fetchUrl={(demandeId, diagnosticId) =>
+                        getDiagnosticAudioUrl(demandeId, diagnosticId)
+                      }
+                    />
+                  ) : null}
                   {latestDiagnostic.proposedIntervention ? (
                     <div className="overflow-hidden rounded-xl border border-primary/20">
                       <p className="bg-primary/10 px-3 py-2 text-sm font-semibold text-primary">

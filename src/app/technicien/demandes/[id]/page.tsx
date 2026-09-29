@@ -16,6 +16,8 @@ import { Field, Input, Textarea } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
+import { DiagnosticAudioPlayer } from '@/components/mission/diagnostic-audio-player';
+import { FreeDiagnosticSection } from '@/components/technician/diagnostic/free-diagnostic-section';
 import { DemandeMediaSection } from '@/components/mission/demande-media-section';
 import { getTechnicianDemandeMediaFileUrl } from '@/lib/api/technician-service';
 import { DemandeProgress } from '@/components/mission/demande-progress';
@@ -37,6 +39,7 @@ import {
   acceptDemande,
   updateTechnicianDemandeStatus,
   getTechnicianProfile,
+  getDiagnosticAudioUrl,
   listDemandeDiagnostics,
   listDemandeQuotes,
   createDemandeQuote,
@@ -92,6 +95,9 @@ export default function TechnicianDemandeDetailPage() {
   const [manualProposedIntervention, setManualProposedIntervention] = useState('');
   const [manualJustification, setManualJustification] = useState('');
   const [manualNotes, setManualNotes] = useState('');
+  /* IA-3 — rechargement immédiat après diagnostic libre (le polling 5 s
+   * reprend ensuite ; le timer est simplement recréé, sans double appel). */
+  const [refreshKey, setRefreshKey] = useState(0);
 
   /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d’échec de
    * `getTechnicianDemande` (404 backend), le diagnostic « non VERIFIED » doit
@@ -101,6 +107,7 @@ export default function TechnicianDemandeDetailPage() {
   useEffect(() => {
     if (!params?.id) return;
     let active = true;
+
     getTechnicianProfile()
       .then((profile) => {
         if (!active) return;
@@ -117,12 +124,11 @@ export default function TechnicianDemandeDetailPage() {
   }, [params?.id]);
 
   /* Chargement unique : premier passage complet (erreur affichée), puis
-   * rafraîchissement silencieux toutes les 5 s (un seul timer). */
+   * rafraîchissement silencieux toutes les 5 s (un seul timer). `refreshKey`
+   * force un rechargement immédiat après une action (ex. diagnostic libre). */
   useEffect(() => {
     if (!params?.id) return;
-    let active = true;
-
-    const load = async (initial: boolean) => {
+    let active = true;    const load = async (initial: boolean) => {
       try {
         /* getTechnicianDemande est l'appel principal : seul son échec (ex.
          * mission acceptée par un concurrent) affiche « Demande
@@ -159,7 +165,7 @@ export default function TechnicianDemandeDetailPage() {
       active = false;
       clearInterval(timer);
     };
-  }, [params?.id]);
+  }, [params?.id, refreshKey]);
 
   const handleAccept = async () => {
     if (!params?.id) return;
@@ -848,6 +854,15 @@ export default function TechnicianDemandeDetailPage() {
         </Card>
       ) : null}
 
+      {/* IA-3 — diagnostic libre + devis en un envoi (sans catalogue) :
+        * après les éléments client, avant les parcours existants conservés. */}
+      {canChooseDiagnostic && canProposeManualQuote ? (
+        <FreeDiagnosticSection
+          demandeId={demande.id}
+          onDone={() => setRefreshKey((key) => key + 1)}
+        />
+      ) : null}
+
       {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) ? (
         <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
       ) : null}
@@ -896,6 +911,16 @@ export default function TechnicianDemandeDetailPage() {
           {latestDiagnostic ? (
             <div className="space-y-2">
               <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
+              {latestDiagnostic.hasAudio ? (
+                <DiagnosticAudioPlayer
+                  demandeId={demande.id}
+                  diagnosticId={latestDiagnostic.id}
+                  diagnosticLabel={latestDiagnostic.content.slice(0, 60)}
+                  fetchUrl={(demandeId, diagnosticId) =>
+                    getDiagnosticAudioUrl(demandeId, diagnosticId)
+                  }
+                />
+              ) : null}
               {latestDiagnostic.proposedIntervention ? (
                 <Alert variant="info" title="Intervention proposée">
                   <p className="whitespace-pre-line">{latestDiagnostic.proposedIntervention}</p>

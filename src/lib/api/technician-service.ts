@@ -376,6 +376,8 @@ export interface MissionDiagnostic {
   proposedIntervention?: string | null;
   justification?: string | null;
   notes?: string | null;
+  /* IA-3 — note vocale (lecture via URL signée, jamais d'URL persistée). */
+  hasAudio?: boolean | null;
   technicianId: string;
   technician: { id: string; firstName: string; lastName: string | null };
   createdAt: string;
@@ -492,6 +494,7 @@ export async function selectDemandeDiagnostic(
     proposedIntervention?: string;
     justification?: string;
     notes?: string;
+    audioStoragePath?: string;
   },
 ): Promise<SelectDiagnosticResult> {
   return apiFetch<SelectDiagnosticResult>(
@@ -501,6 +504,56 @@ export async function selectDemandeDiagnostic(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     },
+  );
+}
+
+/* ── IA-3 — note vocale du diagnostic libre ───────────────────────
+ * Upload réel AVANT création (lié en transaction), lecture via URL
+ * signée éphémère (assigné/propriétaire). Aucun appel IA. */
+
+export interface UploadedDiagnosticAudio {
+  storagePath: string;
+  kind: 'AUDIO';
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export async function uploadDiagnosticAudio(
+  demandeId: string,
+  file: File,
+): Promise<UploadedDiagnosticAudio> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(
+    `${siteConfig.apiBaseUrl}/demandes/${encodeURIComponent(demandeId)}/diagnostics/audio/upload`,
+    { method: 'POST', credentials: 'include', body: formData },
+  );
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const payload = body as { message?: string | string[]; code?: string } | null;
+    const message = payload?.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    const code = typeof payload?.code === 'string' ? payload.code : null;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
+  }
+  return body as UploadedDiagnosticAudio;
+}
+
+export async function deleteDiagnosticAudio(demandeId: string, storagePath: string): Promise<void> {
+  await apiFetch(`/demandes/${encodeURIComponent(demandeId)}/diagnostics/audio/upload`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ storagePath }),
+  });
+}
+
+export async function getDiagnosticAudioUrl(
+  demandeId: string,
+  diagnosticId: string,
+): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(
+    `/demandes/${encodeURIComponent(demandeId)}/diagnostics/${encodeURIComponent(diagnosticId)}/audio`,
   );
 }
 
