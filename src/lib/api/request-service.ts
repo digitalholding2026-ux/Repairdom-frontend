@@ -25,8 +25,10 @@ export interface DeviceContext {
 
 export interface CreateDemandeInput {
   categoryId: string;
-  description: string;
-  medias: Array<{ name: string; type: string; size: number }>;
+  /* Dépôt multimédia : description textuelle optionnelle (vocal/vidéo /
+   * photos). Backend : au moins un média exigé sans texte. */
+  description?: string;
+  medias: Array<{ name: string; type: string; size: number; storagePath?: string }>;
   city: string;
   neighborhood?: string;
   address?: string;
@@ -77,7 +79,8 @@ export interface CreateDemandeResult {
   status: string;
   categoryId: string;
   categoryLabel: string;
-  description: string;
+  /* NULL pour les demandes multimédia sans texte (lire les médias). */
+  description: string | null;
   city: string;
   neighborhood: string | null;
   address: string | null;
@@ -166,7 +169,8 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       categoryId: input.categoryId,
-      description: input.description,
+      // Description textuelle optionnelle (dépôt multimédia) : omise si vide.
+      ...(input.description?.trim() ? { description: input.description.trim() } : {}),
       city: input.city,
       neighborhood: input.neighborhood || undefined,
       address: input.address || undefined,
@@ -192,6 +196,8 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
         name: m.name,
         mimeType: m.type,
         sizeBytes: m.size,
+        // Chemin d'upload réel (lié en transaction à la création).
+        ...(m.storagePath ? { storagePath: m.storagePath } : {}),
       })),
     }),
   });
@@ -209,6 +215,62 @@ export async function listMyDemandeHistory(): Promise<DemandeListItem[]> {
 
 export async function getDemande(id: string): Promise<DemandeListItem> {
   return apiFetch<DemandeListItem>(`/demandes/${encodeURIComponent(id)}`);
+}
+
+/* ── Dépôt multimédia : upload réel AVANT création ───────────────────
+ * Limites miroir backend (25 Mo / IMAGE-VIDEO-AUDIO, 5 fichiers max par
+ * demande — comptés côté wizard). `kind` validé des deux côtés. */
+
+export interface UploadedDemandeMedia {
+  storagePath: string;
+  kind: 'IMAGE' | 'VIDEO' | 'AUDIO';
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+async function mediaFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
+    credentials: 'include',
+    ...init,
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    const payload = body as { message?: string | string[]; code?: string } | null;
+    const message = payload?.message;
+    const text = Array.isArray(message) ? message.join(', ') : message;
+    const code = typeof payload?.code === 'string' ? payload.code : null;
+    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
+  }
+  return body as T;
+}
+
+/** Upload d'un fichier (FormData) avant création de la demande. */
+export async function uploadDemandeMedia(file: File, kind: 'IMAGE' | 'VIDEO' | 'AUDIO'): Promise<UploadedDemandeMedia> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('kind', kind);
+  return mediaFetch<UploadedDemandeMedia>('/demandes/medias/upload', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+/** Nettoyage best-effort d'un upload abandonné (demande non créée). */
+export async function deleteUploadedDemandeMedia(storagePath: string): Promise<void> {
+  await mediaFetch('/demandes/medias/upload', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ storagePath }),
+  });
+}
+
+/** URL signée éphémère de lecture (propriétaire ou assigné, 404 sinon).
+ *  Lazy : appelée à l'ouverture du lecteur uniquement. */
+export async function getDemandeMediaFileUrl(demandeId: string, mediaId: string): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(
+    `/demandes/${encodeURIComponent(demandeId)}/medias/${encodeURIComponent(mediaId)}/file`,
+  );
 }
 
 export async function updateDemandeStatus(id: string, status: string): Promise<DemandeListItem> {

@@ -57,7 +57,8 @@ export interface TechnicianDemande {
   status: string;
   categoryId: string;
   categoryLabel: string;
-  description: string;
+  /* NULL pour les demandes multimédia sans texte (lire les médias). */
+  description: string | null;
   city: string;
   neighborhood: string | null;
   address: string | null;
@@ -345,6 +346,18 @@ export async function markTravelArrived(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(position ?? {}),
   });
+}
+
+/* Dépôt multimédia — URL signée éphémère d'une pièce jointe (technicien
+ * ASSIGNÉ uniquement, 404 sinon). Lazy : appelée à l'ouverture du
+ * lecteur uniquement, jamais préchargée en masse. */
+export async function getTechnicianDemandeMediaFileUrl(
+  demandeId: string,
+  mediaId: string,
+): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(
+    `/technician/demandes/${encodeURIComponent(demandeId)}/medias/${encodeURIComponent(mediaId)}/file`,
+  );
 }
 
 export interface ConversationMessage {

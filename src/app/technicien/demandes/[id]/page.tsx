@@ -16,6 +16,8 @@ import { Field, Input, Textarea } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
+import { DemandeMediaSection } from '@/components/mission/demande-media-section';
+import { getTechnicianDemandeMediaFileUrl } from '@/lib/api/technician-service';
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { TravelSection } from '@/components/mission/travel-section';
 import { MissionMap } from '@/components/mission/mission-map';
@@ -464,6 +466,14 @@ export default function TechnicianDemandeDetailPage() {
             requestedAt={demande.requestedAt}
             createdAt={demande.createdAt}
             scheduledAt={demande.scheduledAt}
+          />
+
+          {/* Dépôt multimédia — visible immédiatement dès l'assignation
+            (liaison en transaction à la création, URLs signées lazy). */}
+          <DemandeMediaSection
+            demandeId={demande.id}
+            medias={demande.medias}
+            fetchUrl={(demandeId, mediaId) => getTechnicianDemandeMediaFileUrl(demandeId, mediaId)}
           />
 
           {demande.status !== 'CANCELED' ? (

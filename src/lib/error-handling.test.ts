@@ -30,6 +30,7 @@ void test('HTTP : 401/403/404/409/422/429/500 → FR clair et actionnable', () =
   assert.match(toUserErrorMessage({ status: 403 }, 'x'), /autoris/);
   assert.match(toUserErrorMessage({ status: 404 }, 'x'), /introuvable/);
   assert.match(toUserErrorMessage({ status: 409 }, 'x'), /enregistrée|changé/);
+  assert.match(toUserErrorMessage({ status: 413 }, 'x'), /volumineux/);
   assert.match(toUserErrorMessage({ status: 422 }, 'x'), /invalides/);
   assert.match(toUserErrorMessage({ status: 429 }, 'x'), /tentatives/);
   assert.match(toUserErrorMessage({ status: 500 }, 'x'), /temporaire|instants/);

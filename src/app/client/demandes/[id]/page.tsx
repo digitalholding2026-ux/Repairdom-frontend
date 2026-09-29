@@ -20,7 +20,8 @@ import { TravelBanner } from '@/components/mission/travel-banner';
 import { MissionMap } from '@/components/mission/mission-map';
 import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
 import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location';
-import { MediaGallery } from '@/components/client/missions/media-gallery';
+import { DemandeMediaSection } from '@/components/mission/demande-media-section';
+import { getDemandeMediaFileUrl } from '@/lib/api/request-service';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatDateTime, formatTime, fullName } from '@/lib/format';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
@@ -505,9 +506,13 @@ export default function ClientDemandeDetailPage() {
             </section>
           ) : null}
 
-          {/* Carte 2 : galerie médias & pièces jointes */}
+          {/* Carte 2 : éléments multimédia transmis */}
           <section className="bg-card border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-            <MediaGallery medias={demande.medias} />
+            <DemandeMediaSection
+              demandeId={demande.id}
+              medias={demande.medias}
+              fetchUrl={(demandeId, mediaId) => getDemandeMediaFileUrl(demandeId, mediaId)}
+            />
           </section>
 
           {/* Carte 3 : chronologie */}
@@ -546,7 +551,15 @@ export default function ClientDemandeDetailPage() {
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Problème déclaré</dt>
-                <dd className="mt-0.5 text-foreground">“{demande.description}”</dd>
+                <dd className="mt-0.5 text-foreground">
+                  {demande.description ? (
+                    <>“{demande.description}”</>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Sans texte — voir vos photos, vidéos et messages vocaux ci-dessous.
+                    </span>
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lieu d&apos;intervention</dt>

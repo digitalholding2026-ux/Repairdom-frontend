@@ -4,7 +4,8 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { formatRequestedTiming } from '@/lib/request-timing';
 
 export interface MissionInfoProps {
-  description: string;
+  /* NULL pour les demandes multimédia sans texte (voir les médias). */
+  description: string | null;
   city: string;
   requestedMode: string | null;
   requestedAt: string | null;
@@ -37,7 +38,13 @@ export function MissionInfo({
   return (
     <div className="grid gap-2">
       <InfoRow icon="file" label="Description">
-        <p className="whitespace-pre-line">{description}</p>
+        {description ? (
+          <p className="whitespace-pre-line">{description}</p>
+        ) : (
+          <p className="text-muted-foreground">
+            Sans texte — écoutez le message vocal et consultez les photos/vidéos ci-dessous.
+          </p>
+        )}
       </InfoRow>
       <InfoRow icon="pin" label="Localisation">
         <p className="font-medium">{city}</p>

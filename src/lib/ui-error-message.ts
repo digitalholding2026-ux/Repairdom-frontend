@@ -57,6 +57,7 @@ const STATUS_MESSAGES: Record<number, string> = {
   403: "Cette action ne vous est pas autorisée.",
   404: 'Ressource introuvable. Elle a peut-être été déplacée ou supprimée.',
   409: "Action impossible : l'état de la ressource a changé. Actualisez puis réessayez.",
+  413: 'Fichier trop volumineux. Réduisez la taille puis réessayez.',
   422: 'Certaines informations sont invalides. Vérifiez votre saisie.',
   429: 'Trop de tentatives. Patientez quelques instants puis réessayez.',
   500: 'Erreur temporaire du service. Réessayez dans quelques instants.',

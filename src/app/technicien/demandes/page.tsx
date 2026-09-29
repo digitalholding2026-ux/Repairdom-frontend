@@ -116,7 +116,7 @@ export default function TechnicienMissionsDisponiblesPage() {
         if (mode !== 'ALL' && mission.requestedMode !== mode) return false;
         if (needle) {
           const haystack = normalize(
-            `${mission.reference} ${mission.categoryLabel} ${mission.description} ${mission.city}`,
+            `${mission.reference} ${mission.categoryLabel} ${mission.description ?? ''} ${mission.city}`,
           );
           if (!haystack.includes(needle)) return false;
         }

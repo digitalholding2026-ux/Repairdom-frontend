@@ -10,11 +10,11 @@ import { Field } from '@/components/ui/field';
 import { Icon, ICON_NAMES, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+import { VoiceRecorder, VOICE_MAX_SECONDS } from '@/components/client/voice-recorder';
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
-import { createDemande } from '@/lib/api/request-service';
+import { createDemande, uploadDemandeMedia, deleteUploadedDemandeMedia } from '@/lib/api/request-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
   formatTravelAccuracyShort,
@@ -30,25 +30,30 @@ import {
 } from '@/lib/api/catalog-service';
 import { getMe } from '@/lib/api/auth-service';
 
-const STEPS = ['Votre appareil', 'Votre problème', 'Où et quand ?', 'Vérifiez et envoyez'];
-
-const MIN_DESCRIPTION_LENGTH = 10;
-const MAX_DESCRIPTION_LENGTH = 1000;
+const STEPS = ['Votre appareil', 'Votre panne', 'Où et quand ?', 'Vérifiez et envoyez'];
 
 const OTHER_DOMAIN = '__other__';
 
-/* Photos jointes : le backend (POST /demandes) accepte uniquement des
- * métadonnées (kind, name, mimeType, sizeBytes) — aucun binaire n’est
- * téléversé. Limites réelles du contrat : 5 fichiers max, 25 Mo / fichier. */
-const MAX_PHOTOS = 5;
-const MAX_PHOTO_BYTES = 25 * 1024 * 1024;
+/* Dépôt multimédia — limites miroir backend (5 fichiers, 25 Mo chacun,
+ * IMAGE/VIDEO/AUDIO). Le vocal est en outre plafonné à 3 min côté
+ * enregistreur. Les octets sont uploadés à l'envoi AVANT création de la
+ * Demande, puis liés en transaction (accès technicien immédiat). */
+const MAX_MEDIAS = 5;
+const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
-interface WizardPhoto {
+type WizardMediaKind = 'IMAGE' | 'VIDEO' | 'AUDIO';
+
+interface WizardMedia {
   key: string;
+  kind: WizardMediaKind;
   name: string;
   mimeType: string;
   sizeBytes: number;
-  preview: string;
+  /** Fichier réel (uploadé à l'envoi, avant création de la Demande). */
+  file: File;
+  preview: string | null;
+  /** Chemin retourné par l'upload (lié en transaction à la création). */
+  storagePath?: string;
 }
 
 const CATEGORY_ICONS: Record<string, IconName> = {
@@ -82,7 +87,6 @@ export function DemandeWizard() {
 
   const [step, setStep] = useState(0);
   const [categoryId, setCategoryId] = useState('');
-  const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [address, setAddress] = useState('');
@@ -90,10 +94,15 @@ export function DemandeWizard() {
   const [contactPhone, setContactPhone] = useState('');
   const [requestedMode, setRequestedMode] = useState<RequestTimingMode>('ASAP');
   const [requestedAt, setRequestedAt] = useState('');
-  const [photos, setPhotos] = useState<WizardPhoto[]>([]);
-  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [medias, setMedias] = useState<WizardMedia[]>([]);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  /* Remonte l'enregistreur après validation (le vocal validé vit dans la
+   * grille ci-dessous, supprimable/retéléchargeable comme les autres). */
+  const [voiceKey, setVoiceKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* Progression d'envoi des fichiers (upload AVANT création). */
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   /* GPS V1 — position ponctuelle opt-in (géolocalisation navigateur, un seul
    * relevé, jamais de suivi). Le formulaire reste utilisable sans GPS et
    * l'adresse texte n'est jamais remplacée ni déduite. */
@@ -167,12 +176,24 @@ export function DemandeWizard() {
     [city, neighborhood, address, landmark],
   );
 
+  const mediaSummary = useMemo(() => {
+    if (medias.length === 0) return '';
+    const counts = { AUDIO: 0, VIDEO: 0, IMAGE: 0 } as Record<WizardMediaKind, number>;
+    for (const media of medias) counts[media.kind] += 1;
+    const parts: string[] = [];
+    if (counts.AUDIO > 0) parts.push(`${counts.AUDIO} vocal${counts.AUDIO !== 1 ? 'aux' : ''}`);
+    if (counts.VIDEO > 0) parts.push(`${counts.VIDEO} vidéo${counts.VIDEO !== 1 ? 's' : ''}`);
+    if (counts.IMAGE > 0) parts.push(`${counts.IMAGE} photo${counts.IMAGE !== 1 ? 's' : ''}`);
+    return parts.join(' + ');
+  }, [medias]);
+
   const canContinue = useMemo(() => {
     if (step === 0) return domainId !== '';
-    if (step === 1) return description.trim().length >= MIN_DESCRIPTION_LENGTH;
+    // Dépôt multimédia : au moins un moyen validé (vocal, vidéo ou photo).
+    if (step === 1) return medias.length > 0;
     if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
-  }, [step, domainId, description, city, requestedMode, requestedAt]);
+  }, [step, domainId, medias, city, requestedMode, requestedAt]);
 
   const handleDomainChange = (id: string) => {
     setDomainId(id);
@@ -210,57 +231,95 @@ export function DemandeWizard() {
     setModelId(id);
   };
 
-  const photosRef = useRef<WizardPhoto[]>([]);
-  photosRef.current = photos;
+  const mediasRef = useRef<WizardMedia[]>([]);
+  mediasRef.current = medias;
 
   // Libère les URL d’aperçu à la fermeture du wizard.
   useEffect(
     () => () => {
-      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.preview));
+      mediasRef.current.forEach((media) => {
+        if (media.preview) URL.revokeObjectURL(media.preview);
+      });
     },
     [],
   );
 
-  const handlePhotoFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setPhotoError(null);
-    const room = MAX_PHOTOS - photos.length;
-    if (room <= 0) {
-      setPhotoError(`Maximum ${MAX_PHOTOS} photos par demande.`);
+  const mediaRoom = MAX_MEDIAS - medias.length;
+
+  const pushMedias = (incoming: Array<{ kind: WizardMediaKind; name: string; mimeType: string; sizeBytes: number; file: File }>) => {
+    setMediaError(null);
+    if (mediaRoom <= 0) {
+      setMediaError(`Maximum ${MAX_MEDIAS} fichiers par demande (vocal, vidéo et photos confondus).`);
       return;
     }
-    const incoming = Array.from(files).slice(0, room);
-    if (files.length > room) {
-      setPhotoError(
-        `Maximum ${MAX_PHOTOS} photos par demande — seules les ${room} premières ont été ajoutées.`,
+    const sliced = incoming.slice(0, mediaRoom);
+    if (incoming.length > mediaRoom) {
+      setMediaError(
+        `Maximum ${MAX_MEDIAS} fichiers par demande — seuls les ${mediaRoom} premiers ont été ajoutés.`,
       );
     }
-    const next: WizardPhoto[] = [];
-    for (const file of incoming) {
-      if (!file.type.startsWith('image/')) {
-        setPhotoError(`« ${file.name} » n’est pas une image — ignorée.`);
-        continue;
-      }
-      if (file.size < 1 || file.size > MAX_PHOTO_BYTES) {
-        setPhotoError(`« ${file.name} » dépasse 25 Mo — ignorée.`);
-        continue;
-      }
-      next.push({
-        key: `${file.name}-${file.size}-${file.lastModified}-${next.length}`,
-        name: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        preview: URL.createObjectURL(file),
-      });
-    }
-    if (next.length > 0) setPhotos((prev) => [...prev, ...next]);
+    const next: WizardMedia[] = sliced.map((item, index) => ({
+      ...item,
+      key: `${item.name}-${item.sizeBytes}-${Date.now()}-${index}`,
+      // Aperçu local (image, vidéo, relecture vocale) — révoqué à la
+      // suppression/fermeture, jamais envoyé tel quel.
+      preview: URL.createObjectURL(item.file),
+    }));
+    if (next.length > 0) setMedias((prev) => [...prev, ...next]);
   };
 
-  const removePhoto = (key: string) => {
-    setPhotos((prev) => {
-      const target = prev.find((photo) => photo.key === key);
-      if (target) URL.revokeObjectURL(target.preview);
-      return prev.filter((photo) => photo.key !== key);
+  const handlePhotoFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const accepted: Array<{ kind: WizardMediaKind; name: string; mimeType: string; sizeBytes: number; file: File }> = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) {
+        setMediaError(`« ${file.name} » n’est pas une image — ignorée.`);
+        continue;
+      }
+      if (file.size < 1 || file.size > MAX_MEDIA_BYTES) {
+        setMediaError(`« ${file.name} » dépasse 25 Mo — ignorée.`);
+        continue;
+      }
+      accepted.push({ kind: 'IMAGE', name: file.name, mimeType: file.type, sizeBytes: file.size, file });
+    }
+    pushMedias(accepted);
+  };
+
+  const handleVideoFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const accepted: Array<{ kind: WizardMediaKind; name: string; mimeType: string; sizeBytes: number; file: File }> = [];
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('video/')) {
+        setMediaError(`« ${file.name} » n’est pas une vidéo — ignorée.`);
+        continue;
+      }
+      if (file.size < 1 || file.size > MAX_MEDIA_BYTES) {
+        setMediaError(`« ${file.name} » dépasse 25 Mo — ignorée.`);
+        continue;
+      }
+      accepted.push({ kind: 'VIDEO', name: file.name, mimeType: file.type, sizeBytes: file.size, file });
+    }
+    pushMedias(accepted);
+  };
+
+  const handleValidatedVoice = (voice: { blob: Blob; durationSeconds: number }) => {
+    const ext = voice.blob.type.includes('mp4') || voice.blob.type.includes('m4a') ? 'm4a' : 'webm';
+    const file = new File([voice.blob], `message-vocal.${ext}`, { type: voice.blob.type || 'audio/webm' });
+    pushMedias([{
+      kind: 'AUDIO',
+      name: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+      file,
+    }]);
+    setVoiceKey((k) => k + 1);
+  };
+
+  const removeMedia = (key: string) => {
+    setMedias((prev) => {
+      const target = prev.find((media) => media.key === key);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((media) => media.key !== key);
     });
   };
 
@@ -300,16 +359,37 @@ export function DemandeWizard() {
 
   const handleSubmit = async () => {
     setError(null);
+    setUploadStatus(null);
+    // Dépôt multimédia : au moins un moyen validé (le bouton est déjà
+    // désactivé sinon ; le backend revalide de toute façon).
+    if (medias.length === 0) {
+      setError('Ajoutez un message vocal, une vidéo ou au moins une photo pour décrire votre problème.');
+      return;
+    }
     setIsSubmitting(true);
     const hasDevice = domainId !== '' && domainId !== OTHER_DOMAIN;
+    // 1. Upload réel de chaque fichier AVANT création (accès technicien
+    // immédiat : les chemins sont liés en transaction à la Demande).
+    const uploadedPaths: string[] = [];
     try {
+      let done = 0;
+      for (const media of medias) {
+        if (!media.storagePath) {
+          setUploadStatus(`Envoi des fichiers ${done + 1}/${medias.length}…`);
+          const uploaded = await uploadDemandeMedia(media.file, media.kind);
+          media.storagePath = uploaded.storagePath;
+          uploadedPaths.push(uploaded.storagePath);
+        }
+        done += 1;
+      }
+      setUploadStatus(null);
       const result = await createDemande({
         categoryId: categoryId || 'autre',
-        description: description.trim(),
-        medias: photos.map((photo) => ({
-          name: photo.name,
-          type: photo.mimeType,
-          size: photo.sizeBytes,
+        medias: medias.map((media) => ({
+          name: media.name,
+          type: media.mimeType,
+          size: media.sizeBytes,
+          storagePath: media.storagePath,
         })),
         city: city.trim(),
         neighborhood: neighborhood.trim() || undefined,
@@ -332,6 +412,16 @@ export function DemandeWizard() {
       );
     } catch (err) {
       setError(toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.'));
+      setUploadStatus(null);
+      // Nettoyage best-effort des fichiers uploadés mais non liés (la
+      // Demande n'existe pas) : évite les orphelins de stockage.
+      for (const storagePath of uploadedPaths) {
+        try {
+          await deleteUploadedDemandeMedia(storagePath);
+        } catch {
+          /* abandon silencieux : le backend ne référence rien */
+        }
+      }
       setIsSubmitting(false);
     }
   };
@@ -340,11 +430,10 @@ export function DemandeWizard() {
    * fermeture d'onglet). Inactif quand le wizard est vide ou en envoi. */
   const hasStarted =
     step > 0 ||
-    description.trim() !== '' ||
     city.trim() !== '' ||
     contactPhone.trim() !== '' ||
     domainId !== '' ||
-    photos.length > 0 ||
+    medias.length > 0 ||
     coords !== null;
   useEffect(() => {
     if (!hasStarted || isSubmitting) return;
@@ -365,7 +454,7 @@ export function DemandeWizard() {
               ? 'Autre appareil'
               : ''
         }
-        description={description.trim()}
+        description={mediaSummary}
         location={locationLabel}
         timing={formatRequestedTiming(requestedMode, requestedAtIso)}
         onEdit={jumpTo}
@@ -452,55 +541,88 @@ export function DemandeWizard() {
                         empty={{
                           icon: 'file',
                           title: 'Aucun modèle répertorié',
-                          description: 'Décrivez votre panne à l’étape suivante, le technicien s’en occupera.',
+                          description: 'Montrez votre panne à l’étape suivante (vocal, vidéo ou photos).',
                         }}
                       />
                     ) : null}
                   </div>
                 ) : null}
 
-                {domainId === OTHER_DOMAIN ? (
-                  <Alert variant="neutral" dense icon="info">
-                    Décrivez votre panne à l&apos;étape suivante : le technicien la verra directement.
-                  </Alert>
-                ) : null}
+                  {domainId === OTHER_DOMAIN ? (
+                    <Alert variant="neutral" dense icon="info">
+                      Montrez votre panne à l&apos;étape suivante (vocal, vidéo ou photos) : le technicien la verra directement.
+                    </Alert>
+                  ) : null}
               </section>
             ) : null}
 
             {step === 1 ? (
-              <section className="space-y-5" aria-label="Votre problème">
+              <section className="space-y-5" aria-label="Votre panne en multimédia">
+                <div>
+                  <p className="text-base font-semibold">Montrez votre panne</p>
+                  <p className="text-sm text-muted-foreground">
+                    Décrivez par message vocal, vidéo ou photos — un seul suffit, cumulable
+                    (max {MAX_MEDIAS} fichiers, 25 Mo chacun).
+                  </p>
+                </div>
+
+                {/* 1. Message vocal (prioritaire au tactile) */}
                 <Field
-                  label="Décrivez le problème *"
-                  htmlFor="demande-description"
-                  hint={`${description.trim().length} / ${MAX_DESCRIPTION_LENGTH} caractères`}
-                  error={
-                    description.trim().length > 0 && description.trim().length < MIN_DESCRIPTION_LENGTH
-                      ? `Minimum ${MIN_DESCRIPTION_LENGTH} caractères (${description.trim().length} actuellement).`
-                      : null
-                  }
+                  label="Message vocal"
+                  hint={`Décrivez oralement la panne (max ${VOICE_MAX_SECONDS / 60} min). Rien n'est envoyé sans validation.`}
+                  error={mediaError}
                 >
-                  <Textarea
-                    id="demande-description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Ex. : l’écran ne s’allume plus et le téléphone vibre parfois sans raison…"
-                    rows={5}
-                    maxLength={MAX_DESCRIPTION_LENGTH}
+                  <VoiceRecorder
+                    key={voiceKey}
+                    onValidated={handleValidatedVoice}
+                    onCleared={() => undefined}
+                    disabled={isSubmitting || medias.length >= MAX_MEDIAS}
                   />
                 </Field>
 
+                {/* 2. Vidéo */}
                 <Field
-                  label="Photos (facultatif)"
-                  htmlFor="demande-photos"
-                  hint={`Jusqu’à ${MAX_PHOTOS} photos · 25 Mo maximum par photo. Seuls les descriptifs des photos sont transmis au technicien.`}
-                  error={photoError}
+                  label="Vidéo"
+                  hint="Filmez la panne ou choisissez une vidéo (25 Mo max)."
+                  error={mediaError}
+                >
+                  <label
+                    htmlFor="demande-video"
+                    className={cn(
+                      'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card px-4 text-sm font-medium',
+                      'transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      (isSubmitting || medias.length >= MAX_MEDIAS) && 'pointer-events-none opacity-50',
+                    )}
+                  >
+                    <Icon name="video" size="sm" />
+                    Ajouter une vidéo
+                  </label>
+                  <input
+                    id="demande-video"
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      handleVideoFiles(e.target.files);
+                      e.target.value = '';
+                    }}
+                    disabled={isSubmitting}
+                  />
+                </Field>
+
+                {/* 3. Photos */}
+                <Field
+                  label="Photos"
+                  hint={`Jusqu’à ${MAX_MEDIAS} fichiers au total · 25 Mo maximum chacun.`}
+                  error={mediaError}
                 >
                   <label
                     htmlFor="demande-photos"
                     className={cn(
                       'inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card px-4 text-sm font-medium',
                       'transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      isSubmitting && 'pointer-events-none opacity-50',
+                      (isSubmitting || medias.length >= MAX_MEDIAS) && 'pointer-events-none opacity-50',
                     )}
                   >
                     <Icon name="plus" size="sm" />
@@ -518,37 +640,51 @@ export function DemandeWizard() {
                     }}
                     disabled={isSubmitting}
                   />
-                  {photos.length > 0 ? (
-                    <ul className="mt-3 grid grid-cols-3 gap-2" aria-label="Photos sélectionnées">
-                      {photos.map((photo) => (
-                        <li
-                          key={photo.key}
-                          className="overflow-hidden rounded-xl border border-border bg-card"
-                        >
-                          <div className="relative">
+                </Field>
+
+                {medias.length > 0 ? (
+                  <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Médias sélectionnés">
+                    {medias.map((media) => (
+                      <li
+                        key={media.key}
+                        className="overflow-hidden rounded-xl border border-border bg-card"
+                      >
+                        <div className="relative">
+                          {media.kind === 'IMAGE' && media.preview ? (
                             <img
-                              src={photo.preview}
-                              alt={photo.name}
+                              src={media.preview}
+                              alt={media.name}
                               className="h-20 w-full object-cover"
                             />
-                            <button
-                              type="button"
-                              onClick={() => removePhoto(photo.key)}
-                              aria-label={`Retirer ${photo.name}`}
-                              className="absolute -right-1 -top-1 flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
-                            >
-                              <Icon name="x" size="sm" />
-                            </button>
-                          </div>
-                          <p className="truncate px-1.5 pt-1 text-2xs font-medium">{photo.name}</p>
-                          <p className="px-1.5 pb-1.5 text-2xs text-muted-foreground">
-                            {formatFileSize(photo.sizeBytes)}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </Field>
+                          ) : media.kind === 'VIDEO' && media.preview ? (
+                            <video
+                              src={media.preview}
+                              preload="metadata"
+                              aria-label={`Aperçu ${media.name}`}
+                              className="h-20 w-full bg-black object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-20 w-full items-center justify-center bg-muted/40 text-muted-foreground">
+                              <Icon name={media.kind === 'AUDIO' ? 'mic' : 'file'} size="md" />
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeMedia(media.key)}
+                            aria-label={`Retirer ${media.name}`}
+                            className="absolute -right-1 -top-1 flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95"
+                          >
+                            <Icon name="x" size="sm" />
+                          </button>
+                        </div>
+                        <p className="truncate px-1.5 pt-1 text-2xs font-medium">{media.name}</p>
+                        <p className="px-1.5 pb-1.5 text-2xs text-muted-foreground">
+                          {media.kind === 'AUDIO' ? 'Vocal' : media.kind === 'VIDEO' ? 'Vidéo' : 'Photo'} • {formatFileSize(media.sizeBytes)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </section>
             ) : null}
 
@@ -727,18 +863,8 @@ export function DemandeWizard() {
                   />
                   <SummaryRow
                     icon="file"
-                    label="Description"
-                    value={description.trim()}
-                    onEdit={() => jumpTo(1)}
-                  />
-                  <SummaryRow
-                    icon="file"
-                    label="Photos"
-                    value={
-                      photos.length > 0
-                        ? `${photos.length} photo${photos.length !== 1 ? 's' : ''} déclarée${photos.length !== 1 ? 's' : ''} (descriptif uniquement)`
-                        : 'Aucune'
-                    }
+                    label="Panne (multimédia)"
+                    value={mediaSummary || 'À décrire'}
                     onEdit={() => jumpTo(1)}
                   />
                   <SummaryRow
@@ -759,6 +885,11 @@ export function DemandeWizard() {
                   Vous recevrez un devis à valider avant toute intervention. Aucun paiement n’est demandé
                   ici.
                 </Alert>
+                {uploadStatus ? (
+                  <Alert variant="info" dense>
+                    {uploadStatus}
+                  </Alert>
+                ) : null}
               </section>
             ) : null}
           </div>
@@ -937,7 +1068,7 @@ interface StickyRecapProps {
 function StickyRecap({ device, description, location, timing, onEdit }: StickyRecapProps) {
   const rows: Array<{ icon: IconName; label: string; value: string; step: number }> = [
     { icon: 'briefcase', label: 'Appareil', value: device, step: 0 },
-    { icon: 'file', label: 'Problème', value: description || 'À décrire', step: 1 },
+    { icon: 'file', label: 'Panne (multimédia)', value: description || 'À décrire', step: 1 },
     { icon: 'pin', label: 'Localisation', value: location || 'À préciser', step: 2 },
     { icon: 'clock', label: 'Quand', value: timing, step: 2 },
   ];
