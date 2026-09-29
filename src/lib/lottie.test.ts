@@ -38,6 +38,24 @@ void test('audit : 6 JSON valides, vectoriels, sans dépendance externe', () => 
   }
 });
 
+void test('suivi Git : les 6 JSON sont versionnés (sinon Vercel/Linux échoue)', async () => {
+  // Régression du build Vercel : les JSON existaient sur disque mais
+  // n'étaient pas suivis par Git → « Module not found » sur Linux.
+  let tracked: string;
+  try {
+    const { execSync } = await import('node:child_process');
+    tracked = execSync('git ls-files "animatio json"', {
+      cwd: fileURLToPath(new URL('../../', import.meta.url)),
+      encoding: 'utf8',
+    });
+  } catch {
+    return; // Git indisponible ici : le build Vercel reste le garde-fou.
+  }
+  for (const file of EXPECTED_JSON) {
+    assert.ok(tracked.includes(file), `non suivi par Git : ${file}`);
+  }
+});
+
 void test('architecture : lecteur unique, un JSON par wrapper', () => {
   const central = readFileSync(
     fileURLToPath(new URL('../components/ui/lottie-animation.tsx', import.meta.url)),
