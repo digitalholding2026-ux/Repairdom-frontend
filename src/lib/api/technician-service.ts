@@ -378,6 +378,15 @@ export interface MissionDiagnostic {
   notes?: string | null;
   /* IA-3 — note vocale (lecture via URL signée, jamais d'URL persistée). */
   hasAudio?: boolean | null;
+  /* IA-5 — correspondance catalogue analytique (consultation seule). */
+  catalogMatch?: {
+    classification: string;
+    confidence: number | null;
+    reason: string | null;
+    catalogDiagnosticId: string | null;
+    catalogDiagnosticName: string | null;
+    createdAt: string;
+  } | null;
   technicianId: string;
   technician: { id: string; firstName: string; lastName: string | null };
   createdAt: string;
