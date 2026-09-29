@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint src/",
-    "test:unit": "node --test src/lib/payment-helpers.test.ts src/lib/gps-helpers.test.ts src/lib/error-handling.test.ts src/lib/navigation.test.ts src/lib/design-system.test.ts src/lib/responsive.test.ts src/lib/lottie.test.ts src/lib/demande-media.test.ts",
+    "test:unit": "node --test src/lib/payment-helpers.test.ts src/lib/gps-helpers.test.ts src/lib/error-handling.test.ts src/lib/navigation.test.ts src/lib/design-system.test.ts src/lib/responsive.test.ts src/lib/lottie.test.ts src/lib/demande-media.test.ts src/lib/catalog-scales.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

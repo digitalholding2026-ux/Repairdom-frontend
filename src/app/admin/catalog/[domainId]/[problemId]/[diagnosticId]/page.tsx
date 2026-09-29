@@ -199,6 +199,17 @@ export default function AdminDiagnosticPage() {
     if (!pricingInterventionId) return;
     setSavingPricing(true);
     try {
+      // IA-2 — montants XAF entiers uniquement (jamais de décimaux) :
+      // refus local explicite avant l'appel (le backend revalide : IsInt).
+      const parseAmount = (raw: string, label: string): number | undefined => {
+        const text = raw.trim();
+        if (!text) return undefined;
+        const value = Number(text);
+        if (!Number.isInteger(value)) {
+          throw new Error(`${label} doit être un montant entier en FCFA (sans décimales).`);
+        }
+        return value;
+      };
       const payload: {
         interventionId: string;
         minPrice?: number;
@@ -208,11 +219,16 @@ export default function AdminDiagnosticPage() {
         serviceFee?: number;
         isActive: boolean;
       } = { interventionId: pricingInterventionId, isActive: pricingActive };
-      if (minPrice) payload.minPrice = parseFloat(minPrice);
-      if (refPrice) payload.referencePrice = parseFloat(refPrice);
-      if (maxPrice) payload.maxPrice = parseFloat(maxPrice);
-      if (travelFee) payload.travelFee = parseFloat(travelFee);
-      if (serviceFee) payload.serviceFee = parseFloat(serviceFee);
+      const parsedMin = parseAmount(minPrice, 'Le prix min');
+      if (parsedMin !== undefined) payload.minPrice = parsedMin;
+      const parsedRef = parseAmount(refPrice, 'Le prix de référence');
+      if (parsedRef !== undefined) payload.referencePrice = parsedRef;
+      const parsedMax = parseAmount(maxPrice, 'Le prix max');
+      if (parsedMax !== undefined) payload.maxPrice = parsedMax;
+      const parsedTravel = parseAmount(travelFee, 'Les frais de déplacement');
+      if (parsedTravel !== undefined) payload.travelFee = parsedTravel;
+      const parsedService = parseAmount(serviceFee, 'Les frais Relio');
+      if (parsedService !== undefined) payload.serviceFee = parsedService;
 
       if (pricingData) {
         const { interventionId: _ignored, ...rest } = payload;

@@ -26,6 +26,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/missions', label: 'Missions', icon: 'search' },
   { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
   { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
+  { href: '/admin/catalog/baremes', label: 'Barèmes', icon: 'star' },
   { href: '/admin/catalog/villes', label: 'Villes & zones', icon: 'pin' },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
   { href: '/admin/communication', label: 'Communication', icon: 'send' },
@@ -37,8 +38,21 @@ function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+/* IA-2 — un seul onglet actif : le href correspondant le plus long gagne
+ * (ex. `/admin/catalog/baremes` n'active plus aussi `/admin/catalog`). */
+function activeNavHref(pathname: string): string | null {
+  let best: string | null = null;
+  for (const item of ADMIN_NAV) {
+    if (isNavActive(pathname, item.href) && (best === null || item.href.length > best.length)) {
+      best = item.href;
+    }
+  }
+  return best;
+}
+
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
+  const activeHref = activeNavHref(pathname);
   const { authenticated, user, loading } = useAuth();
   const showChrome = authenticated && user?.role === 'ADMIN';
   const [loggingOut, setLoggingOut] = useState(false);
@@ -79,7 +93,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
           <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label="Navigation admin">
             <nav className="space-y-1 rounded-2xl border border-border bg-card p-2">
               {ADMIN_NAV.map((item) => {
-                const active = isNavActive(pathname, item.href);
+                const active = activeHref === item.href;
                 return (
                   <Link
                     key={item.href}
@@ -122,7 +136,7 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
           >
             <div className="flex gap-1 overflow-x-auto px-2">
               {ADMIN_NAV.map((item) => {
-                const active = isNavActive(pathname, item.href);
+                const active = activeHref === item.href;
                 return (
                   <Link
                     key={item.href}

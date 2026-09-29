@@ -409,6 +409,78 @@ export function getPricing(interventionId: string): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>(`/admin/catalog/interventions/${encodeURIComponent(interventionId)}/pricing`);
 }
 
+/* IA-2 — barèmes par diagnostic (lecture seule, ADMIN) : agrégation
+ * min/référence/max sur les pricings actifs (voir backend
+ * `CatalogService.listDiagnosticScales`). */
+
+export interface DiagnosticScaleIntervention {
+  id: string;
+  name: string;
+  isActive: boolean;
+  pricing: {
+    minPrice: number | null;
+    referencePrice: number | null;
+    maxPrice: number | null;
+    currency: string;
+    isActive: boolean;
+    updatedAt: string;
+  } | null;
+}
+
+export interface DiagnosticScale {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  updatedAt: string;
+  problem: { id: string; name: string; slug: string };
+  domain: { id: string; name: string; slug: string };
+  scale: {
+    min: number | null;
+    reference: number | null;
+    max: number | null;
+    currency: string;
+    pricedInterventions: number;
+    totalInterventions: number;
+  };
+  hasActiveScale: boolean;
+  lastChangeAt: string | null;
+  interventions: DiagnosticScaleIntervention[];
+}
+
+export interface DiagnosticScaleListQuery {
+  search?: string;
+  domainId?: string;
+  active?: boolean;
+  hasScale?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface DiagnosticScaleList {
+  items: DiagnosticScale[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export function listDiagnosticScales(query: DiagnosticScaleListQuery = {}): Promise<DiagnosticScaleList> {
+  const params = new URLSearchParams();
+  if (query.search?.trim()) params.set('search', query.search.trim());
+  if (query.domainId) params.set('domainId', query.domainId);
+  if (query.active !== undefined) params.set('active', String(query.active));
+  if (query.hasScale !== undefined) params.set('hasScale', String(query.hasScale));
+  if (query.page !== undefined) params.set('page', String(query.page));
+  if (query.limit !== undefined) params.set('limit', String(query.limit));
+  const qs = params.toString();
+  return catalogFetch<DiagnosticScaleList>(`/admin/catalog/diagnostics/scales${qs ? `?${qs}` : ''}`);
+}
+
+export function getDiagnosticScale(id: string): Promise<DiagnosticScale> {
+  return catalogFetch<DiagnosticScale>(`/admin/catalog/diagnostics/${encodeURIComponent(id)}/scale`);
+}
+
 export function createPricing(data: { interventionId: string; minPrice?: number; referencePrice?: number; maxPrice?: number; travelFee?: number; serviceFee?: number; isActive?: boolean }): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>('/admin/catalog/pricing', jsonBody(data));
 }
