@@ -151,6 +151,14 @@ export function formatTravelAccuracy(accuracy: number | null | undefined): strin
   return `précision ~${Math.round(accuracy)} m`;
 }
 
+/* GPS V4.1 — variante courte (« ~25 m ») pour les confirmations
+ * (« Précision estimée : ~25 m »). Mêmes garanties : valeur réelle du
+ * navigateur uniquement, `null` si inconnue (jamais de fiction). */
+export function formatTravelAccuracyShort(accuracy: number | null | undefined): string | null {
+  const label = formatTravelAccuracy(accuracy);
+  return label ? label.replace(/^précision\s+/, '') : null;
+}
+
 /** Distance approximative d'affichage (« à ~850 m », « à ~2,4 km »),
  *  `null` si inconnue (jamais de `0 km` forcé). */
 export function formatTravelDistance(meters: number | null | undefined): string | null {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { LayersControl, MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -53,6 +53,11 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
     [intervention.latitude, intervention.longitude],
   ];
   if (technician) points.push([technician.latitude, technician.longitude]);
+  /* GPS V4.1 — le repli « carte indisponible » ne se déclenche que pour la
+   * couche de fond ACTIVE (ex. une tuile Relief manquante au-delà du zoom
+   * 17 ne masque pas le fond Plan). Réf partagée : le tracker l'écrit, les
+   * gestionnaires d'erreur la lisent. */
+  const activeBaseLayer = useRef<string>('Plan');
 
   return (
     <div
@@ -64,6 +69,9 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
         .relio-map-pin-dot { display: block; width: 28px; height: 28px; border-radius: 9999px; background: #f97316; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
         .relio-map-tech-dot { display: block; width: 20px; height: 20px; margin: 4px; border-radius: 9999px; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(37,99,235,.25), 0 2px 8px rgba(0,0,0,.35); }
         .relio-map-wrap .leaflet-container { font: inherit; }
+        /* GPS V4.1 — contrôle Plan/Relief compact : jamais hors carte,
+         * marqueurs et attribution préservés sur petit écran. */
+        .relio-map-wrap .leaflet-control-layers { font-size: 12px; }
       `}</style>
       <MapContainer
         center={[intervention.latitude, intervention.longitude]}
@@ -72,12 +80,13 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
         className="relio-map-wrap h-56 w-full sm:h-64"
         attributionControl
       >
+        <BaseLayerTracker activeRef={activeBaseLayer} />
         <LayersControl position="topright">
           <LayersControl.BaseLayer checked name="Plan">
             <TileLayer
               url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              eventHandlers={{ tileerror: onTileError }}
+              eventHandlers={{ tileerror: () => { if (activeBaseLayer.current === 'Plan') onTileError(); } }}
             />
           </LayersControl.BaseLayer>
           <LayersControl.BaseLayer name="Relief">
@@ -85,7 +94,7 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
               url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
               maxZoom={17}
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, SRTM | style <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
-              eventHandlers={{ tileerror: onTileError }}
+              eventHandlers={{ tileerror: () => { if (activeBaseLayer.current === 'Relief') onTileError(); } }}
             />
           </LayersControl.BaseLayer>
         </LayersControl>
@@ -97,4 +106,20 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
       </MapContainer>
     </div>
   );
+}
+
+/* Suit la couche de fond active (contrôle Leaflet natif, clavier + focus
+ * visibles d'origine) pour le repli d'erreur ciblé. */
+function BaseLayerTracker({ activeRef }: { activeRef: { current: string } }) {
+  const map = useMap();
+  useEffect(() => {
+    const onChange = (event: L.LayersControlEvent) => {
+      activeRef.current = event.name;
+    };
+    map.on('baselayerchange', onChange);
+    return () => {
+      map.off('baselayerchange', onChange);
+    };
+  }, [map, activeRef]);
+  return null;
 }

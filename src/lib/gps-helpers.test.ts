@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import {
   TRAVEL_MAX_ACCURACY_M,
   formatTravelAccuracy,
+  formatTravelAccuracyShort,
   formatTravelDistance,
   formatTravelRecency,
   gpsDegradedMessage,
@@ -76,11 +77,83 @@ void test('sécurité : aucun tracking (watchPosition/WebSocket/historique)', as
     './travel-location.ts',
     '../components/mission/travel-section.tsx',
     '../app/technicien/zones/page.tsx',
+    '../components/client/demande-wizard.tsx',
+    '../components/mission/mission-map-inner.tsx',
     './api/technician-service.ts',
   ];
   for (const file of files) {
     const content = readFileSync(new URL(file, import.meta.url), 'utf8');
     assert.doesNotMatch(content, /\.watchPosition\(/);
     assert.doesNotMatch(content, /new WebSocket/);
+  }
+});
+
+/* GPS V4.1 — meilleure précision native via le helper unique (y compris
+ * la demande client opt-in), précision réelle affichée, relief Plan/Relief
+ * avec repli ciblé. Aucun tracking, aucune coordonnée dans les logs. */
+
+void test('V4.1 : helper unique partout (zones + wizard, maximumAge 0)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const helper = readFileSync(new URL('./travel-location.ts', import.meta.url), 'utf8');
+  assert.match(helper, /enableHighAccuracy: true/);
+  assert.match(helper, /maximumAge: 0/);
+  for (const file of [
+    '../app/technicien/zones/page.tsx',
+    '../components/client/demande-wizard.tsx',
+  ]) {
+    const content = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.match(content, /getCurrentTravelPosition/);
+    assert.doesNotMatch(content, /navigator\.geolocation\.getCurrentPosition\(/);
+    assert.doesNotMatch(content, /maximumAge: 60000/);
+  }
+});
+
+void test('V4.1 : précision courte réelle, jamais fictive', async () => {
+  assert.equal(formatTravelAccuracyShort(18), '~18 m');
+  assert.equal(formatTravelAccuracyShort(18.4), '~18 m');
+  assert.equal(formatTravelAccuracyShort(null), null);
+  assert.equal(formatTravelAccuracyShort(undefined), null);
+  assert.equal(formatTravelAccuracyShort(Number.NaN), null);
+  assert.equal(formatTravelAccuracyShort(-3), null);
+  // Le wizard n'affiche la précision que si le navigateur l'a fournie.
+  const wizard = await import('node:fs').then((fs) =>
+    fs.readFileSync(
+      new URL('../components/client/demande-wizard.tsx', import.meta.url),
+      'utf8',
+    ),
+  );
+  assert.match(wizard, /Précision estimée/);
+});
+
+void test('V4.1 : carte Plan/Relief (OpenTopoMap, attribution, repli ciblé)', async () => {
+  const { readFileSync } = await import('node:fs');
+  const map = readFileSync(
+    new URL('../components/mission/mission-map-inner.tsx', import.meta.url),
+    'utf8',
+  );
+  assert.match(map, /name="Plan"/);
+  assert.match(map, /name="Relief"/);
+  assert.match(map, /tile\.opentopomap\.org/);
+  assert.match(map, /OpenStreetMap/);
+  assert.match(map, /opentopomap\.org/);
+  assert.match(map, /maxZoom=\{17\}/);
+  assert.match(map, /baselayerchange/);
+  assert.match(map, /role="region"/);
+  assert.match(map, /aria-label="Carte de la mission/);
+  assert.doesNotMatch(map, /\.watchPosition\(/);
+});
+
+void test('V4.1 : aucun log de coordonnées, aucune ETA', async () => {
+  const { readFileSync } = await import('node:fs');
+  const files = [
+    './travel-location.ts',
+    '../components/client/demande-wizard.tsx',
+    '../components/mission/mission-map-inner.tsx',
+    '../components/mission/travel-section.tsx',
+  ];
+  for (const file of files) {
+    const content = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.doesNotMatch(content, /console\.(log|debug|info)/);
+    assert.doesNotMatch(content, /\bETA\b/);
   }
 });

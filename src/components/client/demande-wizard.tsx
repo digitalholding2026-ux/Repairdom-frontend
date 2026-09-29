@@ -17,6 +17,10 @@ import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-tim
 import { createDemande } from '@/lib/api/request-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
+  formatTravelAccuracyShort,
+  getCurrentTravelPosition,
+} from '@/lib/travel-location';
+import {
   listCatalogDomains,
   listCatalogBrands,
   listCatalogModels,
@@ -93,7 +97,7 @@ export function DemandeWizard() {
   /* GPS V1 — position ponctuelle opt-in (géolocalisation navigateur, un seul
    * relevé, jamais de suivi). Le formulaire reste utilisable sans GPS et
    * l'adresse texte n'est jamais remplacée ni déduite. */
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number; accuracy: number | null } | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
 
@@ -275,35 +279,23 @@ export function DemandeWizard() {
     setStep(targetStep);
   };
 
+  /* GPS V4.1 — position opt-in via le helper central (meilleure précision
+   * native : `enableHighAccuracy: true`, `maximumAge: 0`, repli rapide —
+   * jamais de position en cache présentée comme actuelle). Optionnelle,
+   * retirable, erreurs GPS non bloquantes (jamais d'erreur de mission). */
   const handleUseGeolocation = () => {
     setGeoError(null);
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError('La géolocalisation n’est pas disponible sur cet appareil.');
-      return;
-    }
     setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-          setGeoError('Position reçue invalide. Réessayez.');
-        } else {
-          setCoords({ latitude, longitude });
-        }
+    void (async () => {
+      try {
+        const position = await getCurrentTravelPosition();
+        setCoords(position);
+      } catch (err) {
+        setGeoError(err instanceof Error ? err.message : 'Position indisponible pour le moment.');
+      } finally {
         setGeoLoading(false);
-      },
-      (failure) => {
-        if (failure.code === failure.PERMISSION_DENIED) {
-          setGeoError('Position refusée. Autorisez l’accès dans votre navigateur, ou continuez sans GPS.');
-        } else if (failure.code === failure.TIMEOUT) {
-          setGeoError('Délai dépassé pour obtenir la position. Réessayez.');
-        } else {
-          setGeoError('Position indisponible pour le moment. Réessayez ou continuez sans GPS.');
-        }
-        setGeoLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-    );
+      }
+    })();
   };
 
   const handleSubmit = async () => {
@@ -624,6 +616,10 @@ export function DemandeWizard() {
                     <div className="flex items-center justify-between gap-3 rounded-lg border border-success-border bg-success-soft px-3 py-2.5">
                       <p className="text-sm font-medium text-success-ink">
                         Position enregistrée pour cette demande.
+                        {(() => {
+                          const short = formatTravelAccuracyShort(coords.accuracy);
+                          return short ? ` Précision estimée : ${short}.` : '';
+                        })()}
                       </p>
                       <Button
                         type="button"
