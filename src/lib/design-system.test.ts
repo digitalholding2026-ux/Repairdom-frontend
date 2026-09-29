@@ -72,7 +72,7 @@ void test('tokens : identité via relio-orange / relio-bg (jamais #FF6B00 / #0B0
 });
 
 void test('sémantique : statuts et danger via tokens (jamais d’échelles brutes)', () => {
-  const dashboard = read(join(SRC, 'components/client/client-dashboard.tsx'));
+  const dashboard = read(join(SRC, 'components/client/dashboard/client-home-blocks.tsx'));
   assert.doesNotMatch(dashboard, /bg-blue-100/);
   assert.doesNotMatch(dashboard, /bg-green-100/);
   assert.match(dashboard, /bg-info-soft/);

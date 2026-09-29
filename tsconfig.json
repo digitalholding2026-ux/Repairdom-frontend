@@ -25,5 +25,5 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   // Test unitaire Node natif (`npm run test:unit`) : jamais bundlé, imports
   // `.ts` explicites exigés par Node — exclu du typecheck Next.
-  "exclude": ["node_modules", "src/lib/payment-helpers.test.ts", "src/lib/gps-helpers.test.ts", "src/lib/error-handling.test.ts", "src/lib/navigation.test.ts", "src/lib/design-system.test.ts"]
+  "exclude": ["node_modules", "src/lib/payment-helpers.test.ts", "src/lib/gps-helpers.test.ts", "src/lib/error-handling.test.ts", "src/lib/navigation.test.ts", "src/lib/design-system.test.ts", "src/lib/responsive.test.ts"]
 }
