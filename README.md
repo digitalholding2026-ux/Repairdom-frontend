@@ -47,6 +47,14 @@ src/
 └── lib/              # Utilitaires et configuration
 ```
 
+## Règle UI/UX permanente (Desktop & Mobile)
+
+> **Avant toute modification UI/UX, lire et respecter
+> [`docs/UI-UX-ARCHITECTURE.md`](docs/UI-UX-ARCHITECTURE.md)** (contrainte
+> d'architecture : deux expériences Desktop/Mobile, données communes,
+> mécanisme `useViewport`/`ResponsiveView`, tokens Relio). Cela s'applique
+> aussi aux agents IA intervenant sur le frontend.
+
 ## Variables d’environnement
 
 Voir `.env.example`. Seules les variables préfixées `NEXT_PUBLIC_` sont exposées au navigateur.

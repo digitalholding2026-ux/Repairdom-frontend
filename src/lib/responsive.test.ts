@@ -99,3 +99,23 @@ void test('navigation : sidebar desktop ET BottomNav mobile isolés par rôle', 
     assert.match(layout, /lg:hidden/);
   }
 });
+
+void test('règle permanente : document présent, référencé, mécanismes en place', () => {
+  // Protection structurelle non bloquante : existence + contenu clé.
+  const doc = read('../../docs/UI-UX-ARCHITECTURE.md');
+  for (const section of [
+    'Desktop',
+    'Mobile',
+    'couplage',
+    'useViewport',
+    'ResponsiveView',
+    'agent IA',
+  ]) {
+    assert.ok(doc.includes(section), `doc : ${section}`);
+  }
+  const readme = read('../../README.md');
+  assert.match(readme, /docs\/UI-UX-ARCHITECTURE\.md/);
+  // Mécanismes cités par la règle réellement présents.
+  assert.match(read('../components/ui/responsive-view.tsx'), /export function ResponsiveView/);
+  assert.match(read('./use-viewport.ts'), /export function useViewport/);
+});
