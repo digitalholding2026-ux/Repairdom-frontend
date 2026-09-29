@@ -3,11 +3,15 @@
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { BrandLogo } from '@/components/public/brand-logo';
+import { Erreur404Animation } from '@/components/lottie/lottie-animations';
 
 export default function NotFound() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 py-10">
       <BrandLogo href="/" />
+      {/* LottieFlow 404 : page introuvable (ressource/page, jamais d'autre
+        * code HTTP déguisé — les erreurs API gardent leur mapping dédié). */}
+      <Erreur404Animation />
       <EmptyState
         title="Page introuvable"
         description="La page que vous cherchez n’existe pas ou a été déplacée. Votre session n’est pas affectée."

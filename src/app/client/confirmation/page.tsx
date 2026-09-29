@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Icon } from '@/components/ui/icon';
+import { DemandeEnvoyeeAnimation } from '@/components/lottie/lottie-animations';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatRequestedTiming } from '@/lib/request-timing';
 
@@ -35,9 +35,9 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
         backHref="/client/demande"
       />
       <section className="flex flex-col items-center gap-3 text-center">
-        <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
-          <Icon name="check-circle" size="xl" filled />
-        </span>
+        {/* LottieFlow : succès backend DÉJÀ confirmé (cette page n'est
+          * atteinte qu'après création réelle) ; navigation inchangée. */}
+        <DemandeEnvoyeeAnimation />
         <h1 className="text-xl font-bold leading-tight tracking-tight sm:text-2xl">
           Votre demande a bien été envoyée
         </h1>

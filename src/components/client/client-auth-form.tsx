@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { useAuth } from '@/components/auth/auth-provider';
 
 export type ClientAuthMode = 'signup' | 'signin';
@@ -228,7 +229,15 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
 
       {isSignUp ? (
         step === 1 ? (
-        <Field label="WhatsApp (facultatif)" htmlFor="client-whatsapp">
+        <Field
+          label={
+            <span className="inline-flex items-center gap-1.5">
+              WhatsApp (facultatif)
+              <WhatsAppMark />
+            </span>
+          }
+          htmlFor="client-whatsapp"
+        >
           <Input
             id="client-whatsapp"
             value={whatsapp}

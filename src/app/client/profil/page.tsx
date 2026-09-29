@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { PageHeader } from '@/components/ui/page-header';
 import { ProfilHero } from '@/components/client/profil/profil-hero';
 import { ProfilSkeleton } from '@/components/client/profil/profil-skeleton';
@@ -156,7 +157,15 @@ export default function ClientProfilPage() {
               <Input id="profil-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
             </div>
           </Field>
-          <Field label="Numéro WhatsApp" htmlFor="profil-whatsapp">
+          <Field
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                Numéro WhatsApp
+                <WhatsAppMark />
+              </span>
+            }
+            htmlFor="profil-whatsapp"
+          >
             <Input id="profil-whatsapp" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} inputMode="tel" placeholder="6 90 00 00 00" />
           </Field>
           <Field label="Adresse e-mail" htmlFor="profil-email" className="col-span-2">

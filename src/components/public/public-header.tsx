@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import { BrandLogo } from './brand-logo';
+import { MenuNavAnimation } from '@/components/lottie/lottie-animations';
 import { useAuth } from '@/components/auth/auth-provider';
 import { homePathForRole } from '@/lib/api/auth-service';
 import { cn } from '@/lib/cn';
@@ -124,7 +125,9 @@ export function PublicHeader() {
             aria-label={isOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
             className="flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Icon name={isOpen ? 'x' : 'menu'} size="md" />
+            {/* LottieFlow menu (MOBILE uniquement — ce bloc est lg:hidden) :
+              * rejoue une fois à chaque toggle, états/aria conservés. */}
+            <MenuNavAnimation playKey={isOpen ? 'open' : 'closed'} />
           </button>
         </div>
       </div>

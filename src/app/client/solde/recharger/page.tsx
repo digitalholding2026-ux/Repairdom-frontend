@@ -21,6 +21,7 @@ import { useStableIdempotencyKey } from '@/lib/use-stable-idempotency-key';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { OPERATOR_NETWORKS, type OperatorCode } from '@/components/finance/operator-network-card';
 import { OperatorNetworkCard } from '@/components/finance/operator-network-card';
+import { UssdRechargeAnimation } from '@/components/lottie/lottie-animations';
 
 const PRESETS = [2000, 5000, 10000, 25000];
 
@@ -264,6 +265,18 @@ export default function RechargerPage() {
             </section>
 
             <div className="space-y-2">
+              {/* LottieFlow USSD : feedback de TRAITEMENT uniquement (jamais
+                * une preuve de succès — le statut réel vient de SasPay via
+                * polling/vérification, états existants conservés). */}
+              {submitting ? (
+                <div className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-muted/30 px-4 py-3 text-center">
+                  <UssdRechargeAnimation />
+                  <p className="text-sm font-semibold">Recharge en cours…</p>
+                  <p className="text-xs text-muted-foreground">
+                    Demande USSD envoyée sur votre téléphone. Validez le paiement sur votre mobile.
+                  </p>
+                </div>
+              ) : null}
               <Button
                 type="submit"
                 variant="primary"

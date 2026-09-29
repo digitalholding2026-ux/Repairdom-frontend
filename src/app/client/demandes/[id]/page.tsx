@@ -18,6 +18,7 @@ import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/missio
 import { FloatingChat } from '@/components/client/chat/floating-chat';
 import { TravelBanner } from '@/components/mission/travel-banner';
 import { MissionMap } from '@/components/mission/mission-map';
+import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
 import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location';
 import { MediaGallery } from '@/components/client/missions/media-gallery';
 import { RatingSection } from '@/components/mission/rating-section';
@@ -591,9 +592,14 @@ export default function ClientDemandeDetailPage() {
                 ) : null}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucun technicien assigné pour le moment. Nous recherchons un professionnel disponible.
-              </p>
+              <div className="space-y-3">
+                {/* LottieFlow : aucun technicien assigné (statut backend
+                  * réel). Remplacé par la fiche dès assignation. */}
+                <RechercheTechnicienAnimation className="h-20 w-20" />
+                <p className="text-sm text-muted-foreground">
+                  Aucun technicien assigné pour le moment. Nous recherchons un professionnel disponible.
+                </p>
+              </div>
             )}
           </section>
         </div>

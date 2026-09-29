@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Timeline } from '@/components/ui/timeline';
 import { MissionStepper } from '@/components/mission/mission-stepper';
 import { TrackingHero } from '@/components/mission/tracking-hero';
+import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
 import { Celebration } from '@/components/mission/celebration';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
@@ -155,6 +156,25 @@ export default function SuiviPage() {
                         : null
                     }
                   />
+                  {/* LottieFlow : statut backend réel (`live` + aucun
+                    * technicien assigné). S'arrête dès que le statut change
+                    * (plus de `live` ou technicien trouvé). Texte porteur
+                    * du sens, jamais l'animation seule. */}
+                  {live && !tracking.technicianAssigned ? (
+                    <Card>
+                      <CardContent className="flex items-center gap-4 py-4">
+                        <RechercheTechnicienAnimation className="h-20 w-20 sm:h-24 sm:w-24" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">
+                            Recherche d&apos;un technicien disponible…
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            Votre demande est visible par les techniciens vérifiés à proximité.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : null}
 
                   <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
                   <Card>
