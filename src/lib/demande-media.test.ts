@@ -74,3 +74,19 @@ void test('permissions : aucune URL persistée, lecture via endpoint signé', ()
   assert.doesNotMatch(section, /public\//);
   assert.match(section, /fetchUrl\(demandeId, media\.id\)/);
 });
+
+void test('hub catalogue supprimé : ni cadre ni états ni appels restants', () => {
+  const page = read('../app/technicien/demandes/[id]/page.tsx');
+  assert.doesNotMatch(page, /Choisir un diagnostic/);
+  assert.doesNotMatch(page, /getDemandeSuggestions/);
+  assert.doesNotMatch(page, /selectDemandeDiagnostic/);
+  assert.match(page, /FreeDiagnosticSection/);
+});
+
+void test('pré-acceptation : médias affichés et lisibles avant acceptation', () => {
+  const page = read('../app/technicien/demandes/[id]/page.tsx');
+  // La section médias est hors condition d'assignation (visible en détail
+  // d'opportunité éligible comme en mission assignée).
+  assert.match(page, /DemandeMediaSection/);
+  assert.match(page, /getTechnicianDemandeMediaFileUrl/);
+});

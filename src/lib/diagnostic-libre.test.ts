@@ -76,9 +76,13 @@ void test('audio : player lazy des deux côtés, backend inchangé sinon', () =>
   assert.match(service, /getDiagnosticAudioUrl/);
 });
 
-void test('catalogue existant intact : hub, MANUAL séparé, négociation CATALOG', () => {
+void test('catalogue existant intact : hub supprimé, devis/negociation préservés', () => {
   const page = read('../app/technicien/demandes/[id]/page.tsx');
-  assert.match(page, /Choisir un diagnostic/);
-  assert.match(page, /showManualCatForm/);
+  // Le cadre « Choisir un diagnostic » (catalogue + manuel séparé) est
+  // supprimé au profit du flux libre unifié ; backend et devis intacts.
+  assert.doesNotMatch(page, /Choisir un diagnostic/);
+  assert.doesNotMatch(page, /showManualCatForm/);
+  assert.doesNotMatch(page, /getDemandeSuggestions/);
+  assert.match(page, /FreeDiagnosticSection/);
   assert.match(page, /canProposeManualQuote/);
 });
