@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
 import { Icon } from '@/components/ui/icon';
@@ -98,6 +99,24 @@ export default function ClientRecompensesPage() {
         <SectionHeader title="Catalogue des récompenses" icon="sparkles" />
         <RewardCatalog completedCount={completedCount} />
       </section>
+
+      {/* CHANTIER NAVIGATION P1/P2 — `/client/parrainage` n'avait aucun
+        * lien entrant : accès depuis la page thématiquement proche. */}
+      <Link
+        href="/client/parrainage"
+        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
+          <Icon name="send" size="md" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Parrainer un ami</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            Invitez vos proches et partagez votre code Relio.
+          </span>
+        </span>
+        <Icon name="arrow-right" size="sm" className="shrink-0 text-muted-foreground" />
+      </Link>
 
       <HowItWorks />
     </div>

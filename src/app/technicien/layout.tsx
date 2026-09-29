@@ -76,11 +76,18 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
           <BottomNav
             items={[
               { href: '/technicien', label: 'Accueil', icon: 'home' },
-              { href: '/technicien/demandes', label: 'Demandes', icon: 'wrench' },
+              { href: '/technicien/demandes', label: 'Missions', icon: 'wrench' },
               { href: '/technicien/chronologies', label: 'Chronologies', icon: 'clock' },
               { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
+            ]}
+            /* CHANTIER NAVIGATION P1/P2 — 6 boutons à 360 px = illisible :
+             * 4 entrées + « Plus » (notifications, historique, zones,
+             * profil). Aucune route perdue, état actif conservé. */
+            moreItems={[
               { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
-              { href: '/technicien/profil', label: 'Profil', icon: 'user' },
+              { href: '/technicien/historique', label: 'Historique', icon: 'badge-check' },
+              { href: '/technicien/zones', label: 'Zones couvertes', icon: 'pin' },
+              { href: '/technicien/profil', label: 'Mon profil', icon: 'user' },
             ]}
           />
         </div>

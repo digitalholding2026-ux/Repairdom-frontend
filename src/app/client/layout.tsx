@@ -99,6 +99,13 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
               { href: '/client/solde', label: 'Solde', icon: 'wallet' },
               { href: '/client/profil', label: 'Profil', icon: 'user' },
             ]}
+            /* CHANTIER NAVIGATION P1/P2 — sections desktop accessibles
+             * sur mobile via « Plus » (jamais de bouton minuscule). */
+            moreItems={[
+              { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
+              { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+              { href: '/client/recompenses', label: 'Récompenses', icon: 'sparkles' },
+            ]}
           />
         </div>
       ) : null}

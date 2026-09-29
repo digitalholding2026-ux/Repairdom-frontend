@@ -77,7 +77,7 @@ export function PublicHeader() {
           ) : (
             <>
               <div className="mr-3 flex items-center gap-6">
-                <Link href="/#categories-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <Link href="/#services-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
                   Services
                 </Link>
                 <Link href="/#how-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -145,7 +145,7 @@ export function PublicHeader() {
               </button>
             </div>
             <nav className="mt-6 flex flex-col gap-1 text-white" aria-label="Navigation mobile">
-              <Link href="/#categories-title" onClick={closeMenu} className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors hover:bg-white/10">
+              <Link href="/#services-title" onClick={closeMenu} className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors hover:bg-white/10">
                 Services
               </Link>
               <Link href="/#how-title" onClick={closeMenu} className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors hover:bg-white/10">

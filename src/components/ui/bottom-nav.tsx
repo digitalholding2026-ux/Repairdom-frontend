@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { cn } from '@/lib/cn';
 import { Icon, type IconName } from './icon';
+import { Modal } from './modal';
 import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
 
 export interface BottomNavItem {
@@ -16,6 +18,10 @@ export interface BottomNavItem {
 export interface BottomNavProps {
   items: BottomNavItem[];
   primaryHref?: { href: string; label: string; icon: IconName };
+  /* CHANTIER NAVIGATION P1/P2 — entrées secondaires (sections desktop
+   * absentes de la barre à 360 px) : bouton « Plus » + bottom-sheet,
+   * aucun bouton minuscule, aucun doublon avec `items`. */
+  moreItems?: BottomNavItem[];
   className?: string;
 }
 
@@ -29,8 +35,9 @@ export interface BottomNavProps {
  * Avec un `primaryHref`, une action centrale surélevée organise les
  * onglets en 2 + FAB + 2.
  */
-export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
+export function BottomNav({ items, primaryHref, moreItems, className }: BottomNavProps) {
   const pathname = usePathname() ?? '';
+  const [moreOpen, setMoreOpen] = useState(false);
   const normalize = (href: string) => (href.length > 1 ? href.replace(/\/+$/, '') : href);
   const isActive = (href: string) => {
     const target = normalize(href);
@@ -40,8 +47,10 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
   const split = Math.ceil(items.length / 2);
   const leftItems = items.slice(0, split);
   const rightItems = items.slice(split);
+  const moreActive = (moreItems ?? []).some((item) => isActive(item.href));
 
   return (
+    <>
     <nav
       aria-label="Navigation principale"
       className={cn(
@@ -73,12 +82,83 @@ export function BottomNav({ items, primaryHref, className }: BottomNavProps) {
             </span>
           </>
         ) : (
-          items.map((item) => (
-            <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
-          ))
+          [...items, ...(moreItems?.length ? [{ href: '__more', label: 'Plus', icon: 'menu' as IconName }] : [])].map(
+            (item) =>
+              item.href === '__more' ? (
+                <button
+                  key="__more"
+                  type="button"
+                  onClick={() => setMoreOpen(true)}
+                  aria-expanded={moreOpen}
+                  aria-label="Plus de sections"
+                  className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-0.5 text-2xs font-medium transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:scale-95"
+                >
+                  <span className="relative flex items-center justify-center">
+                    <Icon
+                      name="menu"
+                      size="md"
+                      strokeWidth={moreActive ? 2.4 : 1.9}
+                      className={cn(
+                        'transition-all duration-300',
+                        moreActive ? 'scale-110 text-orange-500' : 'text-slate-400 hover:text-slate-600',
+                      )}
+                    />
+                    {(moreItems ?? []).some((entry) => entry.notifications) ? (
+                      <NotificationTabBadge />
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      'max-w-full truncate leading-none transition-colors duration-300',
+                      moreActive ? 'font-semibold text-orange-500' : 'text-slate-400',
+                    )}
+                  >
+                    Plus
+                  </span>
+                </button>
+              ) : (
+                <BottomNavLink key={item.href} item={item} active={isActive(item.href)} />
+              ),
+          )
         )}
       </div>
     </nav>
+      {moreItems?.length ? (
+        <Modal
+          open={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          title="Plus de sections"
+          sheet
+        >
+          <nav className="space-y-1" aria-label="Sections secondaires">
+            {moreItems.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMoreOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500',
+                    active
+                      ? 'bg-orange-500/10 font-semibold text-orange-600'
+                      : 'text-slate-700 hover:bg-slate-100',
+                  )}
+                >
+                  <span className="relative flex size-5 shrink-0 items-center justify-center">
+                    <Icon name={item.icon} size="sm" />
+                    {item.notifications ? <NotificationTabBadge /> : null}
+                  </span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </Modal>
+      ) : null}
+    </>
   );
 }
 

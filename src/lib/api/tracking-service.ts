@@ -65,3 +65,11 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export async function trackByReference(reference: string): Promise<PublicTracking> {
   return apiFetch<PublicTracking>(`/tracking/${encodeURIComponent(reference)}`);
 }
+
+/* CHANTIER NAVIGATION P1/P2 — format public `RD-XXXXXX` (miroir backend
+ * `tracking-reference.ts`) : validé AVANT l'appel pour éviter une requête
+ * inutile et afficher un message clair. Pur, sans dépendance. */
+export function isValidTrackingReference(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  return /^RD-[A-HJ-NP-Z0-9]{6}$/.test(value.trim().toUpperCase());
+}

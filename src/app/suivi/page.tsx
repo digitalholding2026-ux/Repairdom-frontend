@@ -17,7 +17,7 @@ import { TrackingHero } from '@/components/mission/tracking-hero';
 import { Celebration } from '@/components/mission/celebration';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
-import { trackByReference, type PublicTracking } from '@/lib/api/tracking-service';
+import { trackByReference, isValidTrackingReference, type PublicTracking } from '@/lib/api/tracking-service';
 import { STATUS_PROGRESS } from '@/lib/mission-progress';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { formatDateTime } from '@/lib/format';
@@ -32,6 +32,13 @@ export default function SuiviPage() {
   const handleTrack = async (ref?: string) => {
     const value = (ref ?? reference).trim().toUpperCase();
     if (!value) return;
+    /* Format vérifié avant l'appel (miroir backend) : aucune donnée
+     * privée n'est demandée, le suivi reste anonyme. */
+    if (!isValidTrackingReference(value)) {
+      setTracking(null);
+      setError('Référence invalide. Format attendu : RD-XXXXXX (ex. RD-8F4K29).');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -108,7 +115,7 @@ export default function SuiviPage() {
           <EmptyState
             icon={<Icon name="search" size="lg" />}
             title="Suivez votre intervention"
-            description="Saisissez ci-dessus le numéro reçu lors de votre demande pour voir son avancement en temps réel."
+            description="Saisissez ci-dessus le numéro reçu lors de votre demande pour voir son avancement (mis à jour à chaque étape)."
           />
         ) : null}
 

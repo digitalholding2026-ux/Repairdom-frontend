@@ -34,8 +34,9 @@ const DONE_GRADIENT =
 const CANCELED_GRADIENT =
   'from-muted-foreground/70 via-muted-foreground/50 to-muted-foreground/70';
 
-/** Carte « suivi en direct » façon Uber Eats : barre segmentée avec l'avatar
- *  du technicien qui avance au fil de la progression, statut en direct. */
+/** Carte de suivi de mission : barre de progression dérivée du STATUT
+ *  (timeline statique, jamais de GPS temps réel). L'avatar jalonne la
+ *  progression sans suggérer une position en direct. */
 export function TrackingHero({
   badge,
   reference,
@@ -74,18 +75,18 @@ export function TrackingHero({
 
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
+            {/* CHANTIER NAVIGATION P1/P2 — wording aligné sur la
+              * timeline statique (statut mission), jamais de GPS live.
+              * Pastille fixe, sans ping animé. */}
             {canceled ? (
               <span className="flex size-2.5 rounded-full bg-muted-foreground" />
             ) : !live ? (
               <span className="flex size-2.5 rounded-full bg-success ring-2 ring-success/30" />
             ) : (
-              <span className="relative flex size-2.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-success" />
-              </span>
+              <span className="flex size-2.5 rounded-full bg-success" />
             )}
             <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {canceled ? 'Mission annulée' : live ? 'Suivi en direct' : 'Mission terminée'}
+              {canceled ? 'Mission annulée' : live ? 'Suivi de la mission' : 'Mission terminée'}
             </p>
           </div>
           {badge}
