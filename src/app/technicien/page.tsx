@@ -230,7 +230,7 @@ export default function TechnicianDashboardPage() {
     : null;
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 rounded-3xl bg-[#0B0D12] p-4 text-slate-100 sm:p-6">
+    <div className="flex min-h-screen flex-col gap-6 rounded-3xl bg-relio-bg p-4 text-slate-100 sm:p-6">
       {/* ── Header contenu : salutation + statut + déconnexion ── */}
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">

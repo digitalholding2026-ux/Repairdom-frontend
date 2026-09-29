@@ -139,31 +139,31 @@ function categoryIcon(label: string): IconName {
   return 'wrench';
 }
 
-/** Badge de statut pill : En attente (orange), En cours (bleu), Terminé (vert). */
+/** Badge de statut pill : sémantique design system (warning/info/success/muted). */
 function RecentStatusPill({ status }: { status: string }) {
   if (status === 'SUBMITTED' || status === 'PENDING') {
     return (
-      <span className="shrink-0 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+      <span className="shrink-0 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning-ink">
         En attente
       </span>
     );
   }
   if (status === 'ACCEPTED' || status === 'SCHEDULED' || status === 'IN_PROGRESS') {
     return (
-      <span className="shrink-0 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+      <span className="shrink-0 rounded-full bg-info-soft px-3 py-1 text-xs font-semibold text-info-ink">
         En cours
       </span>
     );
   }
   if (status === 'COMPLETED' || status === 'CONFIRMED') {
     return (
-      <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+      <span className="shrink-0 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-ink">
         Terminé
       </span>
     );
   }
   return (
-    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+    <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
       Annulée
     </span>
   );
@@ -350,7 +350,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
       <header className="relative overflow-hidden rounded-b-[32px] bg-slate-950 p-6 pb-12 text-white shadow-lg">
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-[#FF6B00]/25 blur-3xl"
+                className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-relio-orange/25 blur-3xl"
         />
         <div
           aria-hidden
@@ -463,7 +463,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
           </h2>
           <Link
             href="/client/demandes"
-            className="text-sm font-semibold text-[#FF6B00] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+            className="text-sm font-semibold text-relio-orange hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Voir tout →
           </Link>

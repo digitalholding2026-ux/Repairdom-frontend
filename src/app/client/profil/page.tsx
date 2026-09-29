@@ -179,7 +179,7 @@ export default function ClientProfilPage() {
           <button
             type="button"
             onClick={() => setConfirmLogout(true)}
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 active:scale-[0.99]"
+            className="rounded-xl border border-error-border bg-error-soft px-4 py-3 text-sm font-semibold text-error-ink transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.99]"
           >
             Déconnexion
           </button>

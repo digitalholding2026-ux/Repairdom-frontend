@@ -111,7 +111,7 @@ function RewardCard({ reward, completedCount }: { reward: RewardItem; completedC
         {reward.isMystery ? (
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-0 flex items-center justify-center text-6xl font-extrabold text-[#F97316] drop-shadow-[0_0_18px_rgba(249,115,22,0.55)]"
+            className="pointer-events-none absolute inset-0 flex items-center justify-center text-6xl font-extrabold text-relio-orange drop-shadow-[0_0_18px_rgba(249,115,22,0.55)]"
           >
             ?
           </span>

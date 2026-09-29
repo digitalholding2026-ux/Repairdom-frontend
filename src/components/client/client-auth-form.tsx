@@ -18,7 +18,7 @@ export type ClientAuthMode = 'signup' | 'signin';
 
 interface ClientAuthFormProps {
   mode: ClientAuthMode;
-  /** Style sombre (panneau glassmorphism sur fond #0B0D12). */
+  /** Style sombre (panneau glassmorphism sur fond relio-bg). */
   dark?: boolean;
   /** Remonte le % de complétion + l'identité saisie (mode inscription)
    * pour la mascotte / progression / aperçu profil en direct. */

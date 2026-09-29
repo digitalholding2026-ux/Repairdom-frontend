@@ -109,7 +109,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
 
       <div className="relative space-y-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#F97316]/15 text-[#FB923C]">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-relio-orange/15 text-relio-orange-bright">
             <Icon name="zap" size="md" />
           </span>
           <div className="min-w-0 flex-1">
@@ -133,7 +133,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
 
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="rounded-xl bg-white/5 px-2 py-3">
-            <p className="text-xl font-bold tabular-nums text-[#FB923C]">{waveCount}</p>
+            <p className="text-xl font-bold tabular-nums text-relio-orange-bright">{waveCount}</p>
             <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
               Vagues émises
             </p>
@@ -163,7 +163,7 @@ export function DispatchSonarWidget({ waves, active = false, className }: Dispat
           aria-expanded={open}
           aria-controls={logsId}
           onClick={() => setOpen((value) => !value)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#FB923C]/70 underline-offset-4 hover:text-[#FB923C] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F97316]"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-relio-orange-bright/70 underline-offset-4 hover:text-relio-orange-bright hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Icon
             name="chevron-down"

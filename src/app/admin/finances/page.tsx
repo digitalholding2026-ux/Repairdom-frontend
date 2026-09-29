@@ -450,7 +450,7 @@ function MissionRow({
             ) : (
               <EmptyState
                 icon={<Icon name="info" size="md" />}
-                title="Aucune donnée"
+                title="Aucun détail disponible"
                 description="Aucun détail financier disponible pour cette mission."
               />
             )}

@@ -55,7 +55,10 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
   if (technician) points.push([technician.latitude, technician.longitude]);
 
   return (
-    <>
+    <div
+      role="region"
+      aria-label="Carte de la mission : lieu d'intervention et position récente du technicien"
+    >
       <style>{`
         .relio-map-pin, .relio-map-tech { background: transparent; border: none; }
         .relio-map-pin-dot { display: block; width: 28px; height: 28px; border-radius: 9999px; background: #f97316; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35); }
@@ -92,6 +95,6 @@ export function MissionMapInner({ intervention, technician, onTileError }: Missi
           <Marker position={[technician.latitude, technician.longitude]} icon={technicianIcon()} />
         ) : null}
       </MapContainer>
-    </>
+    </div>
   );
 }
