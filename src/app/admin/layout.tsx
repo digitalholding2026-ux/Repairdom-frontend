@@ -31,6 +31,8 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
   { href: '/admin/communication', label: 'Communication', icon: 'send' },
   { href: '/admin/finances', label: 'Finances', icon: 'file' },
+  // IA-9 — dashboard des signaux IA-4 → IA-8 (visualisation + revue humaine).
+  { href: '/admin/ai', label: 'Surveillance IA', icon: 'sparkles' },
 ];
 
 function isNavActive(pathname: string, href: string): boolean {
