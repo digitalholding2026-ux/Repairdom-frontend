@@ -1020,3 +1020,42 @@ export function reviewAdminConversationFlag(
     jsonBody({ decision, reviewNote: reviewNote?.trim() || undefined }),
   );
 }
+
+/* ── IA-11 — Agent IA du back-office (ADMIN uniquement, lecture seule) ──
+ * Conversation en session frontend uniquement (jamais persistée) ; le
+ * backend reste l'autorité (tools contrôlés, synthèse factuelle). */
+
+export interface AiAgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiAgentChatResponse {
+  reply: string;
+  toolCalls: Array<{ tool: string; ok: boolean }>;
+  model: string | null;
+}
+
+export interface AiAgentStatus {
+  available: boolean;
+  model: string | null;
+  promptVersion: number;
+  reason: string | null;
+}
+
+export function getAdminAiAgentStatus(): Promise<AiAgentStatus> {
+  return catalogFetch<AiAgentStatus>('/admin/ai-agent/status');
+}
+
+export function postAdminAiAgentChat(message: string, history: AiAgentMessage[]): Promise<AiAgentChatResponse> {
+  return catalogFetch<AiAgentChatResponse>(
+    '/admin/ai-agent/chat',
+    jsonBody({
+      message: message.trim(),
+      history: history
+        .filter((item) => item && (item.role === 'user' || item.role === 'assistant'))
+        .slice(-10)
+        .map((item) => ({ role: item.role, content: item.content })),
+    }),
+  );
+}
