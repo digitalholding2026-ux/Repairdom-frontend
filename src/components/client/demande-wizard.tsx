@@ -111,6 +111,10 @@ export function DemandeWizard() {
   const [geoError, setGeoError] = useState<string | null>(null);
 
   // Appareil (catalogue) — source de vérité admin.
+  /* IA-4.1 — équipement déclaré en texte libre quand « Autre » (objet à
+   * réparer, pas la panne ; 120 caractères max, aligné ville/quartier). */
+  const EQUIPMENT_MAX_LENGTH = 120;
+  const [equipmentType, setEquipmentType] = useState('');
   const [domains, setDomains] = useState<CatalogDomainLite[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [domainId, setDomainId] = useState('');
@@ -188,12 +192,17 @@ export function DemandeWizard() {
   }, [medias]);
 
   const canContinue = useMemo(() => {
-    if (step === 0) return domainId !== '';
+    // IA-4.1 — « Autre » exige l'équipement déclaré (objet à réparer).
+    if (step === 0) {
+      if (domainId === '') return false;
+      if (domainId === OTHER_DOMAIN) return equipmentType.trim() !== '';
+      return true;
+    }
     // Dépôt multimédia : au moins un moyen validé (vocal, vidéo ou photo).
     if (step === 1) return medias.length > 0;
     if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
-  }, [step, domainId, medias, city, requestedMode, requestedAt]);
+  }, [step, domainId, equipmentType, medias, city, requestedMode, requestedAt]);
 
   const handleDomainChange = (id: string) => {
     setDomainId(id);
@@ -201,6 +210,8 @@ export function DemandeWizard() {
     setModelId('');
     setBrands([]);
     setModels([]);
+    // IA-4.1 — l'équipement déclaré n'a de sens que pour « Autre ».
+    setEquipmentType('');
     if (id === OTHER_DOMAIN) {
       setDomainName('');
       setCategoryId('autre');
@@ -366,6 +377,11 @@ export function DemandeWizard() {
       setError('Ajoutez un message vocal, une vidéo ou au moins une photo pour décrire votre problème.');
       return;
     }
+    // IA-4.1 — garde frontend (le backend revalide de toute façon).
+    if (domainId === OTHER_DOMAIN && equipmentType.trim() === '') {
+      setError("Indiquez l'appareil ou l'équipement à réparer (obligatoire pour « Autre »).");
+      return;
+    }
     setIsSubmitting(true);
     const hasDevice = domainId !== '' && domainId !== OTHER_DOMAIN;
     // 1. Upload réel de chaque fichier AVANT création (accès technicien
@@ -385,6 +401,10 @@ export function DemandeWizard() {
       setUploadStatus(null);
       const result = await createDemande({
         categoryId: categoryId || 'autre',
+        // IA-4.1 — équipement déclaré, uniquement pour « Autre ».
+        ...(domainId === OTHER_DOMAIN && equipmentType.trim()
+          ? { equipmentType: equipmentType.trim() }
+          : {}),
         medias: medias.map((media) => ({
           name: media.name,
           type: media.mimeType,
@@ -433,6 +453,7 @@ export function DemandeWizard() {
     city.trim() !== '' ||
     contactPhone.trim() !== '' ||
     domainId !== '' ||
+    equipmentType.trim() !== '' ||
     medias.length > 0 ||
     coords !== null;
   useEffect(() => {
@@ -451,7 +472,7 @@ export function DemandeWizard() {
           selectedDeviceLabel
             ? selectedDeviceLabel
             : domainId === OTHER_DOMAIN
-              ? 'Autre appareil'
+              ? equipmentType.trim() || 'Autre appareil'
               : ''
         }
         description={mediaSummary}
@@ -549,9 +570,29 @@ export function DemandeWizard() {
                 ) : null}
 
                   {domainId === OTHER_DOMAIN ? (
-                    <Alert variant="neutral" dense icon="info">
-                      Montrez votre panne à l&apos;étape suivante (vocal, vidéo ou photos) : le technicien la verra directement.
-                    </Alert>
+                    <div className="space-y-3">
+                      {/* IA-4.1 — identification de l'objet à réparer (pas la
+                        panne, pas un diagnostic catalogue). Le multimédia de
+                        l'étape suivante reste le récit de la panne. */}
+                      <Field
+                        label="Quel appareil ou équipement souhaitez-vous faire réparer ?"
+                        htmlFor="demande-equipment-type"
+                        required
+                        hint="Indiquez simplement le type d’appareil ou d’équipement, pas la panne."
+                      >
+                        <Input
+                          id="demande-equipment-type"
+                          value={equipmentType}
+                          onChange={(e) => setEquipmentType(e.target.value)}
+                          maxLength={EQUIPMENT_MAX_LENGTH}
+                          placeholder="Ex. : réfrigérateur, climatiseur, machine à laver…"
+                          autoComplete="off"
+                        />
+                      </Field>
+                      <Alert variant="neutral" dense icon="info">
+                        Montrez votre panne à l&apos;étape suivante (vocal, vidéo ou photos) : le technicien la verra directement.
+                      </Alert>
+                    </div>
                   ) : null}
               </section>
             ) : null}
@@ -856,7 +897,7 @@ export function DemandeWizard() {
                       selectedDeviceLabel
                         ? selectedDeviceLabel
                         : domainId === OTHER_DOMAIN
-                          ? 'Mon appareil n’est pas dans la liste'
+                          ? equipmentType.trim() || 'Mon appareil n’est pas dans la liste'
                           : 'Non renseigné'
                     }
                     onEdit={() => jumpTo(0)}

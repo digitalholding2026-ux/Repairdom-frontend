@@ -367,6 +367,17 @@ export default function TechnicianDemandeDetailPage() {
               <p className="text-sm text-foreground">{deviceLabel}</p>
             </div>
           ) : null}
+          {/* IA-4.1 — équipement déclaré par le client (Autre) : information
+            client, jamais un diagnostic ; ne remplace pas le diagnostic libre. */}
+          {!deviceLabel && demande.equipmentType ? (
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+              <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
+              <p className="text-sm text-foreground">
+                Appareil : {demande.equipmentType}{' '}
+                <span className="text-xs text-muted-foreground">(déclaré par le client)</span>
+              </p>
+            </div>
+          ) : null}
 
           <MissionInfo
             description={demande.description}

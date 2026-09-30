@@ -59,6 +59,9 @@ export interface TechnicianDemande {
   categoryLabel: string;
   /* NULL pour les demandes multimédia sans texte (lire les médias). */
   description: string | null;
+  /* IA-4.1 — équipement déclaré par le client (NULL historique/catalogue).
+   * Information client, jamais un diagnostic. */
+  equipmentType?: string | null;
   city: string;
   neighborhood: string | null;
   address: string | null;
