@@ -783,3 +783,72 @@ export function sendAdminTechnicianMessage(email: string, message: string): Prom
     jsonBody({ email: email.trim(), message: message.trim() }),
   );
 }
+
+/* ── IA-7 — surveillance tarifaire (prépare IA-9 : liste, niveau, revue) ─ */
+
+export interface AdminAiWarning {
+  id: string;
+  warningType: string;
+  status: string;
+  storedStatus: string;
+  dueAt: string;
+  justification: string | null;
+  justifiedAt: string | null;
+  isLateJustification: boolean;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  quoteId: string;
+  demandeId: string;
+  diagnosticId: string | null;
+  pricingCheckId: string;
+  pricing: {
+    proposedPrice: number;
+    minAtCheck: number | null;
+    referenceAtCheck: number | null;
+    maxAtCheck: number | null;
+    result: string;
+    deviationAmount: number | null;
+    deviationBps: number | null;
+  } | null;
+  surveillanceLevel?: number;
+}
+
+export interface AdminAiWarningList {
+  items: AdminAiWarning[];
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export function listAdminAiWarnings(params?: {
+  technicianId?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminAiWarningList> {
+  const query = new URLSearchParams();
+  if (params?.technicianId) query.set('technicianId', params.technicianId);
+  if (params?.status) query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return catalogFetch<AdminAiWarningList>(`/admin/ai-warnings${suffix}`);
+}
+
+export function getAdminSurveillanceLevel(technicianId: string): Promise<{
+  technicianId: string;
+  surveillanceLevel: number;
+  humanReviewRequired: boolean;
+}> {
+  return catalogFetch(`/admin/ai-warnings/technician/${encodeURIComponent(technicianId)}/level`);
+}
+
+export function reviewAdminAiWarning(id: string, reviewNote?: string): Promise<AdminAiWarning> {
+  return catalogFetch<AdminAiWarning>(
+    `/admin/ai-warnings/${encodeURIComponent(id)}/review`,
+    jsonBody({ reviewNote: reviewNote?.trim() || undefined }),
+  );
+}
