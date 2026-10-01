@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "oxlint src/",
-    "test:unit": "node --test src/lib/payment-helpers.test.ts src/lib/gps-helpers.test.ts src/lib/error-handling.test.ts src/lib/navigation.test.ts src/lib/design-system.test.ts src/lib/responsive.test.ts src/lib/lottie.test.ts src/lib/demande-media.test.ts src/lib/catalog-scales.test.ts src/lib/diagnostic-libre.test.ts src/lib/ai-classification.test.ts src/components/admin/ai/ai-dashboard-helpers.test.ts src/lib/conversation-transparency.test.ts src/lib/demande-equipment.test.ts src/lib/ai-agent.test.ts",
+    "test:unit": "node --test src/lib/payment-helpers.test.ts src/lib/gps-helpers.test.ts src/lib/error-handling.test.ts src/lib/navigation.test.ts src/lib/design-system.test.ts src/lib/responsive.test.ts src/lib/lottie.test.ts src/lib/demande-media.test.ts src/lib/catalog-scales.test.ts src/lib/diagnostic-libre.test.ts src/lib/ai-classification.test.ts src/components/admin/ai/ai-dashboard-helpers.test.ts src/lib/conversation-transparency.test.ts src/lib/demande-equipment.test.ts src/lib/ai-agent.test.ts src/lib/dispute-status.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

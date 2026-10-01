@@ -10,6 +10,9 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Field } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { DemandeProgress } from '@/components/mission/demande-progress';
@@ -35,7 +38,11 @@ import {
   respondToQuote,
   requestQuoteNegotiation,
   formatQuoteAmount,
+  getDispute,
+  openDispute,
   type DemandeListItem,
+  type DemandeDispute,
+  type DisputeCategory,
   type MissionDiagnostic,
   type MissionQuote,
 } from '@/lib/api/request-service';
@@ -43,6 +50,14 @@ import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/fi
 import { formatCurrency } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useToast } from '@/lib/toast-context';
+import {
+  DISPUTE_CATEGORIES,
+  DISPUTE_DESCRIPTION_MAX,
+  DISPUTE_DESCRIPTION_MIN,
+  DISPUTE_STATUS_CONFIG,
+  disputeCategoryLabel,
+  disputeStatusConfig,
+} from '@/lib/dispute-status';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -72,6 +87,14 @@ export default function ClientDemandeDetailPage() {
     | null
   >(null);
   const [chatOpen, setChatOpen] = useState(false);
+  /* Litige post-intervention : visible sur mission COMPLETED uniquement.
+   * null = aucun litige (contestation possible), objet = litige affiché. */
+  const [dispute, setDispute] = useState<DemandeDispute | null>(null);
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeCategory, setDisputeCategory] = useState<DisputeCategory>('QUALITY');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [disputeError, setDisputeError] = useState<string | null>(null);
+  const [disputeBusy, setDisputeBusy] = useState(false);
 
   const runConfirmedAction = () => {
     if (!confirmAction || actionBusy) return;
@@ -100,6 +123,14 @@ export default function ClientDemandeDetailPage() {
         setDiagnostics(diagnosticsList);
         setQuotes(quotesList);
         setEvents(eventsList);
+        /* Litige : mission terminée uniquement, silencieux (jamais bloquant). */
+        if (d.status === 'COMPLETED') {
+          getDispute(params.id!)
+            .then((result) => { if (active) setDispute(result); })
+            .catch(() => undefined);
+        } else if (active) {
+          setDispute(null);
+        }
         if (initial) {
           getClientFinanceSummary()
             .then((b) => { if (active) setBalance(b); })
@@ -190,6 +221,39 @@ export default function ClientDemandeDetailPage() {
       setError(toUserErrorMessage(err, 'Erreur lors de la demande de négociation.'));
     } finally {
       setActionBusy(null);
+    }
+  };
+
+  /* Litige post-intervention : description 10..2000 (miroir backend). */
+  const disputeDescriptionLength = disputeDescription.trim().length;
+  const disputeValid =
+    disputeDescriptionLength >= DISPUTE_DESCRIPTION_MIN &&
+    disputeDescriptionLength <= DISPUTE_DESCRIPTION_MAX;
+
+  const handleOpenDispute = async () => {
+    if (!params?.id || disputeBusy) return;
+    if (!disputeValid) {
+      setDisputeError(
+        `Décrivez le problème en ${DISPUTE_DESCRIPTION_MIN} à ${DISPUTE_DESCRIPTION_MAX} caractères.`,
+      );
+      return;
+    }
+    setDisputeBusy(true);
+    setDisputeError(null);
+    try {
+      const created = await openDispute(params.id, {
+        category: disputeCategory,
+        description: disputeDescription.trim(),
+      });
+      setDispute(created);
+      setDisputeDialogOpen(false);
+      setDisputeDescription('');
+      setDisputeError(null);
+      toast({ title: 'Litige ouvert. Notre équipe va l’examiner.', variant: 'success' });
+    } catch (err) {
+      setDisputeError(toUserErrorMessage(err, 'Erreur lors de l’ouverture du litige.'));
+    } finally {
+      setDisputeBusy(false);
     }
   };
 
@@ -315,6 +379,51 @@ export default function ClientDemandeDetailPage() {
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {/* Litige post-intervention : contestation sur mission terminée. */}
+      {demande.status === 'COMPLETED' ? (
+        dispute ? (
+          <section
+            aria-label="Litige en cours"
+            className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={disputeStatusConfig(dispute.status).variant}>
+                Litige : {disputeStatusConfig(dispute.status).label}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {disputeCategoryLabel(dispute.category)} • ouvert le {formatDate(dispute.createdAt)}
+              </span>
+            </div>
+            <p className="whitespace-pre-line text-sm">{dispute.description}</p>
+            {dispute.status === 'RESOLVED' || dispute.status === 'REJECTED' ? (
+              <Alert
+                variant={dispute.status === 'RESOLVED' ? 'success' : 'neutral'}
+                dense
+                title={DISPUTE_STATUS_CONFIG[dispute.status as keyof typeof DISPUTE_STATUS_CONFIG]?.label ?? 'Décision'}
+              >
+                {dispute.resolution ?? 'Décision enregistrée.'}
+              </Alert>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Notre équipe examine votre contestation. La confirmation reste bloquée en attendant la décision.
+              </p>
+            )}
+          </section>
+        ) : (
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setDisputeError(null);
+                setDisputeDialogOpen(true);
+              }}
+            >
+              Contester l&apos;intervention
+            </Button>
+          </div>
+        )
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
@@ -676,6 +785,60 @@ export default function ClientDemandeDetailPage() {
                 : 'Confirmer'
         }
       />
+
+      <ConfirmDialog
+        open={disputeDialogOpen}
+        onCancel={() => {
+          if (!disputeBusy) {
+            setDisputeDialogOpen(false);
+            setDisputeError(null);
+          }
+        }}
+        onConfirm={handleOpenDispute}
+        loading={disputeBusy}
+        title="Contester l'intervention ?"
+        description="Votre contestation sera examinée par notre équipe. La confirmation restera bloquée en attendant la décision."
+        confirmLabel="Envoyer la contestation"
+      >
+        <div className="space-y-3">
+          <Field htmlFor="disputeCategory" label="Motif" required>
+            <Select
+              id="disputeCategory"
+              value={disputeCategory}
+              onChange={(event) => setDisputeCategory(event.target.value as DisputeCategory)}
+              disabled={disputeBusy}
+            >
+              {DISPUTE_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {disputeCategoryLabel(category)}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            htmlFor="disputeDescription"
+            label="Description"
+            required
+            hint={`${disputeDescriptionLength}/${DISPUTE_DESCRIPTION_MAX} caractères (minimum ${DISPUTE_DESCRIPTION_MIN}).`}
+            error={
+              disputeDescription.length > 0 && !disputeValid
+                ? `Décrivez le problème en ${DISPUTE_DESCRIPTION_MIN} à ${DISPUTE_DESCRIPTION_MAX} caractères.`
+                : null
+            }
+          >
+            <Textarea
+              id="disputeDescription"
+              value={disputeDescription}
+              onChange={(event) => setDisputeDescription(event.target.value)}
+              maxLength={DISPUTE_DESCRIPTION_MAX}
+              rows={4}
+              placeholder="Expliquez ce qui ne vous satisfait pas dans l’intervention…"
+              disabled={disputeBusy}
+            />
+          </Field>
+          {disputeError ? <Alert variant="error">{disputeError}</Alert> : null}
+        </div>
+      </ConfirmDialog>
     </div>
   );
 }

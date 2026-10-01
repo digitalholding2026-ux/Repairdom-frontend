@@ -33,6 +33,8 @@ import { useToast } from '@/lib/toast-context';
 import { kycStatusLabel } from '@/lib/technician-profile';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
+import { getDispute, type DemandeDispute } from '@/lib/api/request-service';
+import { disputeCategoryLabel, disputeStatusConfig } from '@/lib/dispute-status';
 import {
   getTechnicianDemande,
   acceptDemande,
@@ -77,6 +79,8 @@ export default function TechnicianDemandeDetailPage() {
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [events, setEvents] = useState<MissionEvent[]>([]);
+  /* Litige post-intervention : lecture seule (même endpoint partagé). */
+  const [dispute, setDispute] = useState<DemandeDispute | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [amountValue, setAmountValue] = useState('');
   const [quoteDescription, setQuoteDescription] = useState('');
@@ -132,6 +136,10 @@ export default function TechnicianDemandeDetailPage() {
         setDiagnostics(diagnosticsList);
         setQuotes(quotesList);
         setEvents(eventsList);
+        /* Litige : silencieux, jamais bloquant (null si aucun). */
+        getDispute(params.id!)
+          .then((result) => { if (active) setDispute(result); })
+          .catch(() => undefined);
       } catch (err) {
         if (initial && active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
         // Erreur silencieuse en rafraîchissement périodique.
@@ -560,6 +568,27 @@ export default function TechnicianDemandeDetailPage() {
 
           {demande.status === 'CANCELED' ? (
             <Alert variant="error" dense>Cette demande a été annulée.</Alert>
+          ) : null}
+
+          {/* Litige post-intervention : lecture seule (le client conteste,
+              l'admin tranche). */}
+          {dispute ? (
+            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={disputeStatusConfig(dispute.status).variant}>
+                  Litige : {disputeStatusConfig(dispute.status).label}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {disputeCategoryLabel(dispute.category)}
+                </span>
+              </div>
+              <p className="whitespace-pre-line text-sm">{dispute.description}</p>
+              {dispute.resolution ? (
+                <p className="whitespace-pre-line text-sm text-muted-foreground">
+                  Décision : {dispute.resolution}
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </CardContent>
       </Card>

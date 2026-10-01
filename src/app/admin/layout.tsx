@@ -24,6 +24,7 @@ interface AdminNavItem {
 const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Tableau de bord', icon: 'home' },
   { href: '/admin/missions', label: 'Missions', icon: 'search' },
+  { href: '/admin/litiges', label: 'Litiges', icon: 'alert' },
   { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
   { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
   { href: '/admin/catalog/baremes', label: 'Barèmes', icon: 'star' },

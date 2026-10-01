@@ -407,3 +407,39 @@ export async function requestQuoteNegotiation(
     { method: 'POST' },
   );
 }
+
+/* ── Litige post-intervention (DISPUTE) ──────────────────────────
+ * Ouverture client (mission COMPLETED, un seul litige par mission) et
+ * lecture partie prenante (client propriétaire OU technicien assigné,
+ * null si aucun, 404 masqué sinon). Statuts et montants : backend seul. */
+
+export type DisputeCategory = 'QUALITY' | 'INCOMPLETE' | 'PRICING' | 'BEHAVIOR' | 'OTHER';
+
+export interface DemandeDispute {
+  id: string;
+  demandeId: string;
+  category: string;
+  description: string;
+  status: string;
+  resolution: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Ouvre un litige sur une mission terminée (CLIENT propriétaire, 201). */
+export async function openDispute(
+  demandeId: string,
+  input: { category: DisputeCategory; description: string },
+): Promise<DemandeDispute> {
+  return apiFetch<DemandeDispute>(`/demandes/${encodeURIComponent(demandeId)}/dispute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category: input.category, description: input.description.trim() }),
+  });
+}
+
+/** Lit le litige d'une mission (null si aucun). */
+export async function getDispute(demandeId: string): Promise<DemandeDispute | null> {
+  return apiFetch<DemandeDispute | null>(`/demandes/${encodeURIComponent(demandeId)}/dispute`);
+}

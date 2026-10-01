@@ -1059,3 +1059,63 @@ export function postAdminAiAgentChat(message: string, history: AiAgentMessage[])
     }),
   );
 }
+
+/* ── Litiges post-intervention (DISPUTE, ADMIN) ───────────────
+ * Liste paginée avec filtre statut, détail avec mission + parties,
+ * décision motivée (UNDER_REVIEW sans résolution, RESOLVED/REJECTED
+ * avec résolution). Statuts et montants : backend seul. */
+
+export interface AdminDispute {
+  id: string;
+  demandeId: string;
+  category: string;
+  description: string;
+  status: string;
+  resolution: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  demande?: { id: string; reference: string; status: string } | null;
+  openedBy?: { id: string; firstName: string; lastName: string | null } | null;
+  decider?: { id: string; firstName: string; lastName: string | null } | null;
+}
+
+export interface AdminDisputeList {
+  items: AdminDispute[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export type AdminDisputeDecision = 'UNDER_REVIEW' | 'RESOLVED' | 'REJECTED';
+
+export function listAdminDisputes(params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminDisputeList> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return catalogFetch<AdminDisputeList>(`/admin/disputes${suffix}`);
+}
+
+export function getAdminDispute(id: string): Promise<AdminDispute> {
+  return catalogFetch<AdminDispute>(`/admin/disputes/${encodeURIComponent(id)}`);
+}
+
+export function reviewAdminDispute(
+  id: string,
+  input: { decision: AdminDisputeDecision; resolution?: string },
+): Promise<AdminDispute> {
+  return catalogFetch<AdminDispute>(
+    `/admin/disputes/${encodeURIComponent(id)}/review`,
+    patchBody(
+      input.decision === 'UNDER_REVIEW'
+        ? { decision: input.decision }
+        : { decision: input.decision, resolution: input.resolution?.trim() },
+    ),
+  );
+}
