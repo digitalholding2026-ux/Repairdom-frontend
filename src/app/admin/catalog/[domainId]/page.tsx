@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
@@ -122,7 +123,7 @@ export default function AdminDomainPage() {
       <Breadcrumbs
         items={[{ label: 'Catalogue', href: '/admin/catalog' }, { label: domain.name }]}
       />
-      <PageHeader title={domain.name} description="Marques et problèmes du domaine." />
+      <PageHeader title={domain.name} description="Spécifications, modèles, catégories et tarifs — Catalogue → Spécification → Modèle → Catégorie → Tarification." />
       {notice ? <Alert variant="success">{notice}</Alert> : null}
       {error ? <Alert variant="error">{error}</Alert> : null}
 
@@ -145,18 +146,21 @@ export default function AdminDomainPage() {
 
       <section className="space-y-3">
         <SectionHeader
-          title={`Marques (${domain.brands.length})`}
+          title={`Spécifications (${domain.brands.length})`}
           icon="briefcase"
+          description="Ex. : iOS / Android pour un smartphone (valeurs libres)."
           action={
             <Button size="sm" onClick={() => setShowCreateBrand(true)}>
               <Icon name="plus" size="3.5" />
-              Marque
+              Spécification
             </Button>
           }
         />
         {domain.brands.length === 0 ? (
-          <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucune marque" description="Ajoutez une marque pour ce domaine." />
+          <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucune spécification" description="Ajoutez une spécification pour ce catalogue." />
         ) : (
+          <ResponsiveView
+            mobile={
           <div className="space-y-2">
             {domain.brands.map((brand) => (
               <Card key={brand.id} className="transition-colors hover:bg-muted/50">
@@ -198,25 +202,73 @@ export default function AdminDomainPage() {
               </Card>
             ))}
           </div>
+            }
+            desktop={
+          <div className="grid gap-2 lg:grid-cols-2">
+            {domain.brands.map((brand) => (
+              <Card key={brand.id} className="transition-colors hover:bg-muted/50">
+                <CardContent className="flex items-center justify-between gap-3 pt-4">
+                  <Link
+                    href={`/admin/catalog/${domain.id}/brands/${brand.id}`}
+                    className="min-w-0 flex-1"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-semibold">{brand.name}</p>
+                        <Badge variant={brand.isActive ? 'success' : 'neutral'}>
+                          {brand.isActive ? 'Actif' : 'Inactif'}
+                        </Badge>
+                      </div>
+                      {brand.description ? (
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {brand.description}
+                        </p>
+                      ) : null}
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {brand._count?.models ?? 0} modèle{(brand._count?.models ?? 0) !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </Link>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <DeleteCatalogItem
+                      itemLabel={brand.name}
+                      onDelete={() => deleteBrand(brand.id)}
+                      onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                        if (err) setError(err);
+                        else if (outcome) setNotice(outcome.message);
+                        void load(true);
+                      }}
+                    />
+                    <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+            }
+            fallback={null}
+          />
         )}
       </section>
 
       <section className="space-y-3">
         <SectionHeader
-          title={`Problèmes génériques (${domain.problems.length})`}
+          title={`Catégories génériques (${domain.problems.length})`}
           icon="file"
-          description="Problèmes valables pour tout appareil du domaine. Les problèmes spécifiques marque/modèle se gèrent depuis chaque marque."
+          description="Catégories valables pour tout appareil du catalogue. Les catégories spécifiques se gèrent depuis chaque spécification / modèle."
           action={
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
-              Problème
+              Catégorie
             </Button>
           }
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {domain.problems.length === 0 ? (
-          <EmptyState icon={<Icon name="file" size="md" />} title="Aucun problème générique" description="Ajoutez un problème pour ce domaine." />
+          <EmptyState icon={<Icon name="file" size="md" />} title="Aucune catégorie générique" description="Ajoutez une catégorie pour ce catalogue." />
         ) : (
+        <ResponsiveView
+          mobile={
         <div className="space-y-2">
           {domain.problems.map((problem) => (
             <Card key={problem.id} className="transition-colors hover:bg-muted/50">
@@ -253,6 +305,47 @@ export default function AdminDomainPage() {
             </Card>
           ))}
         </div>
+          }
+          desktop={
+        <div className="grid gap-2 lg:grid-cols-2">
+          {domain.problems.map((problem) => (
+            <Card key={problem.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domain.id}/${problem.id}`} className="min-w-0 flex-1">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{problem.name}</p>
+                      <Badge variant={problem.isActive ? 'success' : 'neutral'}>
+                        {problem.isActive ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {problem.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{problem.description}</p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {problem._count?.diagnostics ?? 0} diagnostic{(problem._count?.diagnostics ?? 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={problem.name}
+                    onDelete={() => deleteProblem(problem.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load(true);
+                    }}
+                  />
+                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+          }
+          fallback={null}
+        />
       )}
       </section>
 
@@ -285,7 +378,7 @@ export default function AdminDomainPage() {
       <Modal
         open={showCreateBrand}
         onClose={() => setShowCreateBrand(false)}
-        title="Nouvelle marque"
+        title="Nouvelle spécification"
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreateBrand(false)} disabled={creatingBrand}>
@@ -329,7 +422,7 @@ export default function AdminDomainPage() {
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Nouveau problème"
+        title="Nouvelle catégorie"
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Annuler</Button>

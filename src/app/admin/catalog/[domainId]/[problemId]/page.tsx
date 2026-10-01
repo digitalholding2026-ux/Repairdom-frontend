@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
@@ -40,8 +41,6 @@ export default function AdminProblemPage() {
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newDifficulty, setNewDifficulty] = useState('');
-  const [newEstTime, setNewEstTime] = useState('');
 
   async function load(quiet = false) {
     if (!params?.problemId) return;
@@ -71,15 +70,11 @@ export default function AdminProblemPage() {
         name,
         slug,
         description: newDesc.trim() || undefined,
-        difficulty: newDifficulty.trim() || undefined,
-        estimatedTime: newEstTime.trim() || undefined,
       });
       setShowCreate(false);
       setNewName('');
       setNewSlug('');
       setNewDesc('');
-      setNewDifficulty('');
-      setNewEstTime('');
       await load(true);
     } catch (err) {
       setError(extractErrorMessage(err, 'Erreur lors de la création.'));
@@ -99,7 +94,7 @@ export default function AdminProblemPage() {
   };
 
   if (loading) return <CatalogSkeleton />;
-  if (!problem) return <EmptyState title="Problème introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
+  if (!problem) return <EmptyState title="Catégorie introuvable" description={error ?? ''} action={<Link href="/admin/catalog"><Button>Retour au catalogue</Button></Link>} />;
 
   const domainId = problem.domain?.id ?? params?.domainId;
   const brand = problem.brand;
@@ -126,7 +121,7 @@ export default function AdminProblemPage() {
   return (
     <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
-      <PageHeader title={problem.name} description="Diagnostics et tarifs de ce problème." />
+      <PageHeader title={problem.name} description="Catégorie — diagnostics catalogue et tarifs (Min / Barème / Max en FCFA). Référentiel utilisé par IA-5, jamais choisi directement par le client." />
       {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
@@ -151,8 +146,9 @@ export default function AdminProblemPage() {
 
       <section className="space-y-3">
         <SectionHeader
-          title={`Diagnostics (${problem.diagnostics.length})`}
+          title={`Diagnostics catalogue (${problem.diagnostics.length})`}
           icon="badge-check"
+          description="Fiches du référentiel (ancre IA-5). Chaque fiche porte ses tarifs Min / Barème / Max."
           action={
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
@@ -162,8 +158,10 @@ export default function AdminProblemPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {problem.diagnostics.length === 0 ? (
-          <EmptyState icon={<Icon name="badge-check" size="md" />} title="Aucun diagnostic" description="Ajoutez un diagnostic pour ce problème." />
+          <EmptyState icon={<Icon name="badge-check" size="md" />} title="Aucun diagnostic" description="Ajoutez un diagnostic pour cette catégorie." />
         ) : (
+        <ResponsiveView
+          mobile={
         <div className="space-y-2">
           {problem.diagnostics.map((diag) => (
             <Card key={diag.id} className="transition-colors hover:bg-muted/50">
@@ -180,9 +178,7 @@ export default function AdminProblemPage() {
                       <p className="mt-0.5 truncate text-xs text-muted-foreground">{diag.description}</p>
                     ) : null}
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                      {diag.difficulty ? <span>Difficulté : {diag.difficulty}</span> : null}
-                      {diag.estimatedTime ? <span>Durée : {diag.estimatedTime}</span> : null}
-                      <span>{diag._count?.interventions ?? 0} intervention{(diag._count?.interventions ?? 0) !== 1 ? 's' : ''}</span>
+                      <span>{diag._count?.interventions ?? 0} tarif{(diag._count?.interventions ?? 0) !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </Link>
@@ -202,6 +198,47 @@ export default function AdminProblemPage() {
             </Card>
           ))}
         </div>
+          }
+          desktop={
+        <div className="grid gap-2 lg:grid-cols-2">
+          {problem.diagnostics.map((diag) => (
+            <Card key={diag.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domainId}/${params?.problemId}/${diag.id}`} className="min-w-0 flex-1">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{diag.name}</p>
+                      <Badge variant={diag.isActive ? 'success' : 'neutral'}>
+                        {diag.isActive ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {diag.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{diag.description}</p>
+                    ) : null}
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{diag._count?.interventions ?? 0} tarif{(diag._count?.interventions ?? 0) !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={diag.name}
+                    onDelete={() => deleteDiagnostic(diag.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load(true);
+                    }}
+                  />
+                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+          }
+          fallback={null}
+        />
       )}
       </section>
 
@@ -210,7 +247,7 @@ export default function AdminProblemPage() {
         <Card>
           <CardContent className="flex items-center justify-between gap-3 pt-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold">Supprimer ce problème</p>
+              <p className="text-sm font-semibold">Supprimer cette catégorie</p>
               <p className="text-xs text-muted-foreground">
                 Suppression physique sans dépendance, désactivation sinon (historique conservé).
               </p>
@@ -252,14 +289,6 @@ export default function AdminProblemPage() {
           <Field label="Description" htmlFor="diagDesc">
             <Textarea id="diagDesc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} maxLength={1000} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Difficulté" htmlFor="diagDiff">
-              <Input id="diagDiff" value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)} placeholder="Facile / Moyen / Difficile" />
-            </Field>
-            <Field label="Durée estimée" htmlFor="diagTime">
-              <Input id="diagTime" value={newEstTime} onChange={(e) => setNewEstTime(e.target.value)} placeholder="Ex. : 30-60 min" />
-            </Field>
-          </div>
         </div>
       </Modal>
     </div>

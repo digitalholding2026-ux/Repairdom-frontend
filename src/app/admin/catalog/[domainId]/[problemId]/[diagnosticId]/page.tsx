@@ -15,6 +15,7 @@ import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
 import { extractErrorMessage } from '@/lib/errors';
@@ -37,14 +38,14 @@ import {
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
+/* Catalogue simplifié — niveau 5 « Tarification » : chaque tarif affiche
+ * Nom + Min / Barème / Max (FCFA). Aucun champ durée / pièce / frais :
+ * conservés en base pour le technicien et les snapshots devis, masqués ici.
+ * L'historique (PricingHistory) reste consultable et immuable. */
 const PRICING_HISTORY_FIELDS = [
   'minPrice',
   'referencePrice',
   'maxPrice',
-  'travelFee',
-  'serviceFee',
-  'currency',
-  'priceMode',
   'isActive',
 ] as const;
 
@@ -78,9 +79,6 @@ export default function AdminDiagnosticPage() {
   const [intName, setIntName] = useState('');
   const [intSlug, setIntSlug] = useState('');
   const [intDesc, setIntDesc] = useState('');
-  const [intDiff, setIntDiff] = useState('');
-  const [intTime, setIntTime] = useState('');
-  const [intNeedsParts, setIntNeedsParts] = useState(false);
 
   const [pricingInterventionId, setPricingInterventionId] = useState<string | null>(null);
   /* Phase A : mise au premier plan de l'éditeur de tarif (rendu en bas de
@@ -96,8 +94,6 @@ export default function AdminDiagnosticPage() {
   const [minPrice, setMinPrice] = useState('');
   const [refPrice, setRefPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [travelFee, setTravelFee] = useState('');
-  const [serviceFee, setServiceFee] = useState('');
   const [pricingActive, setPricingActive] = useState(true);
   const [priceReason, setPriceReason] = useState('');
   const [savingPricing, setSavingPricing] = useState(false);
@@ -130,17 +126,11 @@ export default function AdminDiagnosticPage() {
         name,
         slug,
         description: intDesc.trim() || undefined,
-        difficulty: intDiff.trim() || undefined,
-        estimatedTime: intTime.trim() || undefined,
-        needsParts: intNeedsParts,
       });
       setShowCreateInt(false);
       setIntName('');
       setIntSlug('');
       setIntDesc('');
-      setIntDiff('');
-      setIntTime('');
-      setIntNeedsParts(false);
       await load(true);
     } catch (err) {
       setError(extractErrorMessage(err, 'Erreur.'));
@@ -175,8 +165,6 @@ export default function AdminDiagnosticPage() {
     setMinPrice('');
     setRefPrice('');
     setMaxPrice('');
-    setTravelFee('');
-    setServiceFee('');
     setPricingActive(true);
     setPriceReason('');
     try {
@@ -185,8 +173,6 @@ export default function AdminDiagnosticPage() {
       setMinPrice(pricing.minPrice?.toString() ?? '');
       setRefPrice(pricing.referencePrice?.toString() ?? '');
       setMaxPrice(pricing.maxPrice?.toString() ?? '');
-      setTravelFee(pricing.travelFee?.toString() ?? '');
-      setServiceFee(pricing.serviceFee?.toString() ?? '');
       setPricingActive(pricing.isActive);
     } catch {
       // no existing pricing — form stays empty
@@ -215,8 +201,6 @@ export default function AdminDiagnosticPage() {
         minPrice?: number;
         referencePrice?: number;
         maxPrice?: number;
-        travelFee?: number;
-        serviceFee?: number;
         isActive: boolean;
       } = { interventionId: pricingInterventionId, isActive: pricingActive };
       const parsedMin = parseAmount(minPrice, 'Le prix min');
@@ -225,10 +209,6 @@ export default function AdminDiagnosticPage() {
       if (parsedRef !== undefined) payload.referencePrice = parsedRef;
       const parsedMax = parseAmount(maxPrice, 'Le prix max');
       if (parsedMax !== undefined) payload.maxPrice = parsedMax;
-      const parsedTravel = parseAmount(travelFee, 'Les frais de déplacement');
-      if (parsedTravel !== undefined) payload.travelFee = parsedTravel;
-      const parsedService = parseAmount(serviceFee, 'Les frais Relio');
-      if (parsedService !== undefined) payload.serviceFee = parsedService;
 
       if (pricingData) {
         const { interventionId: _ignored, ...rest } = payload;
@@ -281,10 +261,6 @@ export default function AdminDiagnosticPage() {
               <Badge variant="outline">{diagnostic.problem?.name}</Badge>
             </div>
             {diagnostic.description ? <p className="text-sm text-muted-foreground">{diagnostic.description}</p> : null}
-            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-              {diagnostic.difficulty ? <span>Difficulté : {diagnostic.difficulty}</span> : null}
-              {diagnostic.estimatedTime ? <span>Durée : {diagnostic.estimatedTime}</span> : null}
-            </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">Actif</span>
               <Switch checked={diagnostic.isActive} onCheckedChange={handleToggleDiagnostic} />
@@ -296,70 +272,151 @@ export default function AdminDiagnosticPage() {
 
       <section className="space-y-3">
         <SectionHeader
-          title={`Interventions (${diagnostic.interventions.length})`}
+          title={`Tarifs (${diagnostic.interventions.length})`}
           icon="wrench"
+          description="Un tarif = Min / Barème / Max en FCFA. Barème actif utilisé par le contrôle IA-6."
           action={
             <Button size="sm" onClick={() => setShowCreateInt(true)}>
               <Icon name="plus" size="3.5" />
-              Intervention
+              Tarif
             </Button>
           }
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {diagnostic.interventions.length === 0 ? (
-          <EmptyState icon={<Icon name="wrench" size="md" />} title="Aucune intervention" description="Ajoutez une intervention pour ce diagnostic." />
+          <EmptyState icon={<Icon name="wrench" size="md" />} title="Aucun tarif" description="Ajoutez un tarif pour ce diagnostic (Min / Barème / Max)." />
         ) : (
-        <div className="space-y-2">
-          {diagnostic.interventions.map((intervention) => (
-            <Card key={intervention.id}>
-              <CardContent className="space-y-2 pt-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold">{intervention.name}</p>
-                    {intervention.description ? (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{intervention.description}</p>
-                    ) : null}
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      {intervention.difficulty ? <span>Difficulté : {intervention.difficulty}</span> : null}
-                      {intervention.estimatedTime ? <span>Durée : {intervention.estimatedTime}</span> : null}
-                      {intervention.needsParts ? <Badge variant="warning">Pièces requises</Badge> : null}
+        <ResponsiveView
+          mobile={
+          <div className="space-y-2">
+            {diagnostic.interventions.map((intervention) => (
+              <Card key={intervention.id}>
+                <CardContent className="space-y-2 pt-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{intervention.name}</p>
+                      {intervention.description ? (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{intervention.description}</p>
+                      ) : null}
+                      <p className="mt-1 text-xs font-medium tabular-nums">
+                        {intervention.pricing ? (
+                          <>
+                            Min {intervention.pricing.minPrice?.toLocaleString('fr-FR') ?? '—'} ·{' '}
+                            Barème {intervention.pricing.referencePrice?.toLocaleString('fr-FR') ?? '—'} ·{' '}
+                            Max {intervention.pricing.maxPrice?.toLocaleString('fr-FR') ?? '—'} FCFA
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">Sans tarif</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {intervention.isActive ? 'Actif' : 'Inactif'}
+                      </span>
+                      <Switch
+                        aria-label={`Activer ou désactiver ${intervention.name}`}
+                        checked={intervention.isActive}
+                        onCheckedChange={(active) => handleToggleIntervention(intervention.id, active)}
+                      />
+                      <DeleteCatalogItem
+                        itemLabel={intervention.name}
+                        onDelete={() => deleteIntervention(intervention.id)}
+                        onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                          if (err) setError(err);
+                          else if (outcome) setNotice(outcome.message);
+                          void load(true);
+                        }}
+                      />
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      {intervention.isActive ? 'Actif' : 'Inactif'}
-                    </span>
-                    <Switch
-                      aria-label={`Activer ou désactiver ${intervention.name}`}
-                      checked={intervention.isActive}
-                      onCheckedChange={(active) => handleToggleIntervention(intervention.id, active)}
-                    />
-                    <DeleteCatalogItem
-                      itemLabel={intervention.name}
-                      onDelete={() => deleteIntervention(intervention.id)}
-                      onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
-                        if (err) setError(err);
-                        else if (outcome) setNotice(outcome.message);
-                        void load(true);
-                      }}
-                    />
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-11 w-full"
+                      onClick={() => handleOpenPricing(intervention)}
+                      isLoading={loadingPricing && pricingInterventionId === intervention.id}
+                    >
+                      <Icon name="star" size="3.5" />
+                      Tarif Min / Barème / Max
+                    </Button>
                   </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleOpenPricing(intervention)}
-                    isLoading={loadingPricing && pricingInterventionId === intervention.id}
-                  >
-                    <Icon name="star" size="3.5" />
-                    Tarif
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          }
+          desktop={
+          <div className="grid gap-3 lg:grid-cols-2">
+            {diagnostic.interventions.map((intervention) => (
+              <Card key={intervention.id}>
+                <CardContent className="space-y-2 pt-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">{intervention.name}</p>
+                      {intervention.description ? (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{intervention.description}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {intervention.isActive ? 'Actif' : 'Inactif'}
+                      </span>
+                      <Switch
+                        aria-label={`Activer ou désactiver ${intervention.name}`}
+                        checked={intervention.isActive}
+                        onCheckedChange={(active) => handleToggleIntervention(intervention.id, active)}
+                      />
+                      <DeleteCatalogItem
+                        itemLabel={intervention.name}
+                        onDelete={() => deleteIntervention(intervention.id)}
+                        onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                          if (err) setError(err);
+                          else if (outcome) setNotice(outcome.message);
+                          void load(true);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <dl className="grid grid-cols-3 gap-2 rounded-md bg-muted/50 p-2 text-center">
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Min</dt>
+                      <dd className="text-sm font-semibold tabular-nums">
+                        {intervention.pricing?.minPrice?.toLocaleString('fr-FR') ?? '—'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Barème</dt>
+                      <dd className="text-sm font-semibold tabular-nums">
+                        {intervention.pricing?.referencePrice?.toLocaleString('fr-FR') ?? '—'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[11px] text-muted-foreground">Max</dt>
+                      <dd className="text-sm font-semibold tabular-nums">
+                        {intervention.pricing?.maxPrice?.toLocaleString('fr-FR') ?? '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleOpenPricing(intervention)}
+                      isLoading={loadingPricing && pricingInterventionId === intervention.id}
+                    >
+                      <Icon name="star" size="3.5" />
+                      {intervention.pricing ? 'Modifier le tarif' : 'Définir le tarif'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          }
+          fallback={null}
+        />
       )}
       </section>
 
@@ -389,11 +446,12 @@ export default function AdminDiagnosticPage() {
         </Card>
       </section>
 
-      {/* Create Intervention Modal */}
+      {/* Create Tarif Modal */}
       <Modal
         open={showCreateInt}
         onClose={() => setShowCreateInt(false)}
-        title="Nouvelle intervention"
+        title="Nouveau tarif"
+        description="Nom du tarif (ex. : Remplacement écran LCD). Le barème Min / Barème / Max se définit ensuite."
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreateInt(false)} disabled={creatingInt}>Annuler</Button>
@@ -411,18 +469,6 @@ export default function AdminDiagnosticPage() {
           <Field label="Description" htmlFor="intDesc">
             <Textarea id="intDesc" value={intDesc} onChange={(e) => setIntDesc(e.target.value)} rows={2} maxLength={2000} />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Difficulté" htmlFor="intDiff">
-              <Input id="intDiff" value={intDiff} onChange={(e) => setIntDiff(e.target.value)} placeholder="Facile / Moyen / Difficile" />
-            </Field>
-            <Field label="Durée estimée" htmlFor="intTime">
-              <Input id="intTime" value={intTime} onChange={(e) => setIntTime(e.target.value)} placeholder="30-60 min" />
-            </Field>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch checked={intNeedsParts} onCheckedChange={setIntNeedsParts} aria-label="Nécessite des pièces" />
-            <label htmlFor="intNeedsParts" className="text-sm">Nécessite des pièces</label>
-          </div>
         </div>
       </Modal>
 
@@ -479,21 +525,15 @@ export default function AdminDiagnosticPage() {
                     ))}
                   </div>
                 ) : null}
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Prix min (FCFA)" htmlFor="pMin" hint="Interne Relio">
+                <div className="grid grid-cols-3 gap-3">
+                  <Field label="Min (FCFA)" htmlFor="pMin">
                     <Input id="pMin" type="number" step="1" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix référence (FCFA)" htmlFor="pRef">
+                  <Field label="Barème (FCFA)" htmlFor="pRef">
                     <Input id="pRef" type="number" step="1" value={refPrice} onChange={(e) => setRefPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Prix max (FCFA)" htmlFor="pMax" hint="Interne Relio">
+                  <Field label="Max (FCFA)" htmlFor="pMax">
                     <Input id="pMax" type="number" step="1" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="0" />
-                  </Field>
-                  <Field label="Frais déplacement (FCFA)" htmlFor="pTravel">
-                    <Input id="pTravel" type="number" step="1" value={travelFee} onChange={(e) => setTravelFee(e.target.value)} placeholder="0" />
-                  </Field>
-                  <Field label="Frais Relio (FCFA)" htmlFor="pService">
-                    <Input id="pService" type="number" step="1" value={serviceFee} onChange={(e) => setServiceFee(e.target.value)} placeholder="0" />
                   </Field>
                 </div>
                 <div className="flex items-center justify-between gap-3">

@@ -13,6 +13,7 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
@@ -154,12 +155,12 @@ export default function AdminBrandPage() {
       />
       <PageHeader
         title={brand.name}
-        description="Modèles et problèmes de cette marque."
+        description="Spécification — modèles et catégories. Catalogue → Spécification → Modèle → Catégorie → Tarification."
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => setShowCreateProblem(true)}>
               <Icon name="plus" size="3.5" />
-              Nouveau problème
+              Nouvelle catégorie
             </Button>
           </div>
         }
@@ -194,8 +195,10 @@ export default function AdminBrandPage() {
           }
         />
         {brand.models.length === 0 ? (
-        <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucun modèle" description="Ajoutez un modèle pour cette marque." />
+        <EmptyState icon={<Icon name="briefcase" size="md" />} title="Aucun modèle" description="Ajoutez un modèle pour cette spécification." />
       ) : (
+        <ResponsiveView
+          mobile={
         <div className="space-y-2">
           {brand.models.map((model) => (
             <Card key={model.id}>
@@ -216,7 +219,7 @@ export default function AdminBrandPage() {
                     ) : null}
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {model._count?.problems ?? 0}{' '}
-                      problème{model._count?.problems !== 1 ? 's' : ''}
+                      catégorie{model._count?.problems !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </Link>
@@ -237,6 +240,52 @@ export default function AdminBrandPage() {
             </Card>
           ))}
         </div>
+          }
+          desktop={
+        <div className="grid gap-2 lg:grid-cols-2">
+          {brand.models.map((model) => (
+            <Card key={model.id}>
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link
+                  href={`/admin/catalog/${domainId}/brands/${brand.id}/models/${model.id}`}
+                  className="min-w-0 flex-1"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{model.name}</p>
+                      <Badge variant={model.isActive ? 'success' : 'neutral'}>
+                        {model.isActive ? 'Actif' : 'Inactif'}
+                      </Badge>
+                    </div>
+                    {model.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{model.description}</p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {model._count?.problems ?? 0}{' '}
+                      catégorie{model._count?.problems !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </Link>
+                <Switch
+                  checked={model.isActive}
+                  onCheckedChange={(active) => handleToggleModelActive(model.id, active)}
+                />
+                <DeleteCatalogItem
+                  itemLabel={model.name}
+                  onDelete={() => deleteModel(model.id)}
+                  onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                    if (err) setError(err);
+                    else if (outcome) setNotice(outcome.message);
+                    void load(true);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+          }
+          fallback={null}
+        />
       )}
       </section>
 
@@ -269,8 +318,8 @@ export default function AdminBrandPage() {
       <Modal
         open={showCreateProblem}
         onClose={() => setShowCreateProblem(false)}
-        title="Nouveau problème"
-        description={`Rattaché à la marque ${brand.name} (et non au domaine). Vous pourrez le décliner par modèle depuis sa page modèle.`}
+        title="Nouvelle catégorie"
+        description={`Rattachée à la spécification ${brand.name}. Déclinez-la par modèle depuis sa page modèle.`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreateProblem(false)} disabled={creatingProblem}>Annuler</Button>

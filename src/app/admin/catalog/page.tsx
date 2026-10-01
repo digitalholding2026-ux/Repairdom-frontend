@@ -12,6 +12,7 @@ import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
 import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import {
@@ -23,6 +24,56 @@ import {
   type CatalogDeleteOutcome,
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+
+/* Catalogue simplifié — niveau 1 « Catalogue / Type d'appareil »
+ * (Smartphone, Télévision, …). Hiérarchie :
+ * Catalogue → Spécification → Modèle → Catégorie → Tarification
+ * (Min / Barème / Max). Mobile = liste verticale tactile,
+ * Desktop = grille deux colonnes (structures distinctes, §13). */
+
+function DomainCard({
+  domain,
+  onDone,
+  onError,
+}: {
+  domain: CatalogDomain;
+  onDone: (outcome: CatalogDeleteOutcome | null, err: string | null) => void;
+  onError: (err: string) => void;
+}) {
+  return (
+    <Card className="transition-colors hover:bg-muted/50">
+      <CardContent className="flex items-center justify-between gap-3 pt-4">
+        <Link href={`/admin/catalog/${domain.id}`} className="min-w-0 flex-1" aria-label={`Ouvrir ${domain.name}`}>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold">{domain.name}</p>
+              <Badge variant={domain.isActive ? 'success' : 'neutral'}>
+                {domain.isActive ? 'Actif' : 'Inactif'}
+              </Badge>
+            </div>
+            {domain.description ? (
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">{domain.description}</p>
+            ) : null}
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {domain._count?.problems ?? 0} catégorie{(domain._count?.problems ?? 0) !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </Link>
+        <div className="flex shrink-0 items-center gap-1">
+          <DeleteCatalogItem
+            itemLabel={domain.name}
+            onDelete={() => deleteDomain(domain.id)}
+            onDone={(outcome, err) => {
+              if (err) onError(err);
+              else onDone(outcome, null);
+            }}
+          />
+          <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminCatalogPage() {
   const [domains, setDomains] = useState<CatalogDomain[]>([]);
@@ -83,11 +134,17 @@ export default function AdminCatalogPage() {
     }
   };
 
+  const handleDone = (outcome: CatalogDeleteOutcome | null, err: string | null) => {
+    if (err) setError(err);
+    else if (outcome) setNotice(outcome.message);
+    setReloadKey((k) => k + 1);
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Catalogue"
-        description="Gérez les domaines, problèmes, diagnostics et tarifs Relio."
+        description="Types d'appareils Relio — Catalogue → Spécification → Modèle → Catégorie → Tarification (Min / Barème / Max)."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/catalog/villes">
@@ -98,7 +155,7 @@ export default function AdminCatalogPage() {
             </Link>
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
-              Domaine
+              Type d&apos;appareil
             </Button>
           </div>
         }
@@ -123,53 +180,34 @@ export default function AdminCatalogPage() {
       ) : domains.length === 0 ? (
         <EmptyState
           icon={<Icon name="wrench" size="md" />}
-          title="Aucun domaine"
-          description="Créez un domaine ou utilisez le seed Smartphone pour commencer."
+          title="Aucun type d'appareil"
+          description="Créez un type d'appareil ou utilisez le seed Smartphone pour commencer."
         />
       ) : (
-        <div className="space-y-3">
-          {domains.map((domain) => (
-            <Card key={domain.id} className="transition-colors hover:bg-muted/50">
-              <CardContent className="flex items-center justify-between gap-3 pt-4">
-                <Link href={`/admin/catalog/${domain.id}`} className="min-w-0 flex-1">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-sm font-semibold">{domain.name}</p>
-                      <Badge variant={domain.isActive ? 'success' : 'neutral'}>
-                        {domain.isActive ? 'Actif' : 'Inactif'}
-                      </Badge>
-                    </div>
-                    {domain.description ? (
-                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{domain.description}</p>
-                    ) : null}
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {domain._count?.problems ?? 0} problème{(domain._count?.problems ?? 0) !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </Link>
-                <div className="flex shrink-0 items-center gap-1">
-                  <DeleteCatalogItem
-                    itemLabel={domain.name}
-                    onDelete={() => deleteDomain(domain.id)}
-                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
-                      if (err) setError(err);
-                      else if (outcome) setNotice(outcome.message);
-                      setReloadKey((k) => k + 1);
-                    }}
-                  />
-                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ResponsiveView
+          mobile={
+            <div className="space-y-3">
+              {domains.map((domain) => (
+                <DomainCard key={domain.id} domain={domain} onDone={handleDone} onError={setError} />
+              ))}
+            </div>
+          }
+          desktop={
+            <div className="grid gap-3 lg:grid-cols-2">
+              {domains.map((domain) => (
+                <DomainCard key={domain.id} domain={domain} onDone={handleDone} onError={setError} />
+              ))}
+            </div>
+          }
+          fallback={<CatalogSkeleton />}
+        />
       )}
 
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Nouveau domaine"
-        description="Ajoutez un nouveau domaine au catalogue Relio."
+        title="Nouveau type d'appareil"
+        description="Ajoutez un catalogue au référentiel Relio (ex. : Smartphone, Télévision)."
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Annuler</Button>

@@ -11,8 +11,9 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
-import { Field, Input, Textarea } from '@/components/ui';
+import { Field, Input, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
+import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
@@ -21,6 +22,7 @@ import {
   getModel,
   listProblems,
   createProblem,
+  updateModel,
   deleteModel,
   deleteProblem,
   type CatalogModelDetail,
@@ -77,6 +79,16 @@ export default function AdminModelPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const handleToggleModelActive = async (active: boolean) => {
+    if (!params?.modelId) return;
+    try {
+      const updated = await updateModel(params.modelId, { isActive: active });
+      setModel((prev) => (prev ? { ...prev, ...updated, brand: prev.brand } : prev));
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Erreur.'));
+    }
+  };
+
   const handleCreateProblem = async () => {
     if (!params?.domainId) return;
     const name = newName.trim();
@@ -120,7 +132,7 @@ export default function AdminModelPage() {
           { label: model.name },
         ]}
       />
-      <PageHeader title={model.name} description={`Modèle : ${model.brand.name}`} />
+      <PageHeader title={model.name} description={`Modèle de la spécification ${model.brand.name} — Catalogue → Spécification → Modèle → Catégorie → Tarification.`} />
       {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
@@ -129,6 +141,10 @@ export default function AdminModelPage() {
           <CardContent className="space-y-3 pt-4">
             <Badge variant="outline">{model.brand.name}</Badge>
             {model.description ? <p className="text-sm text-muted-foreground">{model.description}</p> : null}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Actif</span>
+              <Switch checked={model.isActive} onCheckedChange={handleToggleModelActive} />
+            </div>
             <p className="text-xs text-muted-foreground">Slug : {model.slug}</p>
           </CardContent>
         </Card>
@@ -136,20 +152,22 @@ export default function AdminModelPage() {
 
       <section className="space-y-3">
         <SectionHeader
-          title={`Problèmes de ce modèle (${problems.length})`}
+          title={`Catégories de ce modèle (${problems.length})`}
           icon="file"
-          description="Problèmes génériques, de la marque et spécifiques à ce modèle."
+          description="Catégories de panne / intervention : nom + Min / Barème / Max en FCFA."
           action={
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
-              Problème
+              Catégorie
             </Button>
           }
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {problems.length === 0 ? (
-        <EmptyState icon={<Icon name="file" size="md" />} title="Aucun problème" description="Ajoutez un problème pour ce modèle." />
+        <EmptyState icon={<Icon name="file" size="md" />} title="Aucune catégorie" description="Ajoutez une catégorie pour ce modèle." />
       ) : (
+        <ResponsiveView
+          mobile={
         <div className="space-y-2">
           {problems.map((problem) => (
             <Card key={problem.id} className="transition-colors hover:bg-muted/50">
@@ -184,6 +202,45 @@ export default function AdminModelPage() {
             </Card>
           ))}
         </div>
+          }
+          desktop={
+        <div className="grid gap-2 lg:grid-cols-2">
+          {problems.map((problem) => (
+            <Card key={problem.id} className="transition-colors hover:bg-muted/50">
+              <CardContent className="flex items-center justify-between gap-3 pt-4">
+                <Link href={`/admin/catalog/${domainId}/${problem.id}`} className="min-w-0 flex-1">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold">{problem.name}</p>
+                      <ProblemScopeBadge problem={problem} />
+                    </div>
+                    {problem.description ? (
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{problem.description}</p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {problem._count?.diagnostics ?? 0} diagnostic{(problem._count?.diagnostics ?? 0) !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </Link>
+                <div className="flex shrink-0 items-center gap-1">
+                  <DeleteCatalogItem
+                    itemLabel={problem.name}
+                    onDelete={() => deleteProblem(problem.id)}
+                    onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
+                      if (err) setError(err);
+                      else if (outcome) setNotice(outcome.message);
+                      void load();
+                    }}
+                  />
+                  <Icon name="chevron-right" size="sm" className="shrink-0 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+          }
+          fallback={null}
+        />
       )}
       </section>
 
@@ -216,8 +273,8 @@ export default function AdminModelPage() {
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Nouveau problème"
-        description={`Problème spécifique au modèle ${model.name} (${model.brand.name}).`}
+        title="Nouvelle catégorie"
+        description={`Catégorie de panne / intervention pour le modèle ${model.name} (${model.brand.name}).`}
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Annuler</Button>
