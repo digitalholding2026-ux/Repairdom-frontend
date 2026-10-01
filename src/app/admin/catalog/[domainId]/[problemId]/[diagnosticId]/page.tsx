@@ -250,6 +250,16 @@ export default function AdminDiagnosticPage() {
     <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
       <PageHeader title={diagnostic.name} backHref={`/admin/catalog/${domainId}/${problemId}`} />
+      {diagnostic.problem?.model ? (
+        <Alert variant="info">
+          Ce barème concerne le modèle : {diagnostic.problem.model.name}
+          {diagnostic.problem?.brand ? ` (${diagnostic.problem.brand.name})` : ''} — Min / Barème / Max propres à ce modèle.
+        </Alert>
+      ) : (
+        <Alert variant="warning">
+          Cette catégorie n&apos;est rattachée à aucun modèle précis : les tarifs existants restent consultables, mais aucun nouveau tarif ne peut être créé ici. Créez d&apos;abord la catégorie sous le modèle concerné.
+        </Alert>
+      )}
       {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
@@ -276,10 +286,12 @@ export default function AdminDiagnosticPage() {
           icon="wrench"
           description="Un tarif = Min / Barème / Max en FCFA. Barème actif utilisé par le contrôle IA-6."
           action={
-            <Button size="sm" onClick={() => setShowCreateInt(true)}>
-              <Icon name="plus" size="3.5" />
-              Tarif
-            </Button>
+            diagnostic.problem?.model ? (
+              <Button size="sm" onClick={() => setShowCreateInt(true)}>
+                <Icon name="plus" size="3.5" />
+                Tarif
+              </Button>
+            ) : undefined
           }
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
@@ -331,6 +343,7 @@ export default function AdminDiagnosticPage() {
                     </div>
                   </div>
                   <div className="flex gap-2 pt-1">
+                    {diagnostic.problem?.model ? (
                     <Button
                       variant="secondary"
                       size="sm"
@@ -341,6 +354,7 @@ export default function AdminDiagnosticPage() {
                       <Icon name="star" size="3.5" />
                       Tarif Min / Barème / Max
                     </Button>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>
@@ -400,6 +414,7 @@ export default function AdminDiagnosticPage() {
                     </div>
                   </dl>
                   <div className="flex gap-2 pt-1">
+                    {diagnostic.problem?.model ? (
                     <Button
                       variant="secondary"
                       size="sm"
@@ -409,6 +424,7 @@ export default function AdminDiagnosticPage() {
                       <Icon name="star" size="3.5" />
                       {intervention.pricing ? 'Modifier le tarif' : 'Définir le tarif'}
                     </Button>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>

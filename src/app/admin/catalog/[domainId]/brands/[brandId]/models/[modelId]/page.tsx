@@ -23,11 +23,13 @@ import {
   listProblems,
   createProblem,
   updateModel,
+  getProblemScale,
   deleteModel,
   deleteProblem,
   type CatalogModelDetail,
   type CatalogProblem,
   type CatalogDeleteOutcome,
+  type ProblemScale,
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
@@ -41,11 +43,16 @@ function ProblemScopeBadge({ problem }: { problem: CatalogProblem }) {
   return <Badge variant="neutral">Générique</Badge>;
 }
 
+function formatXaf(value: number | null): string {
+  return value === null ? '—' : value.toLocaleString('fr-FR');
+}
+
 export default function AdminModelPage() {
   const params = useParams<{ domainId: string; brandId: string; modelId: string }>();
   const router = useRouter();
   const [model, setModel] = useState<CatalogModelDetail | null>(null);
   const [problems, setProblems] = useState<CatalogProblem[]>([]);
+  const [scales, setScales] = useState<Record<string, ProblemScale>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -67,8 +74,26 @@ export default function AdminModelPage() {
           modelId: data.id,
         });
         setProblems(scoped);
+        // Barèmes du modèle (MODÈLE + CATÉGORIE) : un appel par catégorie,
+        // en parallèle ; un échec isolé ne bloque pas le tableau.
+        const entries = await Promise.all(
+          scoped.map(async (problem) => {
+            try {
+              const scale = await getProblemScale(problem.id);
+              return [problem.id, scale] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        const map: Record<string, ProblemScale> = {};
+        for (const entry of entries) {
+          if (entry) map[entry[0]] = entry[1];
+        }
+        setScales(map);
       } else {
         setProblems([]);
+        setScales({});
       }
     } catch (err) {
       setError(toUserErrorMessage(err, 'Erreur de chargement.'));
@@ -148,6 +173,69 @@ export default function AdminModelPage() {
             <p className="text-xs text-muted-foreground">Slug : {model.slug}</p>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader
+          title={`Tarifs du modèle ${model.name}`}
+          icon="star"
+          description="Un barème par catégorie pour CE modèle (Min / Barème / Max en FCFA). Le même nom de catégorie sur un autre modèle possède son propre barème."
+        />
+        {problems.length === 0 ? (
+          <EmptyState icon={<Icon name="star" size="md" />} title="Aucun tarif" description="Ajoutez une catégorie ci-dessous, puis son tarif." />
+        ) : (
+          <ResponsiveView
+            mobile={
+              <div className="space-y-2">
+                {problems.map((problem) => {
+                  const scale = scales[problem.id];
+                  return (
+                    <Card key={problem.id}>
+                      <CardContent className="space-y-1 pt-4">
+                        <p className="text-sm font-semibold">{problem.name}</p>
+                        <p className="text-xs font-medium tabular-nums">
+                          Min {formatXaf(scale?.scale.min ?? null)} · Barème {formatXaf(scale?.scale.reference ?? null)} · Max {formatXaf(scale?.scale.max ?? null)} FCFA
+                        </p>
+                        {!scale || !scale.hasActiveScale ? (
+                          <p className="text-xs text-muted-foreground">Sans barème actif pour ce modèle</p>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            }
+            desktop={
+              <div className="overflow-x-auto rounded-lg border">
+                <table className="w-full text-sm">
+                  <caption className="sr-only">Barèmes des catégories du modèle {model.name}</caption>
+                  <thead>
+                    <tr className="border-b bg-muted/50 text-left">
+                      <th scope="col" className="px-3 py-2 font-medium">Catégorie</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Min (FCFA)</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Barème (FCFA)</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Max (FCFA)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {problems.map((problem) => {
+                      const scale = scales[problem.id];
+                      return (
+                        <tr key={problem.id} className="border-b last:border-0">
+                          <td className="px-3 py-2 font-medium">{problem.name}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatXaf(scale?.scale.min ?? null)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatXaf(scale?.scale.reference ?? null)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatXaf(scale?.scale.max ?? null)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            }
+            fallback={null}
+          />
+        )}
       </section>
 
       <section className="space-y-3">

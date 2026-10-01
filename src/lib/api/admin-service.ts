@@ -321,6 +321,34 @@ export function getProblem(id: string): Promise<CatalogProblemDetail> {
   return catalogFetch<CatalogProblemDetail>(`/admin/catalog/problems/${encodeURIComponent(id)}`);
 }
 
+/* Barème d'une catégorie pour son modèle (MODÈLE + CATÉGORIE) : Min /
+ * Barème / Max agrégés des tarifs actifs. Référence du tableau « tarifs du
+ * modèle » et du contrôle IA-6 exact-modèle. */
+export interface ProblemScale {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  domain: { id: string; name: string; slug: string };
+  brand: { id: string; name: string } | null;
+  model: { id: string; name: string } | null;
+  scale: {
+    min: number | null;
+    reference: number | null;
+    max: number | null;
+    currency: string;
+    pricedInterventions: number;
+    totalInterventions: number;
+    pricedDiagnostics: number;
+    totalDiagnostics: number;
+  };
+  hasActiveScale: boolean;
+}
+
+export function getProblemScale(id: string): Promise<ProblemScale> {
+  return catalogFetch<ProblemScale>(`/admin/catalog/problems/${encodeURIComponent(id)}/scale`);
+}
+
 export function createProblem(data: {
   domainId: string;
   brandId?: string;

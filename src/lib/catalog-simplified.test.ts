@@ -71,3 +71,25 @@ void test('catalogue simplifié : création / activation à chaque niveau', () =
   assert.match(read(DIAGNOSTIC), /updateDiagnostic/);
   assert.match(read(DIAGNOSTIC), /createPricing|updatePricing/);
 });
+
+void test('tarification modèle : barème affiché dans son contexte modèle', () => {
+  const api = read('../lib/api/admin-service.ts');
+  assert.match(api, /getProblemScale/);
+  assert.match(api, /problems\/.*\/scale/);
+  // Page modèle : tableau Catégorie / Min / Barème / Max du modèle.
+  const model = read(MODEL);
+  assert.match(model, /getProblemScale/);
+  assert.match(model, /Tarifs du modèle/);
+  assert.match(model, /<table/);
+  assert.match(model, /Barème \(FCFA\)/);
+  // Page catégorie : résumé du barème avec son modèle.
+  const problem = read(PROBLEM);
+  assert.match(problem, /getProblemScale/);
+  assert.match(problem, /Barème \{/);
+  // Page tarif : bannière « ce barème concerne le modèle », création
+  // impossible hors modèle (jamais de barème global ambigu).
+  const diag = read(DIAGNOSTIC);
+  assert.match(diag, /Ce barème concerne le modèle/);
+  assert.match(diag, /aucun nouveau tarif ne peut être créé ici/);
+  assert.match(diag, /problem\?\.model \? \(/);
+});

@@ -22,10 +22,12 @@ import {
   getProblem,
   createDiagnostic,
   updateProblem,
+  getProblemScale,
   deleteProblem,
   deleteDiagnostic,
   type CatalogProblemDetail,
   type CatalogDeleteOutcome,
+  type ProblemScale,
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
@@ -33,6 +35,7 @@ export default function AdminProblemPage() {
   const params = useParams<{ domainId: string; problemId: string }>();
   const router = useRouter();
   const [problem, setProblem] = useState<CatalogProblemDetail | null>(null);
+  const [scale, setScale] = useState<ProblemScale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -49,6 +52,11 @@ export default function AdminProblemPage() {
     try {
       const data = await getProblem(params.problemId);
       setProblem(data);
+      try {
+        setScale(await getProblemScale(params.problemId));
+      } catch {
+        setScale(null);
+      }
     } catch (err) {
       setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
@@ -135,6 +143,12 @@ export default function AdminProblemPage() {
               {!brand && !model ? <Badge variant="neutral">Générique</Badge> : null}
             </div>
             {problem.description ? <p className="text-sm text-muted-foreground">{problem.description}</p> : null}
+            <p className="text-sm font-medium tabular-nums">
+              Barème {problem.model ? `(${problem.model.name})` : '(hors modèle)'} : Min{' '}
+              {scale?.scale.min?.toLocaleString('fr-FR') ?? '—'} · Barème{' '}
+              {scale?.scale.reference?.toLocaleString('fr-FR') ?? '—'} · Max{' '}
+              {scale?.scale.max?.toLocaleString('fr-FR') ?? '—'} FCFA
+            </p>
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">Actif</span>
               <Switch checked={problem.isActive} onCheckedChange={handleToggleActive} />
