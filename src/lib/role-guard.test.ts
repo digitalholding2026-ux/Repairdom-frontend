@@ -91,8 +91,21 @@ void test('RoleGuard : rôle incorrect → homePath du rôle', () => {
   );
 });
 
+void test('LoadingScreen : JSON importé, passé au lecteur unique, neutre', () => {
+  const wrappers = read('../components/lottie/lottie-animations.tsx');
+  assert.match(wrappers, /connexion-animation\.json/);
+  assert.match(wrappers, /ConnexionAnimation/);
+  assert.match(wrappers, /LottieAnimation/);
+  const screen = read('../components/auth/loading-screen.tsx');
+  assert.match(screen, /ConnexionAnimation/);
+  assert.match(screen, /min-h-dvh/);
+  assert.match(screen, /bg-background/);
+  assert.doesNotMatch(screen, /<button|<a href|Chargement/);
+  const guard = read('../components/auth/role-guard.tsx');
+  assert.match(guard, /LoadingScreen/);
+});
+
 void test('safeRedirect : interne acceptée, externe et // rejetées (statique)', () => {
-  // `safeRedirect` vit dans `api/auth-service.ts` (alias `@/` non résolu par
   // Node natif) : vérification statique du contrat — préfixe exigé, `//`
   // et backslash rejetés, fallback rôle.
   const src = read('./api/auth-service.ts');

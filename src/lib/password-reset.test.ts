@@ -86,6 +86,5 @@ void test('contrats API reset + RoleGuard conservé (sans middleware)', () => {
   }
   const guard = read('../components/auth/role-guard.tsx');
   assert.match(guard, /decideGuard/);
-  assert.match(guard, /Logo/);
-  assert.match(guard, /Skeleton/);
+  assert.match(guard, /LoadingScreen/);
 });

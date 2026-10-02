@@ -7,6 +7,7 @@ import erreur404Data from '../../../animatio json/erreur 404.json';
 import menuNavData from '../../../animatio json/menu nav.json';
 import rechercheTechnicienData from '../../../animatio json/recherche de technicien.json';
 import whatsappData from '../../../animatio json/social media whatsapp.json';
+import connexionData from './connexion-animation.json';
 
 /* MISSION LottieFlow — table de correspondance (audit des JSON) :
  *
@@ -97,6 +98,18 @@ export function WhatsAppMark({ className }: { className?: string }) {
       animationData={whatsappData}
       loop={false}
       className={className ?? 'size-5'}
+    />
+  );
+}
+
+/** Écran de chargement neutre (RoleGuard) : animation en boucle, décorative
+ * (aucun texte, aucun bouton — `prefers-reduced-motion` figée par le
+ * lecteur). Taille contenue 144-176px, jamais plein écran. */
+export function ConnexionAnimation({ className }: { className?: string }) {
+  return (
+    <LottieAnimation
+      animationData={connexionData}
+      className={className ?? 'h-36 w-36 sm:h-44 sm:w-44'}
     />
   );
 }

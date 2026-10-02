@@ -119,9 +119,9 @@ void test('tracking : format miroir backend, suivi anonyme sans GPS', () => {
 
 void test('guards : backend source de vérité, RoleGuard sans flash (écran neutre)', () => {
   const guard = read('../components/auth/role-guard.tsx');
-  assert.match(guard, /Skeleton/);
-  assert.match(guard, /Logo/);
-  assert.match(read('../lib/guard-decision.ts'), /homePathForRole/);
+  assert.match(guard, /LoadingScreen/);
+  assert.match(read('../components/auth/loading-screen.tsx'), /ConnexionAnimation/);
+  assert.match(read('../lib/guard-decision.ts'), /roleHomePath/);
   // Aucune route protégée sans RoleGuard dans les layouts privés.
   for (const rel of [
     '../app/client/layout.tsx',
