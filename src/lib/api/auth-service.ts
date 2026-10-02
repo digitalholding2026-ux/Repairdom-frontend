@@ -175,6 +175,35 @@ export async function resendVerification(email: string): Promise<{ ok: boolean }
   });
 }
 
+/* Reset password — contrats stables :
+ * - forgot-password répond TOUJOURS 200 (anti-énumération), que le compte
+ *   existe ou non ;
+ * - validate indique si le lien est encore utilisable ;
+ * - reset-password consomme le token (usage unique) et renvoie le rôle
+ *   pour rediriger vers la bonne page de connexion. */
+export async function requestPasswordReset(email: string): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function validateResetToken(token: string): Promise<{ valid: boolean }> {
+  return apiFetch<{ valid: boolean }>(`/auth/reset-password/${encodeURIComponent(token)}/validate`);
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string,
+): Promise<{ ok: boolean; role: string }> {
+  return apiFetch<{ ok: boolean; role: string }>('/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 export async function updateMe(input: {
   firstName?: string;
   lastName?: string | null;

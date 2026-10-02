@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -189,6 +190,16 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             )}
           </button>
         </div>
+        {!isSignUp ? (
+          <p className="text-right text-xs">
+            <Link
+              href="/mot-de-passe-oublie"
+              className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
+        ) : null}
       </Field>
 
       {isSignUp ? (

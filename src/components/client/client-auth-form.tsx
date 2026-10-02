@@ -332,6 +332,16 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
         {isSignUp && password.length > 0 && passwordValid ? (
           <p className="text-xs text-success-ink">Mot de passe valide</p>
         ) : null}
+        {!isSignUp ? (
+          <p className="text-right text-xs">
+            <Link
+              href="/mot-de-passe-oublie"
+              className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
+        ) : null}
       </Field>
       ) : null}
 
