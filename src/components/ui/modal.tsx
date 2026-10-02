@@ -36,6 +36,12 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  /* `onClose` est généralement une flèche inline recréée à chaque render du
+   * parent : la stocker dans une ref pour que l'effet ci-dessous ne dépende
+   * que de `open`. Sinon chaque frappe dans un champ (setState → nouveau
+   * `onClose` → effet rejoué → `panel.focus()`) vole le curseur de saisie. */
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -43,7 +49,7 @@ export function Modal({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab') return;
@@ -79,7 +85,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
