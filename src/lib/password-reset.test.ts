@@ -93,9 +93,12 @@ void test('liens mot de passe oublié sur les 2 pages de connexion', () => {
   const client = read('../components/client/client-auth-form.tsx');
   assert.match(client, /Mot de passe oublié \?/);
   assert.match(client, /\/mot-de-passe-oublie/);
+  // Après login, ?redirect= est rejoué (sinon retour dashboard du rôle).
+  assert.match(client, /safeRedirect\(window\.location\.search, '\/client'/);
   const tech = read('../components/technician/technician-auth-form.tsx');
   assert.match(tech, /Mot de passe oublié \?/);
   assert.match(tech, /\/mot-de-passe-oublie/);
+  assert.match(tech, /safeRedirect\(window\.location\.search, '\/technicien'/);
 });
 
 void test('middleware + contrats API + RoleGuard conservé', () => {
