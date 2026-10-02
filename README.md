@@ -1,5 +1,8 @@
 # RepairDom — Frontend
 
+> ⚠️ Ce projet ne contient volontairement PAS de `middleware.ts`. Voir
+> `ARCHITECTURE.md` pour la raison (architecture cross-domain Vercel + Railway).
+
 Interface web **mobile-first** du SaaS RepairDom, construite avec **Next.js (App Router)**,
 **TypeScript**, **Tailwind CSS v4** et un socle de composants UI réutilisables.
 
