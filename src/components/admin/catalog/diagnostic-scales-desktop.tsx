@@ -11,8 +11,8 @@ import {
   type ScalesData,
 } from './use-diagnostic-scales';
 
-/* IA-2 — barèmes sur DESKTOP : vraie table d'administration (diagnostic,
- * domaine, min/référence/max, statut, dernière modification, édition).
+/* IA-2 — prix courants sur DESKTOP : vraie table d'administration (diagnostic,
+ * domaine, min/prix courant/barème, statut, dernière modification, édition).
  * Scroll horizontal contrôlé, colonnes montants tabulaires. */
 
 function StatusBadges({ hasActiveScale, isActive }: { hasActiveScale: boolean; isActive: boolean }) {
@@ -20,7 +20,7 @@ function StatusBadges({ hasActiveScale, isActive }: { hasActiveScale: boolean; i
     <span className="flex flex-wrap gap-1">
       <Badge variant={isActive ? 'success' : 'neutral'}>{isActive ? 'Actif' : 'Inactif'}</Badge>
       <Badge variant={hasActiveScale ? 'info' : 'neutral'}>
-        {hasActiveScale ? 'Barème actif' : 'Sans barème'}
+        {hasActiveScale ? 'Prix courant actif' : 'Sans prix courant'}
       </Badge>
     </span>
   );
@@ -62,15 +62,15 @@ export function DiagnosticScalesDesktop({ data }: { data: ScalesData }) {
       <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full min-w-[880px] border-collapse text-sm">
           <caption className="sr-only">
-            Barèmes par diagnostic : minimum, référence et maximum en FCFA
+            Prix courants par diagnostic : minimum, prix courant et barème en FCFA
           </caption>
           <thead>
             <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <th scope="col" className="px-4 py-3 font-semibold">Diagnostic</th>
               <th scope="col" className="px-4 py-3 font-semibold">Domaine</th>
               <th scope="col" className="px-4 py-3 text-right font-semibold">Min</th>
-              <th scope="col" className="px-4 py-3 text-right font-semibold">Référence</th>
-              <th scope="col" className="px-4 py-3 text-right font-semibold">Max</th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">Prix courant</th>
+              <th scope="col" className="px-4 py-3 text-right font-semibold">Barème</th>
               <th scope="col" className="px-4 py-3 font-semibold">Statut</th>
               <th scope="col" className="px-4 py-3 font-semibold">Modifié le</th>
               <th scope="col" className="px-4 py-3"><span className="sr-only">Éditer</span></th>
@@ -102,7 +102,7 @@ export function DiagnosticScalesDesktop({ data }: { data: ScalesData }) {
                   {scale.lastChangeAt ? formatDateTime(scale.lastChangeAt) : '—'}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={scaleEditHref(scale)} aria-label={`Modifier le barème ${scale.name}`}>
+                  <Link href={scaleEditHref(scale)} aria-label={`Modifier le prix courant ${scale.name}`}>
                     <Button variant="outline" size="sm">
                       <Icon name="arrow-right" size="sm" />
                       Éditer

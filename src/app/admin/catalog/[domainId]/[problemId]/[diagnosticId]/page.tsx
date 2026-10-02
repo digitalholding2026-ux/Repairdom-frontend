@@ -39,7 +39,7 @@ import {
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Catalogue simplifié — niveau 5 « Tarification » : chaque tarif affiche
- * Nom + Min / Barème / Max (FCFA). Aucun champ durée / pièce / frais :
+ * Nom + Min / Prix courant / Barème (FCFA). Aucun champ durée / pièce / frais :
  * conservés en base pour le technicien et les snapshots devis, masqués ici.
  * L'historique (PricingHistory) reste consultable et immuable. */
 const PRICING_HISTORY_FIELDS = [
@@ -205,9 +205,9 @@ export default function AdminDiagnosticPage() {
       } = { interventionId: pricingInterventionId, isActive: pricingActive };
       const parsedMin = parseAmount(minPrice, 'Le prix min');
       if (parsedMin !== undefined) payload.minPrice = parsedMin;
-      const parsedRef = parseAmount(refPrice, 'Le prix de référence');
+      const parsedRef = parseAmount(refPrice, 'Le prix courant');
       if (parsedRef !== undefined) payload.referencePrice = parsedRef;
-      const parsedMax = parseAmount(maxPrice, 'Le prix max');
+      const parsedMax = parseAmount(maxPrice, 'Le prix barème');
       if (parsedMax !== undefined) payload.maxPrice = parsedMax;
 
       if (pricingData) {
@@ -252,8 +252,8 @@ export default function AdminDiagnosticPage() {
       <PageHeader title={diagnostic.name} backHref={`/admin/catalog/${domainId}/${problemId}`} />
       {diagnostic.problem?.model ? (
         <Alert variant="info">
-          Ce barème concerne le modèle : {diagnostic.problem.model.name}
-          {diagnostic.problem?.brand ? ` (${diagnostic.problem.brand.name})` : ''} — Min / Barème / Max propres à ce modèle.
+          Ce prix courant concerne le modèle : {diagnostic.problem.model.name}
+          {diagnostic.problem?.brand ? ` (${diagnostic.problem.brand.name})` : ''} — Min / Prix courant / Barème propres à ce modèle.
         </Alert>
       ) : (
         <Alert variant="warning">
@@ -284,7 +284,7 @@ export default function AdminDiagnosticPage() {
         <SectionHeader
           title={`Tarifs (${diagnostic.interventions.length})`}
           icon="wrench"
-          description="Un tarif = Min / Barème / Max en FCFA. Barème actif utilisé par le contrôle IA-6."
+          description="Un tarif = Min / Prix courant / Barème en FCFA. Prix courant actif utilisé par le contrôle IA-6."
           action={
             diagnostic.problem?.model ? (
               <Button size="sm" onClick={() => setShowCreateInt(true)}>
@@ -296,7 +296,7 @@ export default function AdminDiagnosticPage() {
         />
         {error ? <Alert variant="error">{error}</Alert> : null}
         {diagnostic.interventions.length === 0 ? (
-          <EmptyState icon={<Icon name="wrench" size="md" />} title="Aucun tarif" description="Ajoutez un tarif pour ce diagnostic (Min / Barème / Max)." />
+          <EmptyState icon={<Icon name="wrench" size="md" />} title="Aucun tarif" description="Ajoutez un tarif pour ce diagnostic (Min / Prix courant / Barème)." />
         ) : (
         <ResponsiveView
           mobile={
@@ -314,8 +314,8 @@ export default function AdminDiagnosticPage() {
                         {intervention.pricing ? (
                           <>
                             Min {intervention.pricing.minPrice?.toLocaleString('fr-FR') ?? '—'} ·{' '}
-                            Barème {intervention.pricing.referencePrice?.toLocaleString('fr-FR') ?? '—'} ·{' '}
-                            Max {intervention.pricing.maxPrice?.toLocaleString('fr-FR') ?? '—'} FCFA
+                            Prix courant {intervention.pricing.referencePrice?.toLocaleString('fr-FR') ?? '—'} ·{' '}
+                            Barème {intervention.pricing.maxPrice?.toLocaleString('fr-FR') ?? '—'} FCFA
                           </>
                         ) : (
                           <span className="text-muted-foreground">Sans tarif</span>
@@ -352,7 +352,7 @@ export default function AdminDiagnosticPage() {
                       isLoading={loadingPricing && pricingInterventionId === intervention.id}
                     >
                       <Icon name="star" size="3.5" />
-                      Tarif Min / Barème / Max
+                      Tarif Min / Prix courant / Barème
                     </Button>
                     ) : null}
                   </div>
@@ -401,13 +401,13 @@ export default function AdminDiagnosticPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] text-muted-foreground">Barème</dt>
+                      <dt className="text-[11px] text-muted-foreground">Prix courant</dt>
                       <dd className="text-sm font-semibold tabular-nums">
                         {intervention.pricing?.referencePrice?.toLocaleString('fr-FR') ?? '—'}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-[11px] text-muted-foreground">Max</dt>
+                      <dt className="text-[11px] text-muted-foreground">Barème</dt>
                       <dd className="text-sm font-semibold tabular-nums">
                         {intervention.pricing?.maxPrice?.toLocaleString('fr-FR') ?? '—'}
                       </dd>
@@ -467,7 +467,7 @@ export default function AdminDiagnosticPage() {
         open={showCreateInt}
         onClose={() => setShowCreateInt(false)}
         title="Nouveau tarif"
-        description="Nom du tarif (ex. : Remplacement écran LCD). Le barème Min / Barème / Max se définit ensuite."
+        description="Nom du tarif (ex. : Remplacement écran LCD). Les prix Min / Prix courant / Barème se définissent ensuite."
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreateInt(false)} disabled={creatingInt}>Annuler</Button>
@@ -545,10 +545,10 @@ export default function AdminDiagnosticPage() {
                   <Field label="Min (FCFA)" htmlFor="pMin">
                     <Input id="pMin" type="number" step="1" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Barème (FCFA)" htmlFor="pRef">
+                  <Field label="Prix courant (FCFA)" htmlFor="pRef">
                     <Input id="pRef" type="number" step="1" value={refPrice} onChange={(e) => setRefPrice(e.target.value)} placeholder="0" />
                   </Field>
-                  <Field label="Max (FCFA)" htmlFor="pMax">
+                  <Field label="Barème (FCFA)" htmlFor="pMax">
                     <Input id="pMax" type="number" step="1" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="0" />
                   </Field>
                 </div>

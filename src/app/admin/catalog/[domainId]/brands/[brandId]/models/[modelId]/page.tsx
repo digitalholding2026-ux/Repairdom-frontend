@@ -74,7 +74,7 @@ export default function AdminModelPage() {
           modelId: data.id,
         });
         setProblems(scoped);
-        // Barèmes du modèle (MODÈLE + CATÉGORIE) : un appel par catégorie,
+        // Prix courants du modèle (MODÈLE + CATÉGORIE) : un appel par catégorie,
         // en parallèle ; un échec isolé ne bloque pas le tableau.
         const entries = await Promise.all(
           scoped.map(async (problem) => {
@@ -179,7 +179,7 @@ export default function AdminModelPage() {
         <SectionHeader
           title={`Tarifs du modèle ${model.name}`}
           icon="star"
-          description="Un barème par catégorie pour CE modèle (Min / Barème / Max en FCFA). Le même nom de catégorie sur un autre modèle possède son propre barème."
+          description="Un tarif (Min / Prix courant / Barème en FCFA) par catégorie pour CE modèle. Le même nom de catégorie sur un autre modèle possède son propre tarif."
         />
         {problems.length === 0 ? (
           <EmptyState icon={<Icon name="star" size="md" />} title="Aucun tarif" description="Ajoutez une catégorie ci-dessous, puis son tarif." />
@@ -194,10 +194,10 @@ export default function AdminModelPage() {
                       <CardContent className="space-y-1 pt-4">
                         <p className="text-sm font-semibold">{problem.name}</p>
                         <p className="text-xs font-medium tabular-nums">
-                          Min {formatXaf(scale?.scale.min ?? null)} · Barème {formatXaf(scale?.scale.reference ?? null)} · Max {formatXaf(scale?.scale.max ?? null)} FCFA
+                          Min {formatXaf(scale?.scale.min ?? null)} · Prix courant {formatXaf(scale?.scale.reference ?? null)} · Barème {formatXaf(scale?.scale.max ?? null)} FCFA
                         </p>
                         {!scale || !scale.hasActiveScale ? (
-                          <p className="text-xs text-muted-foreground">Sans barème actif pour ce modèle</p>
+                          <p className="text-xs text-muted-foreground">Sans prix courant actif pour ce modèle</p>
                         ) : null}
                       </CardContent>
                     </Card>
@@ -208,13 +208,13 @@ export default function AdminModelPage() {
             desktop={
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-sm">
-                  <caption className="sr-only">Barèmes des catégories du modèle {model.name}</caption>
+                  <caption className="sr-only">Prix courants des catégories du modèle {model.name}</caption>
                   <thead>
                     <tr className="border-b bg-muted/50 text-left">
                       <th scope="col" className="px-3 py-2 font-medium">Catégorie</th>
                       <th scope="col" className="px-3 py-2 text-right font-medium">Min (FCFA)</th>
+                      <th scope="col" className="px-3 py-2 text-right font-medium">Prix courant (FCFA)</th>
                       <th scope="col" className="px-3 py-2 text-right font-medium">Barème (FCFA)</th>
-                      <th scope="col" className="px-3 py-2 text-right font-medium">Max (FCFA)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -242,7 +242,7 @@ export default function AdminModelPage() {
         <SectionHeader
           title={`Catégories de ce modèle (${problems.length})`}
           icon="file"
-          description="Catégories de panne / intervention : nom + Min / Barème / Max en FCFA."
+          description="Catégories de panne / intervention : nom + Min / Prix courant / Barème en FCFA."
           action={
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />

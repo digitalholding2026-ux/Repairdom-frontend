@@ -321,9 +321,9 @@ export function getProblem(id: string): Promise<CatalogProblemDetail> {
   return catalogFetch<CatalogProblemDetail>(`/admin/catalog/problems/${encodeURIComponent(id)}`);
 }
 
-/* Barème d'une catégorie pour son modèle (MODÈLE + CATÉGORIE) : Min /
- * Barème / Max agrégés des tarifs actifs. Référence du tableau « tarifs du
- * modèle » et du contrôle IA-6 exact-modèle. */
+/* Prix (Min / Prix courant / Barème) d'une catégorie pour son modèle
+ * (MODÈLE + CATÉGORIE) : agrégés des tarifs actifs. Source du tableau
+ * « tarifs du modèle » et du contrôle IA-6 exact-modèle. */
 export interface ProblemScale {
   id: string;
   name: string;
@@ -437,8 +437,8 @@ export function getPricing(interventionId: string): Promise<CatalogPricing> {
   return catalogFetch<CatalogPricing>(`/admin/catalog/interventions/${encodeURIComponent(interventionId)}/pricing`);
 }
 
-/* IA-2 — barèmes par diagnostic (lecture seule, ADMIN) : agrégation
- * min/référence/max sur les pricings actifs (voir backend
+/* IA-2 — prix courants par diagnostic (lecture seule, ADMIN) : agrégation
+ * min/prix courant/barème sur les pricings actifs (voir backend
  * `CatalogService.listDiagnosticScales`). */
 
 export interface DiagnosticScaleIntervention {

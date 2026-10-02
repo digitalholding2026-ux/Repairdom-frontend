@@ -129,7 +129,7 @@ export default function AdminProblemPage() {
   return (
     <div className="space-y-5">
       <Breadcrumbs items={breadcrumbs} />
-      <PageHeader title={problem.name} description="Catégorie — diagnostics catalogue et tarifs (Min / Barème / Max en FCFA). Référentiel utilisé par IA-5, jamais choisi directement par le client." />
+      <PageHeader title={problem.name} description="Catégorie — diagnostics catalogue et tarifs (Min / Prix courant / Barème en FCFA). Référentiel utilisé par IA-5, jamais choisi directement par le client." />
       {notice ? <Alert variant="success">{notice}</Alert> : null}
 
       <section className="space-y-3">
@@ -144,9 +144,9 @@ export default function AdminProblemPage() {
             </div>
             {problem.description ? <p className="text-sm text-muted-foreground">{problem.description}</p> : null}
             <p className="text-sm font-medium tabular-nums">
-              Barème {problem.model ? `(${problem.model.name})` : '(hors modèle)'} : Min{' '}
-              {scale?.scale.min?.toLocaleString('fr-FR') ?? '—'} · Barème{' '}
-              {scale?.scale.reference?.toLocaleString('fr-FR') ?? '—'} · Max{' '}
+              Tarifs {problem.model ? `(${problem.model.name})` : '(hors modèle)'} : Min{' '}
+              {scale?.scale.min?.toLocaleString('fr-FR') ?? '—'} · Prix courant{' '}
+              {scale?.scale.reference?.toLocaleString('fr-FR') ?? '—'} · Barème{' '}
               {scale?.scale.max?.toLocaleString('fr-FR') ?? '—'} FCFA
             </p>
             <div className="flex items-center justify-between gap-3">
@@ -162,7 +162,7 @@ export default function AdminProblemPage() {
         <SectionHeader
           title={`Diagnostics catalogue (${problem.diagnostics.length})`}
           icon="badge-check"
-          description="Fiches du référentiel (ancre IA-5). Chaque fiche porte ses tarifs Min / Barème / Max."
+          description="Fiches du référentiel (ancre IA-5). Chaque fiche porte ses tarifs Min / Prix courant / Barème."
           action={
             <Button size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />

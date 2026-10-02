@@ -28,7 +28,7 @@ import { toUserErrorMessage } from '@/lib/ui-error-message';
 /* Catalogue simplifié — niveau 1 « Catalogue / Type d'appareil »
  * (Smartphone, Télévision, …). Hiérarchie :
  * Catalogue → Spécification → Modèle → Catégorie → Tarification
- * (Min / Barème / Max). Mobile = liste verticale tactile,
+ * (Min / Prix courant / Barème). Mobile = liste verticale tactile,
  * Desktop = grille deux colonnes (structures distinctes, §13). */
 
 function DomainCard({
@@ -145,7 +145,7 @@ export default function AdminCatalogPage() {
     <div className="space-y-5">
       <PageHeader
         title="Catalogue"
-        description="Types d'appareils Relio — Catalogue → Spécification → Modèle → Catégorie → Tarification (Min / Barème / Max)."
+        description="Types d'appareils Relio — Catalogue → Spécification → Modèle → Catégorie → Tarification (Min / Prix courant / Barème)."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/catalog/villes">

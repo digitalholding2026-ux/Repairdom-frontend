@@ -12,7 +12,7 @@ import {
   type ScalesData,
 } from './use-diagnostic-scales';
 
-/* IA-2 — barèmes sur MOBILE : cartes tactiles (essentiel + édition ≥ 44 px).
+/* IA-2 — prix courants sur MOBILE : cartes tactiles (essentiel + édition ≥ 44 px).
  * Mêmes données et mêmes règles que la table desktop. */
 
 export function DiagnosticScalesMobile({ data }: { data: ScalesData }) {
@@ -33,7 +33,7 @@ export function DiagnosticScalesMobile({ data }: { data: ScalesData }) {
                   {scale.isActive ? 'Actif' : 'Inactif'}
                 </Badge>
                 <Badge variant={scale.hasActiveScale ? 'info' : 'neutral'}>
-                  {scale.hasActiveScale ? 'Barème' : 'Sans barème'}
+                  {scale.hasActiveScale ? 'Prix courant' : 'Sans prix courant'}
                 </Badge>
               </span>
             </div>
@@ -43,11 +43,11 @@ export function DiagnosticScalesMobile({ data }: { data: ScalesData }) {
                 <p className="text-sm font-bold">{formatScaleAmount(scale.scale.min)}</p>
               </div>
               <div>
-                <p className="text-2xs uppercase tracking-wide text-muted-foreground">Réf</p>
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">Prix courant</p>
                 <p className="text-sm font-bold text-primary">{formatScaleAmount(scale.scale.reference)}</p>
               </div>
               <div>
-                <p className="text-2xs uppercase tracking-wide text-muted-foreground">Max</p>
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">Barème</p>
                 <p className="text-sm font-bold">{formatScaleAmount(scale.scale.max)}</p>
               </div>
             </div>
@@ -56,7 +56,7 @@ export function DiagnosticScalesMobile({ data }: { data: ScalesData }) {
                 {scale.scale.pricedInterventions}/{scale.scale.totalInterventions} tarifées
                 {scale.lastChangeAt ? ` • ${formatDateTime(scale.lastChangeAt)}` : ''}
               </p>
-              <Link href={scaleEditHref(scale)} aria-label={`Modifier le barème ${scale.name}`}>
+              <Link href={scaleEditHref(scale)} aria-label={`Modifier le prix courant ${scale.name}`}>
                 <Button variant="outline" size="sm" className="min-h-11">
                   <Icon name="arrow-right" size="sm" />
                   Éditer

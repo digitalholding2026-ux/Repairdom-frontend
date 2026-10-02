@@ -13,7 +13,7 @@ import { DiagnosticScalesDesktop } from '@/components/admin/catalog/diagnostic-s
 import { DiagnosticScalesMobile } from '@/components/admin/catalog/diagnostic-scales-mobile';
 import { useDiagnosticScales, type ScaleStatusFilter } from '@/components/admin/catalog/use-diagnostic-scales';
 
-/* IA-2 — barèmes par diagnostic (ADMIN) : recherche, domaine, statut,
+/* IA-2 — prix courants par diagnostic (ADMIN) : recherche, domaine, statut,
  * pagination serveur. Desktop = vraie table, Mobile = cartes tactiles
  * (données et règles partagées, UX isolées). Édition sur la page
  * diagnostic existante (aucun éditeur dupliqué). */
@@ -22,8 +22,8 @@ const STATUS_OPTIONS: Array<{ id: ScaleStatusFilter; label: string }> = [
   { id: 'all', label: 'Tous statuts' },
   { id: 'active', label: 'Diagnostics actifs' },
   { id: 'inactive', label: 'Diagnostics inactifs' },
-  { id: 'priced', label: 'Avec barème actif' },
-  { id: 'unpriced', label: 'Sans barème actif' },
+  { id: 'priced', label: 'Avec prix courant actif' },
+  { id: 'unpriced', label: 'Sans prix courant actif' },
 ];
 
 export default function AdminBaremesPage() {
@@ -32,8 +32,8 @@ export default function AdminBaremesPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Barèmes des diagnostics"
-        description="Min / référence / max en FCFA par diagnostic (agrégés des tarifs d'interventions actifs)."
+        title="Prix courants des diagnostics"
+        description="Min / prix courant / barème en FCFA par diagnostic (agrégés des tarifs d'interventions actifs)."
         backHref="/admin/catalog"
       />
 
@@ -87,7 +87,7 @@ export default function AdminBaremesPage() {
       ) : data.items.length === 0 ? (
         <EmptyState
           icon={<Icon name="star" size="md" />}
-          title="Aucun barème trouvé"
+          title="Aucun prix courant trouvé"
           description="Ajustez la recherche ou les filtres, ou créez les tarifs depuis les pages diagnostic."
         />
       ) : (

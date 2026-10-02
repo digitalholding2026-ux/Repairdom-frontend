@@ -1,6 +1,6 @@
 /* Catalogue simplifié — hiérarchie Admin :
  * Catalogue → Spécification → Modèle → Catégorie → Tarification
- * (Min / Barème / Max). Vérifications statiques (jamais bundlé) :
+ * (Min / Prix courant / Barème). Vérifications statiques (jamais bundlé) :
  *   node --test src/lib/catalog-simplified.test.ts
  * ou : npm run test:unit
  * - ResponsiveView sur chaque niveau (jamais window.innerWidth) ;
@@ -45,11 +45,11 @@ void test('catalogue simplifié : hiérarchie métier visible dans l’interface
   assert.match(read(MODEL), /Catégories de ce modèle/);
   assert.match(read(PROBLEM), /Catégorie/);
   assert.match(read(DIAGNOSTIC), /Tarifs \(/);
-  // Le tarif affiche Nom + Min / Barème / Max, sans autre montant.
+  // Le tarif affiche Nom + Min / Prix courant / Barème, sans autre montant.
   const diag = read(DIAGNOSTIC);
-  assert.match(diag, /Barème/);
+  assert.match(diag, /Prix courant/);
   assert.match(diag, /Min \{/);
-  assert.match(diag, /Max \{/);
+  assert.match(diag, /Barème \{/);
 });
 
 void test('catalogue simplifié : aucun champ technique dans l’interface Admin', () => {
@@ -72,24 +72,24 @@ void test('catalogue simplifié : création / activation à chaque niveau', () =
   assert.match(read(DIAGNOSTIC), /createPricing|updatePricing/);
 });
 
-void test('tarification modèle : barème affiché dans son contexte modèle', () => {
+void test('tarification modèle : prix courant affiché dans son contexte modèle', () => {
   const api = read('../lib/api/admin-service.ts');
   assert.match(api, /getProblemScale/);
   assert.match(api, /problems\/.*\/scale/);
-  // Page modèle : tableau Catégorie / Min / Barème / Max du modèle.
+  // Page modèle : tableau Catégorie / Min / Prix courant / Barème du modèle.
   const model = read(MODEL);
   assert.match(model, /getProblemScale/);
   assert.match(model, /Tarifs du modèle/);
   assert.match(model, /<table/);
-  assert.match(model, /Barème \(FCFA\)/);
-  // Page catégorie : résumé du barème avec son modèle.
+  assert.match(model, /Prix courant \(FCFA\)/);
+  // Page catégorie : résumé des tarifs avec son modèle.
   const problem = read(PROBLEM);
   assert.match(problem, /getProblemScale/);
-  assert.match(problem, /Barème \{/);
-  // Page tarif : bannière « ce barème concerne le modèle », création
-  // impossible hors modèle (jamais de barème global ambigu).
+  assert.match(problem, /Prix courant/);
+  // Page tarif : bannière « ce prix courant concerne le modèle », création
+  // impossible hors modèle (jamais de tarif global ambigu).
   const diag = read(DIAGNOSTIC);
-  assert.match(diag, /Ce barème concerne le modèle/);
+  assert.match(diag, /Ce prix courant concerne le modèle/);
   assert.match(diag, /aucun nouveau tarif ne peut être créé ici/);
   assert.match(diag, /problem\?\.model \? \(/);
 });

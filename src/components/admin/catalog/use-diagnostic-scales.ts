@@ -10,7 +10,7 @@ import {
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
-/* IA-2 — données partagées de la liste des barèmes (recherche, domaine,
+/* IA-2 — données partagées de la liste des prix courants (recherche, domaine,
  * statut, pagination serveur). Présentation isolée Desktop/Mobile. */
 
 export const SCALES_PAGE_SIZE = 20;
@@ -95,7 +95,7 @@ export function useDiagnosticScales(): ScalesData {
         setError(null);
       })
       .catch((err) => {
-        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement des barèmes.'));
+        if (!cancelled) setError(toUserErrorMessage(err, 'Erreur de chargement des prix courants.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
