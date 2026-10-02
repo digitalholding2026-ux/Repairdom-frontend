@@ -2,9 +2,10 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Spinner } from '@/components/ui/spinner';
+import { Logo } from '@/components/ui/logo';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from './auth-provider';
-import { homePathForRole } from '@/lib/api/auth-service';
+import { decideGuard } from '@/lib/guard-decision';
 
 interface RoleGuardProps {
   expectedRole: 'CLIENT' | 'TECHNICIAN' | 'ADMIN';
@@ -12,72 +13,43 @@ interface RoleGuardProps {
   children: ReactNode;
 }
 
+/* Garde de rôle (filet de sécurité, seule protection des routes depuis la
+ * suppression du middleware — inadapté au cross-domain Railway/Vercel).
+ * Pendant la vérification de session (`loading`), un écran neutre plein
+ * écran est affiché (logo + squelettes, aucun contenu métier) : ni flash
+ * de dashboard, ni redirection prématurée vers la connexion. */
 export function RoleGuard({ expectedRole, publicPaths, children }: RoleGuardProps) {
   const router = useRouter();
   const pathname = usePathname() ?? '';
   const { user, authenticated, loading } = useAuth();
 
-  const isPublicPath = publicPaths.includes(pathname);
+  const verdict = decideGuard({
+    loading,
+    authenticated,
+    role: user?.role,
+    emailVerified: user?.emailVerified,
+    expectedRole,
+    pathname,
+    publicPaths,
+  });
+
+  const redirectTo = verdict.action === 'redirect' ? verdict.to : null;
 
   useEffect(() => {
-    if (loading) return;
-
-    if (authenticated) {
-      if (
-        user?.role === 'CLIENT' &&
-        user.emailVerified === false &&
-        pathname !== '/client/verification'
-      ) {
-        router.replace('/client/verification');
-        return;
-      }
-      // Symétrie TECHNICIEN : sans effet tant que le backend vérifie les
-      // techniciens à la création, mais bloque tout accès si un compte
-      // technicien non vérifié obtient un jour une session.
-      if (
-        user?.role === 'TECHNICIAN' &&
-        user.emailVerified === false &&
-        pathname !== '/technicien/verification'
-      ) {
-        router.replace('/technicien/verification');
-        return;
-      }
-      if ((user?.role ?? '') !== expectedRole || isPublicPath) {
-        router.replace(homePathForRole(user?.role));
-        return;
-      }
-    } else if (!isPublicPath) {
-      const fallback = publicPaths[0] ?? '/';
-      const query = publicPaths[0] && pathname
-        ? `?redirect=${encodeURIComponent(pathname)}`
-        : '';
-      router.replace(`${fallback}${query}`);
+    if (redirectTo) {
+      router.replace(redirectTo);
     }
-  }, [loading, authenticated, user, isPublicPath, expectedRole, pathname, publicPaths, router]);
+  }, [redirectTo, router]);
 
-  let showContent = false;
-  if (!loading) {
-    if (isPublicPath) {
-      showContent = !authenticated;
-    } else if (authenticated && (user?.role ?? '') === expectedRole) {
-      const unverifiedClientGated =
-        expectedRole === 'CLIENT' &&
-        user?.role === 'CLIENT' &&
-        user.emailVerified === false &&
-        pathname !== '/client/verification';
-      const unverifiedTechnicianGated =
-        expectedRole === 'TECHNICIAN' &&
-        user?.role === 'TECHNICIAN' &&
-        user.emailVerified === false &&
-        pathname !== '/technicien/verification';
-      showContent = !unverifiedClientGated && !unverifiedTechnicianGated;
-    }
-  }
-
-  if (!showContent) {
+  if (verdict.action !== 'show') {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Spinner size="lg" />
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background px-6">
+        <Logo className="h-10 w-auto" />
+        <div className="w-full max-w-xs space-y-2" aria-hidden>
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
       </div>
     );
   }
