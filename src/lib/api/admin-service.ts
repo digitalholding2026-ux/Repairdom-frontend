@@ -707,13 +707,22 @@ export function updateAdminZone(id: string, data: Record<string, unknown>): Prom
 export interface CatalogDeleteOutcome {
   id: string;
   kind: string;
-  action: 'DELETED' | 'DEACTIVATED';
+  action: 'DELETED' | 'DEACTIVATED' | 'HARD_DELETED';
   message: string;
-  blockers: Record<string, number>;
+  blockers?: Record<string, number>;
+  deleted?: Record<string, number>;
 }
 
 export function deleteDomain(id: string): Promise<CatalogDeleteOutcome> {
   return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/domains/${encodeURIComponent(id)}`, deleteBody());
+}
+
+/* Suppression DÉFINITIVE d'un catalogue : route dédiée, transaction atomique
+ * backend, missions/devis/diagnostics préservés (détachés). Irréversible —
+ * confirmation explicite exigée côté UI. Après suppression, le même nom
+ * peut être recréé (slug libéré). */
+export function deleteDomainHard(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(`/admin/catalog/domains/${encodeURIComponent(id)}/hard`, deleteBody());
 }
 
 export function deleteBrand(id: string): Promise<CatalogDeleteOutcome> {

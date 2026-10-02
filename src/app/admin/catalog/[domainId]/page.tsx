@@ -23,7 +23,7 @@ import {
   createProblem,
   createBrand,
   updateDomain,
-  deleteDomain,
+  deleteDomainHard,
   deleteBrand,
   deleteProblem,
   type CatalogDomainDetail,
@@ -354,17 +354,18 @@ export default function AdminDomainPage() {
         <Card>
           <CardContent className="flex items-center justify-between gap-3 pt-4">
             <div className="min-w-0">
-              <p className="text-sm font-semibold">Supprimer ce domaine</p>
+              <p className="text-sm font-semibold">Supprimer définitivement ce catalogue</p>
               <p className="text-xs text-muted-foreground">
-                Suppression physique sans dépendance, désactivation sinon (historique conservé).
+                Suppression définitive en transaction atomique (missions, devis et contrôles existants conservés). Irréversible.
               </p>
             </div>
             <DeleteCatalogItem
               itemLabel={domain.name}
-              onDelete={() => deleteDomain(domain.id)}
+              hard
+              onDelete={() => deleteDomainHard(domain.id)}
               onDone={(outcome: CatalogDeleteOutcome | null, err: string | null) => {
                 if (err) setError(err);
-                else if (outcome?.action === 'DELETED') router.push('/admin/catalog');
+                else if (outcome?.action === 'HARD_DELETED') router.push('/admin/catalog');
                 else if (outcome) {
                   setNotice(outcome.message);
                   void load(true);

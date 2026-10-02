@@ -18,7 +18,7 @@ import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-ite
 import {
   listDomains,
   createDomain,
-  deleteDomain,
+  deleteDomainHard,
   seedSmartphoneDomain,
   type CatalogDomain,
   type CatalogDeleteOutcome,
@@ -62,7 +62,8 @@ function DomainCard({
         <div className="flex shrink-0 items-center gap-1">
           <DeleteCatalogItem
             itemLabel={domain.name}
-            onDelete={() => deleteDomain(domain.id)}
+            hard
+            onDelete={() => deleteDomainHard(domain.id)}
             onDone={(outcome, err) => {
               if (err) onError(err);
               else onDone(outcome, null);
