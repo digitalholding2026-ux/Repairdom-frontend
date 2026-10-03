@@ -20,8 +20,6 @@ const NOTIFICATION_META: Record<string, NotificationMeta> = {
   CONFIRMED: { icon: 'shield-check', variant: 'success' },
   // GPS V3 : technicien en route vers l'intervention.
   TECHNICIAN_EN_ROUTE: { icon: 'truck', variant: 'primary' },
-  // IA-7 : écart au barème (avertissement factuel, justification 48 h).
-  PRICING_WARNING: { icon: 'alert', variant: 'warning' },
 };
 
 const FALLBACK: NotificationMeta = { icon: 'bell', variant: 'info' };

@@ -1,12 +1,20 @@
-/* Service Worker Relio — PUSH UNIQUEMENT (pas de cache offline, pas de PWA).
+/* Relio SW v2 — PUSH UNIQUEMENT (pas de cache offline, pas de PWA).
  * Portée : / (fichier à la racine de public/). Ne pas transformer en cache
  * offline sans décision produit explicite (voir ARCHITECTURE.md).
+ * Incrémenter la version ci-dessus à chaque modification (les navigateurs
+ * cachent agressivement les Service Workers : tout changement d'octets
+ * déclenche la mise à jour, skipWaiting + clients.claim la rend immédiate).
  *
  * - `push` : affiche la notification (titre + options du payload backend).
  *   Si un onglet de l'app est VISIBLE, on n'affiche rien (le SSE a déjà
- *   notifié — le backend skippe déjà si SSE actif, ceci est la ceinture).
+ *   notifié — le backend skippe déjà si SSE actif, ceci est la ceinture),
+ *   SAUF si le payload contient `force: true` (push de test : affiché
+ *   TOUJOURS, même onglet visible).
  * - `notificationclick` : ferme puis ouvre/focus l'URL du payload.
  */
+
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener('push', (event) => {
   let data = {};
@@ -25,15 +33,18 @@ self.addEventListener('push', (event) => {
   };
   event.waitUntil(
     (async () => {
-      try {
-        const windows = await self.clients.matchAll({
-          type: 'window',
-          includeUncontrolled: true,
-        });
-        const visible = windows.some((client) => client.visibilityState === 'visible');
-        if (visible) return;
-      } catch (_) {
-        // Vérification best-effort : en cas de doute, on affiche.
+      // Si force=true, on affiche TOUJOURS (bypass anti-doublon SSE).
+      if (!data.force) {
+        try {
+          const windows = await self.clients.matchAll({
+            type: 'window',
+            includeUncontrolled: true,
+          });
+          const visible = windows.some((client) => client.visibilityState === 'visible');
+          if (visible) return;
+        } catch (_) {
+          // best-effort
+        }
       }
       await self.registration.showNotification(title, options);
     })(),

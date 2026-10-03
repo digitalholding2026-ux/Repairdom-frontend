@@ -212,20 +212,6 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
       )}
 
       {error ? <p className="text-sm text-error-ink">{error}</p> : null}
-
-      {/* IA-10 — information courte (client + technicien, Desktop + Mobile) :
-        analyse automatisée possible à des fins de sécurité, contrôle humain,
-        renvoi vers les conditions d'utilisation (pas de texte juridique ici). */}
-      <p className="flex items-start gap-1.5 text-2xs leading-relaxed text-muted-foreground">
-        <Icon name="shield-check" size="3.5" className="mt-0.5 shrink-0" />
-        <span>
-          Les échanges peuvent être analysés automatiquement à des fins de sécurité et de support.
-          Aucune décision importante n&apos;est prise sans contrôle humain.{' '}
-          <a href="/conditions-utilisation" className="underline underline-offset-2 hover:text-foreground">
-            En savoir plus
-          </a>
-        </span>
-      </p>
     </div>
   );
 }

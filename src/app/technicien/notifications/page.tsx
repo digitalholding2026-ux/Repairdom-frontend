@@ -14,12 +14,6 @@ export default function TechnicienNotificationsPage() {
         description="Suivez les actions importantes de vos missions."
         backHref="/technicien"
       />
-      <Link href="/technicien/avertissements" className="block">
-        <Button variant="secondary" className="w-full">
-          <Icon name="alert" size="sm" />
-          <span className="ml-1">Voir mes avertissements tarifaires</span>
-        </Button>
-      </Link>
       <Link href="/technicien/demandes" className="block">
         <Button variant="secondary" className="w-full">
           <Icon name="zap" size="sm" />

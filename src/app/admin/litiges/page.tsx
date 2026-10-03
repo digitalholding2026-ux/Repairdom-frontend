@@ -12,7 +12,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ResponsiveView } from '@/components/ui/responsive-view';
 import { Select } from '@/components/ui/select';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { AiPagination } from '@/components/admin/ai/ai-pagination';
 import { formatDate, fullName } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { DISPUTE_STATUSES, disputeCategoryLabel, disputeStatusConfig } from '@/lib/dispute-status';
@@ -22,6 +21,47 @@ import {
 } from '@/lib/api/admin-service';
 
 const PAGE_LIMIT = 20;
+
+function LitigesPagination({
+  total,
+  pages,
+  page,
+  setPage,
+}: {
+  total: number;
+  pages: number;
+  page: number;
+  setPage: (page: number) => void;
+}) {
+  if (total === 0) return null;
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-xs text-muted-foreground" aria-live="polite">
+        {total} litige{total !== 1 ? 's' : ''} · page {page} / {pages}
+      </p>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => setPage(page - 1)}
+          aria-label="Page précédente"
+        >
+          <Icon name="chevron-left" size="sm" />
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= pages}
+          onClick={() => setPage(page + 1)}
+          aria-label="Page suivante"
+        >
+          <Icon name="chevron-right" size="sm" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminLitigesPage() {
   const [status, setStatus] = useState('');
@@ -183,7 +223,7 @@ export default function AdminLitigesPage() {
       ) : (
         <div className="space-y-3">
           <ResponsiveView mobile={mobile} desktop={desktop} fallback={<SkeletonCard />} />
-          <AiPagination total={total} pages={pages} page={page} setPage={setPage} />
+          <LitigesPagination total={total} pages={pages} page={page} setPage={setPage} />
         </div>
       )}
     </div>

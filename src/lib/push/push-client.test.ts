@@ -83,3 +83,28 @@ void test('pas de demande de permission automatique au montage', () => {
   assert.match(layout, /ServiceWorkerRegistration/);
   assert.match(layout, /PushProvider/);
 });
+
+void test('sw.js : force=true bypass l\'anti-doublon (bouton Tester)', () => {
+  const sw = read('../../../public/sw.js');
+  // Le payload de test (force:true) est affiché TOUJOURS, même onglet visible.
+  assert.match(sw, /if\s*\(\s*!data\.force\s*\)/);
+  assert.match(sw, /showNotification/);
+});
+
+void test('sw.js : anti-doublon SSE conservé pour les pushs métier', () => {
+  const sw = read('../../../public/sw.js');
+  // Sans force, un onglet visible skip l'affichage (le SSE a déjà notifié).
+  assert.match(sw, /clients\.matchAll/);
+  assert.match(sw, /visibilityState/);
+  assert.match(sw, /if\s*\(visible\)\s*return/);
+});
+
+void test('sw.js : version + prise en main immédiate (skipWaiting/claim)', () => {
+  const sw = read('../../../public/sw.js');
+  assert.match(sw, /Relio SW v\d+/);
+  assert.match(sw, /skipWaiting/);
+  assert.match(sw, /clients\.claim/);
+  // Toujours PAS de cache offline : que du push + notificationclick.
+  assert.match(sw, /notificationclick/);
+  assert.doesNotMatch(sw, /caches\.open|addAll|fetch/);
+});
