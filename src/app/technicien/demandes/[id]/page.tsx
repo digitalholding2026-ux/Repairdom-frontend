@@ -15,6 +15,7 @@ import { Field, Input } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
+import { PushNotificationCard } from '@/components/ui/push-notification-card';
 import { DiagnosticAudioPlayer } from '@/components/mission/diagnostic-audio-player';
 import { FreeDiagnosticSection } from '@/components/technician/diagnostic/free-diagnostic-section';
 import { DemandeMediaSection } from '@/components/mission/demande-media-section';
@@ -524,6 +525,10 @@ export default function TechnicianDemandeDetailPage() {
               Accepter la demande
             </Button>
           ) : null}
+
+          {/* Proposition contextuelle : suivre cette mission acceptée même
+            app fermée (carte inline, jamais de popup). */}
+          {demande.status === 'ACCEPTED' ? <PushNotificationCard compact /> : null}
 
           {demande.status === 'ACCEPTED' && hasAcceptedQuote ? (
             <div className="space-y-3 rounded-xl border border-border bg-card p-3">

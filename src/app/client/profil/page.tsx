@@ -12,6 +12,7 @@ import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { PageHeader } from '@/components/ui/page-header';
 import { ProfilHero } from '@/components/client/profil/profil-hero';
 import { ProfilSkeleton } from '@/components/client/profil/profil-skeleton';
+import { PushNotificationCard } from '@/components/ui/push-notification-card';
 import {
   getMe,
   homePathForRole,
@@ -194,6 +195,8 @@ export default function ClientProfilPage() {
           </button>
         </div>
       </section>
+
+      <PushNotificationCard />
 
       <ConfirmDialog
         open={confirmLogout}

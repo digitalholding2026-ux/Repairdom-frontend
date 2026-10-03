@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DemandeEnvoyeeAnimation } from '@/components/lottie/lottie-animations';
+import { PushNotificationCard } from '@/components/ui/push-notification-card';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatRequestedTiming } from '@/lib/request-timing';
 
@@ -81,6 +82,8 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           ))}
         </ol>
       </section>
+
+      <PushNotificationCard compact />
 
       <div className="flex flex-col gap-3">
         {demandeId ? (

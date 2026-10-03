@@ -58,3 +58,15 @@ explicitement **en production** que le cookie est bien partagé entre les
 deux sous-domaines (même domaine racine `relioo.space`, attributs
 `Domain`/`SameSite` compatibles). Dans ce cas, mettre à jour ce fichier
 ET le test `no-middleware.test.ts` dans le même commit.
+
+## Service Worker push (`public/sw.js`)
+
+Le Service Worker est **intentionnellement minimal : push Web Push
+uniquement** (`push` → `showNotification`, `notificationclick` → ouverture
+de l'URL). Il ne met **aucun asset en cache** (pas de PWA offline dans ce
+chantier) : ne pas le transformer en cache offline sans décision produit
+explicite. Enregistré une fois au montage du layout
+(`ServiceWorkerRegistration`, échec silencieux), jamais de demande de
+permission automatique — opt-in explicite par clic seul
+(`PushNotificationCard`). Si l'app est visible, le SW n'affiche rien
+(le SSE a déjà notifié, le backend skippe déjà si SSE actif).

@@ -5,6 +5,8 @@ import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from '@/components/ui/toast';
 import { ToastProvider } from '@/lib/toast-context';
 import { RealtimeProvider } from '@/lib/realtime/sse-context';
+import { PushProvider } from '@/lib/push/push-context';
+import { ServiceWorkerRegistration } from '@/components/push/service-worker-registration';
 import { siteConfig } from '@/lib/site-config';
 import './globals.css';
 
@@ -65,7 +67,12 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className="min-h-dvh overflow-x-clip font-sans antialiased">
         <ToastProvider>
           <AuthProvider>
-            <RealtimeProvider>{children}</RealtimeProvider>
+            <RealtimeProvider>
+              <PushProvider>
+                <ServiceWorkerRegistration />
+                {children}
+              </PushProvider>
+            </RealtimeProvider>
           </AuthProvider>
           <Toaster />
         </ToastProvider>

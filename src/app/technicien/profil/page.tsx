@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { ProfilHero } from '@/components/technician/profil/profil-hero';
 import { AvatarUpload } from '@/components/technician/profil/avatar-upload';
 import { ProfilSkeleton } from '@/components/technician/profil/profil-skeleton';
+import { PushNotificationCard } from '@/components/ui/push-notification-card';
 import { KycSection } from '@/components/technician/profil/kyc-section';
 import { cn } from '@/lib/cn';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
@@ -315,6 +316,7 @@ export default function TechnicianProfilePage() {
 
       <div className="space-y-4">
         <SectionHeader title="Statut du compte" />
+        <PushNotificationCard />
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Identité</span>
