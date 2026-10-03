@@ -11,12 +11,13 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
-import { Field, Input, Textarea, Switch } from '@/components/ui';
+import { Field, Input, Select, Textarea, Switch } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
 import { autoSlug } from '@/lib/slug';
+import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { extractErrorMessage } from '@/lib/errors';
 import {
   getDomain,
@@ -48,6 +49,7 @@ export default function AdminDomainPage() {
   const [newBrandName, setNewBrandName] = useState('');
   const [newBrandSlug, setNewBrandSlug] = useState('');
   const [newBrandDesc, setNewBrandDesc] = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
 
   async function load(quiet = false) {
     if (!params?.domainId) return;
@@ -95,6 +97,20 @@ export default function AdminDomainPage() {
     }
   };
 
+  const handleSaveCategory = async (category: string) => {
+    if (!params?.domainId || !category) return;
+    setSavingCategory(true);
+    try {
+      await updateDomain(params.domainId, { category });
+      setNotice('Catégorie métier enregistrée. Les demandes sur ce catalogue sont à nouveau acceptées.');
+      await load(true);
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Erreur lors de l’enregistrement.'));
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
   const handleCreateBrand = async () => {
     if (!params?.domainId) return;
     const name = newBrandName.trim();
@@ -138,8 +154,23 @@ export default function AdminDomainPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               Slug : {domain.slug}
-              {domain.category ? ` — Catégorie : ${domain.category}` : ''}
+              {domain.category ? ` — Catégorie : ${domain.category}` : ' — Sans catégorie (les demandes sont rejetées)'}
             </p>
+            <Field label="Catégorie métier" htmlFor="domainCategory">
+              <div className="flex gap-2">
+                <Select
+                  id="domainCategory"
+                  value={domain.category ?? ''}
+                  onChange={(e) => void handleSaveCategory(e.target.value)}
+                  disabled={savingCategory}
+                >
+                  <option value="">Sélectionnez une catégorie</option>
+                  {REQUEST_CATEGORIES.filter((c) => c.id !== 'autre').map((c) => (
+                    <option key={c.id} value={c.id}>{c.label}</option>
+                  ))}
+                </Select>
+              </div>
+            </Field>
           </CardContent>
         </Card>
       </section>
