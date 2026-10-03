@@ -10,8 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
-import { Field, Input, Select, Textarea } from '@/components/ui';
-import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
+import { Field, Input, Textarea } from '@/components/ui';
 import { Modal } from '@/components/ui/modal';
 import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
@@ -87,7 +86,6 @@ export default function AdminCatalogPage() {
   const [newName, setNewName] = useState('');
   const [newSlug, setNewSlug] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newCategory, setNewCategory] = useState('informatique');
   const [seedBusy, setSeedBusy] = useState(false);
   const [seedResult, setSeedResult] = useState<string | null>(null);
   const [confirmSeedOpen, setConfirmSeedOpen] = useState(false);
@@ -106,15 +104,14 @@ export default function AdminCatalogPage() {
   const handleCreate = async () => {
     const name = newName.trim();
     const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    if (!name || !newCategory) return;
+    if (!name) return;
     setCreating(true);
     try {
-      await createDomain({ name, slug, description: newDesc.trim() || undefined, category: newCategory });
+      await createDomain({ name, slug, description: newDesc.trim() || undefined });
       setShowCreate(false);
       setNewName('');
       setNewSlug('');
       setNewDesc('');
-      setNewCategory('informatique');
       setReloadKey((k) => k + 1);
     } catch (err) {
       setError(toUserErrorMessage(err, 'Erreur lors de la création.'));
@@ -215,7 +212,7 @@ export default function AdminCatalogPage() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={creating}>Annuler</Button>
-            <Button onClick={handleCreate} isLoading={creating} disabled={!newName.trim() || !newCategory}>Créer</Button>
+            <Button onClick={handleCreate} isLoading={creating} disabled={!newName.trim()}>Créer</Button>
           </>
         }
       >
@@ -228,14 +225,6 @@ export default function AdminCatalogPage() {
           </Field>
           <Field label="Description" htmlFor="domainDesc">
             <Textarea id="domainDesc" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} maxLength={500} />
-          </Field>
-          <Field label="Catégorie métier" htmlFor="domainCategory" required hint="Détermine le routage des demandes. Sans catégorie valide, les demandes sur ce catalogue sont rejetées.">
-            <Select id="domainCategory" value={newCategory} onChange={(e) => setNewCategory(e.target.value)}>
-              <option value="">Sélectionnez une catégorie</option>
-              {REQUEST_CATEGORIES.filter((c) => c.id !== 'autre').map((c) => (
-                <option key={c.id} value={c.id}>{c.label}</option>
-              ))}
-            </Select>
           </Field>
         </div>
       </Modal>

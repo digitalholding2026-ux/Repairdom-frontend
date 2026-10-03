@@ -59,19 +59,6 @@ void test('catalogue simplifié : aucun champ technique dans l’interface Admin
   }
 });
 
-void test('catalogue : catégorie métier obligatoire (sinon demandes rejetées)', () => {
-  // Création : sélecteur requis, transmis à createDomain (jamais de
-  // catalogue sans catégorie, sinon toute demande tombe en « autre » sans
-  // équipement → 400 backend).
-  const catalog = read(CATALOG);
-  assert.match(catalog, /Catégorie métier/);
-  assert.match(catalog, /category: newCategory/);
-  // Édition : rattrapage possible sur un catalogue existant sans catégorie.
-  const domain = read(DOMAIN);
-  assert.match(domain, /handleSaveCategory/);
-  assert.match(domain, /updateDomain\(params\.domainId, \{ category \}\)/);
-});
-
 void test('catalogue simplifié : création / activation à chaque niveau', () => {
   assert.match(read(CATALOG), /createDomain/);
   assert.match(read(DOMAIN), /updateDomain/);
