@@ -8,6 +8,8 @@ import { Icon } from '@/components/ui/icon';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { getMe } from '@/lib/api/auth-service';
 import { listDemandeMessages } from '@/lib/api/request-service';
+import { useRealtime } from '@/lib/realtime/sse-context';
+import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 
 const UNREAD_POLL_MS = 15000;
 
@@ -39,7 +41,24 @@ export function FloatingChat({
   const setOpen = onOpenChange ?? setInternalOpen;
   const [unread, setUnread] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
   const lastSeenRef = useRef<string>(new Date().toISOString());
+  const { status: realtimeStatus, subscribe } = useRealtime();
+  const realtimeStatusRef = useRef(realtimeStatus);
+  realtimeStatusRef.current = realtimeStatus;
+
+  /* Identité locale (une seule fois) pour distinguer les messages reçus. */
+  useEffect(() => {
+    let active = true;
+    getMe()
+      .then((me) => {
+        if (active) setMyId(me.id);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* Portail vers body : les ancêtres animés (transform persistant du
    * `slide-up` du layout) captureraient sinon le `fixed`, qui défilerait
@@ -58,16 +77,9 @@ export function FloatingChat({
   useEffect(() => {
     if (open) return;
     let active = true;
-    let myId: string | null = null;
     const check = async () => {
       try {
-        if (!myId) {
-          try {
-            myId = (await getMe()).id;
-          } catch {
-            return;
-          }
-        }
+        if (!myId) return;
         const list = await listDemandeMessages(demandeId);
         if (!active) return;
         setUnread(
@@ -80,15 +92,26 @@ export function FloatingChat({
       }
     };
     void check();
+    /* Temps réel : les messages reçus fenêtre fermée incrémentent le badge
+     * sans fetch ; le polling reste en fallback (statut ≠ 'sse'). */
+    const unsubscribe = subscribe(missionStreamUrl(demandeId), (message) => {
+      if (message.type !== 'mission.message_created' || !myId) return;
+      const senderId = (message.payload as { senderId?: unknown }).senderId;
+      if (typeof senderId === 'string' && senderId !== myId) {
+        setUnread((count) => count + 1);
+      }
+    });
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
+      if (realtimeStatusRef.current === 'sse') return;
       void check();
     }, UNREAD_POLL_MS);
     return () => {
       active = false;
+      unsubscribe();
       clearInterval(timer);
     };
-  }, [open, demandeId]);
+  }, [open, demandeId, myId, subscribe]);
 
   const toggle = () => setOpen(!open);
 

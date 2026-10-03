@@ -16,6 +16,7 @@ import {
   listAvailableDemandes,
   type TechnicianDemande,
 } from '@/lib/api/technician-service';
+import { useTechnicianStream } from '@/lib/realtime/use-user-stream';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 type SortKey = 'RELEVANT' | 'NEWEST' | 'OLDEST' | 'REQUESTED';
@@ -88,6 +89,24 @@ export default function TechnicienMissionsDisponiblesPage() {
   useEffect(() => {
     void load();
   }, []);
+
+  /* Temps réel : nouvelle mission → ajout en haut sans rechargement ;
+   * mission prise par un autre → retrait silencieux (refetch léger sans
+   * skeleton pour ne pas faire flasher la liste). */
+  useTechnicianStream((message) => {
+    if (
+      message.type !== 'technician.new_mission_available' &&
+      message.type !== 'technician.mission_taken'
+    ) {
+      return;
+    }
+    listAvailableDemandes()
+      .then((list) => {
+        setMissions(list);
+        setError(null);
+      })
+      .catch(() => undefined);
+  });
 
   /* Options construites UNIQUEMENT à partir des données réellement reçues
    * (aucune catégorie/ville supposée côté frontend). */

@@ -20,6 +20,7 @@ import {
   type AppNotification,
 } from '@/lib/api/notifications-service';
 import { formatDateTime, formatRelative, formatTime } from '@/lib/format';
+import { useUserStream } from '@/lib/realtime/use-user-stream';
 import { Badge } from '@/components/ui/badge';
 
 export interface NotificationsCenterProps {
@@ -118,6 +119,12 @@ export function NotificationsCenter({ detailHref, hub = false }: NotificationsCe
   useEffect(() => {
     void load();
   }, [load]);
+
+  /* Temps réel : nouvelle notification → ajout en haut (refetch léger,
+   * sans skeleton). Le badge global est incrémenté par le hook partagé. */
+  useUserStream(() => {
+    void load();
+  });
 
   const handleMarkAllRead = async () => {
     setBusy(true);

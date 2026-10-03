@@ -15,6 +15,8 @@ import {
   sendDemandeMessage,
   type ConversationMessage,
 } from '@/lib/api/request-service';
+import { useRealtime } from '@/lib/realtime/sse-context';
+import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -35,6 +37,9 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const { status: realtimeStatus, subscribe } = useRealtime();
+  const realtimeStatusRef = useRef(realtimeStatus);
+  realtimeStatusRef.current = realtimeStatus;
 
   useEffect(() => {
     let cancelled = false;
@@ -61,16 +66,28 @@ export function ConversationSection({ demandeId, canSend, peerName }: Conversati
       }
     };
     load();
+    /* Temps réel : les nouveaux messages arrivent par SSE ; le polling
+     * reste actif uniquement en fallback (statut ≠ 'sse'). */
+    const unsubscribe = subscribe(missionStreamUrl(demandeId), (message) => {
+      if (message.type !== 'mission.message_created') return;
+      const incoming = message.payload as unknown as ConversationMessage;
+      if (!incoming || typeof incoming.id !== 'string') return;
+      setMessages((prev) =>
+        prev.some((item) => item.id === incoming.id) ? prev : [...prev, incoming],
+      );
+    });
     /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour. */
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
+      if (realtimeStatusRef.current === 'sse') return;
       void load();
     }, POLL_INTERVAL_MS);
     return () => {
       active = false;
+      unsubscribe();
       clearInterval(timer);
     };
-  }, [demandeId]);
+  }, [demandeId, subscribe]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });

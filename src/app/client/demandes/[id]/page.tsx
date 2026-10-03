@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,9 @@ import {
 } from '@/lib/api/request-service';
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { useRealtime } from '@/lib/realtime/sse-context';
+import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useToast } from '@/lib/toast-context';
 import {
@@ -62,7 +65,7 @@ import {
 const POLL_INTERVAL_MS = 5000;
 
 function formatPrice(value: number | null | undefined): string {
-  return value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;
+  return formatFCFA(value);
 }
 
 export default function ClientDemandeDetailPage() {
@@ -95,6 +98,21 @@ export default function ClientDemandeDetailPage() {
   const [disputeDescription, setDisputeDescription] = useState('');
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [disputeBusy, setDisputeBusy] = useState(false);
+  /* Temps réel : chaque événement mission pertinent (statut, devis, GPS)
+   * redéclenche le chargement silencieux ; le chat gère ses messages
+   * lui-même (ajout direct, sans refetch). */
+  const [sseTick, setSseTick] = useState(0);
+  const { status: realtimeStatus, subscribe } = useRealtime();
+  const realtimeStatusRef = useRef(realtimeStatus);
+  realtimeStatusRef.current = realtimeStatus;
+
+  useEffect(() => {
+    if (!params?.id) return;
+    return subscribe(missionStreamUrl(params.id), (message) => {
+      if (message.type === 'mission.message_created') return;
+      setSseTick((tick) => tick + 1);
+    });
+  }, [params?.id, subscribe]);
 
   const runConfirmedAction = () => {
     if (!confirmAction || actionBusy) return;
@@ -145,16 +163,19 @@ export default function ClientDemandeDetailPage() {
     };
 
     load(true);
-    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour. */
+    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour.
+     * En mode SSE, le rechargement est piloté par les événements (sseTick)
+     * et le polling périodique reste en fallback uniquement. */
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
+      if (realtimeStatusRef.current === 'sse') return;
       void load(false);
     }, POLL_INTERVAL_MS);
     return () => {
       active = false;
       clearInterval(timer);
     };
-  }, [params?.id]);
+  }, [params?.id, sseTick]);
 
   const handleStatusChange = async (status: 'CONFIRMED' | 'CANCELED') => {
     if (!params?.id) return;

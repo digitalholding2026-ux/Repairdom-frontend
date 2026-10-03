@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,9 @@ import { kycStatusLabel } from '@/lib/technician-profile';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import { getDispute, type DemandeDispute } from '@/lib/api/request-service';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { useRealtime } from '@/lib/realtime/sse-context';
+import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 import { disputeCategoryLabel, disputeStatusConfig } from '@/lib/dispute-status';
 import {
   getTechnicianDemande,
@@ -56,7 +59,7 @@ function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string 
 }
 
 function formatPrice(value: number | null | undefined): string {
-  return value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;
+  return formatFCFA(value);
 }
 
 export default function TechnicianDemandeDetailPage() {
@@ -87,6 +90,19 @@ export default function TechnicianDemandeDetailPage() {
   /* IA-3 — rechargement immédiat après diagnostic libre (le polling 5 s
    * reprend ensuite ; le timer est simplement recréé, sans double appel). */
   const [refreshKey, setRefreshKey] = useState(0);
+  /* Temps réel : les événements mission (statut, devis, GPS) redéclenchent
+   * le chargement via refreshKey ; le chat gère ses messages lui-même. */
+  const { status: realtimeStatus, subscribe } = useRealtime();
+  const realtimeStatusRef = useRef(realtimeStatus);
+  realtimeStatusRef.current = realtimeStatus;
+
+  useEffect(() => {
+    if (!params?.id) return;
+    return subscribe(missionStreamUrl(params.id), (message) => {
+      if (message.type === 'mission.message_created') return;
+      setRefreshKey((key) => key + 1);
+    });
+  }, [params?.id, subscribe]);
 
   /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d’échec de
    * `getTechnicianDemande` (404 backend), le diagnostic « non VERIFIED » doit
@@ -149,9 +165,12 @@ export default function TechnicianDemandeDetailPage() {
     };
 
     load(true);
-    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour. */
+    /* UI-7 : tick ignoré onglet masqué ; reprise automatique au retour.
+     * En mode SSE, le rechargement est piloté par les événements
+     * (refreshKey) et le polling reste en fallback uniquement. */
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
+      if (realtimeStatusRef.current === 'sse') return;
       void load(false);
     }, POLL_INTERVAL_MS);
     return () => {

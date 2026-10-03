@@ -4,6 +4,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { Toaster } from '@/components/ui/toast';
 import { ToastProvider } from '@/lib/toast-context';
+import { RealtimeProvider } from '@/lib/realtime/sse-context';
 import { siteConfig } from '@/lib/site-config';
 import './globals.css';
 
@@ -63,7 +64,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
     <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh overflow-x-clip font-sans antialiased">
         <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <RealtimeProvider>{children}</RealtimeProvider>
+          </AuthProvider>
           <Toaster />
         </ToastProvider>
       </body>
