@@ -24,8 +24,10 @@ import {
 import {
   listCatalogDomains,
   listCatalogBrands,
+  listEquipmentFamilies,
   type CatalogDomainLite,
   type CatalogBrandLite,
+  type EquipmentFamilyLite,
 } from '@/lib/api/catalog-service';
 import { getMe } from '@/lib/api/auth-service';
 
@@ -110,10 +112,10 @@ export function DemandeWizard() {
   const [geoError, setGeoError] = useState<string | null>(null);
 
   // Appareil (catalogue) — source de vérité admin.
-  /* Équipement déclaré en texte libre quand « Autre » (objet à
-   * réparer, pas la panne ; 120 caractères max, aligné ville/quartier). */
-  const EQUIPMENT_MAX_LENGTH = 120;
-  const [equipmentType, setEquipmentType] = useState('');
+  /* Parcours « Autre appareil » — indice structuré (code de famille choisi
+   * dans la liste administrable). Jamais de texte libre côté client. */
+  const [families, setFamilies] = useState<EquipmentFamilyLite[]>([]);
+  const [equipmentFamily, setEquipmentFamily] = useState('');
   /* Description libre du problème (langage naturel, 10 caractères min) :
    * exigée à l'étape panne, les photos/vidéos restant facultatives. */
   const DESCRIPTION_MIN_LENGTH = 10;
@@ -138,6 +140,11 @@ export function DemandeWizard() {
       .finally(() => {
         if (active) setCatalogLoading(false);
       });
+    listEquipmentFamilies()
+      .then((list) => {
+        if (active) setFamilies(list);
+      })
+      .catch(() => undefined);
     return () => {
       active = false;
     };
@@ -192,24 +199,24 @@ export function DemandeWizard() {
 
   const canContinue = useMemo(() => {
     // Appareil : catégorie puis marque réelle obligatoire (plus d'option
-    // « toutes les marques ») ; « Autre » exige l'équipement déclaré.
+    // « toutes les marques ») ; « Autre » exige un indice structuré.
     if (step === 0) {
       if (domainId === '') return false;
-      if (domainId === OTHER_DOMAIN) return equipmentType.trim() !== '';
+      if (domainId === OTHER_DOMAIN) return equipmentFamily.trim() !== '';
       return brandId !== '';
     }
     // Panne : description libre exigée (photos/vidéos facultatives).
     if (step === 1) return description.trim().length >= DESCRIPTION_MIN_LENGTH;
     if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
-  }, [step, domainId, equipmentType, brandId, description, city, requestedMode, requestedAt]);
+  }, [step, domainId, equipmentFamily, brandId, description, city, requestedMode, requestedAt]);
 
   const handleDomainChange = (id: string) => {
     setDomainId(id);
     setBrandId('');
     setBrands([]);
-    // L'équipement déclaré n'a de sens que pour « Autre ».
-    setEquipmentType('');
+    // L'indice ne s'applique qu'à « Autre ».
+    setEquipmentFamily('');
     if (id === OTHER_DOMAIN) {
       setDomainName('');
       setCategoryId('autre');
@@ -365,8 +372,8 @@ export function DemandeWizard() {
       return;
     }
     // Garde frontend (le backend revalide de toute façon).
-    if (domainId === OTHER_DOMAIN && equipmentType.trim() === '') {
-      setError("Indiquez l'appareil ou l'équipement à réparer (obligatoire pour « Autre »).");
+    if (domainId === OTHER_DOMAIN && equipmentFamily.trim() === '') {
+      setError('Sélectionnez le type d’appareil qui correspond le mieux à votre situation.');
       return;
     }
     // Marque réelle obligatoire avec un domaine du catalogue.
@@ -393,9 +400,9 @@ export function DemandeWizard() {
       setUploadStatus(null);
       const result = await createDemande({
         categoryId: categoryId || 'autre',
-        // Équipement déclaré, uniquement pour « Autre ».
-        ...(domainId === OTHER_DOMAIN && equipmentType.trim()
-          ? { equipmentType: equipmentType.trim() }
+        // Indice structuré, uniquement pour « Autre ».
+        ...(domainId === OTHER_DOMAIN && equipmentFamily.trim()
+          ? { equipmentFamily: equipmentFamily.trim() }
           : {}),
         description: description.trim(),
         medias: medias.map((media) => ({
@@ -445,7 +452,7 @@ export function DemandeWizard() {
     city.trim() !== '' ||
     contactPhone.trim() !== '' ||
     domainId !== '' ||
-    equipmentType.trim() !== '' ||
+    equipmentFamily.trim() !== '' ||
     description.trim() !== '' ||
     medias.length > 0 ||
     coords !== null;
@@ -465,7 +472,7 @@ export function DemandeWizard() {
           selectedDeviceLabel
             ? selectedDeviceLabel
             : domainId === OTHER_DOMAIN
-              ? equipmentType.trim() || 'Autre appareil'
+              ? families.find((f) => f.code === equipmentFamily)?.label ?? 'Autre appareil'
               : ''
         }
         description={description.trim() || mediaSummary}
@@ -548,24 +555,32 @@ export function DemandeWizard() {
 
                   {domainId === OTHER_DOMAIN ? (
                     <div className="space-y-3">
-                      {/* Identification de l'objet à réparer (pas la
-                        panne, pas un diagnostic catalogue). La description
-                        de l'étape suivante reste le récit de la panne. */}
-                      <Field
-                        label="Quel appareil ou équipement souhaitez-vous faire réparer ?"
-                        htmlFor="demande-equipment-type"
-                        required
-                        hint="Indiquez simplement le type d’appareil ou d’équipement, pas la panne."
-                      >
-                        <Input
-                          id="demande-equipment-type"
-                          value={equipmentType}
-                          onChange={(e) => setEquipmentType(e.target.value)}
-                          maxLength={EQUIPMENT_MAX_LENGTH}
-                          placeholder="Ex. : réfrigérateur, climatiseur, machine à laver…"
-                          autoComplete="off"
-                        />
-                      </Field>
+                      {/* Indice structuré (famille reconnue, pas le modèle,
+                        pas un diagnostic catalogue). La description de
+                        l'étape suivante reste le récit de la panne. */}
+                      <p className="text-sm font-medium">
+                        Quel type d&apos;appareil souhaitez-vous faire réparer ?
+                      </p>
+                      <div className="flex flex-wrap gap-2" role="group" aria-label="Type d'appareil">
+                        {families.length === 0 ? (
+                          <EmptyState
+                            icon={<Icon name="wrench" size="md" />}
+                            title="Types d'appareil indisponibles"
+                            description="Rechargez la page. Si le problème persiste, choisissez une catégorie dans la liste."
+                          />
+                        ) : (
+                          families.map((family) => (
+                            <SelectChip
+                              key={family.code}
+                              selected={equipmentFamily === family.code}
+                              onClick={() => setEquipmentFamily(family.code)}
+                            >
+                              {family.icon ? `${family.icon} ` : ''}
+                              {family.label}
+                            </SelectChip>
+                          ))
+                        )}
+                      </div>
                       <Alert variant="neutral" dense icon="info">
                         Décrivez votre panne à l&apos;étape suivante : le technicien la verra directement.
                       </Alert>
@@ -892,7 +907,8 @@ export function DemandeWizard() {
                       selectedDeviceLabel
                         ? selectedDeviceLabel
                         : domainId === OTHER_DOMAIN
-                          ? equipmentType.trim() || 'Mon appareil n’est pas dans la liste'
+                          ? families.find((f) => f.code === equipmentFamily)?.label ??
+                            'Mon appareil n’est pas dans la liste'
                           : 'Non renseigné'
                     }
                     onEdit={() => jumpTo(0)}

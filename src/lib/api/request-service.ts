@@ -28,9 +28,9 @@ export interface CreateDemandeInput {
   /* Dépôt multimédia : description textuelle optionnelle (vocal/vidéo /
    * photos). Backend : au moins un média exigé sans texte. */
   description?: string;
-  /* IA-4.1 — équipement déclaré en texte libre (objet à réparer, pas la
-   * panne). Backend : obligatoire si catégorie résolue `autre`, max 120. */
-  equipmentType?: string;
+  /* Parcours « Autre appareil » : indice structuré (code de famille choisi
+   * dans la liste du catalogue, jamais de texte libre). */
+  equipmentFamily?: string;
   medias: Array<{ name: string; type: string; size: number; storagePath?: string }>;
   city: string;
   neighborhood?: string;
@@ -174,8 +174,8 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       categoryId: input.categoryId,
       // Description textuelle optionnelle (dépôt multimédia) : omise si vide.
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
-      // IA-4.1 — équipement déclaré (objet à réparer) : omis si vide.
-      ...(input.equipmentType?.trim() ? { equipmentType: input.equipmentType.trim() } : {}),
+      // Parcours « Autre appareil » : indice structuré (code validé backend).
+      ...(input.equipmentFamily?.trim() ? { equipmentFamily: input.equipmentFamily.trim() } : {}),
       city: input.city,
       neighborhood: input.neighborhood || undefined,
       address: input.address || undefined,

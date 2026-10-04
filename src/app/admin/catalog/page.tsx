@@ -158,6 +158,12 @@ export default function AdminCatalogPage() {
                 Villes et zones
               </Button>
             </Link>
+            <Link href="/admin/catalog/familles">
+              <Button variant="secondary" size="sm">
+                <Icon name="wrench" size="3.5" />
+                Familles d&apos;équipements
+              </Button>
+            </Link>
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(true)}>
               <Icon name="plus" size="3.5" />
               Type d&apos;appareil

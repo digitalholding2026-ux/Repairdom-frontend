@@ -1,5 +1,5 @@
-/* Équipement déclaré obligatoire si « Autre » (objet à réparer,
- * pas la panne ; description inchangée ; jamais un diagnostic catalogue).
+/* Parcours « Autre appareil » — l'indice structuré (famille) est obligatoire
+ * à la place du texte libre historique. Description libre inchangée.
  *
  * Exécuté avec Node 24 natif (type stripping, zéro dépendance) :
  *   node --test src/lib/demande-equipment.test.ts
@@ -14,35 +14,36 @@ import { readFileSync } from 'node:fs';
 const read = (rel: string): string =>
   readFileSync(new URL(rel, import.meta.url), 'utf8');
 
-void test('wizard Autre : champ équipement obligatoire, vocabulaire objet (pas panne/diagnostic)', () => {
+void test('wizard Autre : indice structuré obligatoire, jamais de texte libre', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  assert.match(wizard, /Quel appareil ou équipement souhaitez-vous faire réparer \?/);
-  assert.match(wizard, /Ex\. : réfrigérateur, climatiseur, machine à laver…/);
-  assert.match(wizard, /Indiquez simplement le type d’appareil ou d’équipement, pas la panne\./);
-  assert.match(wizard, /EQUIPMENT_MAX_LENGTH = 120/);
-  assert.match(wizard, /domainId === OTHER_DOMAIN.{0,80}equipmentType\.trim\(\) !== ''/);
-  assert.match(wizard, /equipmentType: equipmentType\.trim\(\)/);
+  assert.match(wizard, /Quel type d&apos;appareil souhaitez-vous faire réparer/);
+  assert.match(wizard, /listEquipmentFamilies\(\)/);
+  assert.match(wizard, /equipmentFamily\.trim\(\) !== ''/);
+  assert.match(wizard, /equipmentFamily: equipmentFamily\.trim\(\)/);
+  assert.doesNotMatch(wizard, /EQUIPMENT_MAX_LENGTH/);
+  assert.doesNotMatch(wizard, /id="demande-equipment-type"/);
   assert.doesNotMatch(wizard, /diagnostic IA/i);
   assert.doesNotMatch(wizard, /OpenRouter|openrouter|transcription/i);
 });
 
-void test('wizard : domaines normaux et description inchangés', () => {
+void test('wizard : « Je ne sais pas » reste une option de la même liste', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  assert.match(wizard, /Description du problème/);
-  assert.match(wizard, /setEquipmentType\(''\)/);
+  assert.doesNotMatch(wizard, /Toutes les marques/);
+  assert.doesNotMatch(wizard, /Tous les modèles/);
+  assert.match(wizard, /EquipmentFamilyLite/);
 });
 
-void test('service : equipmentType transmis (omis si vide), types alignés', () => {
+void test('service : equipmentFamily transmis (omis si vide), types alignés', () => {
   const service = read('./api/request-service.ts');
-  assert.match(service, /equipmentType\?: string;/);
-  assert.match(service, /\.\.\.\(input\.equipmentType\?\.trim\(\) \? \{ equipmentType: input\.equipmentType\.trim\(\) \} : \{\}\)/);
+  assert.match(service, /equipmentFamily\?: string;/);
+  assert.match(service, /\{ equipmentFamily: input\.equipmentFamily\.trim\(\) \}/);
   const tech = read('./api/technician-service.ts');
-  assert.match(tech, /equipmentType\?: string \| null;/);
+  assert.match(tech, /equipmentFamily\?: string \| null;/);
 });
 
-void test('technicien : « Appareil : X (déclaré par le client) », jamais un diagnostic', () => {
+void test('technicien : « Appareil : X (déclaré par le client) », famille prioritaire', () => {
   const page = read('../app/technicien/demandes/[id]/page.tsx');
-  assert.match(page, /Appareil : \{demande\.equipmentType\}/);
+  assert.match(page, /demande\.equipmentFamily/);
   assert.match(page, /déclaré par le client/);
-  assert.doesNotMatch(page, /equipmentType[^}]*diagnostic IA/i);
+  assert.doesNotMatch(page, /equipmentFamily[^}]*diagnostic IA/i);
 });

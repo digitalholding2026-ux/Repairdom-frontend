@@ -52,6 +52,7 @@ import {
   type MissionDiagnostic,
   type MissionQuote,
 } from '@/lib/api/technician-service';
+import { listEquipmentFamilies } from '@/lib/api/catalog-service';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -88,6 +89,8 @@ export default function TechnicianDemandeDetailPage() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [amountValue, setAmountValue] = useState('');
   const [quoteDescription, setQuoteDescription] = useState('');
+  /* Codes familles « Autre appareil » → libellés affichables. */
+  const [familyLabels, setFamilyLabels] = useState<Record<string, string>>({});
   /* IA-3 — rechargement immédiat après diagnostic libre (le polling 5 s
    * reprend ensuite ; le timer est simplement recréé, sans double appel). */
   const [refreshKey, setRefreshKey] = useState(0);
@@ -104,6 +107,20 @@ export default function TechnicianDemandeDetailPage() {
       setRefreshKey((key) => key + 1);
     });
   }, [params?.id, subscribe]);
+
+  useEffect(() => {
+    let active = true;
+    listEquipmentFamilies()
+      .then((list) => {
+        if (active) {
+          setFamilyLabels(Object.fromEntries(list.map((family) => [family.code, family.label])));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d’échec de
    * `getTechnicianDemande` (404 backend), le diagnostic « non VERIFIED » doit
@@ -395,13 +412,17 @@ export default function TechnicianDemandeDetailPage() {
               <p className="text-sm text-foreground">{deviceLabel}</p>
             </div>
           ) : null}
-          {/* IA-4.1 — équipement déclaré par le client (Autre) : information
-            client, jamais un diagnostic ; ne remplace pas le diagnostic libre. */}
-          {!deviceLabel && demande.equipmentType ? (
+          {/* Parcours « Autre appareil » — indice structuré affiché en
+            * libellé (texte libre historique en repli). Information client,
+            * jamais un diagnostic ; ne remplace pas le diagnostic libre. */}
+          {!deviceLabel && (demande.equipmentFamily || demande.equipmentType) ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
               <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
               <p className="text-sm text-foreground">
-                Appareil : {demande.equipmentType}{' '}
+                Appareil :{' '}
+                {demande.equipmentFamily
+                  ? familyLabels[demande.equipmentFamily] ?? demande.equipmentFamily
+                  : demande.equipmentType}{' '}
                 <span className="text-xs text-muted-foreground">(déclaré par le client)</span>
               </p>
             </div>

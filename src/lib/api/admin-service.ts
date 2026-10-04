@@ -344,6 +344,37 @@ export function updateDomain(id: string, data: Record<string, unknown>): Promise
   return catalogFetch<CatalogDomain>(`/admin/catalog/domains/${encodeURIComponent(id)}`, patchBody(data));
 }
 
+/* EquipmentFamily (indices « Autre appareil ») */
+export interface CatalogFamily {
+  id: string;
+  code: string;
+  label: string;
+  icon: string | null;
+  category: string;
+  isActive: boolean;
+  sortOrder: number;
+  demandeCount?: number;
+}
+
+export function listFamilies(): Promise<CatalogFamily[]> {
+  return catalogFetch<CatalogFamily[]>('/admin/catalog/families');
+}
+
+export function createFamily(data: { code: string; label: string; icon?: string; category: string; sortOrder?: number }): Promise<CatalogFamily> {
+  return catalogFetch<CatalogFamily>('/admin/catalog/families', jsonBody(data));
+}
+
+export function updateFamily(id: string, data: Record<string, unknown>): Promise<CatalogFamily> {
+  return catalogFetch<CatalogFamily>(`/admin/catalog/families/${encodeURIComponent(id)}`, patchBody(data));
+}
+
+export function deleteFamily(id: string): Promise<CatalogDeleteOutcome> {
+  return catalogFetch<CatalogDeleteOutcome>(
+    `/admin/catalog/families/${encodeURIComponent(id)}`,
+    deleteBody(),
+  );
+}
+
 /* Problems */
 export function listProblems(
   domainId: string,

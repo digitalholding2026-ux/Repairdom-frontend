@@ -36,6 +36,14 @@ export interface CatalogProblemLite {
   modelId: string | null;
 }
 
+/* Familles d'équipements du parcours « Autre appareil » : indices
+ * structurés (code stable) + « Je ne sais pas ». Actives seules. */
+export interface EquipmentFamilyLite {
+  code: string;
+  label: string;
+  icon: string | null;
+}
+
 class ApiError extends Error {
   status: number;
   code: string | null;
@@ -76,6 +84,10 @@ export async function listCatalogBrands(domainId: string): Promise<CatalogBrandL
 
 export async function listCatalogModels(brandId: string): Promise<CatalogModelLite[]> {
   return apiFetch<CatalogModelLite[]>(`/catalog/brands/${encodeURIComponent(brandId)}/models`);
+}
+
+export async function listEquipmentFamilies(): Promise<EquipmentFamilyLite[]> {
+  return apiFetch<EquipmentFamilyLite[]>('/catalog/families');
 }
 
 export async function listCatalogProblems(
