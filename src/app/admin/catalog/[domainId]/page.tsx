@@ -70,7 +70,7 @@ export default function AdminDomainPage() {
   const handleCreateProblem = async () => {
     if (!params?.domainId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newSlug) || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -114,7 +114,7 @@ export default function AdminDomainPage() {
   const handleCreateBrand = async () => {
     if (!params?.domainId) return;
     const name = newBrandName.trim();
-    const slug = newBrandSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newBrandSlug) || autoSlug(name);
     if (!name) return;
     setCreatingBrand(true);
     try {

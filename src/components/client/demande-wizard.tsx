@@ -10,6 +10,7 @@ import { Field } from '@/components/ui/field';
 import { Icon, ICON_NAMES, type IconName } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { VoiceRecorder, VOICE_MAX_SECONDS } from '@/components/client/voice-recorder';
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
@@ -23,10 +24,8 @@ import {
 import {
   listCatalogDomains,
   listCatalogBrands,
-  listCatalogModels,
   type CatalogDomainLite,
   type CatalogBrandLite,
-  type CatalogModelLite,
 } from '@/lib/api/catalog-service';
 import { getMe } from '@/lib/api/auth-service';
 
@@ -111,18 +110,20 @@ export function DemandeWizard() {
   const [geoError, setGeoError] = useState<string | null>(null);
 
   // Appareil (catalogue) — source de vérité admin.
-  /* IA-4.1 — équipement déclaré en texte libre quand « Autre » (objet à
+  /* Équipement déclaré en texte libre quand « Autre » (objet à
    * réparer, pas la panne ; 120 caractères max, aligné ville/quartier). */
   const EQUIPMENT_MAX_LENGTH = 120;
   const [equipmentType, setEquipmentType] = useState('');
+  /* Description libre du problème (langage naturel, 10 caractères min) :
+   * exigée à l'étape panne, les photos/vidéos restant facultatives. */
+  const DESCRIPTION_MIN_LENGTH = 10;
+  const [description, setDescription] = useState('');
   const [domains, setDomains] = useState<CatalogDomainLite[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [domainId, setDomainId] = useState('');
   const [domainName, setDomainName] = useState('');
   const [brandId, setBrandId] = useState('');
-  const [modelId, setModelId] = useState('');
   const [brands, setBrands] = useState<CatalogBrandLite[]>([]);
-  const [models, setModels] = useState<CatalogModelLite[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -170,10 +171,8 @@ export function DemandeWizard() {
     if (domainName) parts.push(domainName);
     const brand = brands.find((b) => b.id === brandId);
     if (brand) parts.push(brand.name);
-    const model = models.find((m) => m.id === modelId);
-    if (model) parts.push(model.name);
     return parts.join(' — ');
-  }, [domainName, brands, brandId, models, modelId]);
+  }, [domainName, brands, brandId]);
 
   const locationLabel = useMemo(
     () => [city.trim(), neighborhood.trim(), address.trim(), landmark.trim()].filter(Boolean).join(' — '),
@@ -192,25 +191,24 @@ export function DemandeWizard() {
   }, [medias]);
 
   const canContinue = useMemo(() => {
-    // IA-4.1 — « Autre » exige l'équipement déclaré (objet à réparer).
+    // Appareil : catégorie puis marque réelle obligatoire (plus d'option
+    // « toutes les marques ») ; « Autre » exige l'équipement déclaré.
     if (step === 0) {
       if (domainId === '') return false;
       if (domainId === OTHER_DOMAIN) return equipmentType.trim() !== '';
-      return true;
+      return brandId !== '';
     }
-    // Dépôt multimédia : au moins un moyen validé (vocal, vidéo ou photo).
-    if (step === 1) return medias.length > 0;
+    // Panne : description libre exigée (photos/vidéos facultatives).
+    if (step === 1) return description.trim().length >= DESCRIPTION_MIN_LENGTH;
     if (step === 2) return city.trim() !== '' && (requestedMode === 'ASAP' || requestedAt !== '');
     return true;
-  }, [step, domainId, equipmentType, medias, city, requestedMode, requestedAt]);
+  }, [step, domainId, equipmentType, brandId, description, city, requestedMode, requestedAt]);
 
   const handleDomainChange = (id: string) => {
     setDomainId(id);
     setBrandId('');
-    setModelId('');
     setBrands([]);
-    setModels([]);
-    // IA-4.1 — l'équipement déclaré n'a de sens que pour « Autre ».
+    // L'équipement déclaré n'a de sens que pour « Autre ».
     setEquipmentType('');
     if (id === OTHER_DOMAIN) {
       setDomainName('');
@@ -229,17 +227,6 @@ export function DemandeWizard() {
 
   const handleBrandChange = (id: string) => {
     setBrandId(id);
-    setModelId('');
-    setModels([]);
-    if (id) {
-      listCatalogModels(id)
-        .then(setModels)
-        .catch(() => setModels([]));
-    }
-  };
-
-  const handleModelChange = (id: string) => {
-    setModelId(id);
   };
 
   const mediasRef = useRef<WizardMedia[]>([]);
@@ -371,15 +358,20 @@ export function DemandeWizard() {
   const handleSubmit = async () => {
     setError(null);
     setUploadStatus(null);
-    // Dépôt multimédia : au moins un moyen validé (le bouton est déjà
-    // désactivé sinon ; le backend revalide de toute façon).
-    if (medias.length === 0) {
-      setError('Ajoutez un message vocal, une vidéo ou au moins une photo pour décrire votre problème.');
+    // Description exigée (le bouton est déjà désactivé sinon ; le backend
+    // revalide de toute façon). Les médias restent facultatifs.
+    if (description.trim().length < DESCRIPTION_MIN_LENGTH) {
+      setError('Décrivez votre problème en quelques mots (10 caractères minimum).');
       return;
     }
-    // IA-4.1 — garde frontend (le backend revalide de toute façon).
+    // Garde frontend (le backend revalide de toute façon).
     if (domainId === OTHER_DOMAIN && equipmentType.trim() === '') {
       setError("Indiquez l'appareil ou l'équipement à réparer (obligatoire pour « Autre »).");
+      return;
+    }
+    // Marque réelle obligatoire avec un domaine du catalogue.
+    if (domainId !== '' && domainId !== OTHER_DOMAIN && brandId === '') {
+      setError('Sélectionnez une marque disponible pour cette catégorie.');
       return;
     }
     setIsSubmitting(true);
@@ -401,10 +393,11 @@ export function DemandeWizard() {
       setUploadStatus(null);
       const result = await createDemande({
         categoryId: categoryId || 'autre',
-        // IA-4.1 — équipement déclaré, uniquement pour « Autre ».
+        // Équipement déclaré, uniquement pour « Autre ».
         ...(domainId === OTHER_DOMAIN && equipmentType.trim()
           ? { equipmentType: equipmentType.trim() }
           : {}),
+        description: description.trim(),
         medias: medias.map((media) => ({
           name: media.name,
           type: media.mimeType,
@@ -423,7 +416,6 @@ export function DemandeWizard() {
         requestedAt: requestedAtIso ?? undefined,
         domainId: hasDevice && domainId ? domainId : undefined,
         brandId: hasDevice && brandId ? brandId : undefined,
-        modelId: hasDevice && modelId ? modelId : undefined,
       });
       router.push(
         `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
@@ -454,6 +446,7 @@ export function DemandeWizard() {
     contactPhone.trim() !== '' ||
     domainId !== '' ||
     equipmentType.trim() !== '' ||
+    description.trim() !== '' ||
     medias.length > 0 ||
     coords !== null;
   useEffect(() => {
@@ -475,7 +468,7 @@ export function DemandeWizard() {
               ? equipmentType.trim() || 'Autre appareil'
               : ''
         }
-        description={mediaSummary}
+        description={description.trim() || mediaSummary}
         location={locationLabel}
         timing={formatRequestedTiming(requestedMode, requestedAtIso)}
         onEdit={jumpTo}
@@ -493,7 +486,7 @@ export function DemandeWizard() {
                 <div>
                   <p className="text-base font-semibold">Quel appareil avez-vous ?</p>
                   <p className="text-sm text-muted-foreground">
-                    Choisissez la catégorie la plus proche, puis affinez si besoin.
+                    Choisissez la catégorie la plus proche, puis la marque de votre appareil.
                   </p>
                 </div>
 
@@ -541,39 +534,23 @@ export function DemandeWizard() {
                   <div className="space-y-5">
                     <DeviceChips
                       label="Marque"
-                      quickOption="Toutes les marques"
                       chips={brands.map((brand) => ({ id: brand.id, label: brand.name }))}
                       selectedId={brandId}
                       onSelect={handleBrandChange}
                       empty={{
                         icon: 'shield',
-                        title: 'Aucune marque référencée',
-                        description: 'Vous pouvez déposer votre demande sans préciser la marque.',
+                        title: 'Aucune marque disponible',
+                        description: "Cette marque n'est pas encore disponible sur Relio.",
                       }}
                     />
-
-                    {brandId ? (
-                      <DeviceChips
-                        label={`Modèle${brandId ? ` (${brands.find((b) => b.id === brandId)?.name ?? ''})` : ''}`}
-                        quickOption="Tous les modèles"
-                        chips={models.map((model) => ({ id: model.id, label: model.name }))}
-                        selectedId={modelId}
-                        onSelect={handleModelChange}
-                        empty={{
-                          icon: 'file',
-                          title: 'Aucun modèle répertorié',
-                          description: 'Montrez votre panne à l’étape suivante (vocal, vidéo ou photos).',
-                        }}
-                      />
-                    ) : null}
                   </div>
                 ) : null}
 
                   {domainId === OTHER_DOMAIN ? (
                     <div className="space-y-3">
-                      {/* IA-4.1 — identification de l'objet à réparer (pas la
-                        panne, pas un diagnostic catalogue). Le multimédia de
-                        l'étape suivante reste le récit de la panne. */}
+                      {/* Identification de l'objet à réparer (pas la
+                        panne, pas un diagnostic catalogue). La description
+                        de l'étape suivante reste le récit de la panne. */}
                       <Field
                         label="Quel appareil ou équipement souhaitez-vous faire réparer ?"
                         htmlFor="demande-equipment-type"
@@ -590,7 +567,7 @@ export function DemandeWizard() {
                         />
                       </Field>
                       <Alert variant="neutral" dense icon="info">
-                        Montrez votre panne à l&apos;étape suivante (vocal, vidéo ou photos) : le technicien la verra directement.
+                        Décrivez votre panne à l&apos;étape suivante : le technicien la verra directement.
                       </Alert>
                     </div>
                   ) : null}
@@ -598,16 +575,34 @@ export function DemandeWizard() {
             ) : null}
 
             {step === 1 ? (
-              <section className="space-y-5" aria-label="Votre panne en multimédia">
+              <section className="space-y-5" aria-label="Votre panne">
                 <div>
-                  <p className="text-base font-semibold">Montrez votre panne</p>
+                  <p className="text-base font-semibold">Décrivez votre panne</p>
                   <p className="text-sm text-muted-foreground">
-                    Décrivez par message vocal, vidéo ou photos — un seul suffit, cumulable
-                    (max {MAX_MEDIAS} fichiers, 25 Mo chacun).
+                    Expliquez avec vos mots ce qui ne fonctionne plus. Vous pouvez ajouter des
+                    photos, une vidéo ou un vocal en complément (facultatif, max {MAX_MEDIAS}{' '}
+                    fichiers, 25 Mo chacun).
                   </p>
                 </div>
 
-                {/* 1. Message vocal (prioritaire au tactile) */}
+                <Field
+                  label="Description du problème"
+                  htmlFor="demande-description"
+                  required
+                  hint={`10 caractères minimum (${description.trim().length}/10).`}
+                >
+                  <Textarea
+                    id="demande-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    maxLength={1000}
+                    rows={4}
+                    placeholder="Ex. : Mon téléphone ne charge plus depuis hier, même avec un autre câble."
+                    autoComplete="off"
+                  />
+                </Field>
+
+                {/* 1. Message vocal (complément facultatif) */}
                 <Field
                   label="Message vocal"
                   hint={`Décrivez oralement la panne (max ${VOICE_MAX_SECONDS / 60} min). Rien n'est envoyé sans validation.`}
@@ -621,9 +616,9 @@ export function DemandeWizard() {
                   />
                 </Field>
 
-                {/* 2. Vidéo */}
+                {/* 2. Vidéo (facultatif) */}
                 <Field
-                  label="Vidéo"
+                  label="Vidéo (facultatif)"
                   hint="Filmez la panne ou choisissez une vidéo (25 Mo max)."
                   error={mediaError}
                 >
@@ -652,9 +647,9 @@ export function DemandeWizard() {
                   />
                 </Field>
 
-                {/* 3. Photos */}
+                {/* 3. Photos (facultatif) */}
                 <Field
-                  label="Photos"
+                  label="Photos (facultatif)"
                   hint={`Jusqu’à ${MAX_MEDIAS} fichiers au total · 25 Mo maximum chacun.`}
                   error={mediaError}
                 >
@@ -904,8 +899,10 @@ export function DemandeWizard() {
                   />
                   <SummaryRow
                     icon="file"
-                    label="Panne (multimédia)"
-                    value={mediaSummary || 'À décrire'}
+                    label="Panne"
+                    value={
+                      mediaSummary ? `${description.trim()} (+ ${mediaSummary})` : description.trim() || 'À décrire'
+                    }
                     onEdit={() => jumpTo(1)}
                   />
                   <SummaryRow
@@ -964,10 +961,9 @@ interface DeviceChipsProps {
   selectedId: string;
   onSelect: (id: string) => void;
   empty: { icon: IconName; title: string; description: string };
-  quickOption?: string;
 }
 
-function DeviceChips({ label, chips, selectedId, onSelect, empty, quickOption }: DeviceChipsProps) {
+function DeviceChips({ label, chips, selectedId, onSelect, empty }: DeviceChipsProps) {
   const isEmpty = chips.length === 0 && selectedId === '';
   return (
     <div className="space-y-2.5">
@@ -980,11 +976,6 @@ function DeviceChips({ label, chips, selectedId, onSelect, empty, quickOption }:
         />
       ) : (
         <div className="flex flex-wrap gap-2">
-          {quickOption ? (
-            <SelectChip selected={selectedId === ''} onClick={() => onSelect('')}>
-              {quickOption}
-            </SelectChip>
-          ) : null}
           {chips.map((chip) => (
             <SelectChip key={chip.id} selected={selectedId === chip.id} onClick={() => onSelect(chip.id)}>
               {chip.label}

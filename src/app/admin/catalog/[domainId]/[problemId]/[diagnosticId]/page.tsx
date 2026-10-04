@@ -117,7 +117,7 @@ export default function AdminDiagnosticPage() {
   const handleCreateIntervention = async () => {
     if (!params?.diagnosticId) return;
     const name = intName.trim();
-    const slug = intSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(intSlug) || autoSlug(name);
     if (!name) return;
     setCreatingInt(true);
     try {

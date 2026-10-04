@@ -48,6 +48,10 @@ export default function AdminBrandPage() {
   const [newProblemSlug, setNewProblemSlug] = useState('');
   const [newProblemDesc, setNewProblemDesc] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  const [showRename, setShowRename] = useState(false);
+  const [renameName, setRenameName] = useState('');
+  const [renameSlug, setRenameSlug] = useState('');
+  const [renaming, setRenaming] = useState(false);
 
   async function load(quiet = false) {
     if (!params?.brandId) return;
@@ -68,7 +72,7 @@ export default function AdminBrandPage() {
   const handleCreateModel = async () => {
     if (!params?.brandId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newSlug) || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
@@ -97,7 +101,7 @@ export default function AdminBrandPage() {
   const handleCreateProblem = async () => {
     if (!params?.brandId || !brand) return;
     const name = newProblemName.trim();
-    const slug = newProblemSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newProblemSlug) || autoSlug(name);
     if (!name) return;
     setCreatingProblem(true);
     try {
@@ -127,6 +131,26 @@ export default function AdminBrandPage() {
       await load(true);
     } catch (err) {
       setError(toUserErrorMessage(err, 'Erreur.'));
+    }
+  };
+
+  const handleRenameBrand = async () => {
+    if (!params?.brandId) return;
+    const name = renameName.trim();
+    const slug = autoSlug(renameSlug) || autoSlug(name);
+    if (!name) return;
+    setRenaming(true);
+    try {
+      await updateBrand(params.brandId, { name, slug });
+      setShowRename(false);
+      setRenameName('');
+      setRenameSlug('');
+      setNotice('Marque renommée.');
+      await load(true);
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Erreur lors du renommage.'));
+    } finally {
+      setRenaming(false);
     }
   };
 
@@ -177,6 +201,53 @@ export default function AdminBrandPage() {
               <Switch checked={brand.isActive} onCheckedChange={handleToggleBrandActive} />
             </div>
             <p className="text-xs text-muted-foreground">Slug : {brand.slug}</p>
+            {!showRename ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setRenameName(brand.name);
+                  setRenameSlug('');
+                  setShowRename(true);
+                }}
+              >
+                Renommer
+              </Button>
+            ) : (
+              <div className="space-y-2 rounded-xl border border-border p-3">
+                <Field label="Nom" htmlFor="brand-rename-name" required>
+                  <Input
+                    id="brand-rename-name"
+                    value={renameName}
+                    onChange={(e) => setRenameName(e.target.value)}
+                    maxLength={150}
+                    autoComplete="off"
+                  />
+                </Field>
+                <Field
+                  label="Slug"
+                  htmlFor="brand-rename-slug"
+                  hint="Normalisé automatiquement (minuscules, tirets). Un doublon existant sera refusé."
+                >
+                  <Input
+                    id="brand-rename-slug"
+                    value={renameSlug}
+                    onChange={(e) => setRenameSlug(e.target.value)}
+                    maxLength={150}
+                    placeholder={autoSlug(renameName)}
+                    autoComplete="off"
+                  />
+                </Field>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleRenameBrand} disabled={!renameName.trim() || renaming}>
+                    Enregistrer
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setShowRename(false)} disabled={renaming}>
+                    Annuler
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>

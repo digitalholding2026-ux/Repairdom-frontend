@@ -1,5 +1,5 @@
-/* IA-4.1 — équipement déclaré obligatoire si « Autre » (objet à réparer,
- * pas la panne ; multimédia inchangé ; jamais un diagnostic catalogue).
+/* Équipement déclaré obligatoire si « Autre » (objet à réparer,
+ * pas la panne ; description inchangée ; jamais un diagnostic catalogue).
  *
  * Exécuté avec Node 24 natif (type stripping, zéro dépendance) :
  *   node --test src/lib/demande-equipment.test.ts
@@ -26,10 +26,9 @@ void test('wizard Autre : champ équipement obligatoire, vocabulaire objet (pas 
   assert.doesNotMatch(wizard, /OpenRouter|openrouter|transcription/i);
 });
 
-void test('wizard : domaines normaux et multimédia inchangés', () => {
+void test('wizard : domaines normaux et description inchangés', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  assert.match(wizard, /Montrez votre panne à l’étape suivante/);
-  assert.match(wizard, /medias\.length > 0/);
+  assert.match(wizard, /Description du problème/);
   assert.match(wizard, /setEquipmentType\(''\)/);
 });
 

@@ -14,13 +14,28 @@ import { readFileSync } from 'node:fs';
 const read = (rel: string): string =>
   readFileSync(new URL(rel, import.meta.url), 'utf8');
 
-void test('client : aucun champ texte obligatoire, ≥1 média exigé', () => {
+void test('client : description obligatoire (≥10), médias facultatifs', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  assert.doesNotMatch(wizard, /Décrivez le problème/);
-  assert.doesNotMatch(wizard, /MIN_DESCRIPTION_LENGTH/);
-  assert.doesNotMatch(wizard, /demande-description/);
-  assert.match(wizard, /medias\.length > 0/);
-  assert.match(wizard, /Ajoutez un message vocal, une vidéo ou au moins une photo/);
+  assert.match(wizard, /Décrivez votre panne/);
+  assert.match(wizard, /demande-description/);
+  assert.match(wizard, /DESCRIPTION_MIN_LENGTH = 10/);
+  assert.match(wizard, /description\.trim\(\)\.length >= DESCRIPTION_MIN_LENGTH/);
+  assert.match(wizard, /Photos \(facultatif\)/);
+});
+
+void test('parcours simplifié : catégorie → marque réelle → description, sans modèle', () => {
+  const wizard = read('../components/client/demande-wizard.tsx');
+  // Ni étape modèle, ni échappatoire « toutes marques / tous modèles ».
+  assert.doesNotMatch(wizard, /Toutes les marques/);
+  assert.doesNotMatch(wizard, /Tous les modèles/);
+  assert.doesNotMatch(wizard, /modelId/);
+  assert.doesNotMatch(wizard, /quickOption/);
+  // Marque réelle obligatoire avec un domaine du catalogue.
+  assert.match(wizard, /brandId !== ''/);
+  assert.match(wizard, /Aucune marque disponible/);
+  assert.match(wizard, /n'est pas encore disponible sur Relio/);
+  // Description transmise à la création.
+  assert.match(wizard, /description: description\.trim\(\)/);
 });
 
 void test('client : upload réel AVANT création, nettoyage à l’échec', () => {

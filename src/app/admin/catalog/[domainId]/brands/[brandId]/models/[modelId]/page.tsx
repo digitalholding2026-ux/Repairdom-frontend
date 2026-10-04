@@ -117,7 +117,7 @@ export default function AdminModelPage() {
   const handleCreateProblem = async () => {
     if (!params?.domainId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newSlug) || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {

@@ -16,6 +16,7 @@ import { Modal } from '@/components/ui/modal';
 import { ResponsiveView } from '@/components/ui/responsive-view';
 import { CatalogSkeleton } from '@/components/admin/catalog/catalog-skeleton';
 import { DeleteCatalogItem } from '@/components/admin/catalog/delete-catalog-item';
+import { autoSlug } from '@/lib/slug';
 import {
   listDomains,
   createDomain,
@@ -105,7 +106,7 @@ export default function AdminCatalogPage() {
 
   const handleCreate = async () => {
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slug = autoSlug(newSlug) || autoSlug(name);
     if (!name || !newCategory) return;
     setCreating(true);
     try {

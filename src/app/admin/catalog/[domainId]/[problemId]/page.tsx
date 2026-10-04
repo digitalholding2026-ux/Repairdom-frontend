@@ -69,7 +69,7 @@ export default function AdminProblemPage() {
   const handleCreateDiagnostic = async () => {
     if (!params?.problemId) return;
     const name = newName.trim();
-    const slug = newSlug.trim().toLowerCase() || autoSlug(name);
+    const slug = autoSlug(newSlug) || autoSlug(name);
     if (!name) return;
     setCreating(true);
     try {
