@@ -282,6 +282,47 @@ function patchBody(data: unknown): RequestInit {
   };
 }
 
+/* ── Agent Backoffice (ADMIN, lecture seule) ────────────────
+ * Conversation en session frontend uniquement (jamais persistée) : le
+ * backend reste l'autorité (outils de lecture contrôlés, synthèse). */
+
+export interface BackofficeAgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface BackofficeAgentChatResponse {
+  reply: string;
+  toolCalls: Array<{ tool: string; ok: boolean }>;
+  model: string | null;
+}
+
+export interface BackofficeAgentStatus {
+  available: boolean;
+  model: string | null;
+  reason: string | null;
+}
+
+export function getBackofficeAgentStatus(): Promise<BackofficeAgentStatus> {
+  return catalogFetch<BackofficeAgentStatus>('/admin/agent/status');
+}
+
+export function postBackofficeAgentChat(
+  message: string,
+  history: BackofficeAgentMessage[],
+): Promise<BackofficeAgentChatResponse> {
+  return catalogFetch<BackofficeAgentChatResponse>(
+    '/admin/agent/chat',
+    jsonBody({
+      message: message.trim(),
+      history: history
+        .filter((item) => item && (item.role === 'user' || item.role === 'assistant'))
+        .slice(-10)
+        .map((item) => ({ role: item.role, content: item.content })),
+    }),
+  );
+}
+
 function deleteBody(): RequestInit {
   return { method: 'DELETE' };
 }
