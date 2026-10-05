@@ -108,6 +108,46 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/** Vrai si le message brut peut être affiché tel quel : texte court, sans
+ *  forme technique, sans secret. C'est le MÊME filtre que `toUserErrorMessage`
+ *  — on ne le contourne pas, on l'exploite. */
+function isSafeToDisplay(raw: string): boolean {
+  if (!raw) return false;
+  if (NETWORK_PATTERNS.some((pattern) => pattern.test(raw))) return false;
+  if (raw.length > 220 || TECHNICAL_PATTERNS.some((pattern) => pattern.test(raw))) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Message d'erreur ACTIONNABLE : le texte métier du backend s'il est sûr.
+ *
+ * `toUserErrorMessage` masque volontairement les 400/403 derrière un texte
+ * générique — bon réflexe pour un paiement, mais perdant pour le parcours KYC,
+ * où le backend construit des messages qui disent CE QUI MANQUE (« Dossier
+ * incomplet : renseignez le verso de votre carte nationale ») ou POURQUOI
+ * l'action est refusée (« Vous devez avoir au moins 18 ans… »). Sans eux, le
+ * technicien ne peut pas corriger son dossier.
+ *
+ * On ne contourne PAS le filtre : le message brut n'est affiché que s'il
+ * passe exactement les mêmes contrôles (pas de HTML, pas de stack, pas de
+ * secret, longueur bornée). Sinon on retombe sur `toUserErrorMessage`.
+ */
+export function toActionableErrorMessage(err: unknown, fallback = GENERIC_MESSAGE): string {
+  const record = asRecord(err);
+  const message = record?.message;
+  /* `message` peut être une chaîne (message métier) ou un tableau de
+   * chaînes (validation NestJS multi-champs) : les deux sont aplatis. */
+  const flattened = (
+    Array.isArray(message) ? message.join(', ') : typeof message === 'string' ? message : ''
+  ).trim();
+  if (isSafeToDisplay(flattened)) {
+    return flattened.replace(/\bXAF\b/g, 'FCFA');
+  }
+  return toUserErrorMessage(err, fallback);
+}
+
 /** Convertit une erreur en message français sûr pour l'UI. Le code
  *  métier est prioritaire sur le statut HTTP (un 404 avec code précis
  *  affiche le message du code, pas le générique). */
@@ -132,10 +172,9 @@ export function toUserErrorMessage(err: unknown, fallback = GENERIC_MESSAGE): st
 
   const raw = err instanceof Error ? err.message.trim() : '';
   if (!raw) return fallback;
+  // Erreur réseau : message dédié (plus utile que le générique).
   if (NETWORK_PATTERNS.some((pattern) => pattern.test(raw))) return NETWORK_MESSAGE;
-  if (raw.length > 220 || TECHNICAL_PATTERNS.some((pattern) => pattern.test(raw))) {
-    return fallback;
-  }
+  if (!isSafeToDisplay(raw)) return fallback;
   // Unité d'affichage : les messages métier backend exposent le code ISO
   // « XAF », l'utilisateur voit « FCFA ».
   return raw.replace(/\bXAF\b/g, 'FCFA');

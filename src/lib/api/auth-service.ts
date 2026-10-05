@@ -1,4 +1,5 @@
 import { siteConfig } from '@/lib/site-config';
+import { ApiError, toApiError } from './api-error';
 
 export interface SignUpInput {
   firstName: string;
@@ -38,16 +39,10 @@ export interface AuthSession {
   mode: 'real';
 }
 
-export class ApiError extends Error {
-  status: number;
-  code: string | null;
-  constructor(message: string, status: number, code?: string | null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code ?? null;
-  }
-}
+/* `ApiError` vit désormais dans `./api-error` (classe unique partagée).
+ * Ré-exporté ici car `client-auth-form` et `technician-auth-form` l'importent
+ * depuis ce module. */
+export { ApiError };
 
 /* Messages backend (contrats stables, utilisés pour orienter le parcours) :
  * - login d'un CLIENT non vérifié → 401 EMAIL_VERIFICATION_REQUIRED_MESSAGE ;
@@ -64,17 +59,8 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     credentials: 'include',
     ...init,
   });
-
   const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const payload = body as { message?: string | string[]; code?: string } | null;
-    const message = payload?.message;
-    const text = Array.isArray(message) ? message.join(', ') : message;
-    const code = typeof payload?.code === 'string' ? payload.code : null;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
-  }
-
+  if (!res.ok) throw toApiError(res, body);
   return body as T;
 }
 

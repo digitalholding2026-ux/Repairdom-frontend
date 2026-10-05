@@ -1,4 +1,16 @@
 import { siteConfig } from '@/lib/site-config';
+import { ApiError, toApiError } from './api-error';
+
+/* Statut d'activité professionnelle (miroir de l'enum Prisma
+ * `TechnicianActivityType`) : structuré, jamais du texte libre. */
+export type TechnicianActivityType = 'FREELANCE' | 'SALARIED' | 'COMPANY' | 'OTHER';
+
+/* Nature de la pièce d'identité (miroir de `KycIdentityDocumentType`).
+ * CNI = recto + verso obligatoires, passeport = une seule page. */
+export type KycIdentityDocumentType = 'NATIONAL_ID_CARD' | 'PASSPORT';
+
+/* Statuts KYC (miroir de l'enum Prisma `KycStatus`). */
+export type KycStatus = 'NOT_SUBMITTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface TechnicianProfile {
   id: string;
@@ -13,7 +25,23 @@ export interface TechnicianProfile {
   experience: string | null;
   serviceDescription: string | null;
   specialties: string[];
-  kycStatus: string;
+  /* Activité professionnelle : freelance / salarié / entreprise / autre. */
+  activityType: TechnicianActivityType | null;
+  /* Expérience structurée en années (la valeur filtrable). `experience`
+   * reste le récit libre historique. */
+  experienceYears: number | null;
+  /* Compétences par famille d'équipement (`EquipmentFamily.code`).
+   * Vide = aucune préférence (le dispatch ne filtre pas par famille). */
+  familyCodes: string[];
+  /* KYC — identité (page dédiée /technicien/kyc). `birthDate` est sérialisé
+   * en `YYYY-MM-DD` par le backend. */
+  birthDate: string | null;
+  nationality: string | null;
+  kycIdentityDocType: KycIdentityDocumentType | null;
+  /* Technicien pré-chantier sans date de naissance : la majorité n'est pas
+   * encore vérifiable, il doit compléter son dossier KYC. */
+  mustCompleteKycProfile: boolean;
+  kycStatus: KycStatus;
   kycRejectionReason: string | null;
   /* GPS V1 — dernière position transmise (null si jamais envoyée). */
   lastLatitude: number | null;
@@ -27,7 +55,11 @@ export interface TechnicianProfile {
   user: {
     firstName: string;
     lastName: string | null;
+    /* Numéro d'appel et numéro WhatsApp vivent sur `User` (source unique,
+     * cf. §22) et se modifient via `PATCH /auth/me`, pas via le profil
+     * technicien. */
     phone: string | null;
+    whatsapp: string | null;
     email: string;
     role: string;
   };
@@ -126,33 +158,13 @@ export interface TechnicianTravelInfo {
   distanceMeters: number | null;
 }
 
-class ApiError extends Error {
-  status: number;
-  code: string | null;
-  constructor(message: string, status: number, code?: string | null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code ?? null;
-  }
-}
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',
     ...init,
   });
-
   const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const payload = body as { message?: string | string[]; code?: string } | null;
-    const message = payload?.message;
-    const text = Array.isArray(message) ? message.join(', ') : message;
-    const code = typeof payload?.code === 'string' ? payload.code : null;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
-  }
-
+  if (!res.ok) throw toApiError(res, body);
   return body as T;
 }
 
@@ -160,15 +172,27 @@ export async function getTechnicianProfile(): Promise<TechnicianProfile> {
   return apiFetch<TechnicianProfile>('/technician/profile');
 }
 
+/* `avatarUrl` n'est PAS exposée ici : côté backend, la photo de profil ne se
+ * modifie que via l'upload `POST /technician/profile/avatar`
+ * (`uploadTechnicianAvatar`), qui la dépose dans le bucket contrôlé. */
 export async function updateTechnicianProfile(data: {
   city?: string;
   categories?: string[];
   isAvailable?: boolean;
-  avatarUrl?: string | null;
   bio?: string | null;
   experience?: string | null;
   serviceDescription?: string | null;
   specialties?: string[];
+  /* Activité professionnelle et expérience (structurées). */
+  activityType?: TechnicianActivityType | null;
+  experienceYears?: number | null;
+  /* Compétences par famille d'équipement (`EquipmentFamily.code`).
+   * Liste VIDE = aucune préférence déclarée. */
+  familyCodes?: string[];
+  /* Identité KYC : Consumée par la page /technicien/kyc. */
+  birthDate?: string | null;
+  nationality?: string | null;
+  kycIdentityDocType?: KycIdentityDocumentType | null;
 }): Promise<TechnicianProfile> {
   return apiFetch<TechnicianProfile>('/technician/profile', {
     method: 'PATCH',
@@ -229,15 +253,24 @@ export async function uploadTechnicianAvatar(file: File): Promise<TechnicianProf
   });
 }
 
+/* Nature de la pièce : `IDENTITY` (obligatoire pour la vérification) ou
+ * `PROFESSIONAL` (preuve de professionnalisme, FACULTATIVE). */
+export type KycDocumentType = 'IDENTITY' | 'PROFESSIONAL';
+
+/* Face du document. CNI = RECTO + VERSO ; passeport / preuve pro = SINGLE. */
+export type KycDocumentSide = 'RECTO' | 'VERSO' | 'SINGLE';
+
 export interface KycDocumentMetadata {
   id: string;
-  type: string;
+  type: KycDocumentType;
+  side: KycDocumentSide;
+  mimeType: string;
   originalName: string;
   createdAt: string;
 }
 
 export interface TechnicianKycOverview {
-  status: string;
+  status: KycStatus;
   kycRejectionReason: string | null;
   documents: KycDocumentMetadata[];
 }
@@ -246,13 +279,18 @@ export async function getTechnicianKyc(): Promise<TechnicianKycOverview> {
   return apiFetch<TechnicianKycOverview>('/technician/kyc');
 }
 
+/* Dépôt d'une pièce. `side` est indispensable pour une CNI : sans lui le
+ * backend refuse un dépôt recto/verso tant que le type de pièce n'est pas
+ * déclaré, et deux dépôts CNI sans `side` écraseraient la même ligne. */
 export async function uploadTechnicianKycDocument(
   file: File,
-  type: string,
+  type: KycDocumentType,
+  side: KycDocumentSide,
 ): Promise<TechnicianKycOverview> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('type', type);
+  formData.append('side', side);
   return apiFetch<TechnicianKycOverview>('/technician/kyc/documents', {
     method: 'POST',
     body: formData,
@@ -263,6 +301,23 @@ export async function deleteTechnicianKycDocument(id: string): Promise<Technicia
   return apiFetch<TechnicianKycOverview>(`/technician/kyc/documents/${encodeURIComponent(id)}`, {
     method: 'DELETE',
   });
+}
+
+/* Soumission explicite du dossier : le backend vérifie la complétude (date de
+ * naissance + majorité, nationalité, type de pièce, faces requises) puis fait
+ * passer le statut à PENDING. */
+export async function submitTechnicianKyc(): Promise<TechnicianKycOverview> {
+  return apiFetch<TechnicianKycOverview>('/technician/kyc/submit', { method: 'POST' });
+}
+
+/* URL signée éphémère (5 min) d'auto-consultation d'une pièce. Jamais d'URL
+ * publique permanente : le bucket KYC est privé. */
+export async function getTechnicianKycDocumentUrl(
+  id: string,
+): Promise<{ url: string; expiresIn: number; mimeType: string }> {
+  return apiFetch<{ url: string; expiresIn: number; mimeType: string }>(
+    `/technician/kyc/documents/${encodeURIComponent(id)}/url`,
+  );
 }
 
 export async function getPublicTechnicianProfile(id: string): Promise<PublicTechnicianProfile> {

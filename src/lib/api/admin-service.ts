@@ -1,4 +1,5 @@
 import { siteConfig } from '@/lib/site-config';
+import { toApiError } from './api-error';
 
 export interface AdminKycFolder {
   technicianId: string;
@@ -18,6 +19,9 @@ export interface AdminKycFolderList {
 export interface AdminKycDocument {
   id: string;
   type: string;
+  /* Face du document : RECTO / VERSO pour une CNI, SINGLE pour un passeport
+   * ou une preuve professionnelle. Indispensable pour vérifier une CNI. */
+  side: string;
   originalName: string;
   mimeType: string;
   size: number;
@@ -33,17 +37,45 @@ export interface AdminKycReview {
   createdAt: string;
 }
 
+/**
+ * Dossier KYC complet, servi en une seule requête par `GET
+ * /admin/kyc/:technicianId`.
+ *
+ * L'administrateur ne doit pas navigating dans cinq écrans pour décider : la
+ * réponse regroupe identité, profil professionnel, documents et historique.
+ */
 export interface AdminKycDetail {
   technician: {
     id: string;
     firstName: string;
     lastName: string | null;
+    /* Contact (User, source unique) : téléphone d'appel + WhatsApp. */
     phone: string | null;
+    whatsapp: string | null;
     avatarUrl: string | null;
     city: string;
+    /* — Identité (vérification) — */
+    /** Date de naissance `YYYY-MM-DD`. */
+    birthDate: string | null;
+    /** Âge révolu, CALCULÉ par le backend (jamais saisi, jamais calculé par l'UI). */
+    age: number | null;
+    /** Âge calculé < 18 : signal d'alerte pour le backoffice.
+     *
+     *  Purement informatif : le backend refuse déjà l'activation et la
+     *  soumission d'un mineur. Ce drapeau permet à l'admin de VOIR le
+     *  motif du refus au lieu de le découvrir via un 403 opaque. */
+    ageBelowMinimum: boolean;
+    /** Code ISO 3166-1 alpha-2. */
+    nationality: string | null;
+    /** CNI ou PASSPORT. */
+    kycIdentityDocType: string | null;
+    /* — Profil professionnel — */
     categories: string[];
     specialties: string[];
     experience: string | null;
+    experienceYears: number | null;
+    activityType: string | null;
+    familyCodes: string[];
     serviceDescription: string | null;
     bio: string | null;
     isAvailable: boolean;
@@ -63,33 +95,13 @@ export interface AdminKycDocumentUrl {
   originalName: string;
 }
 
-class ApiError extends Error {
-  status: number;
-  code: string | null;
-  constructor(message: string, status: number, code?: string | null) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.code = code ?? null;
-  }
-}
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',
     ...init,
   });
-
   const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const payload = body as { message?: string | string[]; code?: string } | null;
-    const message = payload?.message;
-    const text = Array.isArray(message) ? message.join(', ') : message;
-    const code = typeof payload?.code === 'string' ? payload.code : null;
-    throw new ApiError(text ?? `Erreur ${res.status}`, res.status, code);
-  }
-
+  if (!res.ok) throw toApiError(res, body);
   return body as T;
 }
 
@@ -110,6 +122,16 @@ export async function getAdminKycDocumentUrl(
   );
 }
 
+/* Décision administrative (§18) : `VERIFIED` ou `REJECTED`.
+ *
+ * Pas de statut « à corriger » distinct : une correction se modélise par
+ * `REJECTED` + motif OBLIGATOIRE, que le technicien lit sur sa page KYC et
+ * corrige en renvoyant son dossier. Ajouter un état `REQUEST_CORRECTION`
+ * dupliquerait `REJECTED` sans gain (le backend interdit de redécider un
+ * dossier déjà tranché, cf. garde 409 `updateKycStatus`).
+ *
+ * `REJECTED` exige un motif ; `VERIFIED` interdit d'en fournir un (le backend
+ * rejette les deux cas). */
 export async function updateAdminKycStatus(
   technicianId: string,
   status: 'VERIFIED' | 'REJECTED',

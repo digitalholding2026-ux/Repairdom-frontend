@@ -21,6 +21,9 @@ const TECHNICIAN_NAV: WorkspaceNavItem[] = [
   { href: '/technicien/revenus', label: 'Revenus', icon: 'briefcase' },
   { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
   { href: '/technicien/zones', label: 'Zones couvertes', icon: 'pin' },
+  /* KYC = page DÉDIÉE (`/technicien/kyc`), distincte du profil : le menu doit
+   * y donner accès direct, sinon la vérification reste introuvable. */
+  { href: '/technicien/kyc', label: 'Vérification', icon: 'shield-check' },
   { href: '/technicien/profil', label: 'Mon profil', icon: 'user' },
 ];
 
@@ -82,11 +85,12 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
             ]}
             /* CHANTIER NAVIGATION P1/P2 — 6 boutons à 360 px = illisible :
              * 4 entrées + « Plus » (notifications, historique, zones,
-             * profil). Aucune route perdue, état actif conservé. */
+             * vérification, profil). Aucune route perdue, état actif conservé. */
             moreItems={[
               { href: '/technicien/notifications', label: 'Notifications', icon: 'bell', notifications: true },
               { href: '/technicien/historique', label: 'Historique', icon: 'badge-check' },
               { href: '/technicien/zones', label: 'Zones couvertes', icon: 'pin' },
+              { href: '/technicien/kyc', label: 'Vérification', icon: 'shield-check' },
               { href: '/technicien/profil', label: 'Mon profil', icon: 'user' },
             ]}
           />

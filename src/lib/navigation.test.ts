@@ -52,6 +52,9 @@ void test('TECHNICIAN : zones + historique accessibles, 4 boutons + Plus', () =>
     '/technicien/notifications',
     '/technicien/zones',
     '/technicien/profil',
+    /* KYC : page DÉDIÉE, doit être atteignable depuis le menu, sinon la
+     * vérification d'identité reste introuvable pour le technicien. */
+    '/technicien/kyc',
   ]) {
     assert.ok(layout.includes(`'${href}'`), `menu technicien : ${href}`);
   }

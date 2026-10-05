@@ -25,10 +25,14 @@ import {
   type AdminKycDetail,
 } from '@/lib/api/admin-service';
 import {
+  activityTypeLabel,
   categoryLabel,
+  identityDocumentLabel,
   kycStatusLabel,
   kycVariantFor,
+  kycDocumentSideLabel,
   kycDocumentTypeLabel,
+  typeLabelByCode,
 } from '@/lib/technician-profile';
 
 export default function AdminKycFolderPage() {
@@ -80,7 +84,7 @@ export default function AdminKycFolderPage() {
     }
   };
 
-  const handleValidate = async () => {
+  const handleValidate = () => {
     if (!params?.technicianId) return;
     setShowConfirmValidate(true);
   };
@@ -170,11 +174,62 @@ export default function AdminKycFolderPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <AdminInfoRow label="Téléphone" value={technician.phone ?? '—'} />
-            <AdminInfoRow label="Disponibilité" value={technician.isAvailable ? 'Disponible' : 'Indisponible'} />
-            <AdminInfoRow label="Interventions confirmées" value={`${technician.completedInterventions}`} />
-            <AdminInfoRow label="Inscrit le" value={formatDate(technician.registeredAt)} />
+          {/* ── Identité : ce que l'administrateur vérifie (§17) ───────── */}
+          <div>
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              <Icon name="shield" size="3.5" className="text-muted-foreground" />
+              Identité
+            </span>
+            <div className="mt-1.5 grid grid-cols-2 gap-3 text-sm">
+              <AdminInfoRow label="Téléphone" value={technician.phone ?? '—'} />
+              <AdminInfoRow label="WhatsApp" value={technician.whatsapp ?? '—'} />
+              <AdminInfoRow
+                label="Date de naissance"
+                value={technician.birthDate ? formatDate(technician.birthDate) : '—'}
+              />
+              {/* Âge CALCULÉ par le backend : la seule valeur fiable pour juger la majorité. */}
+              <AdminInfoRow
+                label="Âge"
+                value={technician.age === null ? '—' : `${technician.age} ans`}
+              />
+              <AdminInfoRow
+                label="Nationalité"
+                value={typeLabelByCode(technician.nationality) ?? '—'}
+              />
+              <AdminInfoRow
+                label="Pièce d’identité"
+                value={identityDocumentLabel(technician.kycIdentityDocType) ?? '—'}
+              />
+              <AdminInfoRow label="Disponibilité" value={technician.isAvailable ? 'Disponible' : 'Indisponible'} />
+              <AdminInfoRow label="Interventions confirmées" value={`${technician.completedInterventions}`} />
+              <AdminInfoRow label="Inscrit le" value={formatDate(technician.registeredAt)} />
+            </div>
+            {/* Signal d'alerte : le backend refuse l'activation d'un mineur, l'admin
+                doit voir POURQUOI plutôt que subir un refus opaque. */}
+            {technician.ageBelowMinimum ? (
+              <Alert variant="error" className="mt-3">
+                Ce technicien a moins de 18 ans : il ne peut pas exercer sur Relio. Le blocage est déjà
+                appliqué côté plateforme (activation et soumission refusées). Refusez le dossier.
+              </Alert>
+            ) : null}
+          </div>
+
+          {/* ── Profil professionnel (§17) ──────────────────────────────── */}
+          <div>
+            <span className="flex items-center gap-1.5 text-sm font-medium">
+              <Icon name="briefcase" size="3.5" className="text-muted-foreground" />
+              Profil professionnel
+            </span>
+            <div className="mt-1.5 grid grid-cols-2 gap-3 text-sm">
+              <AdminInfoRow
+                label="Type d’activité"
+                value={activityTypeLabel(technician.activityType as never) ?? '—'}
+              />
+              <AdminInfoRow
+                label="Années d’expérience"
+                value={technician.experienceYears === null ? '—' : `${technician.experienceYears} ans`}
+              />
+            </div>
           </div>
 
           {technician.categories.length > 0 ? (
@@ -192,6 +247,27 @@ export default function AdminKycFolderPage() {
               </div>
             </div>
           ) : null}
+
+          {technician.familyCodes.length > 0 ? (
+            <div>
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <Icon name="truck" size="3.5" className="text-muted-foreground" />
+                Types d’équipements maîtrisés
+              </span>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {technician.familyCodes.map((code) => (
+                  <Badge key={code} variant="outline">
+                    {code}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Aucun type d’équipement déclaré : ce technicien est proposé sur toutes les demandes de
+              ses catégories.
+            </p>
+          )}
 
           {technician.specialties.length > 0 ? (
             <div>
@@ -251,12 +327,21 @@ export default function AdminKycFolderPage() {
                 return (
                   <div key={document.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 p-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{kycDocumentTypeLabel(document.type)}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {document.originalName} · {formatFileSize(document.size)} · {formatDateTime(document.createdAt)}
-                        </p>
-                      </div>
+<div className="min-w-0">
+                         <p className="truncate text-sm font-medium">
+                           {kycDocumentTypeLabel(document.type)}
+                           {/* La face est indispensable : sans elle on ne peut pas
+                               distinguer le recto du verso d'une CNI. */}
+                           {document.type === 'IDENTITY' && document.side !== 'SINGLE' ? (
+                             <span className="ml-1.5 text-xs text-muted-foreground">
+                               ({kycDocumentSideLabel(document.side)})
+                             </span>
+                           ) : null}
+                         </p>
+                         <p className="truncate text-xs text-muted-foreground">
+                           {document.originalName} · {formatFileSize(document.size)} · {formatDateTime(document.createdAt)}
+                         </p>
+                       </div>
                       <Button
                         variant="secondary"
                         size="sm"
