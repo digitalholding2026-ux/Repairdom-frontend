@@ -125,3 +125,77 @@ void test('boutons : hauteurs tactiles (44 px sur md/lg via h-11/h-12)', () => {
   assert.match(button, /disabled:opacity-50/);
   assert.match(button, /aria-busy/);
 });
+
+/* ── Logo : le pin DOIT tenir lieu de « o » ────────────────────────────────
+ *
+ * Régression corrigée : le pin était déjà dessiné dans le wordmark, mais
+ * positionné sur une coordonnée fixe très en dehors du texte (~200 px après
+ * le « i »), avec une hauteur de 292 px contre 185 px de capitales. Résultat :
+ * le mot se lisait « Reli » suivi d'une tache orange déconnectée.
+ *
+ * Ces assertions verrouillent les DEUX causes : le couplage au texte
+ * (`textLength`) et la pose sur la ligne de base (transform).
+ */
+
+void test('logo : le pin est couplé au texte (largeur avancée forcée)', () => {
+  const logo = read(join(SRC, 'components/ui/logo.tsx'));
+  // Sans `textLength`, la position du pin dépend de la police rendue.
+  assert.match(logo, /textLength="400"/);
+  assert.match(logo, /lengthAdjust="spacingAndGlyphs"/);
+});
+
+void test('logo : le pin est posé sur la ligne de base du texte', () => {
+  const logo = read(join(SRC, 'components/ui/logo.tsx'));
+  const baseline = /y="(\d+)"/.exec(logo)?.[1];
+  assert.equal(baseline, '212', 'ligne de base attendue');
+  // Échelle + translation du pin : 334 (bas du pin local) × 0.565 + 23.3 = 212.
+  const transform = /translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)/.exec(logo);
+  assert.ok(transform, 'transform du pin présent');
+  const [, , ty, scale] = transform.map(Number) as unknown as number[];
+  const pinBottom = 334 * scale + ty;
+  assert.ok(
+    Math.abs(pinBottom - Number(baseline)) < 1,
+    `le pin doit reposer sur la ligne de base (obtenu ${pinBottom.toFixed(2)})`,
+  );
+  // Échelle UNIFORME : aucune déformation des proportions naturelles du pin.
+  const localWidth = 984 - 724;
+  const localHeight = 334 - 42;
+  const renderedWidth = localWidth * scale;
+  const renderedHeight = localHeight * scale;
+  assert.ok(
+    Math.abs(renderedWidth / renderedHeight - localWidth / localHeight) < 0.01,
+    'le pin ne doit pas être étiré',
+  );
+});
+
+void test('logo : la hauteur du pin reste cohérente avec les capitales', () => {
+  const logo = read(join(SRC, 'components/ui/logo.tsx'));
+  const scale = Number(/translate\([\d.]+ [\d.]+\) scale\(([\d.]+)\)/.exec(logo)?.[1]);
+  const pinHeight = (334 - 42) * scale;
+  // Cap-height d'Arial ≈ 0.716 × fontSize ; le pin doit rester dans ce
+  // voisinage, ni écrasé (1/2 de la capitale) ni démesuré (×2).
+  const capHeight = 0.716 * 220;
+  assert.ok(pinHeight > capHeight * 0.9, `pin trop petit (${pinHeight.toFixed(0)})`);
+  assert.ok(pinHeight < capHeight * 1.3, `pin trop grand (${pinHeight.toFixed(0)})`);
+});
+
+void test('logo : le pin touche le texte, il n’y a pas de trou', () => {
+  const logo = read(join(SRC, 'components/ui/logo.tsx'));
+  const scale = Number(/translate\([\d.]+ [\d.]+\) scale\(([\d.]+)\)/.exec(logo)?.[1]);
+  const pinLeft = 724 * scale + Number(/translate\(([\d.]+)/.exec(logo)?.[1]);
+  const textEnd = 40 + 400; // x du texte + largeur avancée forcée
+  const gap = pinLeft - textEnd;
+  // Un intervalle de quelques px comparable à l'entrelettre ; pas ~200 px.
+  assert.ok(gap > 0, 'le pin doit suivre le texte');
+  assert.ok(gap < 60, `l'espace texte→pin ne doit pas être un trou (${gap.toFixed(1)} px)`);
+});
+
+void test('logo : props size / tone exposées, pin jamais recoloré', () => {
+  const logo = read(join(SRC, 'components/ui/logo.tsx'));
+  assert.match(logo, /size\?: number/);
+  assert.match(logo, /tone\?: LogoTone/);
+  assert.match(logo, /height: `\$\{size\}px`/);
+  // Le pin garde toujours son dégradé orange, quelle que soit la tone.
+  const toneBlocks = logo.slice(logo.indexOf('function textClass'));
+  assert.doesNotMatch(toneBlocks.slice(0, toneBlocks.indexOf('sizeStyle')), /#/);
+});
