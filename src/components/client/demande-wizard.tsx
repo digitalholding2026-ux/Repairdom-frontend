@@ -1088,18 +1088,44 @@ const StepProgress = memo(function StepProgress({ current, labels }: { current: 
         />
         <div className="motion-safe:animate-sheen absolute inset-y-0 w-16 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
       </div>
-      <ol className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Étapes">
-        {labels.map((label, index) => (
-          <li
-            key={label}
-            className={cn(
-              'text-2xs font-medium sm:text-xs',
-              index <= current ? 'text-primary' : 'text-muted-foreground',
-            )}
-          >
-            {index + 1}. {label}
-          </li>
-        ))}
+      <ol className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Étapes">
+        {labels.map((label, index) => {
+          const done = index < current;
+          const active = index === current;
+          return (
+            <li
+              key={label}
+              /* `aria-current` expose l'étape active aux lecteurs d'écran
+               * (l'indicateur visuel ci-dessous reste purement décoratif). */
+              aria-current={active ? 'step' : undefined}
+              className={cn(
+                'flex items-center gap-1.5 text-2xs font-medium sm:text-xs',
+                active
+                  ? 'font-bold text-primary'
+                  : done
+                    ? 'text-primary/70'
+                    : 'text-muted-foreground',
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors',
+                  active
+                    ? 'bg-primary text-primary-foreground'
+                    : done
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-muted text-muted-foreground',
+                )}
+              >
+                {done ? <Icon name="check" size="3.5" strokeWidth={3} /> : index + 1}
+              </span>
+              <span className={active ? 'underline decoration-primary/40 underline-offset-4' : undefined}>
+                {label}
+              </span>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

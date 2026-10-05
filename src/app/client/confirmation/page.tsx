@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DemandeEnvoyeeAnimation } from '@/components/lottie/lottie-animations';
+import { CopyTrackingReference } from '@/components/client/confirmation-copy-button';
 import { PushNotificationCard } from '@/components/ui/push-notification-card';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatRequestedTiming } from '@/lib/request-timing';
@@ -19,6 +20,7 @@ const nextSteps = [
   'Un technicien certifié consulte votre demande.',
   'Vous recevez un premier retour avec un délai d’intervention.',
   'Vous validez le rendez-vous et le devis avant toute intervention.',
+  'Activez les notifications pour suivre l’avancement en temps réel.',
 ];
 
 export default async function ConfirmationPage({ searchParams }: ConfirmationPageProps) {
@@ -57,12 +59,15 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
           <CardTitle>Numéro de suivi</CardTitle>
           <CardDescription>Conservez ce numéro pour toute communication.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-4 text-center">
             <span className="font-mono text-lg font-semibold tracking-wide text-primary">
               {requestId ?? '—'}
             </span>
           </div>
+          {/* Copie presse-papiers : le Server Component transmet la référence,
+              le bouton la copie côté client. */}
+          {requestId ? <CopyTrackingReference value={requestId} /> : null}
         </CardContent>
       </Card>
 
