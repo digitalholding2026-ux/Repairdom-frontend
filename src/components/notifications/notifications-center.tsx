@@ -1,377 +1,378 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/cn';
-import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { SkeletonRow } from '@/components/ui/skeleton';
-import { useToast } from '@/lib/toast-context';
-import { toUserErrorMessage } from '@/lib/ui-error-message';
-import { triggerHaptic } from '@/lib/haptics';
-import { notificationMeta, NOTIFICATION_VARIANT_CLASSES } from '@/lib/notification-meta';
+import { NotificationItem } from '@/components/ui/notification-item';
+import type { AppNotification } from '@/lib/api/notifications-service';
 import {
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type AppNotification,
-} from '@/lib/api/notifications-service';
-import { formatDateTime, formatRelative, formatTime } from '@/lib/format';
-import { useUserStream } from '@/lib/realtime/use-user-stream';
-import { Badge } from '@/components/ui/badge';
+  URGENCY_LABELS,
+  URGENCY_ORDER,
+  getUrgencyForNotification,
+  groupNotificationsByMission,
+  isSectionEmpty,
+  sortNotifications,
+  urgencyPriority,
+  type NotificationGroup,
+  type NotificationRole,
+  type NotificationUrgency,
+} from '@/lib/notifications/notification-mapping';
+
+/* Centre de notifications (chantier #2D).
+ *
+ * REMPLACE l'ancien composant (une seule implémentation, aucun doublon).
+ * Toute la logique — urgence, action, regroupement, ordre des sections —
+ * vit dans `notification-mapping` : ce fichier ne fait que le rendu, ce qui
+ * rend les règles testables sans React.
+ */
 
 export interface NotificationsCenterProps {
-  detailHref: (demandeId: string) => string;
-  /** Variante hub (espace client) : conteneur texturé, en-tête avec badge
-   *  et action globale, filtres par catégorie. */
-  hub?: boolean;
+  role: NotificationRole;
+  notifications: AppNotification[];
+  /** Marquage « lu » + navigation. Délégué à la page (accès au router). */
+  onOpen: (notification: AppNotification) => void;
+  /** Marquage de TOUTES les notifications comme lues. */
+  onMarkAllRead: () => void;
+  /** Marquage des notifications d'un seul groupe de mission. */
+  onMarkGroupRead: (group: NotificationGroup) => void;
+  loading?: boolean;
+  error?: string | null;
+  busy?: boolean;
+  /** Ids arrivés en temps réel : déclenche l'animation d'insertion. */
+  freshIds?: ReadonlySet<string>;
 }
 
-type HubFilter = 'ALL' | 'UNREAD' | 'MISSIONS' | 'FINANCE';
+/* ── En-tête de section ─────────────────────────────────────────────────── */
 
-const HUB_FILTERS: Array<{ id: HubFilter; label: string }> = [
-  { id: 'ALL', label: 'Toutes' },
-  { id: 'UNREAD', label: 'Non lues' },
-  { id: 'MISSIONS', label: 'Missions' },
-  { id: 'FINANCE', label: 'Solde & Financement' },
-];
-
-/* Types backend liés au solde (recharges / retraits). */
-const FINANCE_NOTIFICATION_TYPES = new Set([
-  'TOPUP_CONFIRMED',
-  'TOPUP_FAILED',
-  'TOPUP_CANCELLED',
-  'WITHDRAWAL_CONFIRMED',
-  'WITHDRAWAL_FAILED',
-  'WITHDRAWAL_CANCELLED',
-  'CLIENT_TOPUP',
-  'CLIENT_WITHDRAWAL',
-]);
-
-function isFinanceNotification(notification: AppNotification): boolean {
-  return FINANCE_NOTIFICATION_TYPES.has(notification.type);
-}
-
-function matchesHubFilter(notification: AppNotification, filter: HubFilter): boolean {
-  switch (filter) {
-    case 'UNREAD':
-      return !notification.read;
-    case 'MISSIONS':
-      return notification.demandeId != null && !isFinanceNotification(notification);
-    case 'FINANCE':
-      return isFinanceNotification(notification);
-    default:
-      return true;
-  }
-}
-
-/* Icône thématique de la variante hub : devis (bleu), mission (émeraude),
- * solde (violet), sinon correspondance par type. */
-function hubIconTheme(type: string): { icon: 'file' | 'check-circle' | 'wallet'; className: string } | null {
-  if (FINANCE_NOTIFICATION_TYPES.has(type)) {
-    return { icon: 'wallet', className: 'bg-purple-500/10 text-purple-600' };
-  }
-  switch (type) {
-    case 'QUOTE_CREATED':
-    case 'NEGOTIATION_REQUESTED':
-    case 'QUOTE_ACCEPTED':
-    case 'QUOTE_REJECTED':
-      return { icon: 'file', className: 'bg-primary/10 text-primary' };
-    case 'TECHNICIAN_ACCEPTED':
-    case 'TECHNICIAN_EN_ROUTE':
-    case 'SCHEDULED':
-    case 'COMPLETED':
-    case 'CONFIRMED':
-    case 'MISSION_AVAILABLE':
-      return { icon: 'check-circle', className: 'bg-emerald-500/10 text-emerald-600' };
-    default:
-      return null;
-  }
-}
-
-/** Centre de notifications (historique read-only + gestion du lu). */
-export function NotificationsCenter({ detailHref, hub = false }: NotificationsCenterProps) {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [filter, setFilter] = useState<HubFilter>('ALL');
-
-  const load = useCallback(async () => {
-    try {
-      const res = await listNotifications();
-      setNotifications(res.items);
-      setUnreadCount(res.unreadCount);
-      setError(null);
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Erreur lors du chargement des notifications.'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  /* Temps réel : nouvelle notification → ajout en haut (refetch léger,
-   * sans skeleton). Le badge global est incrémenté par le hook partagé. */
-  useUserStream(() => {
-    void load();
-  });
-
-  const handleMarkAllRead = async () => {
-    setBusy(true);
-    setError(null);
-    triggerHaptic();
-    try {
-      await markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-      setUnreadCount(0);
-      toast({ title: 'Tout est marqué comme lu', variant: 'success' });
-    } catch (err) {
-      const message = toUserErrorMessage(err, 'Erreur lors de la mise à jour.');
-      setError(message);
-      toast({ title: 'Erreur', description: message, variant: 'error' });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleOpen = async (notification: AppNotification) => {
-    triggerHaptic();
-    if (!notification.read) {
-      try {
-        await markNotificationRead(notification.id);
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
-        );
-        setUnreadCount((c) => Math.max(0, c - 1));
-      } catch {
-        // La navigation reste possible même si le marquage échoue.
-      }
-    }
-    if (notification.demandeId) {
-      router.push(detailHref(notification.demandeId));
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-3" role="status">
-        <span className="sr-only">Chargement…</span>
-        <SkeletonRow />
-        <SkeletonRow />
-        <SkeletonRow />
-        <SkeletonRow />
-      </div>
-    );
-  }
-
-  if (!hub) {
-    return (
-      <div className="space-y-4">
-        {error ? <Alert variant="error">{error}</Alert> : null}
-        {notifications.length === 0 ? (
-          <Card>
-            <CardContent>
-              <EmptyState
-                icon={<Icon name="bell" size="lg" />}
-                title="Aucune notification"
-                description="Vous n&apos;avez pas encore de notification. Les actions importantes de vos missions apparaîtront ici."
-              />
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {unreadCount > 0 ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="w-full"
-                onClick={() => void handleMarkAllRead()}
-                isLoading={busy}
-              >
-                Tout marquer comme lu
-              </Button>
-            ) : null}
-            {notifications.map((notification) => {
-              const meta = notificationMeta(notification.type);
-              return (
-                <button
-                  key={notification.id}
-                  type="button"
-                  onClick={() => void handleOpen(notification)}
-                  className={cn(
-                    'flex w-full items-start gap-3 rounded-xl border p-3 text-left transition-all duration-150 active:scale-[0.98]',
-                    notification.read
-                      ? 'border-border bg-card'
-                      : 'border-primary/40 bg-primary/5',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex size-9 shrink-0 items-center justify-center rounded-full',
-                      NOTIFICATION_VARIANT_CLASSES[meta.variant],
-                    )}
-                  >
-                    <Icon name={meta.icon} size="sm" strokeWidth={2} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 text-sm font-semibold">{notification.title}</span>
-                      {!notification.read ? (
-                        <span
-                          aria-label="Non lue"
-                          className="mt-1 size-2 shrink-0 rounded-full bg-primary"
-                        />
-                      ) : null}
-                    </span>
-                    <span className="mt-1 block text-sm text-muted-foreground">
-                      {notification.message}
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {formatDateTime(notification.createdAt)}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const visibleNotifications = notifications.filter((notification) =>
-    matchesHubFilter(notification, filter),
+function SectionShell({
+  urgency,
+  count,
+  children,
+}: {
+  urgency: NotificationUrgency;
+  count: number;
+  children: React.ReactNode;
+}) {
+  const isAction = urgency === 'ACTION';
+  return (
+    <section
+      aria-labelledby={`notif-section-${urgency}`}
+      className={cn(
+        'rounded-2xl border p-4',
+        // Bloc ACTION : fond légèrement teinté + bord gauche orange.
+        // Les blocs SUIVI et INFO restent neutres et discrets.
+        isAction
+          ? 'border-orange-500/30 border-l-4 border-l-orange-500 bg-orange-500/5'
+          : 'border-border bg-card',
+      )}
+    >
+      <h2
+        id={`notif-section-${urgency}`}
+        className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+      >
+        {isAction ? <span aria-hidden className="size-2 rounded-full bg-orange-500" /> : null}
+        {URGENCY_LABELS[urgency]}
+        <Badge variant={isAction ? 'warning' : 'neutral'}>{count}</Badge>
+      </h2>
+      {children}
+    </section>
   );
+}
+
+/* ── Groupe collapsible par mission ─────────────────────────────────────── */
+
+/**
+ * Replié par défaut : seules la référence, la pastille de non-lues et la
+ * dernière action sont visibles.
+ *
+ * Déplier ne marque RIEN comme lu : les notifications restent non lues tant
+ * que l'utilisateur ne les a pas ouvertes une par une. Le compteur du
+ * header reflète exactement cet état.
+ */
+function Group({
+  group,
+  role,
+  onOpen,
+  onMarkGroupRead,
+}: {
+  group: NotificationGroup;
+  role: NotificationRole;
+  onOpen: (notification: AppNotification) => void;
+  onMarkGroupRead: (group: NotificationGroup) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  /* Menu implémenté à la main : le design system n'a ni Radix ni primitive
+   * dropdown, et le chantier interdit d'ajouter une dépendance. Fermeture au
+   * clic extérieur et à la touche Échap. */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
+
+  const isAction = group.urgency === 'ACTION';
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-relio-card lg:p-8">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full bg-gradient-to-br from-relio-orange/10 via-relio-orange-bright/10 to-transparent blur-3xl"
-      />
-      <div className="relative space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Notifications</h1>
-            {unreadCount > 0 ? (
-              <Badge variant="info">
-                {unreadCount} non lue{unreadCount !== 1 ? 's' : ''}
-              </Badge>
-            ) : null}
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void handleMarkAllRead()}
-            disabled={busy || unreadCount === 0}
-            isLoading={busy}
-          >
-            <Icon name="check-circle" size="sm" />
-            Tout marquer comme lu
-          </Button>
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="Filtrer les notifications"
-          className="mb-6 inline-flex gap-1 rounded-xl border border-slate-200/50 bg-slate-100 p-1 dark:border-slate-700/50 dark:bg-slate-800/80"
+    <div
+      className={cn(
+        'rounded-xl border',
+        isAction ? 'border-orange-500/40 bg-background' : 'border-border bg-background',
+      )}
+    >
+      <div className="flex items-center gap-2 p-3">
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          aria-expanded={expanded}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {HUB_FILTERS.map((item) => {
-            const active = item.id === filter;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(item.id)}
-                className={cn(
-                  'rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  active
-                    ? 'bg-white text-primary shadow-xs dark:bg-slate-900'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {error ? <Alert variant="error">{error}</Alert> : null}
-
-        {visibleNotifications.length === 0 ? (
-          <EmptyState
-            icon={<Icon name="bell" size="lg" />}
-            title="Aucune notification"
-            description="Vous êtes à jour ! Les mises à jour de vos demandes et devis apparaîtront ici."
+          <Icon
+            name="chevron-right"
+            size="sm"
+            className={cn('shrink-0 transition-transform', expanded && 'rotate-90')}
           />
-        ) : (
-          <div className="space-y-3">
-            {visibleNotifications.map((notification) => {
-              const theme = hubIconTheme(notification.type);
-              const meta = notificationMeta(notification.type);
-              const iconName = theme?.icon ?? meta.icon;
-              const iconClassName = theme?.className ?? NOTIFICATION_VARIANT_CLASSES[meta.variant];
-              return (
-                <button
-                  key={notification.id}
-                  type="button"
-                  onClick={() => void handleOpen(notification)}
-                  className={cn(
-                    'group flex w-full cursor-pointer items-start gap-4 rounded-xl border p-4 text-left transition-all duration-200 active:scale-[0.99]',
-                    notification.read
-                      ? 'border-slate-200/60 bg-slate-50/50 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/40'
-                      : 'border-primary/20 bg-primary/5 hover:border-primary/40 dark:bg-primary/10',
-                  )}
-                >
-                  <span
-                    className={cn(
-                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                      iconClassName,
-                    )}
-                  >
-                    <Icon name={iconName} size="sm" strokeWidth={2} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center text-sm font-semibold text-slate-900 dark:text-white">
-                      <span className="truncate">{notification.title}</span>
-                      {!notification.read ? (
-                        <span
-                          aria-label="Non lue"
-                          className="ml-2 inline-block size-2 shrink-0 animate-pulse rounded-full bg-primary"
-                        />
-                      ) : null}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-slate-600 dark:text-slate-300 lg:text-sm">
-                      {notification.message}
-                    </span>
-                    <span className="mt-2 flex items-center gap-1 text-2xs text-slate-400 dark:text-slate-500">
-                      <Icon name="clock" size="3.5" />
-                      {formatRelative(notification.createdAt)} · {formatTime(notification.createdAt)}
-                    </span>
-                  </span>
-                  <Icon
-                    name="arrow-right"
-                    size="sm"
-                    className="mt-1 shrink-0 text-slate-400 transition-transform group-hover:translate-x-1"
-                  />
-                </button>
-              );
-            })}
-          </div>
-        )}
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">
+              {group.reference ? `Mission ${group.reference}` : 'Mission'}
+            </span>
+            {group.lastActionLabel ? (
+              <span className="block truncate text-xs text-muted-foreground">
+                {group.lastActionLabel}
+              </span>
+            ) : null}
+          </span>
+          {group.unreadCount > 0 ? (
+            <Badge variant="warning" className="shrink-0">
+              {group.unreadCount} nouvelle{group.unreadCount > 1 ? 's' : ''}
+            </Badge>
+          ) : null}
+        </button>
+
+        <div className="relative shrink-0" ref={menuRef}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Actions du groupe"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((prev) => !prev)}
+            disabled={group.unreadCount === 0}
+          >
+            <Icon name="menu" size="sm" />
+          </Button>
+          {menuOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onMarkGroupRead(group);
+                }}
+              >
+                <Icon name="check-circle" size="sm" />
+                Marquer ce groupe comme lu
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      {expanded ? (
+        <div className="space-y-2 border-t border-border p-2">
+          {group.notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              role={role}
+              onOpen={onOpen}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* ── Section ────────────────────────────────────────────────────────────── */
+
+function Section({
+  urgency,
+  groups,
+  loose,
+  role,
+  onOpen,
+  onMarkGroupRead,
+  freshIds,
+}: {
+  urgency: NotificationUrgency;
+  groups: NotificationGroup[];
+  loose: AppNotification[];
+  role: NotificationRole;
+  onOpen: (notification: AppNotification) => void;
+  onMarkGroupRead: (group: NotificationGroup) => void;
+  freshIds: ReadonlySet<string>;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <SectionShell urgency={urgency} count={groups.length + loose.length}>
+      <div className="space-y-2">
+        {groups.map((group) => (
+          <Group
+            key={group.key}
+            group={group}
+            role={role}
+            onOpen={onOpen}
+            onMarkGroupRead={onMarkGroupRead}
+          />
+        ))}
+
+        {/* Notifications SANS mission : à plat, jamais regroupées. */}
+        {sortNotifications(loose).map((notification) => (
+          <motion.div
+            key={notification.id}
+            /* Animation d'insertion (fade + slide) UNIQUEMENT pour une notif
+             * reçue en temps réel. `initial={false}` = aucun mouvement au
+             * premier rendu (page chargée) : sans ça, tout l'historique
+             * défilerait à l'ouverture. */
+            initial={
+              freshIds.has(notification.id) && !reduceMotion ? { opacity: 0, y: -8 } : false
+            }
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            <NotificationItem
+              notification={notification}
+              role={role}
+              onOpen={onOpen}
+            />
+          </motion.div>
+        ))}
+      </div>
+    </SectionShell>
+  );
+}
+
+/* ── Centre ─────────────────────────────────────────────────────────────── */
+
+const NO_FRESH_IDS: ReadonlySet<string> = new Set<string>();
+
+export function NotificationsCenter({
+  role,
+  notifications,
+  onOpen,
+  onMarkAllRead,
+  onMarkGroupRead,
+  loading = false,
+  error = null,
+  busy = false,
+  freshIds = NO_FRESH_IDS,
+}: NotificationsCenterProps) {
+  if (loading) {
+    return (
+      <div className="space-y-4" role="status">
+        <span className="sr-only">Chargement des notifications…</span>
+        <SectionShell urgency="ACTION" count={0}>
+          <div className="space-y-2">
+            <div className="h-16 animate-pulse rounded-xl bg-muted" />
+            <div className="h-16 animate-pulse rounded-xl bg-muted" />
+          </div>
+        </SectionShell>
+      </div>
+    );
+  }
+
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const { groups, looseNotifications } = groupNotificationsByMission(notifications, role);
+
+  /* Répartition par section. L'ordre est FIXE (ACTION → FOLLOW_UP → INFO) et
+   * une section vide disparaît totalement. */
+  const sections = URGENCY_ORDER.map((urgency) => {
+    const priority = urgencyPriority(urgency);
+    const sectionGroups = groups
+      .filter((group) => group.urgency === urgency)
+      .sort(
+        (left, right) =>
+          new Date(right.notifications[0].createdAt).getTime() -
+          new Date(left.notifications[0].createdAt).getTime(),
+      );
+    const sectionLoose = looseNotifications.filter(
+      (notification) => urgencyPriority(getUrgencyForNotification(notification)) === priority,
+    );
+    return { urgency, groups: sectionGroups, loose: sectionLoose };
+  }).filter((section) => !isSectionEmpty(section.groups, section.loose));
+
+  return (
+    <div className="space-y-4">
+      {error ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-error/40 bg-error-soft p-3 text-sm text-error-ink"
+        >
+          {error}
+        </div>
+      ) : null}
+
+      {unreadCount > 0 ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="w-full"
+          onClick={onMarkAllRead}
+          isLoading={busy}
+          disabled={busy}
+        >
+          <Icon name="check-circle" size="sm" />
+          Tout marquer comme lu
+        </Button>
+      ) : null}
+
+      {sections.length === 0 ? (
+        <EmptyState
+          icon={<Icon name="bell" size="lg" />}
+          title="Vous êtes à jour"
+          description="Aucune notification pour le moment. Les actions importantes de vos missions apparaîtront ici."
+        />
+      ) : (
+        sections.map((section) => (
+          <Section
+            key={section.urgency}
+            urgency={section.urgency}
+            groups={section.groups}
+            loose={section.loose}
+            role={role}
+            onOpen={onOpen}
+            onMarkGroupRead={onMarkGroupRead}
+            freshIds={freshIds}
+          />
+        ))
+      )}
     </div>
   );
 }
