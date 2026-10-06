@@ -13,10 +13,15 @@ import { Select } from '@/components/ui/select';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TechnicianDemandeCard } from '@/components/technician/technician-demande-card';
 import {
+  getTechnicianProfile,
   listAvailableDemandes,
   type TechnicianDemande,
 } from '@/lib/api/technician-service';
-import { useTechnicianStream } from '@/lib/realtime/use-user-stream';
+import { useTechnicianStream, useUserStream } from '@/lib/realtime/use-user-stream';
+import {
+  kycAcceptanceBanner,
+  KYC_PAGE_HREF,
+} from '@/lib/technician-kyc-rules';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 type SortKey = 'RELEVANT' | 'NEWEST' | 'OLDEST' | 'REQUESTED';
@@ -73,6 +78,27 @@ export default function TechnicienMissionsDisponiblesPage() {
   const [city, setCity] = useState('ALL');
   const [mode, setMode] = useState('ALL');
   const [sort, setSort] = useState<SortKey>('RELEVANT');
+  /* Chantier #5A — statut KYC du technicien. Il ne conditionne PAS
+   * l'affichage des missions (elles restent sa motivation) : il sert à
+   * afficher le bandeau et à ne pas proposer un « Accepter » doomed.
+   * `null` = pas encore connu → aucun bandeau (jamais de devinette). */
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycRejectionReason, setKycRejectionReason] = useState<string | null>(null);
+
+  const loadKyc = async () => {
+    try {
+      const profile = await getTechnicianProfile();
+      setKycStatus(profile.kycStatus);
+      setKycRejectionReason(profile.kycRejectionReason);
+    } catch {
+      /* Silencieux : le bandeau est un confort, jamais un garde-fou. Le
+       * backend refuse l'acceptation de toute façon (403 en filet). */
+    }
+  };
+
+  useEffect(() => {
+    void loadKyc();
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -106,6 +132,19 @@ export default function TechnicienMissionsDisponiblesPage() {
         setError(null);
       })
       .catch(() => undefined);
+  });
+
+  /* Chantier #5A — décision KYC prise par un admin : le bandeau doit
+   * disparaître SANS rechargement (c'est tout l'intérêt du temps réel).
+   * On ne refetch que le profil, pas la liste de missions. */
+  useUserStream((message) => {
+    if (
+      message.type !== 'technician.kyc_verified' &&
+      message.type !== 'technician.kyc_rejected'
+    ) {
+      return;
+    }
+    void loadKyc();
   });
 
   /* Options construites UNIQUEMENT à partir des données réellement reçues
@@ -154,6 +193,12 @@ export default function TechnicienMissionsDisponiblesPage() {
     setMode('ALL');
   };
 
+  /* Chantier #5A — bandeau de garde. Les missions restent VISIBLES et
+   * consultables : c'est ce qui donne au technicien envie de terminer son
+   * dossier. Seul l'acceptation est bloquée, et elle l'est AVANT le clic
+   * (le 403 backend reste en filet de sécurité). */
+  const acceptanceBanner = kycAcceptanceBanner(kycStatus, kycRejectionReason);
+
   if (loading) {
     return (
       <div className="space-y-4" role="status">
@@ -185,6 +230,22 @@ export default function TechnicienMissionsDisponiblesPage() {
             Réessayer
           </Button>
         </div>
+      ) : null}
+
+      {acceptanceBanner ? (
+        <Alert
+          variant={acceptanceBanner.variant}
+          title={acceptanceBanner.title}
+          action={
+            <Link href={KYC_PAGE_HREF}>
+              <Button variant="secondary" size="sm">
+                {acceptanceBanner.ctaLabel}
+              </Button>
+            </Link>
+          }
+        >
+          {acceptanceBanner.description}
+        </Alert>
       ) : null}
 
       {!error && missions.length === 0 ? (

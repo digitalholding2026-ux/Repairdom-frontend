@@ -78,6 +78,10 @@ function contextLine(notification: AppNotification): string | null {
   if (metadata.technicianName) parts.push(metadata.technicianName);
   if (metadata.disputeStatus) parts.push(`Litige : ${metadata.disputeStatus}`);
   if (metadata.resolution) parts.push(metadata.resolution);
+  /* Chantier #5A — motif de rejet KYC. Affiché tel quel : c'est la seule
+   * information qui dit au technicien QUOI corriger, et elle est trop longue
+   * pour tenir dans le `message` générique (qui reste volontairement fixe). */
+  if (metadata.kycRejectionReason) parts.push(`Motif : ${metadata.kycRejectionReason}`);
 
   return parts.length > 0 ? parts.join(' · ') : null;
 }

@@ -19,6 +19,8 @@ import {
   activityTypeLabel,
   computeAge,
   identityDocumentLabel,
+  kycAcceptanceBanner,
+  kycDashboardBanner,
   meetsMinimumAge,
   requiredIdentitySides,
 } from './technician-kyc-rules.ts';
@@ -329,4 +331,109 @@ void test('le dossier admin affiche identité, profil pro, documents et décisio
 void test('aucune ancienne section KYC dans le profil', () => {
   assert.doesNotMatch(profilePage, /KycSection/);
   assert.doesNotMatch(profilePage, /getTechnicianKyc/);
+});
+/* ── Chantier #5A — bandeaux « missions en lecture seule » ────────────────── */
+
+void test('#5A — aucun bandeau quand l’identité est vérifiée', () => {
+  assert.equal(kycAcceptanceBanner('VERIFIED'), null);
+  assert.equal(kycDashboardBanner('VERIFIED'), null);
+});
+
+void test('#5A — aucun bandeau sur un statut INCONNU (jamais de devinette)', () => {
+  // Un chargement de profil échoué ne doit JAMAIS produire un bandeau
+  // affirmant que le compte est non vérifié : le backend reste seul juge.
+  for (const unknown of [null, undefined, '']) {
+    assert.equal(kycAcceptanceBanner(unknown), null, `acceptance : ${unknown}`);
+    assert.equal(kycDashboardBanner(unknown), null, `dashboard : ${unknown}`);
+  }
+});
+
+void test('#5A — bandeau d’acceptation ROUGE tant que le dossier n’est pas vérifié', () => {
+  for (const status of ['NOT_SUBMITTED', 'PENDING', 'REJECTED']) {
+    const banner = kycAcceptanceBanner(status);
+    assert.ok(banner, `${status} : bandeau attendu`);
+    assert.equal(banner!.variant, 'error', status);
+    // Une ACTION est toujours proposée : le bandeau doit offrir une issue.
+    assert.equal(banner!.ctaLabel, 'Compléter ma vérification', status);
+  }
+});
+
+void test('#5A — le motif de refus est repris dans le bandeau (sinon rien à corriger)', () => {
+  const banner = kycAcceptanceBanner('REJECTED', '  Photo floue  ');
+  assert.match(banner!.description, /Photo floue/);
+  // Sans motif, le message restegeneric et ne laisse pas de trou.
+  const sansMotif = kycAcceptanceBanner('REJECTED', null);
+  assert.doesNotMatch(sansMotif!.description, /Motif du refus/);
+  assert.ok(sansMotif!.description.length > 0);
+});
+
+void test('#5A — missions visibles et consultables : le bandeau ne bloque PAS la lecture', () => {
+  // Le bandeau annonce une interdiction d’ACCEPTER, jamais de mission.
+  const banner = kycAcceptanceBanner('NOT_SUBMITTED')!;
+  assert.match(banner.description, /consulter/i);
+  assert.doesNotMatch(banner.description, /indisponible|vérifiez que vous ne pouvez pas/i);
+});
+
+void test('#5A — dashboard : un ton par étape du dossier', () => {
+  assert.equal(kycDashboardBanner('NOT_SUBMITTED')?.variant, 'warning');
+  assert.equal(kycDashboardBanner('PENDING')?.variant, 'info');
+  assert.equal(kycDashboardBanner('REJECTED')?.variant, 'error');
+});
+
+void test('#5A — dashboard : un dossier en cours d’examen ne propose AUCUNE action', () => {
+  // Proposer « corriger » un dossier en cours d’examen serait un contresens.
+  const pending = kycDashboardBanner('PENDING')!;
+  assert.equal(pending.ctaLabel, null);
+  assert.match(pending.description, /en cours d.examen/i);
+  // Les deux autres étapes, elles, ont une action.
+  assert.ok(kycDashboardBanner('NOT_SUBMITTED')!.ctaLabel);
+  assert.ok(kycDashboardBanner('REJECTED')!.ctaLabel);
+});
+
+void test('#5A — dashboard : le motif de refus est affiché au technician', () => {
+  const banner = kycDashboardBanner('REJECTED', 'Photo floue')!;
+  assert.match(banner.description, /Motif : Photo floue/);
+});
+
+void test('#5A — page missions : bandeau conditionné au statut, missions NON masquées', () => {
+  const listPage = read('../app/technicien/demandes/page.tsx');
+  assert.match(listPage, /kycAcceptanceBanner/);
+  assert.match(listPage, /KYC_PAGE_HREF/);
+  // Le bandeau ne filtre JAMAIS la liste : `filtered` ne dépend pas du KYC.
+  assert.doesNotMatch(listPage, /kycStatus\)[^;]*\.filter/);
+  assert.match(listPage, /listAvailableDemandes\(\)/);
+});
+
+void test('#5A — page missions : le bandeau disparaît sans rechargement (SSE)', () => {
+  const listPage = read('../app/technicien/demandes/page.tsx');
+  assert.match(listPage, /useUserStream/);
+  assert.match(listPage, /technician\.kyc_verified/);
+  assert.match(listPage, /technician\.kyc_rejected/);
+});
+
+void test('#5A — détail mission : bouton Accepter DÉSACTIVÉ, jamais masqué', () => {
+  const detailPage = read('../app/technicien/demandes/[id]/page.tsx');
+  // Le bouton reste visible mais `disabled` : il montre la mission perdue sans
+  // laisser déclencher un 403 opaque.
+  assert.match(detailPage, /<Button disabled className="w-full" size="lg">\s*Accepter la demande/);
+  assert.match(detailPage, /Vérification d’identité requise/);
+  // Bandeau ROUGE (pas un simple avertissement) + lien vers la page KYC dédiée.
+  assert.match(detailPage, /kycAcceptanceBanner/);
+  assert.match(detailPage, /KYC_PAGE_HREF/);
+  // Filet de sécurité conservé : le message d’erreur métier n’est pas supprimé.
+  assert.match(detailPage, /vous ne pouvez pas accepter de mission/);
+});
+
+void test('#5A — détail mission : le bandeau ne bloque PAS la consultation', () => {
+  const detailPage = read('../app/technicien/demandes/[id]/page.tsx');
+  // Le garde ne porte que sur `canAccept` : la page se rend normalement.
+  assert.match(detailPage, /const kycRequired = canAccept && !kycVerified/);
+  assert.match(detailPage, /\{canAccept && kycRequired \?/);
+});
+
+void test('#5A — dashboard : bandeau inline, jamais une modale', () => {
+  const dashboard = read('../app/technicien/page.tsx');
+  assert.match(dashboard, /kycDashboardBanner/);
+  assert.match(dashboard, /KYC_PAGE_HREF/);
+  assert.doesNotMatch(dashboard, /<Modal/);
 });

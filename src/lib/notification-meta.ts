@@ -20,6 +20,12 @@ const NOTIFICATION_META: Record<string, NotificationMeta> = {
   CONFIRMED: { icon: 'shield-check', variant: 'success' },
   // GPS V3 : technicien en route vers l'intervention.
   TECHNICIAN_EN_ROUTE: { icon: 'truck', variant: 'primary' },
+  /* Chantier #5A — décision KYC. L'urgence est déjà portée par le TYPE
+   * (`notification-mapping`) : `iconFor` ne lit donc cet objet que pour les
+   * FOLLOW_UP/INFO. `KYC_REJECTED` est une ACTION, son icône d'urgence
+   * (alerte) l'emporte — l'entrée reste déclarée pour rester total. */
+  KYC_VERIFIED: { icon: 'shield-check', variant: 'success' },
+  KYC_REJECTED: { icon: 'alert', variant: 'warning' },
 };
 
 const FALLBACK: NotificationMeta = { icon: 'bell', variant: 'info' };

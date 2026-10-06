@@ -22,6 +22,12 @@ export interface AppNotificationMetadata {
   disputeCategory?: string;
   disputeStatus?: string;
   resolution?: string;
+  /** Chantier #5A — décision KYC. `kycStatus` = statut après décision,
+   *  `kycRejectionReason` = motif littéral saisi par l'admin (affiché tel
+   *  quel), `kycAction` = action attendue (`view_missions` | `fix_kyc`). */
+  kycStatus?: string;
+  kycRejectionReason?: string;
+  kycAction?: string;
 }
 
 export interface AppNotification {

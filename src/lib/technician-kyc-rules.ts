@@ -152,3 +152,109 @@ export function kycIsLocked(status: string): boolean {
 export function kycIsOpen(status: string): boolean {
   return status !== 'VERIFIED';
 }
+
+/* ── Bandeaux de garde (chantier #5A) ────────────────────────────────────────
+
+ * Le technicien dont l'identité n'est pas vérifiée CONTINUE de voir les
+ * missions (elles sont sa motivation) mais ne peut pas les accepter. Ces
+ * règles pures produisent le contenu du bandeau, pour que les trois pages
+ * concernées (liste, détail, dashboard) affichent le MÊME message sans
+ * dupliquer aucun texte.
+ *
+ * `null` = aucun bandeau : soit le statut est inconnu (on ne devine pas un
+ * statut à partir d'un chargement échoué, on attend), soit il est vérifié. */
+
+/** Bandeau commun aux pages « missions » (liste et détail de mission). */
+export interface KycAcceptanceBanner {
+  variant: 'error';
+  title: string;
+  description: string;
+  /** Libellé du bouton de sortie. Toujours présent : le bandeau doit
+   *  toujours offrir une issue. */
+  ctaLabel: string;
+}
+
+/** Route du dossier KYC (page dédiée). */
+export const KYC_PAGE_HREF = '/technicien/kyc';
+
+/**
+ * Bandeau bloquant l'ACCEPTATION d'une mission.
+ *
+ * Un seul et même message quel que soit le statut : la page missions doit
+ * répondre à une seule question (« pourquoi ne puis-je pas accepter ? »), et
+ * le motif de rejet éventuel est la seule information variable utile.
+ */
+export function kycAcceptanceBanner(
+  status: string | null | undefined,
+  rejectionReason?: string | null,
+): KycAcceptanceBanner | null {
+  /* Statut inconnu : on n'affiche RIEN. Un chargement de profil échoué ne
+   * doit jamais produire un bandeau affirmant que le compte est non vérifié
+   * (le backend reste seul juge, et il refuse l'acceptation de toute façon). */
+  if (!status || kycIsVerified(status)) return null;
+
+  const motif = rejectionReason?.trim();
+  return {
+    variant: 'error',
+    title: 'Vérifiez votre identité pour accepter des missions',
+    description: motif
+      ? `Vous pouvez consulter cette mission en détail, mais pas l’accepter tant que votre identité n’est pas vérifiée. Motif du refus : ${motif}`
+      : 'Vous pouvez consulter cette mission en détail, mais pas l’accepter tant que votre identité n’est pas vérifiée.',
+    ctaLabel: 'Compléter ma vérification',
+  };
+}
+
+/** Bandeau du dashboard : lui, il varie selon l'étape du dossier. */
+export interface KycDashboardBanner {
+  variant: 'error' | 'warning' | 'info';
+  title: string;
+  description: string;
+  /** `null` = rien à faire pour l'instant (ex. dossier en cours d'examen). */
+  ctaLabel: string | null;
+}
+
+/**
+ * Bandeau du dashboard technicien.
+ *
+ * Le ton suit l'étape : rien n'est reproché au technicien, et un dossier en
+ * cours d'examen n'appelle AUCUNE action (proposer « corriger » un dossier
+ * qu'on est en train d'examiner serait un contresens).
+ */
+export function kycDashboardBanner(
+  status: string | null | undefined,
+  rejectionReason?: string | null,
+): KycDashboardBanner | null {
+  if (!status || kycIsVerified(status)) return null;
+
+  if (status === 'REJECTED') {
+    const motif = rejectionReason?.trim();
+    return {
+      variant: 'error',
+      title: 'Votre dossier a été refusé',
+      description: motif
+        ? `Motif : ${motif}. Corrigez ces points et renvoyez votre dossier pour être validé.`
+        : 'Corrigez votre dossier et renvoyez-le pour être validé.',
+      ctaLabel: 'Corriger mon dossier',
+    };
+  }
+
+  if (status === 'PENDING') {
+    return {
+      variant: 'info',
+      title: 'Vérification en cours',
+      description:
+        'Votre dossier est en cours d’examen. Vous serez notifié dès qu’il sera traité.',
+      ctaLabel: null,
+    };
+  }
+
+  /* NOT_SUBMITTED (ou statut inconnu du backend) : il n'y a rien à corriger,
+   * il n'y a qu'à commencer. */
+  return {
+    variant: 'warning',
+    title: 'Complétez votre vérification d’identité',
+    description:
+      'Complétez votre vérification d’identité pour recevoir et accepter des missions.',
+    ctaLabel: 'Commencer',
+  };
+}

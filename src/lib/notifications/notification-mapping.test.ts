@@ -49,7 +49,7 @@ function notif(overrides: Partial<AppNotification> = {}): AppNotification {
 /* ── Urgence (§ « trois sections par urgence ») ─────────────────────────── */
 
 void test('chaque type de l’enum backend a une urgence, pas de repli silencieux', () => {
-  // Les 15 valeurs de l'enum Prisma `NotificationType`.
+  // Les 17 valeurs de l'enum Prisma `NotificationType` (chantier #5A : +2).
   const backendTypes = [
     'TECHNICIAN_ACCEPTED',
     'QUOTE_CREATED',
@@ -66,6 +66,8 @@ void test('chaque type de l’enum backend a une urgence, pas de repli silencieu
     'CONVERSATION_FLAG',
     'DISPUTE_OPENED',
     'DISPUTE_RESOLVED',
+    'KYC_VERIFIED',
+    'KYC_REJECTED',
   ];
   for (const type of backendTypes) {
     const urgency = getUrgencyForNotification(notif({ type }));
@@ -76,7 +78,7 @@ void test('chaque type de l’enum backend a une urgence, pas de repli silencieu
   }
 });
 
-void test('les 6 types d’action sont classés ACTION', () => {
+void test('les 7 types d’action sont classés ACTION', () => {
   for (const type of [
     'QUOTE_CREATED',
     'NEGOTIATION_REQUESTED',
@@ -84,12 +86,14 @@ void test('les 6 types d’action sont classés ACTION', () => {
     'PRICING_WARNING',
     'DISPUTE_OPENED',
     'CONVERSATION_FLAG',
+    // Chantier #5A — dossier à corriger.
+    'KYC_REJECTED',
   ]) {
     assert.equal(getUrgencyForNotification(notif({ type })), 'ACTION', type);
   }
 });
 
-void test('les 7 types de suivi sont classés FOLLOW_UP', () => {
+void test('les 8 types de suivi sont classés FOLLOW_UP', () => {
   for (const type of [
     'TECHNICIAN_ACCEPTED',
     'TECHNICIAN_EN_ROUTE',
@@ -98,6 +102,8 @@ void test('les 7 types de suivi sont classés FOLLOW_UP', () => {
     'QUOTE_REJECTED',
     'SCHEDULED',
     'CONFIRMED',
+    // Chantier #5A — identité validée : un déblocage, rien à corriger.
+    'KYC_VERIFIED',
   ]) {
     assert.equal(getUrgencyForNotification(notif({ type })), 'FOLLOW_UP', type);
   }
@@ -231,7 +237,13 @@ void test('une notification sans mission ne fabrique pas de lien vers « undefin
       role,
     );
     assert.ok(action?.href === null || !action.href.includes('undefined'));
-    assert.ok(!String(action?.href).includes('null'));
+    /* `href` peut VALIDEMENT valoir `null` (« aucune navigation possible ») :
+     * la recherche du littéral « null » ne porte donc que sur un lien réel.
+     * Sans cette garde, `String(null)` = « null » faisait échouer le test
+     * sur le cas même qu'il valide. */
+    if (action?.href) {
+      assert.ok(!action.href.includes('null'), `lien contenant « null » : ${action.href}`);
+    }
   }
 });
 
@@ -392,7 +404,14 @@ void test('animation d’insertion SSE, désactivée si reduced-motion', () => {
   assert.match(center, /freshIds\.has\(notification\.id\) && !reduceMotion/);
   assert.match(center, /duration: 0\.2/);
   // Le module SSE (#2A) n'est pas modifié : le centre ne fait que s'y abonner.
-  assert.match(center, /useUserStream/);
+  // L'abonnement a été EXTRAIT dans le hook partagé `useNotificationsCenter`
+  // (le composant est devenu purement présentationnel) : c'est donc le hook
+  // qui doit porter `useUserStream`, pas le composant.
+  assert.match(read('./use-notifications-center.ts'), /useUserStream/);
+  assert.match(
+    read('../../app/technicien/notifications/page.tsx'),
+    /useNotificationsCenter/,
+  );
 });
 
 void test('le refetch temps réel ne se déclenche QUE sur notification.created', () => {
@@ -408,4 +427,67 @@ void test('l’ancien composant n’est pas en coexistence : une seule implémen
   assert.doesNotMatch(center, /\bhub\b/);
   // Une seule fonction NotificationsCenter.
   assert.equal(center.match(/export function NotificationsCenter/g)?.length, 1);
+});
+/* ── Chantier #5A — notifications de décision KYC ───────────────────────── */
+
+/* Une notification KYC n'a PAS de mission : `demandeId` est null côté backend.
+ * Les fixtures ci-dessous le reproduisent, sinon on testerait un cas qui
+ * n'existe pas en base. */
+
+void test('#5A — KYC_VERIFIED est un SUIVI, KYC_REJECTED est une ACTION', () => {
+  assert.equal(getUrgencyForNotification(notif({ type: 'KYC_VERIFIED' })), 'FOLLOW_UP');
+  assert.equal(getUrgencyForNotification(notif({ type: 'KYC_REJECTED' })), 'ACTION');
+});
+
+void test('#5A — un dossier validé mène aux missions, même sans mission rattachée', () => {
+  const action = getActionForNotification(
+    notif({ type: 'KYC_VERIFIED', demandeId: null, reference: null }),
+    'TECHNICIAN',
+  );
+  assert.deepEqual(action, { label: 'Voir les missions', href: '/technicien/demandes' });
+  assert.ok(hasNavigableAction(action));
+});
+
+void test('#5A — un dossier refusé mène directement au formulaire KYC', () => {
+  const action = getActionForNotification(
+    notif({ type: 'KYC_REJECTED', demandeId: null, reference: null }),
+    'TECHNICIAN',
+  );
+  assert.deepEqual(action, { label: 'Corriger mon dossier', href: '/technicien/kyc' });
+  assert.ok(hasNavigableAction(action));
+});
+
+void test('#5A — aucun bouton d’action pour un client (routes technicien interdites)', () => {
+  for (const type of ['KYC_VERIFIED', 'KYC_REJECTED']) {
+    const action = getActionForNotification(notif({ type, demandeId: null }), 'CLIENT');
+    assert.equal(hasNavigableAction(action), false, `${type} : lien exposé au client`);
+  }
+});
+
+void test('#5A — les notifications KYC ne sont JAMAIS regroupées par mission', () => {
+  // `demandeId` null => « loose » : affichées à plat dans leur section.
+  const { groups, looseNotifications } = groupNotificationsByMission(
+    [
+      notif({ type: 'KYC_VERIFIED', demandeId: null, reference: null }),
+      notif({ type: 'KYC_REJECTED', demandeId: null, reference: null }),
+      notif({ type: 'QUOTE_CREATED', demandeId: 'd1' }),
+    ],
+    'TECHNICIAN',
+  );
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0]!.key, 'd1');
+  assert.equal(looseNotifications.length, 2);
+});
+
+void test('#5A — le centre affiche le motif de rejet (metadata), pas le texte figé', () => {
+  // Le motif voyage dans `metadata.kycRejectionReason` (backend) : le composant
+  // doit le remonter en ligne de contexte, sinon le technicien ne sait pas
+  // quoi corriger. `message` reste générique.
+  const item = read('../../components/ui/notification-item.tsx');
+  assert.match(item, /metadata\.kycRejectionReason/);
+});
+
+void test('#5A — icône dédiée pour une identité vérifiée (pas seulement l\'urgence)', () => {
+  const meta = read('../../lib/notification-meta.ts');
+  assert.match(meta, /KYC_VERIFIED/);
 });

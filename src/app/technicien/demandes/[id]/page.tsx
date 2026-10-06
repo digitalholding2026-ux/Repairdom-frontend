@@ -32,12 +32,18 @@ import { fullName } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useToast } from '@/lib/toast-context';
 import { kycStatusLabel } from '@/lib/technician-profile';
+import {
+  kycAcceptanceBanner,
+  KYC_PAGE_HREF,
+  type KycAcceptanceBanner,
+} from '@/lib/technician-kyc-rules';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import { getDispute, type DemandeDispute } from '@/lib/api/request-service';
 import { formatFCFA } from '@/lib/format-fcfa';
 import { useRealtime } from '@/lib/realtime/sse-context';
 import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
+import { useUserStream } from '@/lib/realtime/use-user-stream';
 import { disputeCategoryLabel, disputeStatusConfig } from '@/lib/dispute-status';
 import {
   getTechnicianDemande,
@@ -64,6 +70,16 @@ function formatPrice(value: number | null | undefined): string {
   return formatFCFA(value);
 }
 
+/* Repli affichable si le statut KYC n'a pas encore été résolu alors que le
+ * bandeau doit s'afficher : jamais de message vide, jamais d'écran cassé. */
+const FALLBACK_KYC_BLOCKER: KycAcceptanceBanner = {
+  variant: 'error',
+  title: 'Vérifiez votre identité pour accepter des missions',
+  description:
+    'Vous pouvez consulter cette mission en détail, mais pas l’accepter tant que votre identité n’est pas vérifiée.',
+  ctaLabel: 'Compléter ma vérification',
+};
+
 export default function TechnicianDemandeDetailPage() {
   const params = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -79,7 +95,10 @@ export default function TechnicianDemandeDetailPage() {
   /* Phase A : « Marquer comme terminée » déclenche le règlement — confirmation exigée. */
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [kycVerified, setKycVerified] = useState(true);
-  const [technicianProfile, setTechnicianProfile] = useState<{ kycStatus: string } | null>(null);
+  const [technicianProfile, setTechnicianProfile] = useState<{
+    kycStatus: string;
+    kycRejectionReason?: string | null;
+  } | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
@@ -145,6 +164,24 @@ export default function TechnicianDemandeDetailPage() {
       active = false;
     };
   }, [params?.id]);
+
+  /* Chantier #5A — le bandeau doit disparaître SANS rechargement quand l'admin
+   * tranche le dossier. Seul le profil est refetché (jamais la mission), donc
+   * la page ne flashe pas et l'utilisateur ne perd pas sa lecture. */
+  useUserStream((message) => {
+    if (
+      message.type !== 'technician.kyc_verified' &&
+      message.type !== 'technician.kyc_rejected'
+    ) {
+      return;
+    }
+    getTechnicianProfile()
+      .then((profile) => {
+        setTechnicianProfile(profile);
+        setKycVerified(profile.kycStatus === 'VERIFIED');
+      })
+      .catch(() => undefined);
+  });
 
   /* Chargement unique : premier passage complet (erreur affichée), puis
    * rafraîchissement silencieux toutes les 5 s (un seul timer). `refreshKey`
@@ -303,7 +340,7 @@ export default function TechnicianDemandeDetailPage() {
             Désolé, vous ne pouvez pas accepter de mission sans avoir vérifié votre identité.
             Merci de vous rendre sur l’onglet Profil afin de terminer votre vérification.
           </Alert>
-          <Link href="/technicien/profil" className="block">
+          <Link href={KYC_PAGE_HREF} className="block">
             <Button className="w-full" size="lg">
               Terminer ma vérification
             </Button>
@@ -365,6 +402,15 @@ export default function TechnicianDemandeDetailPage() {
   const ownTravelRecency = formatTravelRecency(demande.travel?.minutesSinceUpdate);
   const isPreAcceptance = canAccept;
   const kycRequired = canAccept && !kycVerified;
+  /* Chantier #5A — contenu du bandeau. `kycRequired` implique un statut
+   * non vérifié, donc le helper rend toujours un bandeau ici ; le repli
+   * `FALLBACK_KYC_BLOCKER` couvre seulement le cas d'un statut `undefined`
+   * (profil jamais chargé) sans faire planter le rendu. */
+  const kycBlocker =
+    kycAcceptanceBanner(
+      technicianProfile?.kycStatus,
+      technicianProfile?.kycRejectionReason,
+    ) ?? FALLBACK_KYC_BLOCKER;
   const baseCanDiscuss = demande.status !== 'CANCELED' && demande.status !== 'CONFIRMED';
   const hasAcceptedQuote = quotes.some((q) => q.status === 'ACCEPTED');
   const catalogFlow = quotes.some((q) => q.source === 'CATALOG');
@@ -521,18 +567,38 @@ export default function TechnicianDemandeDetailPage() {
 
           {canAccept && kycRequired ? (
             <div className="space-y-3">
-              <Alert variant="warning" title="Vérification requise">
-                <p>
-                  Cette mission est disponible, mais votre compte doit être validé avant de
-                  pouvoir l’accepter
-                  (statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}).
+              {/* Chantier #5A — bandeau ROUGE : l'acceptation est réellement
+                  bloquée, ce n'est pas une simple recommandation. Le motif de
+                  refus éventuel est repris ici : c'est lui qui dit au
+                  technicien quoi corriger. */}
+              <Alert
+                variant={kycBlocker.variant}
+                title={kycBlocker.title}
+                action={
+                  <Link href={KYC_PAGE_HREF}>
+                    <Button variant="secondary" size="sm">
+                      {kycBlocker.ctaLabel}
+                    </Button>
+                  </Link>
+                }
+              >
+                <p>{kycBlocker.description}</p>
+                <p className="mt-1 text-xs opacity-80">
+                  Statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}.
                 </p>
               </Alert>
-              <Link href="/technicien/profil">
-                <Button variant="secondary" className="w-full" size="lg">
-                  Compléter ma vérification
+              {/* Le bouton reste VISIBLE mais DÉSACTIVÉ : il montre ce que le
+                  technicien perd s'il ne fait rien (la mission est à lui), sans
+                  le laisser déclencher un 403 opaque. La lecture de la mission
+                  reste entièrement accessible. */}
+              <div className="space-y-1.5">
+                <Button disabled className="w-full" size="lg">
+                  Accepter la demande
                 </Button>
-              </Link>
+                <p className="text-center text-xs text-muted-foreground">
+                  Vérification d’identité requise pour accepter cette mission.
+                </p>
+              </div>
             </div>
           ) : null}
 

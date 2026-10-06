@@ -33,7 +33,42 @@ import {
 import { getTechnicianFinanceSummary, type TechnicianFinanceSummary } from '@/lib/api/finance-service';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { formatCurrency, fullName } from '@/lib/format';
+import {
+  kycDashboardBanner,
+  kycStatusLabel,
+  KYC_PAGE_HREF,
+  type KycDashboardBanner,
+} from '@/lib/technician-kyc-rules';
+import { useUserStream } from '@/lib/realtime/use-user-stream';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+
+/* Chantier #5A — classes du bandeau KYC du dashboard. Le dashboard est en
+ * thème SOMBRE (fond `relio-bg`) : on n'utilise pas le `Alert` du design
+ * system, trop clair sur ce fond. Le fond, la bordure et le texte de chaque
+ * ton sont déclarés ici, une seule fois. */
+const KYC_BANNER_TONES: Record<
+  KycDashboardBanner['variant'],
+  { shell: string; title: string; body: string; cta: string }
+> = {
+  error: {
+    shell: 'border-red-500/30 bg-red-500/10',
+    title: 'text-red-300',
+    body: 'text-red-200/80',
+    cta: 'border-red-400/40 bg-red-500/15 text-red-100 hover:bg-red-500/25',
+  },
+  warning: {
+    shell: 'border-amber-500/30 bg-amber-500/10',
+    title: 'text-amber-300',
+    body: 'text-amber-200/80',
+    cta: 'border-amber-400/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25',
+  },
+  info: {
+    shell: 'border-white/10 bg-white/5',
+    title: 'text-slate-200',
+    body: 'text-slate-300/80',
+    cta: 'border-white/20 bg-white/10 text-slate-100 hover:bg-white/15',
+  },
+};
 
 const ACTIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'];
 
@@ -102,6 +137,21 @@ export default function TechnicianDashboardPage() {
     load();
     return () => { cancelled = true; };
   }, []);
+
+  /* Chantier #5A — décision KYC prise par un admin : le bandeau doit
+   * s'inverser (ou disparaître) SANS rechargement. Seul le profil est
+   * refetché : ni les missions, ni les KPIs ne sont recalculés. */
+  useUserStream((message) => {
+    if (
+      message.type !== 'technician.kyc_verified' &&
+      message.type !== 'technician.kyc_rejected'
+    ) {
+      return;
+    }
+    getTechnicianProfile()
+      .then((updated) => setProfile(updated))
+      .catch(() => undefined);
+  });
 
   const handleLogout = async () => {
     await logoutAndGoHome();
@@ -224,6 +274,10 @@ export default function TechnicianDashboardPage() {
   const greeting = getGreeting();
   const zone = profile?.city?.trim() || 'votre zone';
   const verified = profile?.kycStatus === 'VERIFIED';
+  /* Chantier #5A — bandeau d'étape du dossier KYC. Adapté au statut réel :
+   * un dossier REFUSÉ n'affiche pas « Vérification en cours », et un dossier
+   * en cours d'examen ne propose pas de « corriger » un dossier qu'on examine. */
+  const kycBanner = kycDashboardBanner(profile?.kycStatus, profile?.kycRejectionReason);
   const interventions = profile?.completedInterventions ?? history.filter((d) => d.status === 'CONFIRMED').length;
   const clientName = currentMission?.client
     ? fullName(currentMission.client.firstName, currentMission.client.lastName)
@@ -243,7 +297,7 @@ export default function TechnicianDashboardPage() {
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant={verified ? 'success' : 'warning'} className="gap-1">
               <Icon name={verified ? 'shield-check' : 'alert'} size="3.5" />
-              {verified ? 'Technicien Vérifié' : 'Vérification en cours'}
+              {verified ? 'Technicien Vérifié' : kycStatusLabel(profile?.kycStatus ?? 'NOT_SUBMITTED')}
             </Badge>
             <Badge variant="neutral" className="gap-1 border-white/10 bg-white/5 text-slate-300">
               <Icon name="pin" size="3.5" />
@@ -261,6 +315,33 @@ export default function TechnicianDashboardPage() {
           <span className="ml-1 hidden sm:inline">Déconnexion</span>
         </Button>
       </header>
+
+      {/* ── Bandeau KYC (chantier #5A) ──────────────────────────
+          Bandeau INLINE en haut du dashboard, jamais une modale : il informe
+          sans interrompre la navigation. Il n'apparaît QUE si le dossier n'est
+          pas vérifié (un technicien vérifié n'a rien à faire ici). */}
+      {kycBanner ? (
+        <div
+          role="status"
+          className={`flex flex-wrap items-center gap-3 rounded-2xl border p-4 ${KYC_BANNER_TONES[kycBanner.variant].shell}`}
+        >
+          <div className="min-w-0 flex-1">
+            <p className={`text-sm font-semibold ${KYC_BANNER_TONES[kycBanner.variant].title}`}>
+              {kycBanner.title}
+            </p>
+            <p className={`mt-0.5 text-sm ${KYC_BANNER_TONES[kycBanner.variant].body}`}>
+              {kycBanner.description}
+            </p>
+          </div>
+          {kycBanner.ctaLabel ? (
+            <Link href={KYC_PAGE_HREF} className="shrink-0">
+              <Button variant="ghost" size="sm" className={KYC_BANNER_TONES[kycBanner.variant].cta}>
+                {kycBanner.ctaLabel}
+              </Button>
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ── A + B : statut + KPIs ─────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">

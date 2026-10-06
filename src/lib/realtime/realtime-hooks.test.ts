@@ -54,7 +54,10 @@ void test('liste technicien : refetch silencieux (pas de skeleton)', () => {
 
 void test('notifications : refetch centre + incrément badge', () => {
   const center = read('../../components/notifications/notifications-center.tsx');
-  assert.match(center, /useUserStream/);
+  // L'abonnement au flux utilisateur a été extrait dans le hook partagé
+  // `useNotificationsCenter` : le composant ne fait plus que rendre.
+  assert.match(center, /NotificationsCenterProps/);
+  assert.match(read('../notifications/use-notifications-center.ts'), /useUserStream/);
   const hook = read('../use-unread-notifications.ts');
   assert.match(hook, /bumpUnreadNotifications/);
   assert.match(hook, /notification\.created/);

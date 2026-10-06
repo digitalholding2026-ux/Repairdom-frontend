@@ -48,6 +48,9 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   PRICING_WARNING: 'ACTION',
   DISPUTE_OPENED: 'ACTION',
   CONVERSATION_FLAG: 'ACTION',
+  // Chantier #5A — un dossier KYC refusé doit être CORRIGÉ : c'est une action
+  // en attente du technicien, pas une information à classer plus bas.
+  KYC_REJECTED: 'ACTION',
   // ── SUIVI : information sur un changement en cours ──
   TECHNICIAN_ACCEPTED: 'FOLLOW_UP',
   TECHNICIAN_EN_ROUTE: 'FOLLOW_UP',
@@ -56,6 +59,10 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   QUOTE_REJECTED: 'FOLLOW_UP',
   SCHEDULED: 'FOLLOW_UP',
   CONFIRMED: 'FOLLOW_UP',
+  // Chantier #5A — l'identité est vérifiée : rien à faire, c'est un
+  // déblocage. Un SUIVI, pas une ACTION (une ACTION ferait remonter dans le
+  // haut de page une notification où il n'y a rien à corriger).
+  KYC_VERIFIED: 'FOLLOW_UP',
   // ── INFO : historique ou secondaire ──
   MISSION_AVAILABLE: 'INFO',
   ADMIN_MESSAGE: 'INFO',
@@ -103,8 +110,10 @@ function missionHref(
  * Action contextuelle par type ET rôle.
  *
  * Rôle → préfixe de mission : un client n'a pas accès à `/technicien/...` et
- * inversement. `ADMIN_MESSAGE` (notif générique sans mission) est l'unique
- * cas où le lien est indépendant de `demandeId`.
+ * inversement. `ADMIN_MESSAGE` et les deux notifications KYC du chantier #5A
+ * sont les seuls cas où le lien est indépendant de `demandeId` (ce sont des
+ * notifications SANS mission : `ADMIN_MESSAGE` est générique, KYC porte sur
+ * le dossier du technicien lui-même).
  *
  * Les ancres (`#chat`, `#map`, `#confirm`) sont conservées telles quelles :
  * elles correspondent aux zones de la page détail de mission. Tant que la
@@ -204,6 +213,21 @@ export function getActionForNotification(
     case 'ADMIN_MESSAGE':
       // Notification générique sans mission : la lecture se fait sur place.
       return { label: 'Lire', href: '/technicien/notifications' };
+
+    /* ── Chantier #5A — décision KYC (sans mission : `demandeId` null) ── */
+
+    case 'KYC_VERIFIED':
+      // Le dossier est validé : la seule suite utile est d'aller voir les
+      // missions désormais acceptables.
+      return role === 'TECHNICIAN'
+        ? { label: 'Voir les missions', href: '/technicien/demandes' }
+        : NO_ACTION;
+
+    case 'KYC_REJECTED':
+      // Le dossier doit être corrigé : l'action mène au formulaire KYC.
+      return role === 'TECHNICIAN'
+        ? { label: 'Corriger mon dossier', href: '/technicien/kyc' }
+        : NO_ACTION;
 
     default:
       // Type inconnu (le backend peut en ajouter) : aucun bouton de
