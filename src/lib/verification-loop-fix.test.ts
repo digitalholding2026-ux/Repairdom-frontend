@@ -191,25 +191,36 @@ void test('le wizard arme bien le listener hors conversion (non-régression)', (
 
 /* ── Le panneau de vérification ────────────────────────────────────── */
 
-void test('le panneau attend emailVerified avant de rediriger', () => {
+void test('le panneau ne fait PLUS de navigation cliente (donc plus de boucle possible)', () => {
+  /* Ce test attendait `user?.emailVerified` puis un `router.replace`, avec un
+   * simple `if (!user?.emailVerified) return;` comme garde. Ce mécanisme a été
+   * REMPLACÉ, pas affaibli : il n'existe plus aucune navigation cliente.
+   *
+   * Rappel du mécanisme qui causait la boucle : une navigation cliente
+   * conserve le contexte `AuthProvider` périmé (`emailVerified: false`), et le
+   * `RoleGuard` renvoie alors l'utilisateur sur `/client/verification`. Surveiller
+   * l'état ne supprimait pas le risque — il le rendait dépendant d'un timing.
+   * La navigation complète reconstruit le contexte depuis `GET /auth/me`, donc
+   * la boucle devient structurellement impossible.
+   */
   const panel = readFileSync(
     new URL('../components/auth/verification-panel.tsx', import.meta.url),
     'utf8',
   );
-  const effect = panel.slice(panel.indexOf('if (!verified || !fromDemande) return;'));
-  assert.match(effect.slice(0, 400), /if \(!user\?\.emailVerified\) return;/);
-  assert.match(effect.slice(0, 400), /router\.replace\('\/client\/demandes'\)/);
+  assert.doesNotMatch(panel, /router\.(push|replace)\(/);
+  /* Et la sortie passe bien par une navigation complète. */
+  assert.match(panel, /window\.location\.assign\(destination\)/);
 });
 
-void test('le panneau NE force PAS la redirection (une boucle se recréerait)', () => {
+void test('le panneau NE force PAS une navigation cliente en délai (une boucle se recréerait)', () => {
+  /* Un « timeout de sécurité » qui pousserait vers `/client/demandes` malgré un
+   * `emailVerified` non synchronisé renverrait l'utilisateur à
+   * `/client/verification` — la boucle qu'on vient de corriger. Le délai qui
+   * subsiste ne déclenche qu'une navigation COMPLÈTE, qui ne peut pas reboucler. */
   const panel = readFileSync(
     new URL('../components/auth/verification-panel.tsx', import.meta.url),
     'utf8',
   );
-  /* Un « timeout de sécurité » qui pousserait vers `/client/demandes` malgré
-   * un `emailVerified` non synchronisé renverrait l'utilisateur à
-   * `/client/verification` — la boucle qu'on vient de corriger. Le filet doit
-   * RÉACTUALISER l'état, pas forcer la navigation. */
-  assert.doesNotMatch(panel, /setTimeout[\s\S]{0,400}router\.(push|replace)\('\/client\/demandes'\)/);
-  assert.match(panel, /void refresh\(\);/);
+  assert.doesNotMatch(panel, /setTimeout[\s\S]{0,400}router\.(push|replace)\(/);
+  assert.doesNotMatch(panel, /setTimeout[\s\S]{0,400}window\.location\.(assign|replace)\('\/client\/demandes'\)/);
 });
