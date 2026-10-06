@@ -80,7 +80,11 @@ export async function signUp(input: SignUpInput): Promise<AuthSession> {
 
   if (input.role === 'TECHNICIAN') {
     payload.role = 'TECHNICIAN';
-    payload.city = input.city || undefined;
+    /* Chantier #5B — c'est la RÉFÉRENCE (`ServiceCity.id`) qui part, pas le
+     * texte : le backend l'exige pour un technicien (400 « Ville obligatoire
+     * pour un compte technicien ») et en déduit lui-même le nom via
+     * `ServiceCity`. On n'envoie donc plus `city`. */
+    payload.cityId = input.cityId || undefined;
     payload.categories = input.categories ?? [];
   }
 

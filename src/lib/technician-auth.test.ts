@@ -25,6 +25,7 @@ const technicienLayout = read('../app/technicien/layout.tsx');
 const zonesPage = read('../app/technicien/zones/page.tsx');
 const technicianService = read('./api/technician-service.ts');
 const authService = read('./api/auth-service.ts');
+const requestCategories = read('./data/request-categories.ts');
 
 /* ── Partie B — ville de référence à l'inscription ──────────────────────── */
 
@@ -74,6 +75,56 @@ void test('#5B — le payload envoie cityId et NON city', () => {
   assert.doesNotMatch(payload, /\bcity:/);
   /* Le contrat du service expose bien cityId. */
   assert.match(authService, /cityId\?: string/);
+});
+
+/* ── Régression : `cityId` retiré en amont par `signUp` ───────────────────
+ * Le formulaire envoyait bien `cityId`, mais `signUp` reconstruisait un
+ * `payload` à partir de zéro et n'y reportait QUE `city` (texte) : la
+ * référence était perdue avant le `fetch`, et le backend répondait 400
+ * « Ville obligatoire pour un compte technicien. »
+ * On verrouille la chaîne COMPLÈTE formulaire → service → corps HTTP. */
+
+void test('#5B — signUp reporte cityId dans le corps de la requête', () => {
+  // Bloc `role === 'TECHNICIAN'` de `signUp` : c'est là que la référence
+  // disparaissait.
+  const branch = authService.slice(
+    authService.indexOf("if (input.role === 'TECHNICIAN')"),
+    authService.indexOf('// CLIENT : envoi des champs de profil'),
+  );
+  assert.ok(branch.length > 0, 'branche TECHNICIAN localisée');
+  assert.match(branch, /payload\.cityId = input\.cityId/);
+  /* Plus de `city` texte pour un technicien : le backend le déduit de
+   * `ServiceCity` et le DTO le déclare `@IsOptional()`. */
+  assert.doesNotMatch(branch, /payload\.city = input\.city/);
+});
+
+void test('#5B — cityId reste exigé par le service comme par le formulaire', () => {
+  assert.match(authService, /cityId\?: string/);
+  /* La garde du formulaire ET la transmission doivent coexister : l'une sans
+   * l'autre suffit à reproduire le 400. */
+  assert.match(technicianForm, /cityId !== ''/);
+  assert.match(technicianForm, /onChange=\{\(e\) => setCityId\(e\.target\.value\)\}/);
+  /* La valeur d'une option est l'UUID, jamais le nom. */
+  assert.match(technicianForm, /<option key=\{city\.id\} value=\{city\.id\}>/);
+});
+
+void test('#5B — les catégories du formulaire sont celles acceptées par le backend', () => {
+  // Les ids de `REQUEST_CATEGORIES` doivent rester acceptés tels quels par
+  // `@IsIn(ALLOWED_CATEGORIES)`, sinon 400 sur une catégorie valide à l'écran.
+  const ids = [...requestCategories.matchAll(/id: '([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(ids, [
+    'electricite',
+    'plomberie',
+    'climatisation',
+    'electromenager',
+    'serrurerie',
+    'informatique',
+    'autre',
+  ]);
+  // Le backend renvoie 400 sur une catégorie hors liste : le Select ville ne
+  // doit donc pas pouvoir en envoyer une.
+  assert.match(technicianForm, /REQUEST_CATEGORIES\.map/);
+  assert.match(technicianForm, /categories,/);
 });
 
 /* ── Partie C — coquille split technicien ──────────────────────────────── */
