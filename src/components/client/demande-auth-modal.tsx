@@ -53,6 +53,17 @@ export interface DemandeAuthModalProps {
   failedMediaCount?: number;
   onRetryMedia?: () => void;
   onSkipMedia?: () => void;
+  /* Chantier D2.5 — le cookie de session n'a pas été accepté par le backend
+   * (401 sur la conversion). On ne se contente pas d'afficher une erreur : on
+   * propose l'action qui débloque, à savoir repasser par la connexion. */
+  showSignInCta?: boolean;
+  onSwitchToSignIn?: () => void;
+  /* Compteur incrémenté par le parent pour demander une bascule vers l'onglet
+   * connexion. Un `tab` contrôlé aurait exigé de hisser l'état hors du
+   * composant ; un compteur laisse la modale maître de son propre onglet tout
+   * en restant pilotable de l'extérieur (c'est le seul besoin réel : le 401
+   * sur la conversion). */
+  signInRequestId?: number;
 }
 
 /* Règle backend `assertPasswordStrong` (`auth.service.ts`) : 8 caractères
@@ -79,6 +90,9 @@ export function DemandeAuthModal({
   failedMediaCount = 0,
   onRetryMedia,
   onSkipMedia,
+  showSignInCta,
+  onSwitchToSignIn,
+  signInRequestId = 0,
 }: DemandeAuthModalProps) {
   const [tab, setTab] = useState<Tab>('signup');
   const [firstName, setFirstName] = useState('');
@@ -101,6 +115,16 @@ export function DemandeAuthModal({
     setPassword('');
     setSubmitting(false);
   }, [open]);
+
+  /* Le parent peut demander la bascule vers l'onglet connexion (401 sur la
+   * conversion du brouillon) : on incrémente `signInRequestId` pour le
+   * signaler sans avoir à lui céder l'état `tab`. */
+  useEffect(() => {
+    if (signInRequestId <= 0) return;
+    setTab('signin');
+    setError(null);
+    setInfo(null);
+  }, [signInRequestId]);
 
   /* `prefillEmail` peut arriver APRÈS le montage (le parent le renseigne en
    * même temps que `open`). */
@@ -232,6 +256,12 @@ export function DemandeAuthModal({
         {info ? <Alert variant="info" dense>{info}</Alert> : null}
         {error ? <Alert variant="error">{error}</Alert> : null}
         {stageError ? <Alert variant="error">{stageError}</Alert> : null}
+
+        {showSignInCta && onSwitchToSignIn ? (
+          <Button type="button" variant="secondary" className="w-full" onClick={onSwitchToSignIn}>
+            Se connecter
+          </Button>
+        ) : null}
 
         {failedMediaCount > 0 && onRetryMedia ? (
           <div className="space-y-2 rounded-lg border border-warning/40 bg-warning/5 p-3">

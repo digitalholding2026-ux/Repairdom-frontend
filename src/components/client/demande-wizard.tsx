@@ -65,6 +65,8 @@ const OTHER_DOMAIN = '__other__';
 const MAX_MEDIAS = 5;
 const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
 
+export type ConversionOutcome = 'done' | 'media-failed' | 'unauthorized' | 'error';
+
 type WizardMediaKind = 'IMAGE' | 'VIDEO' | 'AUDIO';
 
 interface WizardMedia {
@@ -193,6 +195,9 @@ export function DemandeWizard() {
   /* Passe à `true` pendant l'upload + la conversion, pour que le bouton de la
    * modale affiche la progression au lieu de « Envoyer ». */
   const [converting, setConverting] = useState(false);
+  /* Chantier D2.5 — 401 sur la conversion : la modale propose de se reconnecter. */
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [signInRequestId, setSignInRequestId] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -678,6 +683,7 @@ export function DemandeWizard() {
           result.id,
         )}&mode=${encodeURIComponent(requestedMode)}&req=${encodeURIComponent(requestedAtIso ?? '')}`,
       );
+      return 'done';
     } catch (err) {
       setError(toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.'));
       setUploadStatus(null);
@@ -770,14 +776,14 @@ export function DemandeWizard() {
   /* `scope` borne à la fois l'upload ET la liste convertie : « Continuer
    * sans ce fichier » exclut donc réellement le média de la Demande, au lieu
    * de l'envoyer sans `storagePath` (ce qui créerait une ligne média vide). */
-  const runDraftConversion = async (scope: WizardMedia[] = medias) => {
+  const runDraftConversion = async (scope: WizardMedia[] = medias): Promise<ConversionOutcome> => {
     const token = draftToken ?? readDemandeDraftToken();
-    /* Repli 1 : aucun brouillon (token perdu, effacé, expire avant la
+    /* Repli 1 : aucun brouillon (token perdu, effacé, expiré avant la
      * modale). L'état local est la vérité — on repasse par le flux direct. */
     if (!token) {
       setAuthModalOpen(false);
       await submitAsAuthenticatedClient();
-      return;
+      return 'done';
     }
 
     setConverting(true);
@@ -785,7 +791,7 @@ export function DemandeWizard() {
     if (failed.length > 0) {
       setFailedMedias(failed);
       setConverting(false);
-      return;
+      return 'media-failed';
     }
 
     try {
@@ -811,6 +817,7 @@ export function DemandeWizard() {
           result.id,
         )}&mode=${encodeURIComponent(requestedMode)}&req=${encodeURIComponent(requestedAtIso ?? '')}`,
       );
+      return 'done';
     } catch (err) {
       /* 410 Gone : brouillon expiré pendant la saisie. Repli 2 — le backend
        * a explicitement prévu ce cas et la demande doit partir. */
@@ -820,36 +827,73 @@ export function DemandeWizard() {
         draftSyncedRef.current = null;
         setAuthModalOpen(false);
         await submitAsAuthenticatedClient();
-        return;
+        return 'done';
+      }
+      /* 401 : le cookie n'est pas (ou plus) valable. Cas distinct d'une
+       * erreur serveur — la modale doit proposer de se reconnecter, pas
+       * « Réessayez ». */
+      if (err instanceof ApiError && err.status === 401) {
+        setConverting(false);
+        return 'unauthorized';
       }
       setStageError(toUserErrorMessage(err, 'Envoi impossible. Réessayez.'));
       setConverting(false);
+      return 'error';
     }
   };
 
-  /* ── Chantier D2 — sortie de modale ──────────────────────────────────
+  /* ── Chantier D2.5 — sortie de modale : le tunnel est DÉBLOQUÉ ───────
    *
-   * ⚠️ Point d'attention backend, à connaître absolument : à
-   * l'inscription, `POST /auth/register` ne pose le cookie QUE si
-   * `user.emailVerified` est vrai (`auth.controller.ts`), or un compte CLIENT
-   * est créé avec `emailVerified: false`. L'inscription NE CONNECTE donc PAS,
-   * et `convert` répondrait 401.
+   * Ce bloc était, en D2, un cul-de-sac : à l'inscription le backend ne posait
+   * pas de cookie (`if (user.emailVerified)`), donc `convert` aurait répondu
+   * 401 et la demande ne pouvait pas partir. On se contentait d'afficher «
+   * vérifiez votre e-mail » et de garder le brouillon.
    *
-   * On ne peut donc pas enchaîner : on le dit clairement, on garde le
-   * brouillon (rien n'est perdu, il reste 7 jours) et on propose de passer par
-   * la connexion une fois l'e-mail vérifié. C'est le seul chemin possible sans
-   * modifier le backend — interdit dans le périmètre de D2. */
+   * D2.5 pose le cookie SYSTÉMATIQUEMENT (`auth.controller.ts`) : la
+   * vérification d'e-mail reste obligatoire pour ACCÉDER au dashboard, mais
+   * elle ne conditionne plus l'IDENTITÉ. On peut donc convertir immédiatement.
+   *
+   * Deux sorties, parce que le `RoleGuard` (`guard-decision.ts`) continuera de
+   * bloquer `/client/*` tant que l'e-mail n'est pas vérifié :
+   *  - e-mail vérifié  → `/client/confirmation` (historique, inchangé) ;
+   *  - e-mail à vérifier → la demande EST envoyée, on prévient, puis on envoie
+   *    vers `/client/verification?from=demande` pour que le panneau sache
+   *    qu'une demande existe et redirige vers la liste après validation. */
   const handleAuthSuccess = async (verifiedUser: AuthUser) => {
-    if (verifiedUser.emailVerified === false) {
+    setStageError(null);
+    setNeedsSignIn(false);
+    setSignInRequestId(0);
+    setFailedMedias([]);
+    await refresh();
+
+    /* Le wizard attend maintenant le RÉSULTAT de la conversion : sans cela la
+     * modale se fermerait sur un échec et l'utilisateur ne comprendrait pas
+     * que sa demande n'est pas partie. */
+    const outcome = await runDraftConversion();
+
+    /* 401 : le cookie n'a pas été posé (backend non redéployé, session
+     * expirée entre-temps). On ne pretend pas que c'est réussi. */
+    if (outcome === 'unauthorized') {
+      setNeedsSignIn(true);
       setStageError(
-        'Votre compte est créé. Vérifiez votre boîte mail pour confirmer votre adresse, puis revenez vous connecter : votre demande est conservée.',
+        'Connexion requise. Reconnectez-vous pour envoyer votre demande, qui est conservée.',
       );
       return;
     }
-    setStageError(null);
-    setFailedMedias([]);
-    await refresh();
-    await runDraftConversion();
+    if (outcome !== 'done') return;
+
+    if (verifiedUser.emailVerified === false) {
+      /* La demande EST partie : on ne montre pas une erreur. `from=demande`
+       * est le signal qui fera que `/client/verification` redirigera vers la
+       * liste des missions au lieu du dashboard. */
+      setDraftNotice(null);
+      setAuthModalOpen(false);
+      router.push(
+        `/client/verification?email=${encodeURIComponent(verifiedUser.email)}&from=demande`,
+      );
+      return;
+    }
+    /* Cas vérifié : `runDraftConversion` a déjà redirigé vers la confirmation. */
   };
 
   /* UI-2 : avertit avant de perdre une demande commencée (rechargement,
@@ -1401,6 +1445,16 @@ export function DemandeWizard() {
             : undefined
         }
         stageError={stageError}
+        showSignInCta={needsSignIn}
+        onSwitchToSignIn={() => {
+          /* Bascule vers l'onglet connexion : on lève l'alerte et on
+           * incrémente le compteur, la modale applique le changement d'onglet
+           * (elle garde la maîtrise de son propre état). */
+          setNeedsSignIn(false);
+          setStageError(null);
+          setSignInRequestId((n) => n + 1);
+        }}
+        signInRequestId={signInRequestId}
         failedMediaCount={failedMedias.length}
         onRetryMedia={() => {
           /* On retente le périmètre COMPLET : `uploadPendingMedias` ignore

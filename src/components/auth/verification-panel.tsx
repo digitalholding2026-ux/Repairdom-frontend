@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -42,8 +42,15 @@ interface VerificationPanelProps {
  * mot de passe stocké, aucun token conservé côté frontend. */
 export function VerificationPanel({ role }: VerificationPanelProps) {
   const params = useSearchParams();
+  const router = useRouter();
   const token = params.get('token');
   const emailParam = params.get('email');
+  /* Chantier D2.5 — `?from=demande` : l'utilisateur arrive ici APRÈS avoir
+   * envoyé une demande depuis le tunnel public. Sa session est déjà ouverte
+   * (le backend pose désormais le cookie à l'inscription), donc il ne doit pas
+   * être déconnecté, et une fois vérifié on l'envoie directement vers SES
+   * demandes plutôt que vers un dashboard vide. */
+  const fromDemande = params.get('from') === 'demande';
   const { user, refresh } = useAuth();
   const loginHref = role === 'TECHNICIAN' ? '/technicien/connexion' : '/client/connexion';
 
@@ -63,12 +70,17 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
       try {
         await verifyEmail(token);
         if (cancelled) return;
-        // La vérification n’est PAS une authentification : jeter toute
-        // session éventuelle avant d’orienter vers la connexion manuelle.
-        try {
-          await logout();
-        } catch {
-          // La déconnexion est un nettoyage opportuniste, jamais bloquant.
+        /* La vérification n'est PAS une authentification : on jette donc la
+         * session… SAUF quand le visiteur arrive du tunnel de demande
+         * (`?from=demande`). Depuis D2.5, le cookie est posé dès
+         * l'inscription : le `logout()` détruirait ici la seule session qui
+         * permet d'accéder à la demande qu'il vient d'envoyer. */
+        if (!fromDemande) {
+          try {
+            await logout();
+          } catch {
+            // La déconnexion est un nettoyage opportuniste, jamais bloquant.
+          }
         }
         try {
           await refresh();
@@ -92,7 +104,20 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [token, refresh]);
+    /* Chantier D2.5 — redirection vers la liste des demandes.
+     *
+     * On ATTEND `user?.emailVerified === true` avant de pousser : le
+     * `RoleGuard` (`guard-decision.ts`) renvoie un CLIENT non vérifié vers
+     * `/client/verification`. Pousser avant que le contexte soit à jour
+     * provoquerait un aller-retour visible, voire une boucle. `refresh()`
+     * ci-dessus a déjà fait le travail ; cet effet ne fait que constater l'état. */
+  }, [token, refresh, fromDemande]);
+
+  useEffect(() => {
+    if (!verified || !fromDemande) return;
+    if (!user?.emailVerified) return;
+    router.replace('/client/demandes');
+  }, [verified, fromDemande, user?.emailVerified, router]);
 
   const handleResend = async () => {
     if (!accountEmail || resendBusy) return;
@@ -120,6 +145,24 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
   }
 
   if (verified) {
+    /* Cas du tunnel de demande : la session existe déjà, on propose donc la
+     * liste des missions (où se trouve celle qui vient d'être envoyée) au lieu
+     * d'un formulaire de connexion inutile. */
+    if (fromDemande) {
+      return (
+        <AuthCard
+          icon="check-circle"
+          title="Adresse email vérifiée"
+          description="Votre compte est activé. Votre demande a bien été envoyée."
+        >
+          <Link href="/client/demandes" className="block">
+            <Button className="w-full" size="lg">
+              Voir mes demandes
+            </Button>
+          </Link>
+        </AuthCard>
+      );
+    }
     return (
       <AuthCard
         icon="check-circle"
