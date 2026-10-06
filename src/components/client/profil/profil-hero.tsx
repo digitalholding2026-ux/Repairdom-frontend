@@ -1,10 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
+import { RewardBadge } from '@/components/client/reward-badge';
+import {
+  getRewardsProgress,
+  type RewardTierName,
+} from '@/lib/api/rewards-service';
 import { uploadClientAvatar, type AuthUser } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
@@ -22,6 +27,25 @@ export function ProfilHero({ user, onUpdated }: ProfilHeroProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* Chantier #4A — niveau du programme de récompenses. `null` = pas encore
+   * chargé (ou chargement impossible) : dans les deux cas on n'affiche RIEN,
+   * le profil ne doit jamais dépendre de cet appel pour s'afficher. */
+  const [rewardTier, setRewardTier] = useState<RewardTierName | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRewardsProgress()
+      .then((progress) => {
+        if (!cancelled) setRewardTier(progress.currentTier);
+      })
+      .catch(() => {
+        /* Silencieux et volontaire : un échec réseau sur le niveau ne doit pas
+         * afficher d'erreur sur la page Profil. */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Mon profil';
 
@@ -84,7 +108,12 @@ export function ProfilHero({ user, onUpdated }: ProfilHeroProps) {
       </div>
       <div className="min-w-0 flex-1">
         {/* La page porte déjà le h1 (« Mon profil ») — le nom reste en h2. */}
-        <h2 className="truncate text-lg font-bold leading-tight">{fullName}</h2>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="truncate text-lg font-bold leading-tight">{fullName}</h2>
+          {/* Chantier #4A — badge de niveau. Rend `null` si `NONE` ou non
+              chargé : jamais d'espace vide ni de tiret. */}
+          <RewardBadge tier={rewardTier ?? 'NONE'} size="sm" />
+        </div>
         <p className="truncate text-xs text-white/70">{user.email}</p>
         <div className="mt-1.5">
           {user.emailVerified ? (

@@ -49,7 +49,7 @@ function notif(overrides: Partial<AppNotification> = {}): AppNotification {
 /* ── Urgence (§ « trois sections par urgence ») ─────────────────────────── */
 
 void test('chaque type de l’enum backend a une urgence, pas de repli silencieux', () => {
-  // Les 17 valeurs de l'enum Prisma `NotificationType` (chantier #5A : +2).
+  // Les 19 valeurs de l'enum Prisma `NotificationType` (#5A : +2, #4A : +2).
   const backendTypes = [
     'TECHNICIAN_ACCEPTED',
     'QUOTE_CREATED',
@@ -68,6 +68,9 @@ void test('chaque type de l’enum backend a une urgence, pas de repli silencieu
     'DISPUTE_RESOLVED',
     'KYC_VERIFIED',
     'KYC_REJECTED',
+    // Chantier #4A — récompenses client.
+    'REWARD_TIER_REACHED',
+    'REWARD_MISSION_NOT_COUNTED',
   ];
   for (const type of backendTypes) {
     const urgency = getUrgencyForNotification(notif({ type }));
@@ -78,7 +81,7 @@ void test('chaque type de l’enum backend a une urgence, pas de repli silencieu
   }
 });
 
-void test('les 7 types d’action sont classés ACTION', () => {
+void test('les 8 types d’action sont classés ACTION', () => {
   for (const type of [
     'QUOTE_CREATED',
     'NEGOTIATION_REQUESTED',
@@ -88,12 +91,14 @@ void test('les 7 types d’action sont classés ACTION', () => {
     'CONVERSATION_FLAG',
     // Chantier #5A — dossier à corriger.
     'KYC_REJECTED',
+    // Chantier #4A — mission écartée : le client doit comprendre son compteur.
+    'REWARD_MISSION_NOT_COUNTED',
   ]) {
     assert.equal(getUrgencyForNotification(notif({ type })), 'ACTION', type);
   }
 });
 
-void test('les 8 types de suivi sont classés FOLLOW_UP', () => {
+void test('les 9 types de suivi sont classés FOLLOW_UP', () => {
   for (const type of [
     'TECHNICIAN_ACCEPTED',
     'TECHNICIAN_EN_ROUTE',
@@ -104,6 +109,8 @@ void test('les 8 types de suivi sont classés FOLLOW_UP', () => {
     'CONFIRMED',
     // Chantier #5A — identité validée : un déblocage, rien à corriger.
     'KYC_VERIFIED',
+    // Chantier #4A — palier atteint : rien à corriger non plus.
+    'REWARD_TIER_REACHED',
   ]) {
     assert.equal(getUrgencyForNotification(notif({ type })), 'FOLLOW_UP', type);
   }
@@ -428,6 +435,53 @@ void test('l’ancien composant n’est pas en coexistence : une seule implémen
   // Une seule fonction NotificationsCenter.
   assert.equal(center.match(/export function NotificationsCenter/g)?.length, 1);
 });
+/* ── Chantier #4A — récompenses client ────────────────────────────────── */
+
+/* Comme le KYC, ces notifications n'ont PAS de mission rattachée
+ * (`demandeId` est null côté backend) : les fixtures le reproduisent, sinon
+ * on testerait un cas qui n'existe pas en base. */
+
+void test('#4A — un palier atteint est un SUIVI, une mission écartée est une ACTION', () => {
+  assert.equal(getUrgencyForNotification(notif({ type: 'REWARD_TIER_REACHED' })), 'FOLLOW_UP');
+  assert.equal(
+    getUrgencyForNotification(notif({ type: 'REWARD_MISSION_NOT_COUNTED' })),
+    'ACTION',
+  );
+});
+
+void test('#4A — les deux notifications mènent à « Mes récompenses »', () => {
+  for (const type of ['REWARD_TIER_REACHED', 'REWARD_MISSION_NOT_COUNTED']) {
+    const action = getActionForNotification(notif({ type, demandeId: null, reference: null }), 'CLIENT');
+    assert.deepEqual(action, { label: 'Voir mes récompenses', href: '/client/recompenses' }, type);
+    assert.ok(hasNavigableAction(action), type);
+  }
+});
+
+void test('#4A — aucun bouton pour un technicien ou un admin (routes client interdites)', () => {
+  for (const type of ['REWARD_TIER_REACHED', 'REWARD_MISSION_NOT_COUNTED']) {
+    for (const role of ['TECHNICIAN', 'ADMIN'] as const) {
+      const action = getActionForNotification(notif({ type, demandeId: null }), role);
+      assert.equal(hasNavigableAction(action), false, `${type}/${role} : lien exposé`);
+    }
+  }
+});
+
+void test('#4A — les notifications de récompense ne sont JAMAIS regroupées par mission', () => {
+  // `demandeId` null => « loose » : affichées à plat dans leur section, comme
+  // les notifications KYC.
+  const { groups, looseNotifications } = groupNotificationsByMission(
+    [
+      notif({ type: 'REWARD_TIER_REACHED', demandeId: null, reference: null }),
+      notif({ type: 'REWARD_MISSION_NOT_COUNTED', demandeId: null, reference: null }),
+      notif({ type: 'QUOTE_CREATED', demandeId: 'd1' }),
+    ],
+    'CLIENT',
+  );
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].key, 'd1');
+  assert.equal(looseNotifications.length, 2);
+});
+
 /* ── Chantier #5A — notifications de décision KYC ───────────────────────── */
 
 /* Une notification KYC n'a PAS de mission : `demandeId` est null côté backend.

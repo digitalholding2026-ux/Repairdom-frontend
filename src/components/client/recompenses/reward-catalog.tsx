@@ -208,12 +208,12 @@ const HOW_IT_WORKS_STEPS = [
     text: 'Lancez vos demandes de dépannage sur Relio.',
   },
   {
-    step: '2. Validez',
-    text: 'Chaque mission terminée valide 1 point de fidélité.',
+    step: '2. Confirmez',
+    text: 'Une mission compte dès que vous la confirmez et que le montant payé atteint le minimum requis.',
   },
   {
-    step: '3. Recevez',
-    text: 'Réclamez vos cadeaux et recevez-les gratuitement !',
+    step: '3. Débloquez',
+    text: 'Atteignez un palier, puis demandez à utiliser votre récompense avec un conseiller.',
   },
 ];
 

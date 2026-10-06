@@ -63,6 +63,13 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   // déblocage. Un SUIVI, pas une ACTION (une ACTION ferait remonter dans le
   // haut de page une notification où il n'y a rien à corriger).
   KYC_VERIFIED: 'FOLLOW_UP',
+  // ── Chantier #4A — récompenses client ──
+  // Un palier atteint : rien à corriger, la récompense est à utiliser depuis
+  // `/client/recompenses`. SUIVI.
+  REWARD_TIER_REACHED: 'FOLLOW_UP',
+  // Une mission écartée par décision anti-fraude : le client doit comprendre
+  // pourquoi son compteur n'a pas bougé, donc ACTION.
+  REWARD_MISSION_NOT_COUNTED: 'ACTION',
   // ── INFO : historique ou secondaire ──
   MISSION_AVAILABLE: 'INFO',
   ADMIN_MESSAGE: 'INFO',
@@ -227,6 +234,23 @@ export function getActionForNotification(
       // Le dossier doit être corrigé : l'action mène au formulaire KYC.
       return role === 'TECHNICIAN'
         ? { label: 'Corriger mon dossier', href: '/technicien/kyc' }
+        : NO_ACTION;
+
+    /* ── Chantier #4A — récompenses client (sans mission : `demandeId` null) ── */
+
+    case 'REWARD_TIER_REACHED':
+      // Un palier vient d'être franchi : la seule suite utile est d'aller
+      // utiliser la récompense. Le lien ne dépend pas du rôle, mais seule la
+      // surface client existe.
+      return role === 'CLIENT'
+        ? { label: 'Voir mes récompenses', href: '/client/recompenses' }
+        : NO_ACTION;
+
+    case 'REWARD_MISSION_NOT_COUNTED':
+      // Une mission a été écartée du compteur : le client veut comprendre son
+      // niveau. Même surface que le palier atteint.
+      return role === 'CLIENT'
+        ? { label: 'Voir mes récompenses', href: '/client/recompenses' }
         : NO_ACTION;
 
     default:

@@ -28,6 +28,19 @@ export interface AppNotificationMetadata {
   kycStatus?: string;
   kycRejectionReason?: string;
   kycAction?: string;
+  /** Chantier #4A — récompenses client. `rewardTier` = palier littéral
+   *  (`BRONZE` | `ARGENT` | `OR` | `PLATINE`), `rewardValueXAF` = valeur
+   *  ENTIRE (à afficher via `formatFCFA`, jamais formatée ici),
+   *  `rewardAction` = action attendue (`view_rewards` | `contact_support`),
+   *  `rewardFraudReason` = motif littéral du signalement
+   *  (`SAME_TECHNICIAN_48H`). Le commentaire libre de l'admin n'est JAMAIS
+   *  exposé au client : il n'a aucun chemin jusqu'ici. */
+  rewardTier?: string;
+  rewardLabel?: string;
+  rewardMissions?: number;
+  rewardValueXAF?: number;
+  rewardAction?: string;
+  rewardFraudReason?: string;
 }
 
 export interface AppNotification {
