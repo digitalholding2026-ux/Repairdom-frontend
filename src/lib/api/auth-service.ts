@@ -43,6 +43,14 @@ export interface AuthSession {
   mode: 'real';
 }
 
+/* Réponse de `POST /auth/verify-email`. `alreadyVerified` distingue le rejeu
+ * d'un lien (200, rien à faire) d'une vraie vérification (200, adresse
+ * confirmée) : ce n'est PLUS une erreur 400, ce qui évitait d'afficher « lien
+ * invalide » alors que tout venait de réussir. */
+export interface VerifyEmailResult extends AuthSession {
+  alreadyVerified?: boolean;
+}
+
 /* `ApiError` vit désormais dans `./api-error` (classe unique partagée).
  * Ré-exporté ici car `client-auth-form` et `technician-auth-form` l'importent
  * depuis ce module. */
@@ -153,8 +161,8 @@ export async function logoutAndGoHome(): Promise<void> {
   }
 }
 
-export async function verifyEmail(token: string): Promise<AuthSession> {
-  return apiFetch<AuthSession>('/auth/verify-email', {
+export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
+  return apiFetch<VerifyEmailResult>('/auth/verify-email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),

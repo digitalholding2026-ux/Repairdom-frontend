@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
@@ -58,64 +58,83 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
   const { user, refresh } = useAuth();
   const loginHref = role === 'TECHNICIAN' ? '/technicien/connexion' : '/client/connexion';
 
-  const [verifying, setVerifying] = useState(!!token);
+  /* `confirming` : le token est présent dans l'URL mais RIEN n'a encore été
+   * envoyé. Écran de confirmation — voir `handleConfirm`. */
+  const [confirming, setConfirming] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [verified, setVerified] = useState(false);
   const [alreadyVerified, setAlreadyVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  /* Garde anti-double-appel : un second clic, un re-render ou un remontage du
+   * composant ne doit pas renvoyer le POST. */
+  const verificationAttempted = useRef(false);
 
   const accountEmail = emailParam?.trim() || user?.email || null;
 
+  /* Écran de confirmation dès qu'un token est présent — AUCUN appel réseau au
+   * chargement.
+   *
+   * CHANTIER FIX — pourquoi ne plus vérifier automatiquement : Gmail, Outlook
+   * SafeLinks et les scanners antivirus visitent les liens des e-mails pour
+   * vérifier qu'ils ne sont pas malveillants. Certains exécutent le
+   * JavaScript. Avec la vérification automatique au montage, ce scanner
+   * consommait le token À LA PLACE de l'utilisateur : quand celui-ci cliquait
+   * pour de vrai, le token avait déjà été brûlé et le backend répondait « lien
+   * invalide ou expiré ». Un scanner ne clique PAS sur un bouton : il se
+   * contente de charger la page. Le token reste donc intact jusqu'au clic
+   * humain. */
   useEffect(() => {
     if (!token) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await verifyEmail(token);
-        if (cancelled) return;
-        /* La vérification n'est PAS une authentification : on jette donc la
-         * session… SAUF quand le visiteur arrive du tunnel de demande
-         * (`?from=demande`). Depuis D2.5, le cookie est posé dès
-         * l'inscription : le `logout()` détruirait ici la seule session qui
-         * permet d'accéder à la demande qu'il vient d'envoyer. */
-        if (!fromDemande) {
-          try {
-            await logout();
-          } catch {
-            // La déconnexion est un nettoyage opportuniste, jamais bloquant.
-          }
-        }
+    setConfirming(true);
+    setVerifying(false);
+  }, [token]);
+
+  /* Clic sur « Confirmer mon email ». Seul moment où le token est consumé. */
+  const handleConfirm = async () => {
+    if (!token || verificationAttempted.current) return;
+    verificationAttempted.current = true;
+    setVerifying(true);
+    setError(null);
+    setConfirming(false);
+    try {
+      const session = await verifyEmail(token);
+      /* La session posée par la réponse est conservée si le visiteur vient du
+       * tunnel de demande (D2.5 pose le cookie dès l'inscription). Sinon elle
+       * est jetée : la vérification n'est pas une authentification, et le
+       * parcours historique redirige manuellement vers la connexion. */
+      if (!fromDemande) {
         try {
-          await refresh();
+          await logout();
         } catch {
-          // ignore — l’état local suffit pour afficher la confirmation.
+          // La déconnexion est un nettoyage opportuniste, jamais bloquant.
         }
-        if (cancelled) return;
-        setVerified(true);
-      } catch (err) {
-        if (cancelled) return;
-        const message = toUserErrorMessage(err, VERIFICATION_LINK_INVALID_MESSAGE);
-        if (message === EMAIL_ALREADY_VERIFIED_MESSAGE) {
-          setAlreadyVerified(true);
-        } else {
-          setError(message);
-        }
-      } finally {
-        if (!cancelled) setVerifying(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    /* Chantier D2.5 — redirection vers la liste des demandes.
-     *
-     * On ATTEND `user?.emailVerified === true` avant de pousser : le
-     * `RoleGuard` (`guard-decision.ts`) renvoie un CLIENT non vérifié vers
-     * `/client/verification`. Pousser avant que le contexte soit à jour
-     * provoquerait un aller-retour visible, voire une boucle. `refresh()`
-     * ci-dessus a déjà fait le travail ; cet effet ne fait que constater l'état. */
-  }, [token, refresh, fromDemande]);
+      try {
+        await refresh();
+      } catch {
+        // ignore — l’état local suffit pour afficher la confirmation.
+      }
+      /* `alreadyVerified` : le backend répond 200 sans rien écrire (rejeu du
+       * lien, clic déjà effectué par un scan ou une autre session). Ce n'est
+       * pas une erreur, et surtout pas un 400 qui ferait croire à un échec. */
+      if (session.alreadyVerified) setAlreadyVerified(true);
+      else setVerified(true);
+    } catch (err) {
+      const message = toUserErrorMessage(err, VERIFICATION_LINK_INVALID_MESSAGE);
+      if (message === EMAIL_ALREADY_VERIFIED_MESSAGE) {
+        setAlreadyVerified(true);
+      } else {
+        /* Token réellement invalide ou expiré : on ne laisse pas l'utilisateur
+         * devant un cul-de-sac, on lui propose le renvoi. */
+        setError(message);
+        verificationAttempted.current = false;
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   /* Redirection vers la liste des demandes, une fois le contexte à jour.
    *
@@ -168,6 +187,32 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
     );
   }
 
+  /* Écran de confirmation : le token est là, on n'a encore rien envoyé. */
+  if (confirming) {
+    return (
+      <AuthCard
+        icon="shield"
+        title="Confirmez votre adresse email"
+        description="Cliquez sur le bouton ci-dessous pour vérifier votre adresse."
+      >
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={handleConfirm}
+          isLoading={verifying}
+        >
+          Confirmer mon email
+        </Button>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Cette étape est volontairement déclenchée par votre clic : certains
+          services de messagerie testent automatiquement les liens pour vérifier
+          qu&apos;ils ne sont pas malveillants, ce qui épuiserait votre lien
+          avant que vous ne le cliquiez.
+        </p>
+      </AuthCard>
+    );
+  }
+
   if (verified) {
     /* Cas du tunnel de demande : la session existe déjà, on propose donc la
      * liste des missions (où se trouve celle qui vient d'être envoyée) au lieu
@@ -203,17 +248,27 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
   }
 
   if (alreadyVerified) {
+    /* Ce n'est PAS une erreur : le lien a déjà été utilisé (précédent clic,
+     * autre session, scanner). Message positif et action immédiate. */
     return (
       <AuthCard
         icon="check-circle"
-        title="Adresse déjà vérifiée"
-        description="Cette adresse a déjà été vérifiée. Connectez-vous pour accéder à votre espace."
+        title="Votre email est déjà vérifié"
+        description="Rien à faire, tout est en ordre."
       >
-        <Link href={loginHref} className="block">
-          <Button className="w-full" size="lg">
-            Aller à la connexion
-          </Button>
-        </Link>
+        {fromDemande ? (
+          <Link href="/client/demandes" className="block">
+            <Button className="w-full" size="lg">
+              Voir mes demandes
+            </Button>
+          </Link>
+        ) : (
+          <Link href={loginHref} className="block">
+            <Button className="w-full" size="lg">
+              Aller à la connexion
+            </Button>
+          </Link>
+        )}
       </AuthCard>
     );
   }
@@ -230,7 +285,8 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
     >
       {error ? (
         <Alert variant="error" className="mb-4">
-          {error}
+          Ce lien a expiré ou n&apos;est plus valide. Demandez un nouveau lien
+          ci-dessous pour continuer.
         </Alert>
       ) : null}
 
@@ -261,9 +317,14 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
           </div>
         </>
       ) : (
+        /* « Adresse inconnue » ne voulait rien dire pour l'utilisateur : ni son
+         * compte, ni sa demande n'étaient « inconnus », c'était nous qui ne
+         * savions pas à quel e-mail renvoyer. On lui dit ce qui va se passer
+         * et on ne lui reproche rien. */
         <p className="mb-4 text-sm text-muted-foreground">
-          Adresse inconnue. Repassez par la connexion : si votre compte n&apos;est pas encore
-          vérifié, vous reviendrez ici automatiquement.
+          Nous n&apos;avons pas l&apos;adresse e-mail associée à ce compte. Si vous venez
+          de vous inscrire, ouvrez le lien reçu par e-mail pour activer votre
+          compte ; sinon connectez-vous, votre accès sera vérifié à ce moment-là.
         </p>
       )}
 
