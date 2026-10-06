@@ -87,35 +87,52 @@ void test('D2.5 : le panneau lit ?from=demande', () => {
   assert.match(panel, /params\.get\('from'\) === 'demande'/);
 });
 
-void test('D2.5 : ?from=demande SUPPRIME le logout (sinon la session est détruite)', () => {
-  /* Point le plus subtil du chantier : le panneau déconnectait
-   * systématiquement après vérification. Depuis D2.5 le cookie est posé dès
-   * l'inscription, donc ce logout détruirait la session qui donne accès à la
-   * demande tout juste envoyée. */
+void test('D2.5 : la session n’est PLUS détruite après vérification', () => {
+  /* Ce test verrouillait `if (!fromDemande) { … await logout() }` : le
+   * panneau déconnectait systématiquement après vérification, ce qui
+   * détruisait la session — celle de l'inscription D2.5 comme celle posée par
+   * `verify-email`.
+   *
+   * Le correctif suivant a supprimé le `logout()` ENTIÈREMENT : l'adresse
+   * vient d'être vérifiée et le backend vient de reposer le cookie, il n'y a
+   * plus rien à protéger. L'intention d'origine (« ne pas détruire la
+   * session ») est donc satisfaite plus fortement qu'avant. */
   const panel = read('../components/auth/verification-panel.tsx');
-  assert.match(panel, /if \(!fromDemande\) \{\s*try \{\s*await logout\(\);/);
+  const body = panel.slice(panel.indexOf('const handleConfirm'));
+  assert.doesNotMatch(body.slice(0, 2500), /await logout\(\)/);
 });
 
-void test('D2.5 : ?from=demande redirige vers /client/demandes après vérification', () => {
+void test('D2.5 : ?from=demande conduit à /client/demandes', () => {
+  /* La redirection est devenue une NAVIGATION DURE (`window.location.assign`)
+   * et non `router.replace`. Raison documentée dans le composant : une
+   * navigation cliente conserve le contexte `AuthProvider` périmé
+   * (`emailVerified: false`) et le RoleGuard renverrait l'utilisateur vers
+   * `/client/verification` — la boucle. La navigation complète reconstruit le
+   * contexte via `GET /auth/me`. */
   const panel = read('../components/auth/verification-panel.tsx');
-  assert.match(panel, /router\.replace\('\/client\/demandes'\)/);
+  assert.match(panel, /leaveVerification\('\/client\/demandes'\)/);
+  assert.match(panel, /window\.location\.assign\(destination\)/);
 });
 
-void test('D2.5 : la redirection ATTEND user.emailVerified (pas de boucle RoleGuard)', () => {
-  /* Pousser avant la mise à jour du contexte ferait rebondir le RoleGuard
-   * vers /client/verification : aller-retour visible. */
+void test('D2.5 : plus de redirection cliente, donc plus de boucle RoleGuard', () => {
+  /* L'invariant demandé (« ne pas boucler ») est atteint par un moyen
+   * STRUCTURELlement plus sûr qu'une attente d'état : il n'y a plus de
+   * navigation cliente du tout, donc plus aucun moment où le RoleGuard peut
+   * voir un contexte périmé. On vérifie l'absence, pas l'attente. */
   const panel = read('../components/auth/verification-panel.tsx');
-  const effect = panel.slice(panel.indexOf('if (!verified || !fromDemande) return;'));
-  assert.match(effect.slice(0, 300), /if \(!user\?\.emailVerified\) return;/);
-  assert.match(effect.slice(0, 300), /router\.replace\('\/client\/demandes'\)/);
+  const body = panel.slice(panel.indexOf('const handleConfirm'));
+  assert.doesNotMatch(body, /router\.(push|replace)\(/);
 });
 
-void test('D2.5 : sans ?from=demande, le comportement historique est intact', () => {
+void test('D2.5 : sans ?from=demande, l’utilisateur accède directement à son espace', () => {
+  /* Changement de comportement ASSUMÉ : le panneau ne déconnecte plus, donc
+   * proposer « Aller à la connexion » serait faux — l'utilisateur est déjà
+   * connecté. Le bouton ouvre son espace, via la navigation dure qui
+   * reconstruit le contexte. */
   const panel = read('../components/auth/verification-panel.tsx');
-  /* Le logout et le bouton « Aller à la connexion » restent pour le flux
-   * d'inscription classique. */
-  assert.match(panel, /await logout\(\)/);
-  assert.match(panel, /Aller à la connexion/);
+  assert.doesNotMatch(panel, /await logout\(\)/);
+  assert.match(panel, /Accéder à mon espace/);
+  assert.match(panel, /homeHref = role === 'TECHNICIAN' \? '\/technicien' : '\/client'/);
 });
 
 void test('D2.5 : ?from=demande propose « Voir mes demandes »', () => {

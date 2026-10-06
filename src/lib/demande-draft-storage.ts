@@ -49,3 +49,47 @@ export function clearDemandeDraftToken(): void {
     /* Idem : l'échec d'un nettoyage n'a aucune conséquence fonctionnelle. */
   }
 }
+/* ── Chantier FIX — mémorisation « e-mail vérifié » ───────────────────
+ *
+ * POURQUOI UNE CLÉ DE PLUS : la confirmation doit SURVIVRE au remontage du
+ * composant. Or `refresh()` fait passer l'`AuthProvider` en `loading`, ce qui
+ * fait rendre `LoadingScreen` au `RoleGuard` : le `VerificationPanel` se
+ * démonte, perd son état React, puis remonte sur l'écran de confirmation
+ * initial. Résultat vu en production : le spinner du bouton, puis plus rien.
+ *
+ * Une clé en sessionStorage permet au composant remonté de reconstituer
+ * « c'est déjà vérifié » sans refaire l'appel. Elle porte le TOKEN (et non un
+ * booléen nu) pour ne pas confondre deux vérifications successives dans la
+ * même session.
+ *
+ * Ce n'est PAS un secret : c'est un indicateur d'affichage, comparable au
+ * `relio-push-endpoint` déjà stocké. Le token de vérification lui-même ne vit
+ * que dans l'URL. */
+export const VERIFIED_TOKEN_KEY = 'relio_verified_token';
+
+/** Marque le token comme vérifié (affichage uniquement). */
+export function rememberVerifiedToken(token: string): void {
+  try {
+    storage()?.setItem(VERIFIED_TOKEN_KEY, token);
+  } catch {
+    /* stockage indisponible : la confirmation sera perdue au remontage, sans
+     * conséquence fonctionnelle. */
+  }
+}
+
+export function readVerifiedToken(): string | null {
+  try {
+    const value = storage()?.getItem(VERIFIED_TOKEN_KEY);
+    return value && value.length > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function forgetVerifiedToken(): void {
+  try {
+    storage()?.removeItem(VERIFIED_TOKEN_KEY);
+  } catch {
+    /* idem */
+  }
+}

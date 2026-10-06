@@ -2,20 +2,25 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { AuthCard } from '@/components/auth/auth-card';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Icon } from '@/components/ui/icon';
 import { useAuth } from '@/components/auth/auth-provider';
 import {
   verifyEmail,
   resendVerification,
-  logout,
   EMAIL_ALREADY_VERIFIED_MESSAGE,
   VERIFICATION_LINK_INVALID_MESSAGE,
 } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import {
+  forgetVerifiedToken,
+  readVerifiedToken,
+  rememberVerifiedToken,
+} from '@/lib/demande-draft-storage';
 
 export type VerificationRole = 'CLIENT' | 'TECHNICIAN';
 
@@ -31,10 +36,12 @@ interface VerificationPanelProps {
  *   éditable, donc aucun changement d’adresse depuis ce parcours ;
  * - le renvoi vise uniquement cette adresse (POST /auth/resend-verification,
  *   silencieux côté backend si le compte est inconnu ou déjà vérifié) ;
- * - après clic sur le lien : l’email est marqué vérifié, toute session
- *   éventuellement posée par la réponse est immédiatement jetée (logout),
- *   puis redirection MANUELLE vers la connexion — jamais de Dashboard
- *   automatique, jamais de session utilisable ;
+ * - après clic sur le lien : l’email est marqué vérifié et la session posée
+ *   par la réponse est CONSERVÉE. Depuis D2.5 le backend pose un cookie dès
+ *   l’inscription, et `verify-email` le repose : déconnecter immédiatement
+ *   après était une friction sans gain de sécurité. Ce retrait a surtout
+ *   supprimé la cause du symptôme « aucune confirmation » (voir
+ *   `handleConfirm`) ;
  * - sans adresse connue : aucun renvoi possible, orientation vers la
  *   connexion (dont l’échec « non vérifié » reboucle ici avec l’adresse).
  *
@@ -42,11 +49,32 @@ interface VerificationPanelProps {
  * mot de passe stocké, aucun token conservé côté frontend. */
 /* Délai avant de re-demander l'état au backend si `emailVerified` n'a pas
  * suivi la vérification. */
-const EMAIL_VERIFIED_RETRY_MS = 1500;
+/* Délai avant d'enchaîner automatiquement sur la liste des demandes, le temps
+ * que l'utilisateur voie la confirmation. */
+const VERIFIED_LEAVE_DELAY_MS = 1600;
+
+/* Animation de confirmation « e-mail vérifié ».
+ *
+ * CSS uniquement : `animate-pop-in` et `animate-breathe` existent déjà dans
+ * `globals.css`. Aucune animation Lottie n'a été ajoutée — les seules
+ * disponibles parlent d'« envoi de demande », ce qui serait faux ici, et
+ * `prefers-reduced-motion` est respecté par ces classes. */
+function VerifiedAnimation() {
+  return (
+    <div className="relative mx-auto mb-1 flex size-20 items-center justify-center">
+      <span
+        aria-hidden
+        className="absolute inset-0 rounded-full bg-emerald-500/20 animate-breathe"
+      />
+      <span className="relative flex size-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 animate-pop-in dark:text-emerald-400">
+        <Icon name="check" size="lg" />
+      </span>
+    </div>
+  );
+}
 
 export function VerificationPanel({ role }: VerificationPanelProps) {
   const params = useSearchParams();
-  const router = useRouter();
   const token = params.get('token');
   const emailParam = params.get('email');
   /* Chantier D2.5 — `?from=demande` : l'utilisateur arrive ici APRÈS avoir
@@ -55,8 +83,10 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
    * être déconnecté, et une fois vérifié on l'envoie directement vers SES
    * demandes plutôt que vers un dashboard vide. */
   const fromDemande = params.get('from') === 'demande';
-  const { user, refresh } = useAuth();
+  const { user } = useAuth();
   const loginHref = role === 'TECHNICIAN' ? '/technicien/connexion' : '/client/connexion';
+  /* Destination après vérification réussie : l'espace du rôle. */
+  const homeHref = role === 'TECHNICIAN' ? '/technicien' : '/client';
 
   /* `confirming` : le token est présent dans l'URL mais RIEN n'a encore été
    * envoyé. Écran de confirmation — voir `handleConfirm`. */
@@ -87,6 +117,19 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
    * humain. */
   useEffect(() => {
     if (!token) return;
+    /* Remontage après un `refresh()` : si ce token a déjà été validé, on
+     * réaffiche la confirmation au lieu de revenir à l'écran « confirmez ».
+     * Sans cela, le spinner s'affichait puis l'écran se réinitialisait sans
+     * aucun message — le symptômeExact observé en production. */
+    const remembered = readVerifiedToken();
+    if (remembered === token) {
+      setConfirming(false);
+      setVerified(true);
+      setVerifying(false);
+      return;
+    }
+    /* Un token différent : l'entrée précédente ne sert plus à rien. */
+    if (remembered) forgetVerifiedToken();
     setConfirming(true);
     setVerifying(false);
   }, [token]);
@@ -100,22 +143,29 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
     setConfirming(false);
     try {
       const session = await verifyEmail(token);
-      /* La session posée par la réponse est conservée si le visiteur vient du
-       * tunnel de demande (D2.5 pose le cookie dès l'inscription). Sinon elle
-       * est jetée : la vérification n'est pas une authentification, et le
-       * parcours historique redirige manuellement vers la connexion. */
-      if (!fromDemande) {
-        try {
-          await logout();
-        } catch {
-          // La déconnexion est un nettoyage opportuniste, jamais bloquant.
-        }
-      }
-      try {
-        await refresh();
-      } catch {
-        // ignore — l’état local suffit pour afficher la confirmation.
-      }
+      /* CHANTIER FIX — plus de `logout()` ici.
+       *
+       * Le backend repose le cookie à CHAQUE `verify-email` : l'utilisateur
+       * vient d'obtenir une session valide sur un compte désormais vérifié. La
+       * déconnexion qui suivait relevait de l'ancien monde où l'inscription ne
+       * posait AUCUN cookie (avant D2.5). Elle est devenue :
+       *   1) une friction pure — il faut ressaisir son mot de passe pour rien ;
+       *   2) la CAUSE du symptôme « aucune confirmation » : le `refresh()`
+       *      qui suivait passait l'`AuthProvider` en `loading`, le
+       *      `RoleGuard` rendait `LoadingScreen` à la place du panneau, qui se
+       *      démontait et perdait son état. Le message de succès ne pouvait
+       *      donc jamais s'afficher. */
+      rememberVerifiedToken(token);
+      /* PAS de `refresh()` ici, volontairement.
+       *
+       * `refresh()` fait passer l'`AuthProvider` en `loading` → le `RoleGuard`
+       * rend `LoadingScreen` à la place du panneau → démontage et perte de
+       * l'état, donc plus aucun message de confirmation. Et une fois le
+       * contexte « vérifié », le garde renvoie automatiquement l'utilisateur
+       * loin de cette page : la confirmation n'aurait pas le temps d'être
+       * lue. On laisse donc le contexte tel quel — l'utilisateur VOIT la
+       * confirmation, et c'est la navigation dure déclenchée par le bouton
+       * qui reconstruit un contexte à jour. */
       /* `alreadyVerified` : le backend répond 200 sans rien écrire (rejeu du
        * lien, clic déjà effectué par un scan ou une autre session). Ce n'est
        * pas une erreur, et surtout pas un 400 qui ferait croire à un échec. */
@@ -136,31 +186,32 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
     }
   };
 
-  /* Redirection vers la liste des demandes, une fois le contexte à jour.
+  /* Sortie de la page de vérification — NAVIGATION DURE, pas `router.push`.
    *
-   * ⚠️ PAS de « timeout de sécurité » qui pousserait quand même : si
-   * `emailVerified` ne se synchronise pas, pousser vers `/client/demandes`
-   * ferait reboucler le `RoleGuard` vers `/client/verification` — c'est
-   * exactement la boucle infinie que ce chantier corrige. On reste donc sur la
-   * page et l'utilisateur y trouve le bouton « Voir mes demandes ».
+   * Pourquoi une navigation complète : c'est la seule façon de garantir un
+   * contexte `AuthProvider` reconstruit par `GET /auth/me`. Une navigation
+   * cliente conserverait le contexte périmé (`emailVerified: false`) et le
+   * `RoleGuard` renverrait alors l'utilisateur... ici. Boucle. Le dépôt
+   * utilise déjà ce mécanisme dans `logoutAndGoHome`.
    *
-   * À la place, on RÉACTUALISE : si le contexte est toujours en retard après
-   * le délai, on rappelle `refresh()`. Le filet sert à rattraper un cookie
-   * appliqué tardivement, pas à forcer une navigation. */
-  useEffect(() => {
-    if (!verified || !fromDemande) return;
-    if (!user?.emailVerified) return;
-    router.replace('/client/demandes');
-  }, [verified, fromDemande, user?.emailVerified, router]);
+   * `?from=demande` : on enchaîne automatiquement sur les demandes, après un
+   * court délai qui laisse l'animation de confirmation être vue.
+   * Sinon : l'utilisateur choisit, via le bouton « Accéder à mon espace ». */
+  const leaveVerification = (destination: string) => {
+    forgetVerifiedToken();
+    window.location.assign(destination);
+  };
 
   useEffect(() => {
     if (!verified || !fromDemande) return;
-    if (user?.emailVerified) return;
     const timer = window.setTimeout(() => {
-      void refresh();
-    }, EMAIL_VERIFIED_RETRY_MS);
+      leaveVerification('/client/demandes');
+    }, VERIFIED_LEAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [verified, fromDemande, user?.emailVerified, refresh]);
+    /* Une seule redirection déclenchée : `router.replace` a été retiré au
+     * profit de cette navigation, donc plus aucun doublon possible. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verified, fromDemande]);
 
   const handleResend = async () => {
     if (!accountEmail || resendBusy) return;
@@ -224,6 +275,7 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
           title="Adresse email vérifiée"
           description="Votre compte est activé. Votre demande a bien été envoyée."
         >
+          <VerifiedAnimation />
           <Link href="/client/demandes" className="block">
             <Button className="w-full" size="lg">
               Voir mes demandes
@@ -232,17 +284,20 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
         </AuthCard>
       );
     }
+    /* L'utilisateur est MAINTENANT connecté : `verify-email` repose le cookie
+     * et la vérification est faite. Lui demander de ressaisir son mot de
+     * passe n'apportait rien et ajoutait une étape — d'où « Accéder à mon
+     * espace » plutôt que « Aller à la connexion ». */
     return (
       <AuthCard
         icon="check-circle"
         title="Adresse email vérifiée"
-        description="Votre compte est activé. Connectez-vous pour accéder à votre espace."
+        description="Votre compte est activé et vous êtes connecté."
       >
-        <Link href={loginHref} className="block">
-          <Button className="w-full" size="lg">
-            Aller à la connexion
-          </Button>
-        </Link>
+        <VerifiedAnimation />
+        <Button className="w-full" size="lg" onClick={() => leaveVerification(homeHref)}>
+          Accéder à mon espace
+        </Button>
       </AuthCard>
     );
   }
@@ -256,19 +311,10 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
         title="Votre email est déjà vérifié"
         description="Rien à faire, tout est en ordre."
       >
-        {fromDemande ? (
-          <Link href="/client/demandes" className="block">
-            <Button className="w-full" size="lg">
-              Voir mes demandes
-            </Button>
-          </Link>
-        ) : (
-          <Link href={loginHref} className="block">
-            <Button className="w-full" size="lg">
-              Aller à la connexion
-            </Button>
-          </Link>
-        )}
+        <VerifiedAnimation />
+        <Button className="w-full" size="lg" onClick={() => leaveVerification(fromDemande ? '/client/demandes' : homeHref)}>
+          {fromDemande ? 'Voir mes demandes' : 'Accéder à mon espace'}
+        </Button>
       </AuthCard>
     );
   }
