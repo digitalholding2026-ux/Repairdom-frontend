@@ -40,7 +40,21 @@ void test('parcours simplifié : catégorie → marque réelle → description, 
 
 void test('client : upload réel AVANT création, nettoyage à l’échec', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  const submit = wizard.slice(wizard.indexOf('const handleSubmit'));
+  /* Chantier D2 : le corps `handleSubmit` ne fait plus qu'ARBORTER — le
+   * parcours authentifié a été factorisé dans `submitAsAuthenticatedClient`,
+   * car il sert aussi de repli quand le brouillon est introuvable ou expiré
+   * au moment de convertir. L'invariant « upload AVANT création » est donc
+   * vérifié dans cette fonction, où il se trouve désormais. */
+  const submit = wizard.slice(wizard.indexOf('const submitAsAuthenticatedClient'));
+  /* La tranche COMMENCE à l'ancre : son offset est forcément 0. */
+  assert.ok(
+    wizard.indexOf('const submitAsAuthenticatedClient') >= 0,
+    'helper de soumission introuvable',
+  );
+  assert.ok(
+    submit.indexOf('uploadDemandeMedia') > -1,
+    'le parcours authentifié doit uploader les médias',
+  );
   assert.ok(submit.indexOf('uploadDemandeMedia') < submit.indexOf('createDemande({'));
   assert.match(wizard, /deleteUploadedDemandeMedia/);
   assert.match(wizard, /storagePath/);

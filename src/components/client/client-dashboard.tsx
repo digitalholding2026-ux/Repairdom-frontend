@@ -115,7 +115,7 @@ export function ClientDashboard({ variant = 'home' }: { variant?: ClientDashboar
               title="Votre historique est vide"
               description="Les interventions confirmées et annulées apparaîtront ici."
               action={
-                <Link href="/client/demande">
+                <Link href='/demande'>
                   <Button>Déposer une panne</Button>
                 </Link>
               }

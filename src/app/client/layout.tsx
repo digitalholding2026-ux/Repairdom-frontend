@@ -79,7 +79,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
           <WorkspaceSidebar
             label="Espace client"
             items={CLIENT_NAV}
-            action={{ href: '/client/demande', label: 'Nouvelle demande', icon: 'plus' }}
+            action={{ href: '/demande', label: 'Nouvelle demande', icon: 'plus' }}
           />
         ) : null}
         <main className="min-w-0 w-full flex-1 overflow-x-clip pb-28 lg:pb-10">

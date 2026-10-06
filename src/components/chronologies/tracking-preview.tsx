@@ -120,7 +120,7 @@ export function TrackingPreview() {
         <p className="text-center text-sm font-medium sm:text-left">
           Vous avez une urgence ou un problème technique ?
         </p>
-        <Link href="/client/demande" className="w-full shrink-0 sm:w-auto">
+        <Link href='/demande' className="w-full shrink-0 sm:w-auto">
           <Button className="w-full gap-2 sm:w-auto">
             <Icon name="plus" size="sm" />
             Lancer un dépannage

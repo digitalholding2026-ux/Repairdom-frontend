@@ -91,7 +91,7 @@ export function MissionsEmptyState() {
         Besoin d&apos;un électricien, plombier ou réparateur ? Décrivez votre problème et
         recevez des propositions de nos techniciens vérifiés.
       </p>
-      <Link href="/client/demande">
+      <Link href='/demande'>
         <Button
           size="lg"
           className="shadow-lg shadow-primary/25 transition-all duration-200 hover:scale-[1.02] hover:shadow-primary/40 active:scale-[0.98]"

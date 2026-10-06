@@ -424,3 +424,139 @@ export async function openDispute(
 export async function getDispute(demandeId: string): Promise<DemandeDispute | null> {
   return apiFetch<DemandeDispute | null>(`/demandes/${encodeURIComponent(demandeId)}/dispute`);
 }
+
+/* ── Chantier D1/D2 — brouillon de demande (visiteur NON authentifié) ────
+ *
+ * Le visiteur décrit sa panne sans compte : le wizard écrit ici, en différé
+ * (debounce), et la Demande n'est créée qu'au `convert`, une fois l'utilisateur
+ * connecté. Aucune de ces routes n'exige de cookie — c'est le `token` (un lien
+ * magique) qui fait office d'autorisation, d'où son persistance en localStorage.
+ *
+ * Le `token` EST un secret : il n'est jamais journalisé, jamais envoyé en
+ * paramètre d'URL de tracking, jamais inclus dans un message d'erreur. */
+
+export const DEMANDE_DRAFT_PATH = '/demandes/drafts';
+
+/* Miroir du contrat backend `CreateDemandeDraftDto` : mêmes champs que la
+ * demande, SANS `medias` (reportés après inscription), SANS `modelId` /
+ * `problemId` / `zoneId` (jamais produits par le wizard). */
+export interface CreateDemandeDraftPayload {
+  categoryId: string;
+  description: string;
+  city: string;
+  domainId?: string;
+  brandId?: string;
+  equipmentFamily?: string;
+  neighborhood?: string;
+  address?: string;
+  landmark?: string;
+  contactPhone?: string;
+  latitude?: number;
+  longitude?: number;
+  requestedMode?: RequestTimingMode;
+  requestedAt?: string;
+}
+
+/* Forme renvoyée par le backend. `id`, `convertedToDemandeId` et
+ * `convertedByUserId` n'y figurent VOLONTAIREMENT pas. */
+export interface DemandeDraftData extends CreateDemandeDraftPayload {
+  token: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string;
+}
+
+export interface CreateDemandeDraftResult {
+  token: string;
+  expiresAt: string;
+  retentionDays: number;
+}
+
+/* Un brouillon n'est créé QUE si les 3 champs que le DTO backend rend
+ * obligatoires sont(valides. Sinon la création part en 400 pour un simple
+ * brouillon en cours — le wizard attend ce seuil. */
+const DRAFT_DESCRIPTION_MIN_LENGTH = 10;
+
+export function isDraftCreatable(input: {
+  categoryId?: string;
+  description?: string;
+  city?: string;
+}): boolean {
+  return (
+    (input.categoryId ?? '').trim() !== '' &&
+    (input.city ?? '').trim() !== '' &&
+    (input.description ?? '').trim().length >= DRAFT_DESCRIPTION_MIN_LENGTH
+  );
+}
+
+/* Sérialisation vers le corps HTTP : les champs vides sont OMIS plutôt
+ * qu'envoyés vides — `''` échouerait `@IsNotEmpty()` en PATCH et transformerait
+ * une effacement de saisie en 400. */
+function toDraftBody(input: Partial<CreateDemandeDraftPayload>): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed === '') continue;
+      body[key] = trimmed;
+      continue;
+    }
+    body[key] = value;
+  }
+  return body;
+}
+
+/** Crée un brouillon et retourne son token. */
+export async function createDemandeDraft(
+  input: CreateDemandeDraftPayload,
+): Promise<CreateDemandeDraftResult> {
+  return apiFetch<CreateDemandeDraftResult>(DEMANDE_DRAFT_PATH, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(toDraftBody(input)),
+  });
+}
+
+/** PATCH partiel d'un brouillon. */
+export async function updateDemandeDraft(
+  token: string,
+  input: Partial<CreateDemandeDraftPayload>,
+): Promise<DemandeDraftData> {
+  return apiFetch<DemandeDraftData>(
+    `${DEMANDE_DRAFT_PATH}/${encodeURIComponent(token)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toDraftBody(input)),
+    },
+  );
+}
+
+/** Reprise d'un brouillon (après refresh ou fermeture d'onglet). */
+export async function getDemandeDraft(token: string): Promise<DemandeDraftData> {
+  return apiFetch<DemandeDraftData>(
+    `${DEMANDE_DRAFT_PATH}/${encodeURIComponent(token)}`,
+  );
+}
+
+/** Transforme le brouillon en vraie Demande. EXIGE un cookie CLIENT. */
+export async function convertDemandeDraft(
+  token: string,
+  medias: Array<{
+    kind: 'IMAGE' | 'VIDEO' | 'AUDIO';
+    name: string;
+    mimeType: string;
+    sizeBytes: number;
+    storagePath?: string;
+  }> = [],
+): Promise<CreateDemandeResult> {
+  return apiFetch<CreateDemandeResult>(
+    `${DEMANDE_DRAFT_PATH}/${encodeURIComponent(token)}/convert`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(medias.length > 0 ? { medias } : {}),
+    },
+  );
+}

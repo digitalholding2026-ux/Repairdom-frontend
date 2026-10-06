@@ -35,7 +35,7 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
       <PageHeader
         title="Demande envoyée"
         description="Récapitulatif de votre nouvelle demande."
-        backHref="/client/demande"
+        backHref='/demande'
       />
       <section className="flex flex-col items-center gap-3 text-center">
         {/* LottieFlow : succès backend DÉJÀ confirmé (cette page n'est
@@ -101,7 +101,7 @@ export default async function ConfirmationPage({ searchParams }: ConfirmationPag
             <Button variant="outline" className="w-full">Suivre ma mission</Button>
           </Link>
         ) : null}
-        <Link href="/client/demande" className="block">
+        <Link href='/demande' className="block">
           <Button variant="outline" className="w-full">
             Déposer une nouvelle demande
           </Button>

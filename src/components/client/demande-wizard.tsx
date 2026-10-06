@@ -15,7 +15,30 @@ import { VoiceRecorder, VOICE_MAX_SECONDS } from '@/components/client/voice-reco
 import { cn } from '@/lib/cn';
 import { formatFileSize } from '@/lib/format';
 import { formatRequestedTiming, type RequestTimingMode } from '@/lib/request-timing';
-import { createDemande, uploadDemandeMedia, deleteUploadedDemandeMedia } from '@/lib/api/request-service';
+import {
+  createDemande,
+  uploadDemandeMedia,
+  deleteUploadedDemandeMedia,
+  createDemandeDraft,
+  updateDemandeDraft,
+  getDemandeDraft,
+  convertDemandeDraft,
+  type CreateDemandeDraftPayload,
+} from '@/lib/api/request-service';
+import { useAuth } from '@/components/auth/auth-provider';
+import {
+  clearDemandeDraftToken,
+  readDemandeDraftToken,
+  writeDemandeDraftToken,
+} from '@/lib/demande-draft-storage';
+import {
+  canCreateDraft,
+  diffDraftPayload,
+  draftToWizardFields,
+  toDraftPayload,
+} from '@/lib/demande-draft-sync';
+import { DemandeAuthModal } from '@/components/client/demande-auth-modal';
+import { ApiError, type AuthUser } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
   formatTravelAccuracyShort,
@@ -83,8 +106,30 @@ function nowLocalValue(): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/* Chantier D2 — inverse de `nowLocalValue` : le brouillon mémorise l'ISO du
+ * backend, le champ `datetime-local` attend une valeur LOCALE (sans fuseau).
+ * On passe par Date pour ne pas décaler l'heure d'un décalage horaire. */
+function toLocalDatetimeValue(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function DemandeWizard() {
   const router = useRouter();
+
+  /* ── Chantier D2 — mode du wizard ──────────────────────────────────
+   * Un SEUL composant sert désormais les deux parcours :
+   *  - anonyme (`/demande`) : sauvegarde progressive vers le brouillon ;
+   *  - authentifié (CLIENT) : comportement historique inchangé.
+   *
+   * `isAnonymousMode` est faux TANT QUE `authLoading` est vrai : sans cette
+   * garde, un client déjà connecté verrait le bandeau « votre progression est
+   * sauvegardée » et tirerait un PATCH inutile avant que `GET /auth/me` ait
+   * répondu. */
+  const { authenticated, loading: authLoading, refresh } = useAuth();
+  const isAnonymousMode = !authLoading && !authenticated;
 
   const [step, setStep] = useState(0);
   const [categoryId, setCategoryId] = useState('');
@@ -127,6 +172,28 @@ export function DemandeWizard() {
   const [brandId, setBrandId] = useState('');
   const [brands, setBrands] = useState<CatalogBrandLite[]>([]);
 
+  /* ── Chantier D2 — état du brouillon + de la modale d'authentification ──
+   * `draftToken` est null tant qu'aucun brouillon n'existe : on ne crée
+   * JAMAIS de brouillon vide (le backend refuse `description` < 10 car. et
+   * `city` vide, et un brouillon vide ne sert à rien). Le premier brouillon
+   * naît donc dès que la saisie atteint le minimum DTO. */
+  const [draftToken, setDraftToken] = useState<string | null>(null);
+  /* Dernier instantané synchronisé — sert au diff PATCH (évite un aller-retour
+   * toutes les 800 ms quand rien n'a changé) et à ne pas re-patcher les
+   * champs juste restaurés. */
+  const draftSyncedRef = useRef<Partial<CreateDemandeDraftPayload> | null>(null);
+  const [draftNotice, setDraftNotice] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  /* Erreur de l'étape POST-auth (upload / conversion) : affichée DANS la
+   * modale, qui ne se ferme que sur succès. */
+  const [stageError, setStageError] = useState<string | null>(null);
+  /* Médias refusés par le serveur : l'utilisateur choisit Réessayer ou
+   * Continuer sans. */
+  const [failedMedias, setFailedMedias] = useState<WizardMedia[]>([]);
+  /* Passe à `true` pendant l'upload + la conversion, pour que le bouton de la
+   * modale affiche la progression au lieu de « Envoyer ». */
+  const [converting, setConverting] = useState(false);
+
   useEffect(() => {
     let active = true;
     setCatalogLoading(true);
@@ -152,20 +219,24 @@ export function DemandeWizard() {
 
   /* Préremplissage depuis le profil (ville, téléphone) : uniquement si le
    * champ est encore vide — ne JAMAIS écraser une saisie manuelle. Échec
-   * silencieux : le formulaire reste utilisable sans profil. */
+   * silencieux : le formulaire reste utilisable sans profil.
+   *
+   * Chantier D2 : réservé au mode AUTHENTIFIÉ. Un visiteur anonyme n'a pas de
+   * profil à lire, et l'appel partirait en 401 sans rien apporter. */
   useEffect(() => {
+    if (authLoading || !authenticated) return;
     let active = true;
     getMe()
       .then((me) => {
         if (!active) return;
-        if (me.city) setCity((prev) => prev.trim() !== '' ? prev : me.city ?? '');
-        if (me.phone) setContactPhone((prev) => prev.trim() !== '' ? prev : me.phone ?? '');
+        if (me.city) setCity((prev) => (prev.trim() !== '' ? prev : me.city ?? ''));
+        if (me.phone) setContactPhone((prev) => (prev.trim() !== '' ? prev : me.phone ?? ''));
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
-  }, []);
+  }, [authLoading, authenticated]);
 
   const minRequestedAt = useMemo(() => nowLocalValue(), []);
   const requestedAtIso = useMemo(
@@ -180,6 +251,191 @@ export function DemandeWizard() {
     if (brand) parts.push(brand.name);
     return parts.join(' — ');
   }, [domainName, brands, brandId]);
+
+  /* ── Chantier D2 — instantané des champs pour la synchronisation ────── */
+  const draftFields = useMemo(
+    () => ({
+      categoryId,
+      domainId,
+      brandId,
+      equipmentFamily,
+      description,
+      city,
+      neighborhood,
+      address,
+      landmark,
+      contactPhone,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+      requestedMode,
+      requestedAtIso,
+      isOtherDomain: domainId === OTHER_DOMAIN,
+    }),
+    [
+      categoryId,
+      domainId,
+      brandId,
+      equipmentFamily,
+      description,
+      city,
+      neighborhood,
+      address,
+      landmark,
+      contactPhone,
+      coords,
+      requestedMode,
+      requestedAtIso,
+    ],
+  );
+
+  /* ── Chantier D2 — reprise d'un brouillon (refresh / onglet fermé) ──────
+   *
+   * Un brouillon existe forcément si et seulement si un token est mémorisé :
+   * on n'en crée jamais de vide. La lecture est faite UNE fois au montage du
+   * wizard ; `draftToken` sert ensuite de déclencheur à la synchronisation.
+   *
+   * Échec : on oublie le token et on repart d'une page vierge. Mieux vaut une
+   * saisie recommencée qu'une page à moitié restaurée qui ment sur l'état du
+   * backend. Le `catch` ne loggue JAMAIS le token (secret). */
+  useEffect(() => {
+    if (!isAnonymousMode) return;
+    const token = readDemandeDraftToken();
+    if (!token) return;
+    let active = true;
+    setDraftToken(token);
+    getDemandeDraft(token)
+      .then((draft) => {
+        if (!active) return;
+        const fields = draftToWizardFields(draft);
+        setCategoryId(fields.categoryId ?? 'autre');
+        /* `domainName` n'est pas stocké côté brouillon : il est reconstruit à
+         * partir du catalogue chargé par l'effet #1, sinon le récapitulatif de
+         * l'étape 4 afficherait « Appareil » vide. */
+        if (fields.domainId) {
+          const domain = domains.find((d) => d.id === fields.domainId);
+          if (domain) setDomainName(domain.name);
+        }
+        setDomainId(fields.domainId ?? '');
+        setBrandId(fields.brandId ?? '');
+        setEquipmentFamily(fields.equipmentFamily ?? '');
+        setDescription(fields.description ?? '');
+        setCity(fields.city ?? '');
+        setNeighborhood(fields.neighborhood ?? '');
+        setAddress(fields.address ?? '');
+        setLandmark(fields.landmark ?? '');
+        setContactPhone(fields.contactPhone ?? '');
+        /* Le brouillon ne mémorise que lat/lon (pas la précision du relevé) :
+         * on restitue un `coords` minimal — `accuracy: null` affiche
+         * « Position enregistrée pour cette demande. » sans afficher de
+         * précision qui n'a pas été relevée. */
+        if (typeof fields.latitude === 'number' && typeof fields.longitude === 'number') {
+          setCoords({
+            latitude: fields.latitude,
+            longitude: fields.longitude,
+            accuracy: null,
+          });
+        }
+        setRequestedMode(fields.requestedMode ?? 'ASAP');
+        /* Le brouillon mémorise l'ISO ; le champ attend le format local du
+         * `datetime-local`. `requestedMode !== SCHEDULED` ⇒ on laisse la date
+         * telle quelle, l'ISO n'étant de toute façon pas rejoué par
+         * `requestedAtIso` dans ce mode. */
+        setRequestedAt('');
+        if (fields.requestedAtIso && fields.requestedMode === 'SCHEDULED') {
+          setRequestedAt(toLocalDatetimeValue(fields.requestedAtIso));
+        }
+        /* Marqueur synchronisé : la restauration ne doit pas déclencher un
+         * PATCH de ce qui vient d'être relu. */
+        draftSyncedRef.current = toDraftPayload(fields as never);
+        setDraftNotice(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        clearDemandeDraftToken();
+        setDraftToken(null);
+        draftSyncedRef.current = null;
+      });
+    return () => {
+      active = false;
+    };
+    /* `domains` est volontairement hors dépendances : il se remplit après ce
+     * montage. Le rattacher rejouerait la restauration et écraserait une
+     * saisie entre-temps. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnonymousMode]);
+
+  /* ── Chantier D2 — synchronisation progressive (debounce 800 ms) ──────
+   *
+   * Uniquement en mode anonyme ET seulement si un brouillon existe déjà (ou
+   * si la saisie vient d'atteindre le minimum que le backend accepte).
+   *
+   * Échecs JAMAIS bloquants : la saisie doit rester la source de vérité côté
+   * client. Un PATCH raté est journalisé SANS le token, et le prochain tick
+   * réessaiera (le diff repart de l'instantané successfully synchronisé, donc
+   * le champ-modified est renvoyé). */
+  useEffect(() => {
+    if (!isAnonymousMode || !draftToken) return;
+    const timer = window.setTimeout(() => {
+      const payload = toDraftPayload(draftFields);
+      const changed = diffDraftPayload(draftSyncedRef.current, payload);
+      if (Object.keys(changed).length === 0) return;
+      updateDemandeDraft(draftToken, changed)
+        .then(() => {
+          draftSyncedRef.current = payload;
+          setDraftNotice(null);
+        })
+        .catch((err) => {
+          /* 410 Gone : le brouillon a expiré (7 jours) ou a été purgé. On
+           * l'oublie ; le prochain tick recréera un brouillon neuf puisque
+           * `draftToken` repassera à null. */
+          if (err instanceof ApiError && err.status === 410) {
+            clearDemandeDraftToken();
+            setDraftToken(null);
+            draftSyncedRef.current = null;
+            setDraftNotice('Votre brouillon a expiré. Une nouvelle sauvegarde est en cours.');
+            return;
+          }
+          /* Journalisation VOLONTAIREMENT sans le token : il est un secret. */
+          console.warn('[demande] sauvegarde du brouillon impossible', {
+            status: err instanceof ApiError ? err.status : 'network',
+          });
+        });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [isAnonymousMode, draftToken, draftFields]);
+
+  /* ── Chantier D2 — PREMIER brouillon ─────────────────────────────────
+   *
+   * Tant qu'aucun token n'existe, on n'appelle PAS `POST` : le backend exige
+   * `description` (10 car. min) + `city` non vide, et un brouillon créé trop
+   * tôt partirait en 400 à chaque frappe. Le POST part donc au premier instant
+   * où la saisie satisfait le minimum — et emporte l'INTÉGRALITÉ des champs,
+   * ce qui évite un PATCH immédiatement après. */
+  useEffect(() => {
+    if (!isAnonymousMode || draftToken) return;
+    if (!canCreateDraft(draftFields)) return;
+    let active = true;
+    createDemandeDraft(toDraftPayload(draftFields))
+      .then((created) => {
+        if (!active) return;
+        writeDemandeDraftToken(created.token);
+        setDraftToken(created.token);
+        draftSyncedRef.current = toDraftPayload(draftFields);
+      })
+      .catch((err) => {
+        /* Silencieux côté UI au-delà d'une trace sans token : le wizard doit
+         * rester utilisable même si la sauvegarde ne fonctionne pas (backend
+         * indisponible, quota, etc.). La demande partira par le flux direct
+         * après authentification. */
+        console.warn('[demande] création du brouillon impossible', {
+          status: err instanceof ApiError ? err.status : 'network',
+        });
+      });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnonymousMode, draftToken, canCreateDraft(draftFields), draftFields]);
 
   const locationLabel = useMemo(
     () => [city.trim(), neighborhood.trim(), address.trim(), landmark.trim()].filter(Boolean).join(' — '),
@@ -362,25 +618,18 @@ export function DemandeWizard() {
     })();
   };
 
-  const handleSubmit = async () => {
-    setError(null);
-    setUploadStatus(null);
-    // Description exigée (le bouton est déjà désactivé sinon ; le backend
-    // revalide de toute façon). Les médias restent facultatifs.
-    if (description.trim().length < DESCRIPTION_MIN_LENGTH) {
-      setError('Décrivez votre problème en quelques mots (10 caractères minimum).');
-      return;
-    }
-    // Garde frontend (le backend revalide de toute façon).
-    if (domainId === OTHER_DOMAIN && equipmentFamily.trim() === '') {
-      setError('Sélectionnez le type d’appareil qui correspond le mieux à votre situation.');
-      return;
-    }
-    // Marque réelle obligatoire avec un domaine du catalogue.
-    if (domainId !== '' && domainId !== OTHER_DOMAIN && brandId === '') {
-      setError('Sélectionnez une marque disponible pour cette catégorie.');
-      return;
-    }
+  /* Chantier D2 — le corps de la soumission AUTHENTIFIÉE historique.
+   *
+   * Factorisé hors de `handleSubmit` parce qu'il sert désormais DEUX fois :
+   *  - le parcours client connecté (comportement d'aujourd'hui, inchangé) ;
+   *  - le REPLI du parcours anonyme, si le brouillon est introuvable ou
+   *    expiré au moment de convertir (le backend rend alors 404/410) : on
+   *    repasse par `POST /demandes` avec l'état local, qui est la source de
+   *    vérité et n'a jamais été perdu.
+   *
+   * Les gardes de validation restent appelées par `handleSubmit` AVANT les
+   * deux chemins : elles ne sont pas dupliquées ici. */
+  const submitAsAuthenticatedClient = async () => {
     setIsSubmitting(true);
     const hasDevice = domainId !== '' && domainId !== OTHER_DOMAIN;
     // 1. Upload réel de chaque fichier AVANT création (accès technicien
@@ -445,6 +694,164 @@ export function DemandeWizard() {
     }
   };
 
+  const handleSubmit = async () => {
+    setError(null);
+    setUploadStatus(null);
+    // Description exigée (le bouton est déjà désactivé sinon ; le backend
+    // revalide de toute façon). Les médias restent facultatives.
+    if (description.trim().length < DESCRIPTION_MIN_LENGTH) {
+      setError('Décrivez votre problème en quelques mots (10 caractères minimum).');
+      return;
+    }
+    // Garde frontend (le backend revalide de toute façon).
+    if (domainId === OTHER_DOMAIN && equipmentFamily.trim() === '') {
+      setError('Sélectionnez le type d\u2019appareil qui correspond le mieux à votre situation.');
+      return;
+    }
+    // Marque réelle obligatoire avec un domaine du catalogue.
+    if (domainId !== '' && domainId !== OTHER_DOMAIN && brandId === '') {
+      setError('Sélectionnez une marque disponible pour cette catégorie.');
+      return;
+    }
+
+    /* Chantier D2 — un visiteur sans compte n'envoie RIEN ici : la Demande
+     * exige un `clientId`. On ouvre la modale d'authentification, et c'est
+     * `handleAuthSuccess` qui reprendra la main (upload + conversion du
+     * brouillon). Aucune validation n'est dupliquée : les trois gardes ci-
+     * dessus viennent de passer, donc le parcours post-auth est déjà conforme
+     * au contrat `POST /demandes`. */
+    if (isAnonymousMode) {
+      setStageError(null);
+      setFailedMedias([]);
+      setAuthModalOpen(true);
+      return;
+    }
+
+    await submitAsAuthenticatedClient();
+  };
+
+  /* ── Chantier D2 —.upload des médias (reporté après inscription) ──────
+   *
+   * Un visiteur anonyme ne pouvait PAS déposer de fichier avant d'avoir un
+   * compte : `POST /demandes/medias/upload` est protégé. On n'a donc les
+   * octets que dans l'état local (`WizardMedia.file`) et on les envoie une
+   * fois le cookie posé.
+   *
+   * Un média déjà uploadé (`storagePath` en mémoire) n'est pas ré-envoyé — ce
+   * qui rend le bouton « Réessayer » idempotent.
+   *
+   * Échec : on NE bloque pas le tout. Les médias refusés sont rendus au
+   * parent, qui propose « Réessayer » ou « Continuer sans ce fichier ». */
+  const uploadPendingMedias = async (candidates: WizardMedia[] = medias) => {
+    const pending = candidates.filter((media) => !media.storagePath);
+    if (pending.length === 0) return { failed: [] as WizardMedia[] };
+    const failed: WizardMedia[] = [];
+    let done = 0;
+    for (const media of pending) {
+      setUploadStatus(`Envoi des fichiers ${done + 1}/${pending.length}…`);
+      try {
+        const uploaded = await uploadDemandeMedia(media.file, media.kind);
+        media.storagePath = uploaded.storagePath;
+      } catch {
+        failed.push(media);
+      }
+      done += 1;
+    }
+    setUploadStatus(null);
+    return { failed };
+  };
+
+  /* ── Chantier D2 — conversion du brouillon en vraie Demande ──────────
+   *
+   * Appelée après `refresh()` : le cookie CLIENT est en place, donc
+   * `POST /demandes/drafts/:token/convert` passe ses guards. Le brouillon
+   * devient une `Demande` SUBMITTED et le dispatch vague 1 est déclenché par
+   * le backend — on ne fait que transporter les médias. */
+  /* `scope` borne à la fois l'upload ET la liste convertie : « Continuer
+   * sans ce fichier » exclut donc réellement le média de la Demande, au lieu
+   * de l'envoyer sans `storagePath` (ce qui créerait une ligne média vide). */
+  const runDraftConversion = async (scope: WizardMedia[] = medias) => {
+    const token = draftToken ?? readDemandeDraftToken();
+    /* Repli 1 : aucun brouillon (token perdu, effacé, expire avant la
+     * modale). L'état local est la vérité — on repasse par le flux direct. */
+    if (!token) {
+      setAuthModalOpen(false);
+      await submitAsAuthenticatedClient();
+      return;
+    }
+
+    setConverting(true);
+    const { failed } = await uploadPendingMedias(scope);
+    if (failed.length > 0) {
+      setFailedMedias(failed);
+      setConverting(false);
+      return;
+    }
+
+    try {
+      const result = await convertDemandeDraft(
+        token,
+        scope.map((media) => ({
+          kind: media.kind,
+          name: media.name,
+          mimeType: media.mimeType,
+          sizeBytes: media.sizeBytes,
+          ...(media.storagePath ? { storagePath: media.storagePath } : {}),
+        })),
+      );
+      /* Le token n'a plus servi : on l'efface de localStorage ET de l'état,
+       * sinon le prochain wizard repartirait d'un brouillon déjà converti
+       * (409 à la conversion suivante). */
+      clearDemandeDraftToken();
+      setDraftToken(null);
+      draftSyncedRef.current = null;
+      setAuthModalOpen(false);
+      router.push(
+        `/client/confirmation?ref=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(
+          result.id,
+        )}&mode=${encodeURIComponent(requestedMode)}&req=${encodeURIComponent(requestedAtIso ?? '')}`,
+      );
+    } catch (err) {
+      /* 410 Gone : brouillon expiré pendant la saisie. Repli 2 — le backend
+       * a explicitement prévu ce cas et la demande doit partir. */
+      if (err instanceof ApiError && (err.status === 410 || err.status === 404)) {
+        clearDemandeDraftToken();
+        setDraftToken(null);
+        draftSyncedRef.current = null;
+        setAuthModalOpen(false);
+        await submitAsAuthenticatedClient();
+        return;
+      }
+      setStageError(toUserErrorMessage(err, 'Envoi impossible. Réessayez.'));
+      setConverting(false);
+    }
+  };
+
+  /* ── Chantier D2 — sortie de modale ──────────────────────────────────
+   *
+   * ⚠️ Point d'attention backend, à connaître absolument : à
+   * l'inscription, `POST /auth/register` ne pose le cookie QUE si
+   * `user.emailVerified` est vrai (`auth.controller.ts`), or un compte CLIENT
+   * est créé avec `emailVerified: false`. L'inscription NE CONNECTE donc PAS,
+   * et `convert` répondrait 401.
+   *
+   * On ne peut donc pas enchaîner : on le dit clairement, on garde le
+   * brouillon (rien n'est perdu, il reste 7 jours) et on propose de passer par
+   * la connexion une fois l'e-mail vérifié. C'est le seul chemin possible sans
+   * modifier le backend — interdit dans le périmètre de D2. */
+  const handleAuthSuccess = async (verifiedUser: AuthUser) => {
+    if (verifiedUser.emailVerified === false) {
+      setStageError(
+        'Votre compte est créé. Vérifiez votre boîte mail pour confirmer votre adresse, puis revenez vous connecter : votre demande est conservée.',
+      );
+      return;
+    }
+    setStageError(null);
+    setFailedMedias([]);
+    await refresh();
+    await runDraftConversion();
+  };
+
   /* UI-2 : avertit avant de perdre une demande commencée (rechargement,
    * fermeture d'onglet). Inactif quand le wizard est vide ou en envoi. */
   const hasStarted =
@@ -467,6 +874,16 @@ export function DemandeWizard() {
 
   return (
     <div className="space-y-4">
+      {/* Chantier D2 — bandeau discret du parcours anonyme. Pas de bouton,
+          pas d'alerte : c'est une information, pas un avertissement. */}
+      {isAnonymousMode ? (
+        <p className="text-sm text-muted-foreground">
+          Votre progression est sauvegardée automatiquement. Vous pourrez créer votre compte à la
+          fin.
+        </p>
+      ) : null}
+      {draftNotice ? <Alert variant="info" dense>{draftNotice}</Alert> : null}
+
       <StickyRecap
         device={
           selectedDeviceLabel
@@ -967,6 +1384,43 @@ export function DemandeWizard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Chantier D2 — modale d'authentification. Montée ici (et non dans la
+          page) parce qu'elle a besoin de l'état du wizard : medias à uploader,
+          brouillon à convertir, et `refresh()` du contexte d'authentification.
+          `sheet` : plein écran/bottom-sheet sur mobile, centré sur desktop. */}
+      <DemandeAuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+        city={city}
+        address={address}
+        busyLabel={
+          converting
+            ? uploadStatus ?? 'Finalisation…'
+            : undefined
+        }
+        stageError={stageError}
+        failedMediaCount={failedMedias.length}
+        onRetryMedia={() => {
+          /* On retente le périmètre COMPLET : `uploadPendingMedias` ignore
+             ceux qui portent déjà un `storagePath`, donc les fichiers déjà
+             acceptés ne sont pas ré-envoyés. */
+          setFailedMedias([]);
+          setStageError(null);
+          void runDraftConversion();
+        }}
+        onSkipMedia={() => {
+          /* Les médias refusés sont écartés de CETTE conversion — upload ET
+             corps de la conversion. Ils restent dans la grille : l'utilisateur
+             peut les garder pour une nouvelle demande, on ne détruit pas sa
+             saisie. */
+          const refused = failedMedias;
+          setFailedMedias([]);
+          setStageError(null);
+          void runDraftConversion(medias.filter((m) => !refused.includes(m)));
+        }}
+      />
     </div>
   );
 }

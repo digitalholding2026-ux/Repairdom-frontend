@@ -68,7 +68,7 @@ export function PublicHeader() {
                 </Button>
               </Link>
               {user?.role === 'CLIENT' ? (
-                <Link href="/client/demande">
+                <Link href='/demande'>
                   <Button size="sm" className="whitespace-nowrap">
                     Déposer une demande
                   </Button>

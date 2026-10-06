@@ -229,7 +229,7 @@ export function HowItWorks() {
           </div>
         ))}
       </div>
-      <Link href="/client/demande" className="mt-4 block">
+      <Link href='/demande' className="mt-4 block">
         <Button className="w-full gap-2 sm:w-auto">
           <Icon name="plus" size="sm" />
           Lancer un dépannage

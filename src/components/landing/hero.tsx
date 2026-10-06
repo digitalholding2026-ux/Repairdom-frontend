@@ -20,7 +20,7 @@ import { HeroBackground } from './hero-background';
  * −95 %) : impact bandwidth décisif sur mobile Cameroun. */
 export function Hero() {
   const { user, authenticated } = useAuth();
-  const primaryHref = authenticated ? homePathForRole(user?.role) : '/client/demande';
+  const primaryHref = authenticated ? homePathForRole(user?.role) : '/demande';
   const primaryLabel = authenticated ? 'Continuer ma mission' : 'Décrire ma panne';
 
   return (

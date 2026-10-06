@@ -183,7 +183,7 @@ export function ServicesGrid() {
         {SERVICES.map((service) => (
           <Link
             key={service.label}
-            href="/client/demande"
+            href='/demande'
             className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition-all hover:border-orange-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 active:scale-95"
           >
             <span aria-hidden className="text-2xl leading-none">
@@ -312,7 +312,7 @@ export function CompactCta() {
           Déposez votre demande, recevez un devis, validez. Le reste, on s&apos;en occupe.
         </p>
         <Link
-          href="/client/demande"
+          href='/demande'
           className="brand-gradient mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.99] sm:text-base"
         >
           Commencer maintenant

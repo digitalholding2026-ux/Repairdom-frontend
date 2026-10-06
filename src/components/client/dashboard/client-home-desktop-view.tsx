@@ -50,7 +50,7 @@ export function ClientHomeDesktopView({ data }: { data: ClientDashboardData }) {
               </span>
             </Button>
           </Link>
-          <Link href="/client/demande">
+          <Link href='/demande'>
             <Button>
               <Icon name="plus" size="sm" />
               Nouvelle demande
@@ -80,7 +80,7 @@ export function ClientHomeDesktopView({ data }: { data: ClientDashboardData }) {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Créez votre première demande en quelques étapes.
                 </p>
-                <Link href="/client/demande" className="mt-4 inline-block">
+                <Link href='/demande' className="mt-4 inline-block">
                   <Button>
                     <Icon name="plus" size="sm" />
                     Créer une demande
@@ -164,7 +164,7 @@ export function ClientHomeDesktopView({ data }: { data: ClientDashboardData }) {
               <CardTitle>Actions rapides</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2">
-              <Link href="/client/demande">
+              <Link href='/demande'>
                 <Button variant="outline" className="w-full justify-start">
                   <Icon name="plus" size="sm" />
                   Créer une demande
