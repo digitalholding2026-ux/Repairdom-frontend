@@ -33,6 +33,10 @@ import {
 import { getTechnicianFinanceSummary, type TechnicianFinanceSummary } from '@/lib/api/finance-service';
 import { demandeStatusConfig } from '@/lib/request-status';
 import { formatCurrency, fullName } from '@/lib/format';
+import { OnboardingBanner } from '@/components/technician/onboarding/onboarding-banner';
+import { OnboardingChecklist } from '@/components/technician/onboarding/onboarding-checklist';
+import { useOnboardingBannerVisibility } from '@/lib/technician/use-onboarding-banner-visibility';
+import { useOnboardingState } from '@/lib/technician/use-onboarding-state';
 import {
   kycDashboardBanner,
   kycStatusLabel,
@@ -99,6 +103,13 @@ export default function TechnicianDashboardPage() {
   const [availabilityBusy, setAvailabilityBusy] = useState(false);
   const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  /* Chantier #5C — onboarding : la checklist ne s'affiche que tant qu'une
+   * étape manque, et la bannière de bienvenue une seule fois par navigateur.
+   * Le dashboard reste entièrement fonctionnel si ces deux hooks échouent
+   * (erreur réseau) : ils ne pilotent rien d'existant. */
+  const onboarding = useOnboardingState();
+  const onboardingBanner = useOnboardingBannerVisibility();
 
   useEffect(() => {
     let cancelled = false;
@@ -283,6 +294,22 @@ export default function TechnicianDashboardPage() {
     ? fullName(currentMission.client.firstName, currentMission.client.lastName)
     : null;
 
+  /* Chantier #5C — la checklist disparaît TOTALEMENT quand les 4 étapes sont
+   * faites : un « 4/4 » sur le dashboard n'apprend rien au technicien. Tant
+   * qu'on charge, on ne l'affiche pas non plus (sinon elle clignote 0/4 puis
+   * se corrige), et une erreur réseau ne doit pas laisser une checklist vide
+   * à 0/4 qui mentirait sur sa situation. */
+  const showChecklist = !onboarding.loading && !onboarding.error && !onboarding.isComplete;
+  /* La bannière s'affiche au PREMIER passage seulement, et seulement si
+   * l'onboarding est incomplet. Dismissed = silencieuse à jamais sur ce
+   * navigateur, même si l'onboarding reste incomplet. */
+  const showBanner =
+    onboardingBanner.ready &&
+    !onboardingBanner.dismissed &&
+    !onboarding.loading &&
+    !onboarding.error &&
+    !onboarding.isComplete;
+
   return (
     <div className="flex min-h-screen flex-col gap-6 rounded-3xl bg-relio-bg p-4 text-slate-100 sm:p-6">
       {/* ── Header contenu : salutation + statut + déconnexion ── */}
@@ -315,6 +342,30 @@ export default function TechnicianDashboardPage() {
           <span className="ml-1 hidden sm:inline">Déconnexion</span>
         </Button>
       </header>
+
+      {/* ── Checklist d'onboarding (chantier #5C) ────────────────
+          Juste après l'en-tête, AVANT le bandeau KYC (#5A) : l'ordre des
+          étapes suit la progression réelle, et KYC n'est qu'une étape parmi
+          quatre. `tone="dark"` : le dashboard est en thème sombre forcé
+          (fond `relio-bg`), les jetons `bg-card` y rendraient une carte
+          CLAIRE sur fond noir — même piège que les catégories sur la
+          coquille split (#5B). */}
+      {showChecklist ? (
+        <OnboardingChecklist state={onboarding} tone="dark" />
+      ) : null}
+
+      {/* ── Bannière de bienvenue (chantier #5C) ───────────────────
+          Premier passage uniquement. Elle ne fait QUE de l'orientation vers
+          le guide : la checklist, elle, reste jusqu'aux 4 étapes. */}
+      {showBanner ? (
+        <OnboardingBanner
+          tone="dark"
+          onDismiss={onboardingBanner.dismiss}
+          /* Le CTA mène au guide : le technicien est déjà en route, donc on
+           * consomme la bannière pour ne plus la lui reproposer. */
+          onNavigate={onboardingBanner.dismiss}
+        />
+      ) : null}
 
       {/* ── Bandeau KYC (chantier #5A) ──────────────────────────
           Bandeau INLINE en haut du dashboard, jamais une modale : il informe
