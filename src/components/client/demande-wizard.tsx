@@ -202,11 +202,20 @@ export function DemandeWizard() {
   useEffect(() => {
     let active = true;
     setCatalogLoading(true);
+    /* Chantier FIX — ces deux échecs étaient totalement MUETS. En production,
+     * un 401 sur `/catalog/*` produisait exactement la même image qu'une panne
+     * réseau (« Catalogue indisponible »), sans la moindre trace exploitable :
+     * impossible de distinguer « catalogue indisponible » de « visitor non
+     * authentifié ». On journalise le STATUT HTTP seul — aucun secret, aucun
+     * identifiant. Le comportement VISIBLE reste strictement inchangé. */
     listCatalogDomains()
       .then((list) => {
         if (active) setDomains(list);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.warn('[demande] catalogue des domaines indisponible', {
+          status: err instanceof ApiError ? err.status : 'network',
+        });
         if (active) setDomains([]);
       })
       .finally(() => {
@@ -216,7 +225,11 @@ export function DemandeWizard() {
       .then((list) => {
         if (active) setFamilies(list);
       })
-      .catch(() => undefined);
+      .catch((err) => {
+        console.warn('[demande] familles d\'appareils indisponibles', {
+          status: err instanceof ApiError ? err.status : 'network',
+        });
+      });
     return () => {
       active = false;
     };
