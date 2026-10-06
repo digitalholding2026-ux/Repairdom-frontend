@@ -921,13 +921,19 @@ export function DemandeWizard() {
     medias.length > 0 ||
     coords !== null;
   useEffect(() => {
-    if (!hasStarted || isSubmitting) return;
+    /* `converting` est indispensable autant que `isSubmitting` : depuis D2.5,
+     * le parcours anonyme passe par `runDraftConversion`, qui pilote l'état
+     * `converting` — `isSubmitting` reste donc à `false` pendant l'upload et
+     * la conversion. Sans ce second garde, le listener restait armé et la
+     * redirection finale déclenchait le dialogue natif « Quitter la page ? »,
+     * que l'utilisateur voit comme un échec alors que sa demande est partie. */
+    if (!hasStarted || isSubmitting || converting) return;
     const handler = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [hasStarted, isSubmitting]);
+  }, [hasStarted, isSubmitting, converting]);
 
   return (
     <div className="space-y-4">

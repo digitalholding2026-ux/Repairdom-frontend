@@ -34,26 +34,49 @@ interface GuardDecisionInput {
   publicPaths: string[];
 }
 
+/** Page de vérification d'un rôle. Un utilisateur non vérifié doit pouvoir
+ *  y rester : c'est elle qui lui propose de renvoyer l'e-mail. */
+function verificationPathFor(role: string | undefined): string | null {
+  if (role === 'CLIENT') return '/client/verification';
+  if (role === 'TECHNICIAN') return '/technicien/verification';
+  return null;
+}
+
 export function decideGuard(input: GuardDecisionInput): GuardVerdict {
   const { loading, authenticated, role, emailVerified, expectedRole, pathname, publicPaths } = input;
   if (loading) return { action: 'loading' };
 
-  const isPublicPath = publicPaths.includes(pathname);
+  /* `usePathname()` ne renvoie normalement QUE le chemin (la query string est
+   * strippée par Next), mais on ne doit pasotrop à cette garantie : une URL
+   * passée manuellement avec `?from=demande` ferait échouer l'égalité
+   * ci-dessous et renverrait l'utilisateur sur lui-même. On compare donc sur le
+   * chemin nu, sans query ni fragment. */
+  const path = pathname.split('?')[0].split('#')[0];
+  const isPublicPath = publicPaths.includes(path);
 
   if (authenticated) {
-    if (role === 'CLIENT' && emailVerified === false && pathname !== '/client/verification') {
-      return { action: 'redirect', to: '/client/verification' };
+    /* ── Blocage par e-mail non vérifié ──────────────────────────────
+     *
+     * BUG CORRIGÉ (boucle infinie sur /client/verification) : la version
+     * précédente laissait TOMBER l'utilisateur non vérifié qui était déjà sur
+     * sa page de vérification dans le test `isPublicPath` ci-dessous, qui le
+     * renvoyait vers `/client`. Or `/client` le rebascule ici par la règle
+     * « e-mail non vérifié » : `/client/verification` → `/client` →
+     * `/client/verification` → … sans jamais afficher la page.
+     *
+     * Règle : un utilisateur non vérifié qui est DÉJÀ sur sa page de
+     * vérification doit être `show`, jamais redirigé. La redirection ne sert
+     * qu'à l'y AMENER depuis le reste de l'espace.
+     *
+     * Symétrie TECHNICIAN conservée : sans effet tant que le backend vérifie
+     * les techniciens à la création, mais bloquant dès qu'un compte non
+     * vérifié obtiendrait une session. */
+    const verificationPath = verificationPathFor(role);
+    if (verificationPath && emailVerified === false) {
+      if (path !== verificationPath) return { action: 'redirect', to: verificationPath };
+      return { action: 'show' };
     }
-    // Symétrie TECHNICIAN : sans effet tant que le backend vérifie les
-    // techniciens à la création, mais bloque tout accès si un compte
-    // technicien non vérifié obtient un jour une session.
-    if (
-      role === 'TECHNICIAN' &&
-      emailVerified === false &&
-      pathname !== '/technicien/verification'
-    ) {
-      return { action: 'redirect', to: '/technicien/verification' };
-    }
+
     if ((role ?? '') !== expectedRole || isPublicPath) {
       return { action: 'redirect', to: roleHomePath(role) };
     }

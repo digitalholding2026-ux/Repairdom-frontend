@@ -40,6 +40,10 @@ interface VerificationPanelProps {
  *
  * Survit au refresh : l’adresse transite par l’URL, le token aussi. Aucun
  * mot de passe stocké, aucun token conservé côté frontend. */
+/* Délai avant de re-demander l'état au backend si `emailVerified` n'a pas
+ * suivi la vérification. */
+const EMAIL_VERIFIED_RETRY_MS = 1500;
+
 export function VerificationPanel({ role }: VerificationPanelProps) {
   const params = useSearchParams();
   const router = useRouter();
@@ -113,11 +117,31 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
      * ci-dessus a déjà fait le travail ; cet effet ne fait que constater l'état. */
   }, [token, refresh, fromDemande]);
 
+  /* Redirection vers la liste des demandes, une fois le contexte à jour.
+   *
+   * ⚠️ PAS de « timeout de sécurité » qui pousserait quand même : si
+   * `emailVerified` ne se synchronise pas, pousser vers `/client/demandes`
+   * ferait reboucler le `RoleGuard` vers `/client/verification` — c'est
+   * exactement la boucle infinie que ce chantier corrige. On reste donc sur la
+   * page et l'utilisateur y trouve le bouton « Voir mes demandes ».
+   *
+   * À la place, on RÉACTUALISE : si le contexte est toujours en retard après
+   * le délai, on rappelle `refresh()`. Le filet sert à rattraper un cookie
+   * appliqué tardivement, pas à forcer une navigation. */
   useEffect(() => {
     if (!verified || !fromDemande) return;
     if (!user?.emailVerified) return;
     router.replace('/client/demandes');
   }, [verified, fromDemande, user?.emailVerified, router]);
+
+  useEffect(() => {
+    if (!verified || !fromDemande) return;
+    if (user?.emailVerified) return;
+    const timer = window.setTimeout(() => {
+      void refresh();
+    }, EMAIL_VERIFIED_RETRY_MS);
+    return () => window.clearTimeout(timer);
+  }, [verified, fromDemande, user?.emailVerified, refresh]);
 
   const handleResend = async () => {
     if (!accountEmail || resendBusy) return;
