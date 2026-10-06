@@ -9,6 +9,10 @@ export interface SignUpInput {
   email: string;
   password: string;
   role?: 'CLIENT' | 'TECHNICIAN';
+  /** Chantier #5B — ville de RÉFÉRENCE (`ServiceCity.id`, un UUID), exigée
+   * pour un TECHNICIAN : c'est elle qui rattache le compte au référentiel et
+   * débloque la gestion des zones. `city` (texte) reste pour le CLIENT. */
+  cityId?: string;
   city?: string;
   address?: string;
   categories?: string[];

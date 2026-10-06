@@ -1,33 +1,14 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { AuthCard } from '@/components/auth/auth-card';
-import { TechnicianAuthForm } from '@/components/technician/technician-auth-form';
-import { BrandLogo } from '@/components/public/brand-logo';
+import { TechnicianAuthSplit } from '@/components/auth/technician-auth-split';
 
 export const metadata: Metadata = {
   title: 'Connexion technicien',
 };
 
+/* Chantier #5B — même coquille split que l'inscription technicien et que le
+ * tunnel client : une seule identité visuelle sur tous les points d'entrée.
+ * La logique d'authentification et la propagation de `?redirect=` restent
+ * entièrement gérées par `TechnicianAuthForm`. */
 export default function TechnicianConnexionPage() {
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center pt-2">
-        <BrandLogo href="/" />
-      </div>
-      <AuthCard
-        icon="briefcase"
-        title="Connexion technicien"
-        description="Accédez à vos demandes de dépannage et gérez vos interventions."
-      >
-        <TechnicianAuthForm mode="signin" />
-      </AuthCard>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Pas encore de compte ?{' '}
-        <Link href="/devenir-technicien" className="font-medium text-primary underline-offset-4 hover:underline">
-          Devenir technicien
-        </Link>
-      </p>
-    </div>
-  );
+  return <TechnicianAuthSplit mode="signin" />;
 }

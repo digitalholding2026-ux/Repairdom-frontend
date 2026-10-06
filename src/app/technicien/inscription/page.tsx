@@ -1,33 +1,13 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { AuthCard } from '@/components/auth/auth-card';
-import { TechnicianAuthForm } from '@/components/technician/technician-auth-form';
-import { BrandLogo } from '@/components/public/brand-logo';
+import { TechnicianAuthSplit } from '@/components/auth/technician-auth-split';
 
 export const metadata: Metadata = {
   title: 'Créer un compte technicien',
 };
 
+/* Chantier #5B — coquille split, alignée sur /client/inscription : visuel de
+ * marque, un seul logo (posé par `AuthSplit`, le header global étant masqué sur
+ * cette route) et parcours cohérent entre client et technicien. */
 export default function TechnicianInscriptionPage() {
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-center pt-2">
-        <BrandLogo href="/" />
-      </div>
-      <AuthCard
-        icon="users"
-        title="Créer un compte technicien"
-        description="Inscrivez-vous pour intervenir sur les demandes de dépannage près de chez vous."
-      >
-        <TechnicianAuthForm mode="signup" />
-      </AuthCard>
-
-      <p className="text-center text-sm text-muted-foreground">
-        Déjà technicien ?{' '}
-        <Link href="/technicien/connexion" className="font-medium text-primary underline-offset-4 hover:underline">
-          Se connecter
-        </Link>
-      </p>
-    </div>
-  );
+  return <TechnicianAuthSplit mode="signup" />;
 }

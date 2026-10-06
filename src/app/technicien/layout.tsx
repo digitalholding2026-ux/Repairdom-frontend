@@ -29,15 +29,27 @@ const TECHNICIAN_NAV: WorkspaceNavItem[] = [
 
 const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscription', '/technicien/verification'];
 
+/* Chantier #5B — routes « immergées » : le tunnel d'entrée technician prend
+ * tout l'écran (cf. `AuthSplit`). */
+const TECHNICIAN_IMMERSIVE_AUTH_PATHS = ['/technicien/inscription', '/technicien/connexion'];
+
 export default function TechnicianLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
   const { user, authenticated, loading } = useAuth();
   const isPublicPath = TECHNICIAN_PUBLIC_PATHS.includes(pathname);
   const showPrivateChrome = authenticated && user?.role === 'TECHNICIAN';
+  /* Chantier #5B — connexion ET inscription partagent la coquille immersive
+   * `AuthSplit`, qui pose elle-même son logo. Le header global est donc masqué
+   * sur ces deux routes : sinon double logo, et un bouton « Se connecter »
+   * affiché sur la page de connexion elle-même (le défaut corrigé pour le
+   * client au chantier #3). Toutes les AUTRES pages technicien gardent
+   * header + sidebar + bottom nav. */
+  const isImmersiveAuth = TECHNICIAN_IMMERSIVE_AUTH_PATHS.includes(pathname);
 
   return (
     <div className="flex min-h-dvh flex-col">
       <ScrollToTop />
+      {isImmersiveAuth ? null : (
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo unique : la sidebar latérale affiche déjà le logo sur
@@ -60,8 +72,9 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
           </div>
         </div>
       </header>
+      )}
 
-      <div className={`mx-auto flex w-full flex-1 items-start gap-8 py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${isImmersiveAuth ? 'max-w-none px-0 py-0' : `py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}`}>
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar label="Espace technicien" items={TECHNICIAN_NAV} />
         ) : null}

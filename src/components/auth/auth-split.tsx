@@ -20,7 +20,13 @@ import { BrandLogo } from '@/components/public/brand-logo';
  * `dark` : les champs du formulaire partagé ont besoin de la surcharge sombre.
  */
 
-const GUARANTEES: { title: string; text: string; icon: IconName }[] = [
+export interface AuthGuarantee {
+  title: string;
+  text: string;
+  icon: IconName;
+}
+
+const GUARANTEES: AuthGuarantee[] = [
   {
     title: 'Techniciens vérifiés',
     text: 'Identité contrôlée avant la mise en relation.',
@@ -43,6 +49,38 @@ const GUARANTEES: { title: string; text: string; icon: IconName }[] = [
   },
 ];
 
+/**
+ * Garanties du côté TECHNICIEN (chantier #5B).
+ *
+ * La liste par défaut est orientée CLIENT : elle promet au client un devis, un
+ * paiement et une vérification d'identité. Affichée à un technicien qui
+ * s'inscrit, elle serait fausse — il ne paie pas, il n'est pas « vérifié »
+ * comme un client ne l'est pas, et c'est LUI dont l'identité est contrôlée
+ * avant d'être mis en relation. On ne ment pas pour remplir un panneau.
+ */
+export const TECHNICIAN_GUARANTEES: AuthGuarantee[] = [
+  {
+    title: 'Missions dans vos zones',
+    text: 'Vous ne recevez que les demandes de dépannage de votre secteur.',
+    icon: 'pin',
+  },
+  {
+    title: 'Identité vérifiée une fois',
+    text: 'Contrôlez votre pièce d’identité, puis intervenez sans autre formalité.',
+    icon: 'shield-check',
+  },
+  {
+    title: 'Devis Systematic',
+    text: 'Le prix de chaque intervention est validé avec le client avant de commencer.',
+    icon: 'file',
+  },
+  {
+    title: 'Paiement après validation',
+    text: 'Vous êtes payé une fois l’intervention terminée et validée.',
+    icon: 'wallet',
+  },
+];
+
 export function AuthSplit({
   children,
   title,
@@ -50,6 +88,7 @@ export function AuthSplit({
   badge,
   progress,
   footer,
+  guarantees = GUARANTEES,
 }: {
   children: ReactNode;
   title: string;
@@ -57,6 +96,9 @@ export function AuthSplit({
   badge?: string;
   progress?: number;
   footer?: ReactNode;
+  /** Réassurance affichée à droite. Par défaut : la liste orientée client
+   *  (`TECHNICIAN_GUARANTEES` pour le tunnel technicien). */
+  guarantees?: AuthGuarantee[];
 }) {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
@@ -130,7 +172,7 @@ export function AuthSplit({
             </div>
 
             <ul className="space-y-3 p-5 sm:p-6">
-              {GUARANTEES.map((item) => (
+              {guarantees.map((item) => (
                 <li key={item.title} className="flex items-start gap-3">
                   <span
                     aria-hidden

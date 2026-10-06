@@ -176,6 +176,10 @@ export async function getTechnicianProfile(): Promise<TechnicianProfile> {
  * modifie que via l'upload `POST /technician/profile/avatar`
  * (`uploadTechnicianAvatar`), qui la dépose dans le bucket contrôlé. */
 export async function updateTechnicianProfile(data: {
+  /** Chantier #5B — ville de RÉFÉRENCE (`ServiceCity.id`, un UUID). C'est
+   *  elle qui débloque la gestion des zones ; le backend valide que la ville
+   *  existe et est active, et en déduit le `city` affiché. */
+  cityId?: string;
   city?: string;
   categories?: string[];
   isAvailable?: boolean;

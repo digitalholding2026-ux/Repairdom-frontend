@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import {
   getTechnicianCoverage,
   updateTechnicianCoverage,
   updateTechnicianLocation,
+  updateTechnicianProfile,
   type TechnicianCoverage,
   type TechnicianProfile,
 } from '@/lib/api/technician-service';
@@ -47,6 +47,15 @@ export default function TechnicienZonesPage() {
   /* GPS V1 — mise à jour ponctuelle et explicite (jamais de suivi continu). */
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  /* Chantier #5B — la ville de référence se choisit ICI, plus dans le profil.
+   * L'ancien parcours affichait un `EmptyState` renvoyant vers
+   * /technicien/profil : le technicien faisait l'aller-retour sans comprendre
+   * pourquoi (Problème 2 de l'audit). `changingCity` permet en plus de
+   * revenir en arrière une fois une ville posée. */
+  const [changingCity, setChangingCity] = useState(false);
+  const [pendingCityId, setPendingCityId] = useState('');
+  const [savingCity, setSavingCity] = useState(false);
+  const [cityError, setCityError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +98,38 @@ export default function TechnicienZonesPage() {
   }, [profile, cities]);
 
   const coveredIds = useMemo(() => new Set(coverage.map((entry) => entry.zoneId)), [coverage]);
+
+  /* Chantier #5B — le Select ville est affiché quand aucune ville de référence
+   * n'est établie, OU quand le technicien a demandé à la changer. */
+  const cityChooserOpen = changingCity || !referenceCity;
+
+  /* Choix de la ville : `PATCH /technician/profile { cityId }`, puis
+   * rechargement de la COUVERTURE — les zones disponibles sont celles de la
+   * nouvelle ville, donc la liste doit être recalculée côté serveur.
+   * On ne devine rien localement. */
+  const handleCityChange = async (cityId: string) => {
+    if (!cityId || savingCity) return;
+    setSavingCity(true);
+    setCityError(null);
+    setError(null);
+    try {
+      const updated = await updateTechnicianProfile({ cityId });
+      setProfile(updated);
+      setChangingCity(false);
+      setPendingCityId('');
+      /* La ville change : les zones déjà couvertes peuvent ne plus être
+       * sélectionnables. On repart d'un profil propre côté couverture. */
+      setCoverage(await getTechnicianCoverage());
+      setSelectedZoneId('');
+      toast({ title: 'Ville de référence mise à jour', description: 'Vos zones disponibles sont actualisées.', variant: 'success' });
+    } catch (err) {
+      const message = toUserErrorMessage(err, 'Impossible d’enregistrer votre ville.');
+      setCityError(message);
+      toast({ title: 'Erreur', description: message, variant: 'error' });
+    } finally {
+      setSavingCity(false);
+    }
+  };
 
   /* Ajout limité aux zones ACTIVES de ma ville (fournies par GET /cities),
    * hors zones déjà couvertes. Jamais d’autre ville, jamais de saisie libre. */
@@ -209,22 +250,76 @@ export default function TechnicienZonesPage() {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      {!profile || !referenceCity ? (
+      {/* ── Ville de référence (chantier #5B) ──────────────────
+          Afficée SI et seulement si aucune ville n'est établie (le parcours ne
+          renvoie plus vers /technicien/profil : c'est ici qu'on choisit), ou si
+          le technicien demande explicitement à la changer. */}
+      {profile && cityChooserOpen ? (
+        <section className="space-y-3">
+          <SectionHeader
+            title="Ville de référence"
+            description="Vos zones se choisissent dans cette ville. Sans ville, aucune zone ne peut être couverte."
+          />
+          <Card>
+            <CardContent className="space-y-3 pt-4">
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                  <Icon name="pin" size="sm" />
+                </span>
+                <Select
+                  id="reference-city"
+                  aria-label="Ville de référence"
+                  value={pendingCityId}
+                  onChange={(e) => void handleCityChange(e.target.value)}
+                  disabled={savingCity || cities.length === 0}
+                  className="sm:flex-1"
+                >
+                  <option value="">
+                    {cities.length === 0 ? 'Aucune ville disponible' : 'Sélectionnez votre ville de référence'}
+                  </option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.id}>
+                      {city.name}
+                    </option>
+                  ))}
+                </Select>
+                {referenceCity ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setChangingCity(false)}
+                    disabled={savingCity}
+                    className="shrink-0"
+                  >
+                    Annuler
+                  </Button>
+                ) : null}
+              </div>
+              {cityError ? <Alert variant="error" dense>{cityError}</Alert> : null}
+              {!referenceCity && !cityError ? (
+                <p className="text-xs text-muted-foreground">
+                  {profile.city
+                    ? `Votre ville « ${profile.city} » n’est rattachée à aucune ville de service : choisissez-en une pour débloquer vos zones.`
+                    : 'Choisissez votre ville pour débloquer vos zones.'}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
+
+      {!profile ? (
         <EmptyState
           icon={<Icon name="pin" size="lg" />}
-          title="Ville de référence requise"
-          description={
-            profile
-              ? `Votre ville « ${profile.city} » n’est pas rattachée au référentiel. Choisissez d’abord votre ville dans votre profil pour gérer vos zones.`
-              : 'Chargez votre profil pour gérer vos zones couvertes.'
-          }
+          title="Profil indisponible"
+          description="Chargez votre profil pour gérer vos zones couvertes."
           action={
-            <Link href="/technicien/profil">
-              <Button variant="secondary">Aller à mon profil</Button>
-            </Link>
+            <Button variant="secondary" onClick={() => window.location.reload()}>
+              Réessayer
+            </Button>
           }
         />
-      ) : (
+      ) : referenceCity ? (
         <>
           <section className="space-y-3">
             <SectionHeader
@@ -236,7 +331,19 @@ export default function TechnicienZonesPage() {
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
                   <Icon name="pin" size="sm" />
                 </span>
-                <p className="text-sm font-semibold">{referenceCity.name}</p>
+                <p className="min-w-0 flex-1 truncate text-sm font-semibold">{referenceCity.name}</p>
+                {/* Changement possible : la ville de référence n'est pas
+                    définitive, et forcer un détour par le profil pour la
+                    modifier était une seconde boucle. */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setChangingCity(true)}
+                  disabled={mutating}
+                  className="shrink-0"
+                >
+                  Changer de ville
+                </Button>
               </CardContent>
             </Card>
           </section>
@@ -362,7 +469,7 @@ export default function TechnicienZonesPage() {
             )}
           </section>
         </>
-      )}
+      ) : null}
 
       <ConfirmDialog
         open={zoneToRemove !== null}

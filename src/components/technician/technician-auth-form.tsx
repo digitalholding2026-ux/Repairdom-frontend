@@ -1,6 +1,6 @@
 'use client';
 
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
@@ -8,8 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
+import { listCities, type City } from '@/lib/api/cities-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useAuth } from '@/components/auth/auth-provider';
 import { cn } from '@/lib/cn';
@@ -18,6 +21,11 @@ export type TechnicianAuthMode = 'signup' | 'signin';
 
 interface TechnicianAuthFormProps {
   mode: TechnicianAuthMode;
+  /** Style sombre (coquille `AuthSplit`, chantier #5B). */
+  dark?: boolean;
+  /** Remonte le % de complétion du formulaire (mode inscription), pour la
+   *  barre de progression de la coquille split — symétrie `ClientAuthForm`. */
+  onProgressChange?: (percent: number) => void;
 }
 
 // Aligné sur le contrat backend (@MinLength(8) sur le mot de passe).
@@ -33,7 +41,7 @@ const CATEGORY_ICON: Record<string, import('@/components/ui/icon').IconName> = {
   autre: 'wrench',
 };
 
-export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
+export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: TechnicianAuthFormProps) {
   const router = useRouter();
   const { refresh } = useAuth();
 
@@ -43,16 +51,69 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [city, setCity] = useState('');
+  /* Chantier #5B — `cityId` (référence `ServiceCity`), PLUS le texte `city`.
+   * Le backend exige la référence pour un technicien et en déduit le nom ;
+   * on conserve `city` en mémoire pour afficher la ville choisie sans
+   * dépendre d'un second aller-retour. */
+  const [cityId, setCityId] = useState('');
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [citiesError, setCitiesError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isSignUp = mode === 'signup';
 
+  /* Villes du référentiel. `GET /cities` est PUBLIC : aucun JWT requis, donc
+   * l'inscription fonctionne même avant authentification. Un échec réseau est
+   * affiché avec un bouton « Réessayer » : sans les villes, le technicien ne
+   * peut pas choisir sa ville de référence et ne peut donc pas s'inscrire —
+   * on ne masque jamais ce blocage derrière un champ vide. */
+  const loadCities = useCallback(async () => {
+    setCitiesLoading(true);
+    setCitiesError(null);
+    try {
+      setCities(await listCities());
+    } catch {
+      setCitiesError('Impossible de charger les villes. Réessayez.');
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isSignUp) return;
+    void loadCities();
+  }, [isSignUp, loadCities]);
+
   const toggleCategory = (id: string) => {
     setCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   };
+
+  /* Complétion (mode inscription) : identité, contact, ville de RÉFÉRENCE,
+   * compétences, e-mail, mot de passe. Reflète exactement `canSubmit`. */
+  const steps = useMemo(
+    () =>
+      isSignUp
+        ? [
+            firstName.trim() !== '',
+            lastName.trim() !== '',
+            phone.trim() !== '',
+            cityId !== '',
+            categories.length > 0,
+            email.trim() !== '',
+            password.length >= MIN_PASSWORD_LENGTH,
+          ]
+        : [email.trim() !== '', password.length >= MIN_PASSWORD_LENGTH],
+    [isSignUp, firstName, lastName, phone, cityId, categories.length, email, password],
+  );
+
+  useEffect(() => {
+    if (!isSignUp || !onProgressChange) return;
+    const done = steps.filter(Boolean).length;
+    onProgressChange(Math.round((done / steps.length) * 100));
+  }, [isSignUp, onProgressChange, steps]);
 
   const canSubmit =
     email.trim() !== '' &&
@@ -61,7 +122,9 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
       (firstName.trim() !== '' &&
         lastName.trim() !== '' &&
         phone.trim() !== '' &&
-        city.trim() !== '' &&
+        /* Référence de ville exigée : sans elle le backend refuse
+         * l'inscription (elle est ce qui rattache au référentiel). */
+        cityId !== '' &&
         categories.length > 0));
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -77,7 +140,10 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
             email: email.trim(),
             password,
             role: 'TECHNICIAN',
-            city: city.trim(),
+            /* Chantier #5B — on envoie la RÉFÉRENCE, pas le texte. Le backend
+             * valide l'existence + l'activité de la ville et en déduit le
+             * nom : le frontend n'a donc plus à envoyer `city`. */
+            cityId,
             categories,
           })
         : await signIn({ email: email.trim(), password });
@@ -194,7 +260,11 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
           <p className="text-right text-xs">
             <Link
               href="/mot-de-passe-oublie"
-              className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+              className={
+                dark
+                  ? 'text-slate-300 underline-offset-4 hover:text-orange-400 hover:underline'
+                  : 'text-muted-foreground underline-offset-4 hover:text-primary hover:underline'
+              }
             >
               Mot de passe oublié ?
             </Link>
@@ -202,15 +272,62 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
         ) : null}
       </Field>
 
+      {/* ── Ville de référence (chantier #5B) ──────────────────────────
+          Un `Select` alimenté par `GET /cities`, PLUS un champ texte. Le
+          texte libre ne rattachait jamais le compte au référentiel : le
+          technicien se retrouvait sans ville exploitable et le formulaire
+          `/zones` ne pouvait rien lui proposer. */}
       {isSignUp ? (
         <Field label="Ville d’intervention *" htmlFor="tech-city">
-          <Input
-            id="tech-city"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Ex. : Douala"
-            autoComplete="address-level2"
-          />
+          {citiesError ? (
+            <div className="space-y-2">
+              <Alert variant="error" dense>
+                {citiesError}
+              </Alert>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadCities()}
+                isLoading={citiesLoading}
+              >
+                Réessayer
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Select
+                id="tech-city"
+                value={cityId}
+                onChange={(e) => setCityId(e.target.value)}
+                disabled={citiesLoading || cities.length === 0}
+              >
+                <option value="">
+                  {citiesLoading
+                    ? 'Chargement des villes…'
+                    : cities.length === 0
+                      ? 'Aucune ville disponible'
+                      : 'Sélectionnez votre ville'}
+                </option>
+                {cities.map((city) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </Select>
+              {citiesLoading ? (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Spinner size="sm" />
+                  Chargement des villes…
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Votre ville détermine les missions que vous recevez et les zones que vous
+                  pouvez couvrir.
+                </p>
+              )}
+            </>
+          )}
         </Field>
       ) : null}
 
@@ -235,14 +352,32 @@ export function TechnicianAuthForm({ mode }: TechnicianAuthFormProps) {
                   className={cn(
                     'flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    /* Sur la coquille split (fond `slate-950`), les jetons de
+                       thème (`bg-card`, `text-foreground`) produiraient des
+                       cartes CLAIRES sur fond sombre. Mêmes classes que
+                       `ClientAuthForm` : pas de changement de design system,
+                       seulement le pendant sombre du même composant. */
                     selected
-                      ? 'border-primary bg-secondary text-secondary-foreground'
-                      : 'border-border bg-card text-foreground hover:bg-muted',
+                      ? dark
+                        ? 'border-orange-500 bg-orange-500/20 text-white'
+                        : 'border-primary bg-secondary text-secondary-foreground'
+                      : dark
+                        ? 'border-slate-700/80 bg-slate-800/60 text-slate-100 hover:bg-slate-800'
+                        : 'border-border bg-card text-foreground hover:bg-muted',
                   )}
                 >
                   <Icon
                     name={CATEGORY_ICON[cat.id] ?? 'wrench'}
-                    className={cn('size-4 shrink-0', selected ? 'text-primary' : 'text-muted-foreground')}
+                    className={cn(
+                      'size-4 shrink-0',
+                      selected
+                        ? dark
+                          ? 'text-orange-400'
+                          : 'text-primary'
+                        : dark
+                          ? 'text-slate-400'
+                          : 'text-muted-foreground',
+                    )}
                   />
                   <span className="min-w-0">
                     <span className="font-medium">{cat.label}</span>
