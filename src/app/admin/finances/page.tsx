@@ -25,6 +25,7 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
+import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const MODES: FinancialMode[] = ['REAL'];
@@ -35,7 +36,7 @@ const ADMIN_TXN_LABELS: Record<string, string> = {
   CLIENT_FEE: 'Frais client (historique)',
   TECHNICIAN_REPAIR_REVENUE: 'Réparation technicien',
   TECHNICIAN_TRAVEL_REVENUE: 'Déplacement technicien',
-  TECHNICIAN_FEE: 'Commission Relio (2 %)',
+  TECHNICIAN_FEE: TECHNICIAN_FEE_LABEL,
   REVERSAL: 'Remboursement / contrepassation',
 };
 
@@ -126,7 +127,7 @@ export default function AdminFinancesPage() {
     <div className="space-y-5">
       <PageHeader
         title="Finances Relio"
-        description="Supervision des missions, fonds Relio (commissions 2 %) et retraits."
+        description="Supervision des missions, fonds Relio (commissions 500 FCFA + 4 %) et retraits."
       />
 
       <nav aria-label="Sections finances" className="flex flex-wrap gap-2">
@@ -272,6 +273,7 @@ function ModeSection({
   currency: string;
   expectedPerMission: {
     transport: number;
+    commissionFixedXAF?: number;
     commissionRateNumerator: number;
     commissionRateDenominator: number;
     clientFee: number;
@@ -307,7 +309,7 @@ function ModeSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Metric label="Revenu Relio" value={formatCurrency(result.totals.repairDomRevenue, currency)} />
-            <Metric label="Commissions techniciens (2 %)" value={formatCurrency(result.totals.technicianFees, currency)} />
+            <Metric label="Commissions techniciens" value={formatCurrency(result.totals.technicianFees, currency)} />
             <Metric label="Frais clients (historique)" value={formatCurrency(result.totals.clientFees, currency)} />
             <Metric label="Débité sur les clients" value={formatCurrency(result.totals.clientDebits, currency)} />
             <Metric label="Net techniciens" value={formatCurrency(result.totals.technicianNet, currency)} />
@@ -332,7 +334,9 @@ function ModeSection({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Règle Relio : transport standard {formatCurrency(expectedPerMission.transport, currency)} · commission
-              {' '}{expectedPerMission.commissionRateNumerator} % du brut (missions antérieures : forfait{' '}
+              {' '}{formatCurrency(expectedPerMission.commissionFixedXAF ?? 0, currency)} fixes +{' '}
+              {expectedPerMission.commissionRateNumerator} % du montant du devis, le transport n'étant pas
+              commissionné (missions antérieures : forfait{' '}
               {formatCurrency(expectedPerMission.total, currency)}).
             </p>
           </div>
@@ -432,7 +436,7 @@ function MissionRow({
           <Metric label="Débité au client" value={formatCurrency(mission.clientDebit, currency)} />
           <Metric label="Net technicien" value={formatCurrency(mission.technicianNet, currency)} />
           <Metric label="Commission client (hist.)" value={formatCurrency(mission.clientFee, currency)} />
-          <Metric label="Commission Relio (2 %)" value={formatCurrency(mission.technicianFee, currency)} />
+          <Metric label={TECHNICIAN_FEE_LABEL} value={formatCurrency(mission.technicianFee, currency)} />
           <Metric label="Relio" value={formatCurrency(mission.repairDomRevenue, currency)} />
           <Metric label="Réparation / déplacement" value={formatCurrency(mission.repair + mission.travel, currency)} />
         </div>
@@ -471,7 +475,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         <Metric label="Frais client (historique)" value={formatCurrency(f.clientFee, currency)} />
         <Metric label="Réparation technicien" value={formatCurrency(f.technicianRepair, currency)} />
         <Metric label="Déplacement technicien" value={formatCurrency(f.technicianTravel, currency)} />
-        <Metric label="Commission Relio (2 %)" value={formatCurrency(f.technicianFee, currency)} />
+        <Metric label={TECHNICIAN_FEE_LABEL} value={formatCurrency(f.technicianFee, currency)} />
         <Metric label="Net technicien" value={formatCurrency(f.netTechnician, currency)} />
         <Metric label="Relio (réel)" value={formatCurrency(f.repairDomRevenue, currency)} />
         <Metric label="Relio attendu" value={formatCurrency(f.expectedRepairDomRevenue, currency)} />

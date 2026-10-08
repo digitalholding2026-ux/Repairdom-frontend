@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,13 @@ import { demandeStatusConfig } from '@/lib/request-status';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import { getDispute, type DemandeDispute } from '@/lib/api/request-service';
 import { formatFCFA } from '@/lib/format-fcfa';
+import {
+  MIN_QUOTE_AMOUNT_XAF,
+  TECHNICIAN_FEE_LABEL,
+  isQuoteAmountAllowed,
+  previewTechnicianQuote,
+  quoteAmountError,
+} from '@/lib/technician-quote';
 import { useRealtime } from '@/lib/realtime/sse-context';
 import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 import { useUserStream } from '@/lib/realtime/use-user-stream';
@@ -62,8 +69,11 @@ import { listEquipmentFamilies } from '@/lib/api/catalog-service';
 
 const POLL_INTERVAL_MS = 5000;
 
+/* RÈGLE FCFA : tout montant passe par `formatFCFA`. La devise du devis n'est
+ * affichée que si elle diffère de XAF (le backend envoie toujours XAF). */
 function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string {
-  return `${quote.amount.toLocaleString('fr-FR')} ${quote.currency}`;
+  const formatted = formatFCFA(quote.amount);
+  return quote.currency && quote.currency !== 'XAF' ? `${formatted} (${quote.currency})` : formatted;
 }
 
 function formatPrice(value: number | null | undefined): string {
@@ -285,9 +295,11 @@ export default function TechnicianDemandeDetailPage() {
 
   const handleCreateQuote = async () => {
     if (!params?.id) return;
-    const amount = Number(amountValue);
-    if (!Number.isInteger(amount) || amount <= 0) {
-      setActionError('Veuillez saisir un montant valide (entier, supérieur à 0).');
+    /* Seuil 5 000 FCFA + aperçu : une seule source de vérité côté UI
+     * (`@/lib/technician-quote`), le backend revalide de toute façon. */
+    const { amount, error: amountError } = quoteAmountError(amountValue);
+    if (amountError || amount === null) {
+      setActionError(amountError ?? 'Veuillez saisir un montant valide (entier, supérieur à 0).');
       return;
     }
     const description = quoteDescription.trim();
@@ -426,6 +438,22 @@ export default function TechnicianDemandeDetailPage() {
     (!catalogFlow || (Boolean(demande.negotiationRequestedAt) && !hasAcceptedQuote));
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
+
+  /* Chantier 4-FONDATIONS-A — saisie du devis : seuil de 5 000 FCFA, aperçu
+   * de la commission en direct, bouton bloqué tant que le devis est hors
+   * bornes. Source unique : `@/lib/technician-quote` (le backend revalide). */
+  const parsedQuote = quoteAmountError(amountValue);
+  const quoteAmountMessage = parsedQuote.error;
+  const quotePreview = useMemo(() => {
+    if (parsedQuote.amount === null) return null;
+    return previewTechnicianQuote(parsedQuote.amount);
+  }, [parsedQuote.amount]);
+  const canSubmitQuote =
+    !actionBusy &&
+    parsedQuote.amount !== null &&
+    !parsedQuote.error &&
+    isQuoteAmountAllowed(parsedQuote.amount) &&
+    quoteDescription.trim().length > 0;
   const lastActivityLabel =
     events.length > 0
       ? events[events.length - 1].label
@@ -875,12 +903,37 @@ export default function TechnicianDemandeDetailPage() {
                     <span className="font-semibold">Total client (brut)</span>
                     <span className="font-semibold">{formatPrice(latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0)))}</span>
                   </div>
+                  {/* Commission affichée APRÈS envoi : ce sont les montants
+                   * renvoyés par le backend (aucun recalcul frontend). Le
+                   * repli `previewTechnicianQuote` ne sert que si un ancien
+                   * devis, émis avant le chantier, n'expose pas encore le
+                   * champ — même formule, donc même résultat. */}
+                  <div className="my-1 h-px bg-border" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
+                    <span className="font-medium text-muted-foreground">
+                      −{formatPrice(
+                        latestQuote.commission ??
+                          previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).commission,
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold">Vous recevrez</span>
+                    <span className="font-semibold text-success-ink">
+                      {formatPrice(
+                        latestQuote.netTechnician ??
+                          previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).net,
+                      )}
+                    </span>
+                  </div>
                 </div>
               ) : null}
               {demande.status === 'CONFIRMED' && latestQuote ? (
                 <Alert variant="info" dense icon="info">
-                  Commission Relio (2 % du brut) prélevée sur ce tarif. Votre gain net pour cette
-                  intervention apparaît dans l&apos;onglet Revenus.
+                  {TECHNICIAN_FEE_LABEL} est prélevée sur le montant de votre devis. Vos 2 000 FCFA
+                  de déplacement vous sont intégralement reversés, en plus du devis. Le détail de
+                  votre gain net apparaît dans l&apos;onglet Revenus.
                 </Alert>
               ) : null}
               {latestQuote.status === 'PENDING' ? (
@@ -905,16 +958,59 @@ export default function TechnicianDemandeDetailPage() {
 
           {showQuoteForm ? (
             <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-              <Field htmlFor="quoteAmount" label="Montant (FCFA)">
+              <Field
+                htmlFor="quoteAmount"
+                label="Montant (FCFA)"
+                hint={`Minimum ${MIN_QUOTE_AMOUNT_XAF.toLocaleString('fr-FR').replace(/\s/g, ' ')} FCFA`}
+                error={quoteAmountMessage}
+              >
                 <Input
                   id="quoteAmount"
                   type="number"
-                  min={1}
+                  min={MIN_QUOTE_AMOUNT_XAF}
+                  step={500}
                   value={amountValue}
                   onChange={(event) => setAmountValue(event.target.value)}
                   placeholder="Ex. : 15000"
+                  aria-describedby="quoteAmount-preview"
                 />
               </Field>
+
+              {/* Aperçu AVANT envoi (C.1) : à ce stade aucun devis n'existe en
+                  base, l'aperçu ne peut donc pas venir de l'API. Après envoi,
+                  les montants affichés plus haut sont ceux du backend. */}
+              {quotePreview ? (
+                <div
+                  id="quoteAmount-preview"
+                  className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Votre devis</span>
+                    <span className="font-medium">{formatFCFA(quotePreview.quote)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">Déplacement (intégralement yours)</span>
+                    <span className="font-medium">{formatFCFA(quotePreview.travel)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
+                    <span className="font-medium text-muted-foreground">
+                      −{formatFCFA(quotePreview.commission)}
+                    </span>
+                  </div>
+                  <div className="my-1 h-px bg-border" />
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-semibold">Vous recevrez</span>
+                    <span className="font-semibold text-success-ink">
+                      {formatFCFA(quotePreview.net)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Le client paiera {formatFCFA(quotePreview.clientPays)}.
+                  </p>
+                </div>
+              ) : null}
+
               <Field htmlFor="quoteDescription" label="Description">
                 <Input
                   id="quoteDescription"
@@ -927,7 +1023,7 @@ export default function TechnicianDemandeDetailPage() {
               <Button
                 onClick={handleCreateQuote}
                 isLoading={actionBusy === 'QUOTE'}
-                disabled={!amountValue.trim() || !quoteDescription.trim()}
+                disabled={!canSubmitQuote}
                 className="w-full"
               >
                 Proposer
@@ -954,7 +1050,7 @@ export default function TechnicianDemandeDetailPage() {
         }}
         loading={actionBusy === 'COMPLETED'}
         title="Marquer comme terminée ?"
-        description="L’intervention passera en attente de confirmation du client. Cette action déclenche le calcul du règlement (brut, commission Relio 2 %, net)."
+        description="L’intervention passera en attente de confirmation du client. Cette action déclenche le calcul du règlement (brut, commission Relio 500 FCFA + 4 %, net)."
         confirmLabel="Marquer comme terminée"
       />
     </div>

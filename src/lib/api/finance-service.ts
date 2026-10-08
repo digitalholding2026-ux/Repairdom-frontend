@@ -150,6 +150,8 @@ export interface AdminFinanceModeResult {
     ok: boolean | null;
     expectedPerMission: {
       transport: number;
+      /** Part fixe de la commission technicien (chantier 4-FONDATIONS-A). */
+      commissionFixedXAF?: number;
       commissionRateNumerator: number;
       commissionRateDenominator: number;
       legacyTotal: number;
@@ -161,6 +163,8 @@ export interface AdminFinanceSummary {
   currency: string;
   expectedPerMission: {
     transport: number;
+    /** Part fixe de la commission technicien (chantier 4-FONDATIONS-A). */
+    commissionFixedXAF?: number;
     commissionRateNumerator: number;
     commissionRateDenominator: number;
     clientFee: number;

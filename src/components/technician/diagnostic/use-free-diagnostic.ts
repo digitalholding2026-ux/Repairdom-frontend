@@ -8,6 +8,7 @@ import {
   uploadDiagnosticAudio,
 } from '@/lib/api/technician-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { quoteAmountError } from '@/lib/technician-quote';
 
 /* IA-3 — logique PARTAGÉE du diagnostic libre + devis (données, validation,
  * envoi). Présentation isolée Desktop/Mobile. Aucun appel IA, aucun barème
@@ -54,15 +55,14 @@ export function useFreeDiagnostic(
     trimmed.length > 0 && trimmed.length < FREE_DIAGNOSTIC_MIN_LENGTH
       ? `Minimum ${FREE_DIAGNOSTIC_MIN_LENGTH} caractères (${trimmed.length} actuellement).`
       : null;
-  const parsedAmount = amount.trim() === '' ? null : Number(amount.replace(/\s/g, ''));
-  const amountError =
-    amount.trim() === ''
-      ? null
-      : parsedAmount === null || !Number.isInteger(parsedAmount) || parsedAmount < 1
-        ? 'Montant invalide : saisissez un entier XAF supérieur à 0.'
-        : null;
-  const canSubmit =
-    !submitting && trimmed.length >= FREE_DIAGNOSTIC_MIN_LENGTH && parsedAmount !== null && amountError === null;
+/* Chantier 4-FONDATIONS-A — seuil minimum de devis : 5 000 FCFA. La
+ * validation passe par `quoteAmountError` (source unique partagée avec le
+ * formulaire de devis simple et le backend). */
+const parsedQuote = quoteAmountError(amount);
+const amountError = parsedQuote.error;
+const parsedAmount = parsedQuote.amount;
+const canSubmit =
+  !submitting && trimmed.length >= FREE_DIAGNOSTIC_MIN_LENGTH && parsedAmount !== null && amountError === null;
 
   const submit = () => {
     if (!canSubmit) {

@@ -11,6 +11,7 @@ import {
   FREE_DIAGNOSTIC_MAX_LENGTH,
   type FreeDiagnosticData,
 } from './use-free-diagnostic';
+import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
 
 /* IA-3 — diagnostic libre + devis sur DESKTOP : composition deux colonnes
  * (texte à gauche, voix + prix + envoi à droite). Mêmes données, mêmes
@@ -68,7 +69,7 @@ export function FreeDiagnosticDesktopView({ data }: { data: FreeDiagnosticData }
           <Field
             label="Prix proposé (FCFA) *"
             htmlFor="free-diag-amount-desktop"
-            hint="Entier XAF, sans comparaison au barème dans ce parcours."
+            hint={`Minimum 5 000 FCFA par intervention. ${TECHNICIAN_FEE_LABEL} en toute transparence.`}
             error={data.amountError}
           >
             <Input

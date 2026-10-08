@@ -485,6 +485,11 @@ export interface MissionQuote {
   travel?: number | null;
   clientFee?: number | null;
   totalToDebit?: number | null;
+  /** Chantier 4-FONDATIONS-A — barème 500 FCFA + 4 % du devis, calculé par
+   *  le BACKEND (le frontend ne le recalcule pas : il l'affiche). Absents sur
+   *  les réponses destinées à un CLIENT, qui ne voit que ce qu'il paie. */
+  commission?: number | null;
+  netTechnician?: number | null;
   createdAt: string;
 }
 

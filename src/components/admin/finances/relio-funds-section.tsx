@@ -21,7 +21,7 @@ import { formatCurrency, formatDateTime, fullName } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Portefeuille Relio (Sprint ADMIN SUPER POWERS) : commissions acquises
- * (2 % du brut au CONFIRMED + historique), retraits traçables et solde
+ * (500 FCFA + 4 % du devis au CONFIRMED + historique), retraits traçables et solde
  * disponible. Le backend est la seule autorité des montants ; le frontend
  * affiche et déclenche, jamais ne calcule. */
 export function RelioFundsSection() {
@@ -83,7 +83,7 @@ export function RelioFundsSection() {
     <section className="space-y-3">
       <PageHeader
         title="Fonds Relio"
-        description="Commissions acquises (2 % du brut validé), retraits et solde disponible."
+        description="Commissions acquises (500 FCFA + 4 % du devis validé), retraits et solde disponible."
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}

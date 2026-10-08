@@ -11,6 +11,7 @@ import {
   FREE_DIAGNOSTIC_MAX_LENGTH,
   type FreeDiagnosticData,
 } from './use-free-diagnostic';
+import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
 
 /* IA-3 — diagnostic libre + devis sur MOBILE : empilé tactile (diagnostic
  * → explications → voix → prix → envoi), gros contrôles, enregistrement
@@ -65,7 +66,7 @@ export function FreeDiagnosticMobileView({ data }: { data: FreeDiagnosticData })
       <Field
         label="Prix proposé (FCFA) *"
         htmlFor="free-diag-amount-mobile"
-        hint="Entier XAF."
+        hint={`Minimum 5 000 FCFA par intervention. ${TECHNICIAN_FEE_LABEL}.`}
         error={data.amountError}
       >
         <Input

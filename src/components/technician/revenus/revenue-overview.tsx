@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
 import { GradientHeroCard, HeroStat } from '@/components/ui/gradient-hero-card';
 import { formatCurrency } from '@/lib/format';
+import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
 import type { TechnicianFinanceSummary } from '@/lib/api/finance-service';
 
 export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary }) {
@@ -35,7 +36,7 @@ export function RevenueOverview({ summary }: { summary: TechnicianFinanceSummary
           value={formatCurrency(summary.travelRevenue, summary.currency)}
         />
         <HeroStat
-          label="Commission Relio (2 %)"
+          label={TECHNICIAN_FEE_LABEL}
           value={formatCurrency(summary.platformFees, summary.currency)}
           muted
         />

@@ -23,6 +23,7 @@ import {
   formatDateTime,
   fullName,
 } from '@/lib/format';
+import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
 import { RevenueOverview } from '@/components/technician/revenus/revenue-overview';
 import { WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { RevenueChart } from '@/components/technician/revenus/revenue-chart';
@@ -36,7 +37,7 @@ const PENDING_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 const TECH_TXN_LABELS: Record<string, string> = {
   TECHNICIAN_REPAIR_REVENUE: 'Gain réparation',
   TECHNICIAN_TRAVEL_REVENUE: 'Gain déplacement',
-  TECHNICIAN_FEE: 'Commission Relio (2 %)',
+  TECHNICIAN_FEE: TECHNICIAN_FEE_LABEL,
   TECHNICIAN_WITHDRAWAL: 'Retrait',
 };
 
@@ -222,7 +223,7 @@ function MissionEarningCard({
               <span className="font-medium">{formatCurrency(mission.travel, currency)}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Commission Relio (2 %)</span>
+              <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
               <span className="font-medium text-muted-foreground">
                 {formatCurrency(mission.fees, currency)}
               </span>

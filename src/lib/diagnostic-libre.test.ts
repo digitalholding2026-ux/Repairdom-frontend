@@ -32,9 +32,17 @@ void test('flux unifié : diagnostic → explication → voix → prix → devis
 void test('validation : diagnostic ≥10, prix entier XAF, orphelin nettoyé si non lié', () => {
   const hook = read('../components/technician/diagnostic/use-free-diagnostic.ts');
   assert.match(hook, /FREE_DIAGNOSTIC_MIN_LENGTH = 10/);
-  assert.match(hook, /Number\.isInteger/);
   assert.match(hook, /diagnosticLinked/);
   assert.match(hook, /deleteDiagnosticAudio/);
+  /* Chantier 4-FONDATIONS-A : le contrôle « entier XAF » (et le seuil de
+   * 5 000 FCFA) n'est plus écrit dans le hook mais délégué à la source unique
+   * `@/lib/technician-quote`, également utilisée par le formulaire de devis
+   * simple. C'est ce module qui porte désormais `Number.isInteger`. */
+  assert.match(hook, /import \{ quoteAmountError \} from '@\/lib\/technician-quote'/);
+  assert.match(hook, /const parsedQuote = quoteAmountError\(amount\)/);
+  const shared = read('./technician-quote.ts');
+  assert.match(shared, /Number\.isInteger/);
+  assert.match(shared, /MIN_QUOTE_AMOUNT_XAF = 5_000/);
 });
 
 void test('vues isolées Desktop/Mobile, mêmes appels, voix réutilisée', () => {
