@@ -1,198 +1,203 @@
-/* Chantier #4A — Logique pure de la page « Mes récompenses » et du badge.
+/* Programme de fidélité LTV — logique PURE (chantier 4-FONDATIONS-C).
  *
- * Exécuté avec `node --test` (type stripping natif, zéro dépendance) :
+ * Exécuté avec Node 22+ natif (type stripping, zéro dépendance) :
  *   node --test src/lib/rewards-view.test.ts
  * ou : npm run test:unit
  *
- * Ces tests portent sur la LOGIQUE (états de palier, pourcentages,
- * présentation du badge) : c'est elle qui décide de ce qui est affiché. Le
- * composant React ne fait que rendre — et il n'y a ni jsdom ni
- * testing-library dans ce projet.
+ * Ce module ne fait QUE décider (statuts, pourcentages, timeline). Les
+ * composants ne rendent que ça : les tests couvrent donc le comportement
+ * réellement affiché, sans DOM.
  *
- * `src/lib/rewards-view.ts` n'importe rien : ni React, ni alias `@/`, ni I/O.
+ * RÈGLE FCFA vérifiée ici : aucune fonction de ce module ne produit de
+ * chaîne « 12 345 FCFA ». Le formatage est fait par `formatFCFA` au rendu.
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+
 import {
-  missionsRemaining,
+  BADGE_STATUS_LABEL,
+  NATURE_STATUS_LABEL,
+  REWARD_BADGE_VIEW,
+  badgeStatus,
+  buildRewardTimeline,
+  canClaimCredits,
+  creditProgressPercent,
+  isNatureClaimable,
+  marginRemaining,
+  natureStatus,
   progressPercent,
   rewardBadgeView,
-  tierStatus,
-  TIER_STATUS_LABEL,
-  REWARD_BADGE_VIEW,
+  type NatureTierLike,
+  type RewardProgressLike,
   type RewardTierLike,
-  type RewardTierKey,
 } from './rewards-view.ts';
 
-/* Miroir de `backend/src/rewards/rewards.config.ts`. */
-const BRONZE: RewardTierLike = {
-  tier: 'BRONZE',
-  label: 'Bronze',
-  missions: 15,
-  reward: 'Réduction sur votre prochaine mission',
-  rewardValueXAF: 5_000,
-};
-const ARGENT: RewardTierLike = {
-  tier: 'ARGENT',
-  label: 'Argent',
-  missions: 50,
-  reward: 'Main d’œuvre gratuite (plafond inclus)',
-  rewardValueXAF: 15_000,
-};
-const OR: RewardTierLike = {
-  tier: 'OR',
-  label: 'Or',
-  missions: 150,
-  reward: 'Petit électroménager',
-  rewardValueXAF: 25_000,
-};
-const PLATINE: RewardTierLike = {
-  tier: 'PLATINE',
-  label: 'Platine',
-  missions: 500,
-  reward: 'Smartphone',
-  rewardValueXAF: 200_000,
-};
+const FIDELE: RewardTierLike = { tier: 'FIDELE', margeXAF: 10_000, label: 'Fidèle', emoji: '🥉' };
+const OR: RewardTierLike = { tier: 'OR', margeXAF: 50_000, label: 'Or', emoji: '🥇' };
+const PLATINE: RewardTierLike = { tier: 'PLATINE', margeXAF: 100_000, label: 'Platine', emoji: '💎' };
 
-test('tierStatus — les 4 états possibles', () => {
-  /* Atteint et non encore demandé → bouton « Utiliser ma récompense ». */
-  assert.equal(tierStatus(BRONZE, 20, ['BRONZE'], []), 'REACHED');
-  /* Atteint ET demandé → badge « Utilisé », plus de bouton. */
-  assert.equal(tierStatus(BRONZE, 20, ['BRONZE'], ['BRONZE']), 'CLAIMED');
-  /* En cours de progression. */
-  assert.equal(tierStatus(ARGENT, 20, ['BRONZE'], []), 'IN_PROGRESS');
-  /* Verrouillé : le client n'a encore rien validé. */
-  assert.equal(tierStatus(ARGENT, 0, [], []), 'LOCKED');
+const PETIT: NatureTierLike = { tier: 'ELECTROMENAGER_PETIT', margeXAF: 50_000, label: 'Petit électroménager' };
+const MOYEN: NatureTierLike = { tier: 'ELECTROMENAGER_MOYEN', margeXAF: 100_000, label: 'Électroménager moyen' };
+const SMARTPHONE: NatureTierLike = { tier: 'SMARTPHONE', margeXAF: 250_000, label: 'Smartphone' };
+
+function progress(overrides: Partial<RewardProgressLike> = {}): RewardProgressLike {
+  return {
+    cumulativeMarginXAF: 0,
+    currentTier: 'NONE',
+    reachedTiers: [],
+    creditsEarned: 0,
+    creditsClaimed: 0,
+    creditsAvailable: 0,
+    natureReached: [],
+    natureClaimed: [],
+    nextTierAt: 10_000,
+    nextNatureAt: 50_000,
+    trancheXAF: 10_000,
+    creditPerTrancheXAF: 500,
+    tiers: [FIDELE, OR, PLATINE],
+    natureThresholds: [PETIT, MOYEN, SMARTPHONE],
+    ...overrides,
+  };
+}
+
+/* ── Badges ──────────────────────────────────────────────────────── */
+
+void test('le programme porte sur la MARGE, plus sur un nombre de missions', () => {
+  assert.equal(FIDELE.margeXAF, 10_000);
+  assert.equal(OR.margeXAF, 50_000);
+  assert.equal(PLATINE.margeXAF, 100_000);
+  /* Les anciens paliers du #4A ont disparu. */
+  assert.equal('BRONZE' in REWARD_BADGE_VIEW, false);
+  assert.equal('ARGENT' in REWARD_BADGE_VIEW, false);
 });
 
-test('tierStatus — CLAIMED prime sur REACHED', () => {
-  /* Un palier demandé reste « Utilisé », même si le compteur progresse. */
-  assert.equal(tierStatus(BRONZE, 200, ['BRONZE', 'ARGENT'], ['BRONZE']), 'CLAIMED');
+void test('badgeStatus — REACHED / IN_PROGRESS / LOCKED', () => {
+  assert.equal(badgeStatus(FIDELE, 20_000, ['FIDELE']), 'REACHED');
+  assert.equal(badgeStatus(OR, 20_000, ['FIDELE']), 'IN_PROGRESS');
+  assert.equal(badgeStatus(OR, 0, [], []), 'LOCKED');
 });
 
-test('tierStatus — le seuil du compteur est une seconde défense', () => {
-  /* `reachedTiers` tronqué/absent : le compteur seul ne doit pas proposer
-   * « Utiliser » pour un palier non atteint. */
-  assert.equal(tierStatus(PLATINE, 10, [], []), 'IN_PROGRESS');
-  /* En revanche si le compteur ATTEINT le seuil, le statut est REACHED même si
-   * le backend n'a rien renvoyé dans `reachedTiers`. */
-  assert.equal(tierStatus(BRONZE, 15, [], []), 'REACHED');
+void test('badgeStatus — le seuil est une seconde défense', () => {
+  // `reachedTiers` tronqué : la marge dit la vérité.
+  assert.equal(badgeStatus(PLATINE, 120_000, []), 'REACHED');
+  // Marge atteinte mais palier listé : cohérent.
+  assert.equal(badgeStatus(FIDELE, 10_000, ['FIDELE']), 'REACHED');
+  // Marge insuffisante malgré un palier listé : on ne régresse pas l'affichage.
+  assert.equal(badgeStatus(FIDELE, 500, ['FIDELE']), 'REACHED');
 });
 
-test('tierStatus — 15e mission exactement : Bronze atteint', () => {
-  assert.equal(tierStatus(BRONZE, 15, ['BRONZE'], []), 'REACHED');
-  assert.equal(tierStatus(BRONZE, 14, [], []), 'IN_PROGRESS');
+void test('marginRemaining et progressPercent — jamais négatif, jamais > 100', () => {
+  assert.equal(marginRemaining(FIDELE, 4_000), 6_000);
+  assert.equal(marginRemaining(FIDELE, 12_000), 0);
+  assert.equal(progressPercent(0, 10_000), 0);
+  assert.equal(progressPercent(5_000, 10_000), 50);
+  assert.equal(progressPercent(10_000, 10_000), 100);
+  assert.equal(progressPercent(99_000, 10_000), 100);
 });
 
-test('tierStatus — paliers indépendants : Bronze atteint, Argent en cours', () => {
-  assert.equal(tierStatus(BRONZE, 20, ['BRONZE'], []), 'REACHED');
-  assert.equal(tierStatus(ARGENT, 20, ['BRONZE'], []), 'IN_PROGRESS');
-  assert.equal(tierStatus(OR, 20, ['BRONZE'], []), 'IN_PROGRESS');
-  assert.equal(tierStatus(PLATINE, 20, ['BRONZE'], []), 'IN_PROGRESS');
+void test('creditProgressPercent — progression dans la tranche en cours', () => {
+  assert.equal(creditProgressPercent(0, 10_000), 0);
+  assert.equal(creditProgressPercent(5_000, 10_000), 50);
+  assert.equal(creditProgressPercent(9_999, 10_000), 100);
+  /* Exactement une tranche : la tranche vient d'être complétée → 100 %
+   * (la barre ne retombe pas à 0 à l'instant où le crédit est gagné). */
+  assert.equal(creditProgressPercent(10_000, 10_000), 100);
+  assert.equal(creditProgressPercent(11_500, 10_000), 15);
 });
 
-test('tierStatus — programme complet : les 4 paliers atteints', () => {
-  const reached = ['BRONZE', 'ARGENT', 'OR', 'PLATINE'];
-  for (const tier of [BRONZE, ARGENT, OR, PLATINE]) {
-    assert.equal(tierStatus(tier, 500, reached, []), 'REACHED');
-  }
-});
-
-test('TIER_STATUS_LABEL — un libellé par état', () => {
-  assert.deepEqual(TIER_STATUS_LABEL, {
-    CLAIMED: 'Utilisé',
-    REACHED: 'Atteint',
-    IN_PROGRESS: 'En cours',
-    LOCKED: 'Verrouillé',
-  });
-});
-
-test('missionsRemaining — jamais négatif', () => {
-  assert.equal(missionsRemaining(ARGENT, 20), 30);
-  assert.equal(missionsRemaining(ARGENT, 50), 0);
-  assert.equal(missionsRemaining(ARGENT, 500), 0);
-});
-
-test('progressPercent — borné 0–100', () => {
-  assert.equal(progressPercent(0, 15), 0);
-  assert.equal(progressPercent(7, 15), 47);
-  assert.equal(progressPercent(15, 15), 100);
-  /* Un compteur supérieur au seuil ne déborde jamais la barre. */
-  assert.equal(progressPercent(500, 15), 100);
-  /* Un compteur négatif ne produit pas de barre inversée. */
-  assert.equal(progressPercent(-3, 15), 0);
-  /* Un seuil invalide ne provoque pas de division par zéro. */
-  assert.equal(progressPercent(10, 0), 100);
-});
-
-test('rewardBadgeView — NONE ne rend RIEN (null)', () => {
-  /* Choix d'interface : pas de badge « aucun niveau » sur un profil ou dans
-   * une liste. L'absence de badge est l'information. */
+void test('rewardBadgeView — NONE ne rend rien, les autres ont emoji + libellé', () => {
   assert.equal(rewardBadgeView('NONE'), null);
-});
-
-test('rewardBadgeView — un rendu par palier', () => {
-  assert.deepEqual(rewardBadgeView('BRONZE'), {
-    emoji: '🥉',
-    label: 'Bronze',
-    className: 'bg-warning-soft text-warning-ink',
-  });
-  assert.deepEqual(rewardBadgeView('ARGENT'), {
-    emoji: '🥈',
-    label: 'Argent',
-    className: 'bg-muted text-muted-foreground',
-  });
-  assert.deepEqual(rewardBadgeView('OR'), {
-    emoji: '🥇',
-    label: 'Or',
-    className: 'reward-gradient text-primary-foreground',
-  });
-  assert.deepEqual(rewardBadgeView('PLATINE'), {
-    emoji: '💎',
-    label: 'Platine',
-    className: 'bg-info-soft text-info-ink',
-  });
-});
-
-test('rewardBadgeView — tolère un palier inconnu (dégradation sûre)', () => {
-  assert.equal(rewardBadgeView('DIAMANT' as never), null);
-});
-
-test('les 4 paliers du badge ne contiennent AUCUN hex arbitraire', () => {
-  /* Règle UI/UX §8 : couleurs sémantiques du design system uniquement. */
-  for (const key of Object.keys(REWARD_BADGE_VIEW) as RewardTierKey[]) {
-    const { className } = REWARD_BADGE_VIEW[key];
-    assert.ok(!/#[0-9a-f]{3,8}\b/i.test(className), `${key} contient un hex : ${className}`);
-    assert.ok(!/(bg|text)-(slate|gray|zinc|neutral)-\d/.test(className), `${key} utilise une palette Tailwind brute`);
+  assert.equal(rewardBadgeView('FIDELE')?.emoji, '🥉');
+  assert.equal(rewardBadgeView('FIDELE')?.label, 'Fidèle');
+  assert.equal(rewardBadgeView('OR')?.label, 'Or');
+  assert.equal(rewardBadgeView('PLATINE')?.emoji, '💎');
+  /* Classes = tokens du design system, jamais de hex. */
+  for (const view of Object.values(REWARD_BADGE_VIEW)) {
+    assert.doesNotMatch(view.className, /#[0-9a-fA-F]{3,8}/);
   }
 });
 
-test('les 4 paliers du badge utilisent 4 familles de tokens distinctes', () => {
-  /* Deux paliers ne doivent pas être confondus visuellement. */
-  const classes = (Object.keys(REWARD_BADGE_VIEW) as RewardTierKey[]).map(
-    (key) => REWARD_BADGE_VIEW[key].className,
+void test('BADGE_STATUS_LABEL couvre les 3 états', () => {
+  assert.deepEqual(Object.keys(BADGE_STATUS_LABEL).sort(), ['IN_PROGRESS', 'LOCKED', 'REACHED']);
+});
+
+/* ── Crédits ─────────────────────────────────────────────────────── */
+
+void test('canClaimCredits — strictement positif', () => {
+  assert.equal(canClaimCredits(500), true);
+  assert.equal(canClaimCredits(1), true);
+  assert.equal(canClaimCredits(0), false);
+  assert.equal(canClaimCredits(-1), false);
+  assert.equal(canClaimCredits(Number.NaN), false);
+});
+
+/* ── Nature ──────────────────────────────────────────────────────── */
+
+void test('natureStatus — CLAIMED prime sur REACHED', () => {
+  assert.equal(natureStatus(PETIT, 60_000, ['ELECTROMENAGER_PETIT'], ['ELECTROMENAGER_PETIT']), 'CLAIMED');
+  assert.equal(natureStatus(PETIT, 60_000, ['ELECTROMENAGER_PETIT'], []), 'REACHED');
+  assert.equal(natureStatus(MOYEN, 60_000, [], []), 'IN_PROGRESS');
+  assert.equal(natureStatus(MOYEN, 0, [], []), 'LOCKED');
+});
+
+void test('isNatureClaimable — seulement « atteint et non réclamé »', () => {
+  assert.equal(isNatureClaimable(PETIT, 60_000, ['ELECTROMENAGER_PETIT'], []), true);
+  assert.equal(isNatureClaimable(PETIT, 60_000, ['ELECTROMENAGER_PETIT'], ['ELECTROMENAGER_PETIT']), false);
+  assert.equal(isNatureClaimable(PETIT, 10_000, [], []), false);
+});
+
+void test('NATURE_STATUS_LABEL — « En cours de traitement » après réclamation', () => {
+  assert.equal(NATURE_STATUS_LABEL.CLAIMED, 'En cours de traitement');
+  assert.equal(NATURE_STATUS_LABEL.REACHED, 'À réclamer');
+});
+
+/* ── Timeline ────────────────────────────────────────────────────── */
+
+void test('buildRewardTimeline — vide sans palier', () => {
+  assert.deepEqual(buildRewardTimeline(progress()), []);
+});
+
+void test('buildRewardTimeline — badges et nature, triés par seuil de marge', () => {
+  const entries = buildRewardTimeline(
+    progress({
+      cumulativeMarginXAF: 110_000,
+      currentTier: 'OR',
+      reachedTiers: ['FIDELE', 'OR'],
+      natureReached: ['ELECTROMENAGER_PETIT'],
+      natureClaimed: ['ELECTROMENAGER_PETIT'],
+    }),
   );
-  assert.equal(new Set(classes).size, 4);
+  assert.deepEqual(entries.map((e) => e.margeXAF), [10_000, 50_000, 50_000]);
+  assert.deepEqual(entries.map((e) => e.kind), ['BADGE', 'BADGE', 'NATURE']);
+  /* Le libellé et l'emoji viennent du catalogue, jamais d'une devinette. */
+  assert.equal(entries[0].label, 'Fidèle');
+  assert.equal(entries[0].emoji, '🥉');
+  assert.equal(entries[2].label, 'Petit électroménager');
+  /* La nature réclamée est marquée comme telle. */
+  assert.equal(entries[2].claimed, true);
+  assert.equal(entries[0].claimed, false);
 });
 
-test('les paliers du badge couvrent exactement BRONZE/ARGENT/OR/PLATINE', () => {
-  assert.deepEqual(Object.keys(REWARD_BADGE_VIEW), ['BRONZE', 'ARGENT', 'OR', 'PLATINE']);
+void test('buildRewardTimeline — un seuil commun donne une seule ligne par événement', () => {
+  /* OR (50 000) et ELECTROMENAGER_PETIT (50 000) partagent le seuil : ce sont
+   * deux distinctions de même nature, affichées côte à côte et triées ensemble. */
+  const entries = buildRewardTimeline(
+    progress({ reachedTiers: ['OR'], natureReached: ['ELECTROMENAGER_PETIT'] }),
+  );
+  assert.equal(entries.length, 2);
+  assert.equal(entries[0].margeXAF, entries[1].margeXAF);
 });
 
-test('RÈGLE FCFA — les libellés de récompense ne contiennent aucun montant', () => {
-  /* Le montant est un ENTIER séparé (`rewardValueXAF`) et sera affiché par
-   * `formatFCFA`. Un montant dans le libellé serait figé. */
-  for (const tier of [BRONZE, ARGENT, OR, PLATINE]) {
-    assert.ok(!tier.reward.includes('FCFA'), tier.reward);
-    assert.ok(!/\d/.test(tier.reward), tier.reward);
-    assert.equal(Number.isInteger(tier.rewardValueXAF), true);
+/* ── Règle FCFA ──────────────────────────────────────────────────── */
+
+void test('aucune fonction ne renvoie de chaîne « FCFA »', () => {
+  const values = [
+    ...Object.values(REWARD_BADGE_VIEW).map((v) => v.label),
+    ...Object.values(BADGE_STATUS_LABEL),
+    ...Object.values(NATURE_STATUS_LABEL),
+  ];
+  for (const value of values) {
+    assert.doesNotMatch(value, /FCFA/);
   }
-});
-
-test('les seuils des paliers sont 15 / 50 / 150 / 500', () => {
-  assert.deepEqual(
-    [BRONZE, ARGENT, OR, PLATINE].map((tier) => tier.missions),
-    [15, 50, 150, 500],
-  );
 });

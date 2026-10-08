@@ -28,17 +28,26 @@ export interface AppNotificationMetadata {
   kycStatus?: string;
   kycRejectionReason?: string;
   kycAction?: string;
-  /** Chantier #4A — récompenses client. `rewardTier` = palier littéral
-   *  (`BRONZE` | `ARGENT` | `OR` | `PLATINE`), `rewardValueXAF` = valeur
-   *  ENTIRE (à afficher via `formatFCFA`, jamais formatée ici),
-   *  `rewardAction` = action attendue (`view_rewards` | `contact_support`),
-   *  `rewardFraudReason` = motif littéral du signalement
-   *  (`SAME_TECHNICIAN_48H`). Le commentaire libre de l'admin n'est JAMAIS
-   *  exposé au client : il n'a aucun chemin jusqu'ici. */
+  /** Chantier 4-FONDATIONS-C — récompenses client (modèle LTV).
+   *
+   *  Le #4A exposait `rewardMissions` (nombre de missions) et
+   *  `rewardValueXAF` (valeur du palier) : les deux ont DISPARU, la progression
+   *  porte sur la MARGE CUMULÉE. Tous les montants sont des ENTIERS à afficher
+   *  via `formatFCFA`, jamais formatés ici.
+   *  `rewardAction` = action attendue (`view_rewards` | `claim_credits` |
+   *  `claim_nature` | `contact_support`).
+   *  `rewardFraudReason` = motif littéral du signalement (`SAME_TECHNICIAN_48H`).
+   *  Le commentaire libre de l'admin n'est JAMAIS exposé au client : il n'a
+   *  aucun chemin jusqu'ici. */
   rewardTier?: string;
   rewardLabel?: string;
-  rewardMissions?: number;
-  rewardValueXAF?: number;
+  rewardMarginXAF?: number;
+  rewardNextTierXAF?: number;
+  rewardCreditXAF?: number;
+  rewardCreditAvailableXAF?: number;
+  rewardNatureTier?: string;
+  rewardNatureLabel?: string;
+  rewardNatureThresholdXAF?: number;
   rewardAction?: string;
   rewardFraudReason?: string;
 }

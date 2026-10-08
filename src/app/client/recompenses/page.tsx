@@ -1,316 +1,361 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
+import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { Spinner } from '@/components/ui/spinner';
 import { RewardBadge } from '@/components/client/reward-badge';
-import { RecompensesSkeleton } from '@/components/client/recompenses/recompenses-skeleton';
-import { HowItWorks } from '@/components/client/recompenses/reward-catalog';
+import { GradientHeroCard } from '@/components/ui/gradient-hero-card';
 import {
-  claimTier,
+  claimCredits,
+  claimNatureReward,
   getRewardsProgress,
   type RewardProgress,
-  type RewardTier,
-  type RewardTierKey,
 } from '@/lib/api/rewards-service';
 import {
-  missionsRemaining,
+  BADGE_STATUS_LABEL,
+  NATURE_STATUS_LABEL,
+  badgeStatus,
+  buildRewardTimeline,
+  canClaimCredits,
+  creditProgressPercent,
+  isNatureClaimable,
+  marginRemaining,
+  natureStatus,
   progressPercent,
-  tierStatus,
-  TIER_STATUS_LABEL,
+  rewardBadgeView,
 } from '@/lib/rewards-view';
 import { formatFCFA } from '@/lib/format-fcfa';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { useToast } from '@/lib/toast-context';
+import { useRealtime } from '@/lib/realtime/sse-context';
+import { useUserStream } from '@/lib/realtime/use-user-stream';
 
-/* Chantier #4A — Programme de récompenses.
+/**
+ * Chantier 4-FONDATIONS-C — Programme de fidélité LTV.
  *
- * Données 100 % backend (`GET /client/rewards`). Le compteur n'est plus
- * recalculé depuis l'historique local : c'est le backend qui autorise le
- * comptage (mission CONFIRMED, payée ≥ 1 500 XAF, sans signalement
- * anti-fraude).
+ * L'unité affichée n'est plus « X missions » mais la MARGE CUMULÉE générée par
+ * le client : c'est ce qui rend le programme lisible ET soutenable (les
+ * crédits sont plafonnés à 5 % de cette marge).
  *
- * RÈGLE FCFA : tous les montants affichés passent par `formatFCFA`. Le backend
- * n'envoie que des ENTIERS XAF.
+ * RÈGLE FCFA : aucun montant n'est formaté en dur. Tout passe par
+ * `formatFCFA`, y compris dans les textes d'aide.
  *
- * L'authentification et le rôle CLIENT sont déjà garantis par le
- * `RoleGuard` du layout `/client` (cf. ARCHITECTURE.md) : cette page ne
- * refait donc pas le `getMe()` + redirection que portait la version
- * précédente. */
-
+ * Le composant ne DÉCIDE rien : les statuts, pourcentages et la timeline
+ * viennent de `lib/rewards-view.ts` (testable sans React). Les montants
+ * affichés viennent TOUJOURS du backend — cette page ne recalcule aucun
+ * barème.
+ */
 export default function ClientRecompensesPage() {
-  const { toast } = useToast();
   const [progress, setProgress] = useState<RewardProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  /* Palier en cours de demande d'usage, pour n'afficher qu'un seul bouton
-   * « en cours » à la fois. */
-  const [claimingTier, setClaimingTier] = useState<RewardTierKey | null>(null);
+  const [creditsBusy, setCreditsBusy] = useState(false);
+  const [natureBusy, setNatureBusy] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = async () => {
     try {
       setProgress(await getRewardsProgress());
       setError(null);
     } catch (err) {
-      setError(toUserErrorMessage(err, 'Impossible de charger vos récompenses.'));
+      setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, []);
 
-  /* Demande d'usage d'une récompense.
-   *
-   * On NE recharge pas toute la progression après le claim : la réponse du
-   * backend porte déjà `claimedTiers`, donc on fusionne localement. C'est à la
-   * fois plus rapide et ça évite qu'un échec réseau fasse clignoter la page
-   * alors que la demande a bien été enregistrée. */
-  async function handleClaim(tier: RewardTier) {
-    setClaimingTier(tier.tier);
+  /* Une mission confirmée ailleurs (autre onglet, autre appareil) fait évoluer
+   * la marge : on rafraîchit sans rechargement. */
+  useUserStream((message) => {
+    if (message.type === 'client.rewards_updated') void load();
+  });
+  useRealtime();
+
+  /* Récompense nature réclamée : le backend répond l'état à jour, on
+   * recharge plutôt que de deviner localement. */
+  const handleClaimNature = async (tier: string) => {
+    setNatureBusy(tier);
     try {
-      const result = await claimTier(tier.tier);
-      setProgress((current) =>
-        current ? { ...current, claimedTiers: result.claimedTiers } : current,
-      );
+      await claimNatureReward(tier);
+      await load();
+      toast({ title: 'Demande enregistrée.', description: 'Notre équipe vous contactera.', variant: 'success' });
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Réclamation impossible pour le moment.'));
+    } finally {
+      setNatureBusy(null);
+    }
+  };
+
+  /* Crédits : le montant n'est JAMAIS envoyé par le client, le backend
+   * verse ce qu'il a calculé. */
+  const handleClaimCredits = async () => {
+    setCreditsBusy(true);
+    try {
+      const result = await claimCredits();
+      await load();
       toast({
-        title: `Palier ${tier.label} atteint`,
-        description: 'Votre demande est enregistrée.',
+        title: 'Crédits ajoutés à votre solde.',
+        description: `${formatFCFA(result.claimedXAF)} · nouveau solde ${formatFCFA(result.newBalanceXAF)}`,
         variant: 'success',
       });
     } catch (err) {
-      toast({
-        title: 'Demande non enregistrée',
-        description: toUserErrorMessage(err, 'La demande n’a pas pu être enregistrée.'),
-        variant: 'error',
-      });
-      /* Le serveur reste la source de vérité : on relit pour refléter un
-       * éventuel doublon (400 « déjà enregistrée »). */
-      void load();
+      setError(toUserErrorMessage(err, 'Impossible d’ajouter les crédits à votre solde.'));
     } finally {
-      setClaimingTier(null);
+      setCreditsBusy(false);
     }
-  }
+  };
 
-  if (loading) return <RecompensesSkeleton />;
+  const timeline = useMemo(
+    () => (progress ? buildRewardTimeline(progress) : []),
+    [progress],
+  );
 
-  if (error || !progress) {
+  if (loading) {
     return (
-      <div className="space-y-4">
-        <PageHeader title="Programme de récompenses" />
-        <Alert variant="error">{error ?? 'Données indisponibles.'}</Alert>
-        <Button onClick={() => void load()}>Réessayer</Button>
+      <div className="flex min-h-40 items-center justify-center py-10" role="status">
+        <span className="sr-only">Chargement…</span>
+        <Spinner />
       </div>
     );
   }
 
-  const { missionCount, currentTier, nextTier, tiers } = progress;
+  if (!progress) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Programme de fidélité" backHref="/client" />
+        <Alert variant="error">{error ?? 'Progression indisponible.'}</Alert>
+      </div>
+    );
+  }
+
+  const badge = rewardBadgeView(progress.currentTier);
+  const creditPercent = creditProgressPercent(progress.cumulativeMarginXAF, progress.trancheXAF);
 
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Programme de récompenses"
-        description="Plus tu dépanne, plus tu gagnes."
+        title="Programme de fidélité"
+        description="Vos crédits et vos récompenses évoluent avec la valeur que vous générez chez Relio."
+        backHref="/client"
+        actions={
+          <Link href="/client/parrainage" className="text-sm font-medium text-primary hover:underline">
+            Inviter un ami
+          </Link>
+        }
       />
 
-      {/* ── Niveau actuel ── */}
+      {error ? <Alert variant="error">{error}</Alert> : null}
+
+      {/* ── Hero : marge cumulée + palier courant ── */}
       <GradientHeroCard tone="brand">
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Niveau actuel
-            </p>
-            <div className="mt-2">
-              {/* `NONE` ne rend rien : l'absence de badge est l'information. */}
-              <RewardBadge tier={currentTier} />
-            </div>
-            <p className="mt-2.5">
-              <span className="figure tabular-nums text-4xl font-extrabold text-relio-orange-bright">
-                {missionCount}
-              </span>{' '}
-              <span className="text-sm font-medium text-slate-300">
-                mission{missionCount !== 1 ? 's' : ''} validée{missionCount !== 1 ? 's' : ''}
-              </span>
-            </p>
-          </div>
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-white shadow-float">
-            <Icon name="sparkles" size="lg" />
-          </span>
+        <p className="text-sm text-white/80">Marge cumulée générée</p>
+        <p className="mt-1 text-3xl font-bold tabular-nums text-white">
+          {formatFCFA(progress.cumulativeMarginXAF)}
+        </p>
+        <div className="relative mt-4 flex flex-wrap items-center gap-2.5">
+          {badge ? <RewardBadge tier={progress.currentTier} size="sm" /> : null}
+          {progress.currentTier === 'NONE' ? (
+            <span className="text-xs text-white/80">
+              Premier palier à {formatFCFA(progress.tiers[0]?.margeXAF ?? 0)} de marge
+            </span>
+          ) : (
+            <span className="text-xs text-white/80">Votre palier actuel</span>
+          )}
         </div>
       </GradientHeroCard>
 
-      {/* ── Progression vers le prochain palier ── */}
-      {nextTier ? (
-        <section
-          aria-label="Progression vers le prochain palier"
-          className="rounded-2xl border border-border bg-card p-4"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Prochain palier
-              </p>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
-                <RewardBadge tier={nextTier.tier} size="sm" />
-                <span className="figure tabular-nums text-muted-foreground">
-                  {missionCount} / {nextTier.missions}
-                </span>
-              </p>
+      {/* ── Crédits ── */}
+      <section className="space-y-3">
+        <SectionHeader title="Crédits" />
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm text-muted-foreground">Disponible sur votre solde</p>
+                <p className="text-2xl font-bold tabular-nums">
+                  {formatFCFA(progress.creditsAvailable)}
+                </p>
+              </div>
+              <Button
+                onClick={handleClaimCredits}
+                isLoading={creditsBusy}
+                disabled={!canClaimCredits(progress.creditsAvailable) || creditsBusy}
+              >
+                <Icon name="plus" size="sm" />
+                Ajouter à mon solde
+              </Button>
             </div>
-          </div>
 
-          <div
-            className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted"
-            role="progressbar"
-            aria-valuenow={progressPercent(missionCount, nextTier.missions)}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={`Progression vers le palier ${nextTier.label}`}
-          >
             <div
-              className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${progressPercent(missionCount, nextTier.missions)}%` }}
-            />
-          </div>
-
-          <p className="mt-3 text-sm text-muted-foreground">
-            Encore <strong className="figure tabular-nums">{nextTier.remaining}</strong> mission
-            {nextTier.remaining !== 1 ? 's' : ''} pour débloquer {nextTier.reward.toLowerCase()}{' '}
-            <span className="whitespace-nowrap">({formatFCFA(nextTier.rewardValueXAF)})</span>.
-          </p>
-        </section>
-      ) : (
-        <section className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2">
-            <Icon name="sparkles" size="sm" className="text-primary" />
-            <p className="text-sm font-semibold">
-              Vous avez atteint le dernier palier du programme. Bravo !
+              className="h-2 w-full overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={creditPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progression vers le prochain crédit"
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width]"
+                style={{ width: `${creditPercent}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Encore{' '}
+              <strong className="figure tabular-nums">
+                {formatFCFA(progress.marginToNextCreditXAF)}
+              </strong>{' '}
+              de marge pour {formatFCFA(progress.creditPerTrancheXAF)} de crédit. Chaque tranche de{' '}
+              {formatFCFA(progress.trancheXAF)} vaut {formatFCFA(progress.creditPerTrancheXAF)}.
             </p>
-          </div>
-        </section>
-      )}
+            <p className="text-xs text-muted-foreground">
+              Crédits cumulés {formatFCFA(progress.creditsEarned)} · déjà ajoutés{' '}
+              {formatFCFA(progress.creditsClaimed)}.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
 
-      {/* ── Les 4 paliers ── */}
-      <section className="space-y-1">
-        <SectionHeader title="Vos paliers" icon="sparkles" />
+      {/* ── Badges ── */}
+      <section className="space-y-3">
+        <SectionHeader title="Badges" />
         <ul className="space-y-2">
-          {tiers.map((tier) => {
-            const status = tierStatus(tier, missionCount, progress.reachedTiers, progress.claimedTiers);
-            const tierPercent = progressPercent(missionCount, tier.missions);
-            const remaining = missionsRemaining(tier, missionCount);
-            const isReached = status === 'CLAIMED' || status === 'REACHED';
-
+          {progress.tiers.map((tier) => {
+            const status = badgeStatus(tier, progress.cumulativeMarginXAF, progress.reachedTiers);
+            const percent = progressPercent(progress.cumulativeMarginXAF, tier.margeXAF);
             return (
               <li key={tier.tier}>
-                <article
-                  className={[
-                    'rounded-2xl border bg-card p-4 transition-colors',
-                    isReached ? 'border-primary/40' : 'border-border',
-                  ].join(' ')}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg">
-                      {isReached ? (
-                        <Icon name="badge-check" size="md" />
-                      ) : (
-                        <Icon name="shield" size="sm" />
-                      )}
-                    </span>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <RewardBadge tier={tier.tier} size="sm" />
-                        <span className="figure tabular-nums text-xs text-muted-foreground">
-                          {tier.missions} missions
-                        </span>
-                        {status !== 'REACHED' && status !== 'IN_PROGRESS' ? (
-                          <Badge variant={status === 'CLAIMED' ? 'success' : 'neutral'} className="text-2xs">
-                            {TIER_STATUS_LABEL[status]}
-                          </Badge>
-                        ) : null}
-                      </div>
-
-                      <p className="mt-1.5 text-sm font-medium">{tier.reward}</p>
-                      <p className="figure tabular-nums text-xs text-muted-foreground">
-                        Valeur indicative : {formatFCFA(tier.rewardValueXAF)}
-                      </p>
-
-                      {/* Progression individuelle du palier. */}
-                      {status === 'IN_PROGRESS' ? (
-                        <div
-                          className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-muted"
-                          role="progressbar"
-                          aria-valuenow={tierPercent}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-label={`Progression vers le palier ${tier.label}`}
-                        >
-                          <div
-                            className="h-full rounded-full bg-muted-foreground transition-all"
-                            style={{ width: `${tierPercent}%` }}
-                          />
-                        </div>
-                      ) : null}
-
-                      {status === 'REACHED' ? (
-                        <Button
-                          className="mt-3 w-full sm:w-auto"
-                          disabled={claimingTier !== null}
-                          isLoading={claimingTier === tier.tier}
-                          onClick={() => void handleClaim(tier)}
-                        >
-                          Utiliser ma récompense
-                        </Button>
-                      ) : null}
-
-                      {status === 'CLAIMED' ? (
-                        <p className="mt-2.5 text-xs text-muted-foreground">
-                          Demande enregistrée : un conseiller Relio vous contacte pour
-                          l&apos;appliquer.
-                        </p>
-                      ) : null}
-
-                      {status === 'LOCKED' ? (
-                        <p className="mt-2.5 text-xs text-muted-foreground">
-                          Encore {remaining} mission{remaining !== 1 ? 's' : ''} pour
-                          débloquer ce palier.
-                        </p>
-                      ) : null}
+                <Card>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-2 text-sm font-medium">
+                        <span aria-hidden="true">{tier.emoji}</span>
+                        {tier.label}
+                      </span>
+                      <Badge variant={status === 'REACHED' ? 'success' : 'neutral'}>
+                        {BADGE_STATUS_LABEL[status]}
+                      </Badge>
                     </div>
-                  </div>
-                </article>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFCFA(tier.margeXAF)} de marge
+                      {status === 'REACHED'
+                        ? ' · atteint'
+                        : ` · encore ${formatFCFA(marginRemaining(tier, progress.cumulativeMarginXAF))}`}
+                    </p>
+                  </CardContent>
+                </Card>
               </li>
             );
           })}
         </ul>
       </section>
 
-      <HowItWorks />
+      {/* ── Récompenses nature ── */}
+      <section className="space-y-3">
+        <SectionHeader title="Récompenses nature" />
+        <ul className="space-y-2">
+          {progress.natureThresholds.map((tier) => {
+            const status = natureStatus(
+              tier,
+              progress.cumulativeMarginXAF,
+              progress.natureReached,
+              progress.natureClaimed,
+            );
+            const claimable = isNatureClaimable(
+              tier,
+              progress.cumulativeMarginXAF,
+              progress.natureReached,
+              progress.natureClaimed,
+            );
+            return (
+              <li key={tier.tier}>
+                <Card>
+                  <CardContent className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-sm font-medium">{tier.label}</span>
+                      <Badge variant={status === 'CLAIMED' ? 'info' : status === 'REACHED' ? 'success' : 'neutral'}>
+                        {NATURE_STATUS_LABEL[status]}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatFCFA(tier.margeXAF)} de marge cumulée
+                      {status === 'LOCKED' || status === 'IN_PROGRESS'
+                        ? ` · encore ${formatFCFA(marginRemaining(tier, progress.cumulativeMarginXAF))}`
+                        : ''}
+                    </p>
+                    {claimable ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => void handleClaimNature(tier.tier)}
+                        isLoading={natureBusy === tier.tier}
+                        disabled={natureBusy !== null}
+                      >
+                        <Icon name="sparkles" size="sm" />
+                        Réclamer ma récompense
+                      </Button>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
-      {/* Accès au parrainage (page voisine, thématiquement proche). */}
-      <Link
-        href="/client/parrainage"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500">
-          <Icon name="send" size="md" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Parrainer un ami</span>
-          <span className="block truncate text-xs text-muted-foreground">
-            Invitez vos proches et partagez votre code Relio.
-          </span>
-        </span>
-        <Icon name="arrow-right" size="sm" className="shrink-0 text-muted-foreground" />
-      </Link>
+      {/* ── Timeline ── */}
+      <section className="space-y-3">
+        <SectionHeader title="Vos paliers" />
+        {timeline.length === 0 ? (
+          <EmptyState
+            icon={<Icon name="badge-check" size="lg" />}
+            title="Aucun palier pour le moment"
+            description="Vos paliers se débloquent au fil de la valeur que vous générez chez Relio."
+            action={
+              <Button variant="secondary" onClick={() => void load()}>
+                Actualiser
+              </Button>
+            }
+          />
+        ) : (
+          <ol className="space-y-2">
+            {timeline.map((entry) => (
+              <li
+                key={entry.key}
+                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  {entry.emoji ? <span aria-hidden="true">{entry.emoji}</span> : null}
+                  <span className="font-medium">{entry.label}</span>
+                  <Badge variant="outline">
+                    {entry.kind === 'BADGE' ? 'Badge' : 'Récompense'}
+                  </Badge>
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatFCFA(entry.margeXAF)}
+                  {entry.claimed ? ' · en cours de traitement' : ''}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </div>
   );
 }

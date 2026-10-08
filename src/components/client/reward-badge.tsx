@@ -5,7 +5,12 @@ import {
 } from '@/lib/rewards-view';
 
 /**
- * Chantier #4A — Badge de niveau du programme de récompenses.
+ * Chantier 4-FONDATIONS-C — Badge de niveau du programme de fidélité LTV.
+ *
+ * API INCHANGÉE (`tier`, `size`, `className`) : l'intégration existante
+ * (`/client/profil`) n'a pas à être touchée. Seule la table de présentation
+ * change : les paliers sont désormais FIDELE / OR / PLATINE (l'ancien
+ * BRONZE n'existe plus) et les seuils portent sur la MARGE CUMULÉE.
  *
  * COMPOSANT D'AFFICHAGE PUR : toute la décision (emoji, libellé, classes
  * sémantiques, et le cas `NONE` → rien) est dans `lib/rewards-view.ts`, qui

@@ -68,8 +68,14 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   // `/client/recompenses`. SUIVI.
   REWARD_TIER_REACHED: 'FOLLOW_UP',
   // Une mission écartée par décision anti-fraude : le client doit comprendre
-  // pourquoi son compteur n'a pas bougé, donc ACTION.
+  // pourquoi sa marge n'a pas bougé, donc ACTION.
   REWARD_MISSION_NOT_COUNTED: 'ACTION',
+  // ── Chantier 4-FONDATIONS-C — refonte LTV ──
+  // Des crédits sont disponibles : sans clic du client, ils restent acquis
+  // mais NON versés au solde. C'est une ACTION, pas un suivi.
+  REWARD_CREDIT_EARNED: 'ACTION',
+  // Un palier nature est atteint et doit être réclamé : ACTION.
+  REWARD_NATURE_REACHED: 'ACTION',
   // ── INFO : historique ou secondaire ──
   MISSION_AVAILABLE: 'INFO',
   ADMIN_MESSAGE: 'INFO',
@@ -247,10 +253,25 @@ export function getActionForNotification(
         : NO_ACTION;
 
     case 'REWARD_MISSION_NOT_COUNTED':
-      // Une mission a été écartée du compteur : le client veut comprendre son
-      // niveau. Même surface que le palier atteint.
+      // Une mission a été écartée de la marge : le client veut comprendre.
+      // Même surface que le palier atteint.
       return role === 'CLIENT'
         ? { label: 'Voir mes récompenses', href: '/client/recompenses' }
+        : NO_ACTION;
+
+    /* ── Chantier 4-FONDATIONS-C : crédits et nature (même surface) ── */
+
+    case 'REWARD_CREDIT_EARNED':
+      // Le crédit ne se verse que sur demande : le bouton doit emmener
+      // directement vers l'action, pas vers une liste à parcourir.
+      return role === 'CLIENT'
+        ? { label: 'Ajouter à mon solde', href: '/client/recompenses' }
+        : NO_ACTION;
+
+    case 'REWARD_NATURE_REACHED':
+      // Récompense nature à réclamer (versement manuel ensuite).
+      return role === 'CLIENT'
+        ? { label: 'Réclamer ma récompense', href: '/client/recompenses' }
         : NO_ACTION;
 
     default:
