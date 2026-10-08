@@ -186,8 +186,129 @@ void test('formulaire de devis simple : aperçu, seuil et bouton bloqué', () =>
   assert.doesNotMatch(page, /commission Relio 2 %/);
 });
 
+/* ── RÉGRESSION 4-A : RÈGLE DES HOOKS ──────────────────────────────────
+ *
+ * Le chantier 4-A (commit 7dc1818) a ajouté un `useMemo` ligne 447 de
+ * `technicien/demandes/[id]/page.tsx`, soit APRÈS les returns anticipés
+ * `if (loading)` / `if (error && !demande)` / `if (!demande) return null`.
+ * Le nombre de hooks variait alors entre deux rendus (14 au skeleton, 15
+ * avec les données) : React levait « Rendered more hooks than during the
+ * previous render » et TOUTE page détail mission technicien tombait sur
+ * `src/app/error.tsx` (« Une erreur est survenue »).
+ *
+ * `tsc` ne voit pas cette faute. `oxlint` n'a AUCUNE règle react-hooks
+ * (vérifié : `oxlint --rules` ne contient ni rules-of-hooks ni
+ * exhaustive-deps) et les autres tests de ce fichier sont des assertions
+ * par regex qui vérifient la PRÉSENCE des appels, jamais leur POSITION :
+ * ils sont donc passent à vide sur ce bug. D'où ce test, et le lint
+ * `lint:hooks` (eslint-plugin-react-hooks) ajouté en complément.
+ *
+ * Le contrôle est volontairement CIBLÉ, pas un parseur général : dans ce
+ * fichier, les returns anticipés sont les `if (` indentés de 2 espaces
+ * (niveau composant), ce qui est sans ambiguïté. Un parseur maison a été
+ * essayé puis écarté : il produisait un faux positif sur
+ * `technicien/page.tsx` (un `return` dans un callback de `useEffect`). */
+
+const TECHNICIAN_MISSION_PAGE = '../app/technicien/demandes/[id]/page.tsx';
+
+/** Retire commentaires de ligne et de bloc : un nom de hook cité dans une
+ *  explication ne doit jamais compter comme un appel de hook. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[^\S\n]*\/\/.*$/gm, '');
+}
+
+/** Lignes (1-indexées) où un hook React est appelé APRÈS la déclaration du
+ *  composant — donc dans son corps, pas dans un helper de module. */
+function hookLines(source: string): number[] {
+  const lines = stripComments(source).split('\n');
+  const componentStart = lines.findIndex((line) => /^export (default )?function [A-Z]/.test(line));
+  if (componentStart < 0) return [];
+  return lines
+    .slice(componentStart)
+    .map((line, index) => [componentStart + index + 1, line] as const)
+    .filter(([, line]) => /\buse[A-Z][A-Za-z0-9]*\s*\(/.test(line))
+    .map(([line]) => line);
+}
+
+void test('RÉGRESSION : aucun hook après un return anticipé dans la page mission', () => {
+  const source = read(TECHNICIAN_MISSION_PAGE);
+  const lines = source.split('\n');
+
+  // Premier return anticipé du composant : `if (...) { return ... }` en
+  // indentation 2 espaces.
+  const earlyReturnIndex = lines.findIndex((line) => /^ {2}if \(/.test(line));
+  assert.ok(earlyReturnIndex > 0, 'return anticipé introuvable : le test ne peut plus rien garantir');
+
+  const hooks = hookLines(source);
+  assert.ok(hooks.length > 10, `hooks détectés : ${hooks.length} — le motif de recherche a régressé`);
+
+  const lastHook = Math.max(...hooks);
+  assert.ok(
+    lastHook < earlyReturnIndex + 1,
+    `Hook React appelé ligne ${lastHook}, APRÈS le return anticipé ligne ${earlyReturnIndex + 1} : ` +
+      'violation de la règle des Hooks (« Rendered more hooks than during the previous render »).',
+  );
+});
+
+void test('RÉGRESSION : le bloc dérivé du devis ne contient aucun hook', () => {
+  const code = stripComments(read(TECHNICIAN_MISSION_PAGE));
+
+  // `previewTechnicianQuote` est un calcul trivial sur un nombre : le hook de
+  // mémoïsation introduit par 4-A n'apportait rien et était la cause exacte du
+  // crash. Il ne doit pas revenir.
+  assert.doesNotMatch(code, /\buseMemo\s*\(/, 'useMemo réintroduit dans la page mission');
+  assert.doesNotMatch(code, /\buseCallback\s*\(/, 'useCallback réintroduit dans la page mission');
+
+  // Appel direct, comme demandé.
+  assert.match(
+    code,
+    /const quotePreview =\s*\n?\s*parsedQuote\.amount === null \? null : previewTechnicianQuote\(parsedQuote\.amount\)/,
+  );
+
+  // L'import `useMemo` a disparu de la liste des hooks React.
+  assert.doesNotMatch(code, /import \{[^}]*useMemo[^}]*\} from 'react'/);
+});
+
+void test('RÉGRESSION : aucun hook après return dans les autres fichiers du chantier 4-A', () => {
+  // Même contrôle sur les autres composants touchés par 4-A : un hook après
+  // un return conditionnel y produirait le même crash silencieux.
+  const FICHIERS = [
+    '../app/technicien/revenus/page.tsx',
+    '../app/admin/finances/page.tsx',
+    '../app/technicien/demandes/page.tsx',
+    '../app/technicien/page.tsx',
+    '../app/technicien/historique/page.tsx',
+    '../components/admin/finances/relio-funds-section.tsx',
+    '../components/technician/revenus/revenue-overview.tsx',
+    '../components/technician/diagnostic/free-diagnostic-desktop-view.tsx',
+    '../components/technician/diagnostic/free-diagnostic-mobile-view.tsx',
+  ];
+
+  let verifies = 0;
+  for (const rel of FICHIERS) {
+    const source = read(rel);
+    const lines = stripComments(source).split('\n');
+    const componentStart = lines.findIndex((line) => /^export (default )?function [A-Z]/.test(line));
+    if (componentStart < 0) continue;
+    const earlyReturnIndex = lines.findIndex(
+      (line, index) => index >= componentStart && /^ {2}if \(/.test(line),
+    );
+    if (earlyReturnIndex < 0) continue; // aucun return anticipé : rien à vérifier
+    const hooks = hookLines(source);
+    if (hooks.length === 0) continue;
+    verifies += 1;
+    const lastHook = Math.max(...hooks);
+    assert.ok(
+      lastHook < earlyReturnIndex + 1,
+      `${rel} : hook ligne ${lastHook} APRÈS le return anticipé ligne ${earlyReturnIndex + 1}`,
+    );
+  }
+  // Le contrôle ne doit pas se réduire à zéro fichier vérifié.
+  assert.ok(verifies >= 3, `seulement ${verifies} fichier(s) réellement vérifiés`);
+});
+
 void test('tous les montants de la page devis passent par formatFCFA', () => {
-  const page = read('../app/technicien/demandes/[id]/page.tsx');
+  const page = read(TECHNICIAN_MISSION_PAGE);
 
   // L'ancien `formatAmount` faisait `amount.toLocaleString('fr-FR')` : c'est
   // exactement ce que la règle FCFA interdit. Il doit avoir disparu.

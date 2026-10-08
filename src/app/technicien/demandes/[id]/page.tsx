@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -441,13 +441,25 @@ export default function TechnicianDemandeDetailPage() {
 
   /* Chantier 4-FONDATIONS-A — saisie du devis : seuil de 5 000 FCFA, aperçu
    * de la commission en direct, bouton bloqué tant que le devis est hors
-   * bornes. Source unique : `@/lib/technician-quote` (le backend revalide). */
+   * bornes. Source unique : `@/lib/technician-quote` (le backend revalide).
+   *
+   * ⚠️ AUCUN HOOK ICI — et c'est délibéré. Ce bloc est situé APRÈS les
+   * returns anticipés (`if (loading)`, `if (error && !demande)`,
+   * `if (!demande) return null`). Appeler un hook React après un return
+   * conditionnel fait varier le nombre de hooks entre deux rendus
+   * (render 1 sur skeleton = 14, render 2 avec données = 15) : React lève
+   * alors « Rendered more hooks than during the previous render » et toute
+   * la page tombe sur `src/app/error.tsx`.
+   *
+   * Régression introduite par 4-A (commit 7dc1818) via un `useMemo` ici,
+   * puis supprimée : `previewTechnicianQuote` est un calcul trivial sur un
+   * nombre, la mémoïsation n'apportait rien. Si ce bloc devient coûteux,
+   * la correction est de le remonter AVANT le premier return — jamais
+   * d'ajouter un hook ici. Verrouillé par `src/lib/technician-quote.test.ts`. */
   const parsedQuote = quoteAmountError(amountValue);
   const quoteAmountMessage = parsedQuote.error;
-  const quotePreview = useMemo(() => {
-    if (parsedQuote.amount === null) return null;
-    return previewTechnicianQuote(parsedQuote.amount);
-  }, [parsedQuote.amount]);
+  const quotePreview =
+    parsedQuote.amount === null ? null : previewTechnicianQuote(parsedQuote.amount);
   const canSubmitQuote =
     !actionBusy &&
     parsedQuote.amount !== null &&
