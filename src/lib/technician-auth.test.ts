@@ -225,3 +225,74 @@ void test('#5B — les zones proposées restent celles de la ville de référenc
   assert.match(zonesPage, /if \(!referenceCity\) return \[\];/);
   assert.match(zonesPage, /referenceCity\.zones/);
 });
+/* ── Contraste du tunnel technicien ────────────────────────────────────────
+ *
+ * Ces tests verrouillent des décisions de LISIBILITE, pas des couleurs
+ * aesthetiques. Le defaut qu'ils couvrent : sur fond sombre, un bouton qui
+ * reste orange meme inactif se lit comme une couleur, pas comme une action
+ * indisponible ; et un champ pose sur un fond noir sans relief donne nulle
+ * part ou saisir. Ces deux defauts sont invisibles au `tsc`, au lint et aux
+ * autres tests — ils n'apparaissent qu'a l'ecran.
+ */
+
+void test('le bouton de soumission distingue l’inactif de l’actif', () => {
+  /* Le design system n'a qu'un etat inactif : l'orange attenue. Il faut donc
+     que le formulaire pose explicitement un gris neutre quand l'action n'est
+     pas possible, et ne rendre l'orange vif qu'au moment ou elle le devient. */
+  assert.match(technicianForm, /canSubmit\s*\?/);
+  assert.match(technicianForm, /bg-primary text-primary-foreground/);
+  assert.match(technicianForm, /bg-muted text-muted-foreground/);
+  /* Et l'etat inactif reste vraiment inactif : sans cela, le gris n'est
+     qu'un habillage d'un bouton cliquable. */
+  assert.match(technicianForm, /disabled=\{!canSubmit\}/);
+});
+
+void test('les champs sont posés sur une surface perceptible', () => {
+  /* Un fond a peine plus clair que la page donne nulle part ou saisir : le
+     champ doit se detacher par sa surface ET par sa bordure. */
+  assert.match(technicianForm, /bg-white\/5/);
+  assert.match(technicianForm, /border-white\/10/);
+  assert.match(technicianForm, /placeholder:text-white\/40/);
+  /* La meme surface doit couvrir les six champs, pas seulement le premier :
+     une surcharge oubliee laisse un champ invisible au milieu du formulaire. */
+  const usages = (technicianForm.match(/dark && FIELD_SURFACE/g) ?? []).length;
+  assert.ok(usages >= 6, `seules ${usages} surcharge(s) de champ sur la coquille sombre`);
+});
+
+void test('la categorie selectionnee se distingue des autres', () => {
+  /* Voile orange ET bordure orange : sur un fond aussi sombre, une bordure
+     seule disparait, et un voile seul passe pour un simple fond clair. */
+  assert.match(technicianForm, /border-orange-500 bg-orange-500\/15/);
+  assert.match(technicianForm, /border-white\/10 bg-white\/5/);
+});
+
+void test('les garanties de réassurance ont une surface et un texte lisible', () => {
+  /* Un `<li>` sans surface laissait le texte flotter dans le vide du panneau
+     nuit : le titre se lisait, la description ne se lisait pas. */
+  assert.match(authSplit, /border-white\/10 bg-white\/5/);
+  assert.match(authSplit, /text-white\/70/);
+  /* L'icone seule ne porte pas la hierarchie : elle doit rester accentuee. */
+  assert.match(authSplit, /bg-orange-500\/15 text-orange-400/);
+});
+
+void test('la barre de progression annonce sa valeur', () => {
+  assert.match(authSplit, /Complétion du formulaire/);
+  assert.match(authSplit, /from-orange-500 to-amber-500/);
+  /* Le pourcentage est annonce aux technologies d'assistance : une barre qui
+     bouge en silence n'est pas une progression pour un lecteur d'ecran. */
+  assert.match(authSplit, /aria-live="polite"/);
+});
+
+void test('la coquille sombre ne laisse aucun texte au ton par defaut', () => {
+  /* Le theme clair du design system sur une coquille nuit donne un texte
+     presque invisible : la surcharge doit couvrir explicitement les tons
+     utilises par les champs, pas seulement le fond. */
+  const bloc = authSplit.slice(
+    authSplit.indexOf('[&_label]'),
+    authSplit.indexOf('>', authSplit.indexOf('[&_label]')),
+  );
+  for (const jeton of ['[&_input]', '[&_select]']) {
+    assert.ok(bloc.includes(jeton), `${jeton} non surcharge sur la coquille sombre`);
+  }
+  assert.match(authSplit, /\[&_\.text-muted-foreground\]:text-white\/60/);
+});

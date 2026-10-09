@@ -31,6 +31,19 @@ interface TechnicianAuthFormProps {
 // Aligné sur le contrat backend (@MinLength(8) sur le mot de passe).
 const MIN_PASSWORD_LENGTH = 8;
 
+/* Fond des champs sur la coquille sombre.
+ *
+ * Le theme par defaut pose `bg-card` (blanc) et une bordure de theme. Sur le
+ * fond nuit de la coquille, un blanc pur eblouis et une bordure claire se
+ * confond avec lui : les champs devenaient invisibles, et le visiteur ne
+ * savait pas ou saisir. Le blanc a 5 % donne un gris perceptible sur le nuit
+ * sans surexposer dans l'oeil, la bordure a 10 % se distingue sans crier.
+ *
+ * `dark` est deja teste dans ce fichier (coquille split) ; hors de la coquille
+ * sombre, le theme par defaut s'applique — d'ou la surcharge conditionnelle
+ * plutot qu'une classe posee en dur. */
+const FIELD_SURFACE = 'h-12 rounded-xl bg-white/5 text-white placeholder:text-white/40 focus:border-orange-500 focus-visible:ring-orange-500/30 transition-colors';
+
 const CATEGORY_ICON: Record<string, import('@/components/ui/icon').IconName> = {
   electricite: 'zap',
   plomberie: 'droplet',
@@ -185,6 +198,7 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="Votre prénom"
               autoComplete="given-name"
+              className={cn(dark && FIELD_SURFACE)}
             />
           </Field>
           <Field label="Nom *" htmlFor="tech-lastName">
@@ -194,6 +208,7 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Votre nom"
               autoComplete="family-name"
+              className={cn(dark && FIELD_SURFACE)}
             />
           </Field>
         </div>
@@ -208,6 +223,7 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
             placeholder="+237 6XX XX XX XX"
             inputMode="tel"
             autoComplete="tel"
+            className={cn(dark && FIELD_SURFACE)}
           />
         </Field>
       ) : null}
@@ -220,6 +236,7 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
           type="email"
           placeholder="vous@exemple.cm"
           autoComplete="email"
+          className={cn(dark && FIELD_SURFACE)}
         />
       </Field>
 
@@ -232,13 +249,13 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
             type={showPassword ? 'text' : 'password'}
             placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
             autoComplete={isSignUp ? 'new-password' : 'current-password'}
-            className="pr-10"
+            className={cn('pr-10', dark && FIELD_SURFACE)}
           />
           <button
             type="button"
             tabIndex={-1}
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted-foreground hover:text-foreground"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 transition-colors hover:text-white"
             aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           >
             {showPassword ? (
@@ -301,6 +318,7 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
                 value={cityId}
                 onChange={(e) => setCityId(e.target.value)}
                 disabled={citiesLoading || cities.length === 0}
+                className={cn(dark && FIELD_SURFACE)}
               >
                 <option value="">
                   {citiesLoading
@@ -316,12 +334,12 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
                 ))}
               </Select>
               {citiesLoading ? (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <p className={cn('mt-1.5 flex items-center gap-1.5 text-xs', dark ? 'text-white/50' : 'text-muted-foreground')}>
                   <Spinner size="sm" />
                   Chargement des villes…
                 </p>
               ) : (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className={cn('mt-1.5 text-xs', dark ? 'text-white/50' : 'text-muted-foreground')}>
                   Votre ville détermine les missions que vous recevez et les zones que vous
                   pouvez couvrir.
                 </p>
@@ -336,7 +354,9 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
           <span className="block text-sm font-medium">
             Catégories de réparation *{' '}
             {categories.length > 0 ? (
-              <span className="text-xs text-muted-foreground">({categories.length} sélectionnée{categories.length > 1 ? 's' : ''})</span>
+              <span className={cn('text-xs', dark ? 'text-white/60' : 'text-muted-foreground')}>
+                ({categories.length} sélectionnée{categories.length > 1 ? 's' : ''})
+              </span>
             ) : null}
           </span>
           <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Catégories maîtrisées">
@@ -350,19 +370,22 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
                   aria-checked={selected}
                   onClick={() => toggleCategory(cat.id)}
                   className={cn(
-                    'flex items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'flex items-center gap-3 rounded-xl border p-4 text-left text-sm transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40',
                     /* Sur la coquille split (fond `slate-950`), les jetons de
                        thème (`bg-card`, `text-foreground`) produiraient des
                        cartes CLAIRES sur fond sombre. Mêmes classes que
                        `ClientAuthForm` : pas de changement de design system,
-                       seulement le pendant sombre du même composant. */
+                       seulement le pendant sombre du même composant.
+                       La sélection pose un voile orange ET une bordure orange :
+                       un seul des deux ne suffit pas — la bordure seule
+                       disparaissait sur un fond aussi sombre que le voile. */
                     selected
                       ? dark
-                        ? 'border-orange-500 bg-orange-500/20 text-white'
+                        ? 'border-orange-500 bg-orange-500/15 text-white'
                         : 'border-primary bg-secondary text-secondary-foreground'
                       : dark
-                        ? 'border-slate-700/80 bg-slate-800/60 text-slate-100 hover:bg-slate-800'
+                        ? 'border-white/10 bg-white/5 text-white/80 hover:border-white/20 hover:bg-white/10'
                         : 'border-border bg-card text-foreground hover:bg-muted',
                   )}
                 >
@@ -375,14 +398,14 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
                           ? 'text-orange-400'
                           : 'text-primary'
                         : dark
-                          ? 'text-slate-400'
+                          ? 'text-white/60'
                           : 'text-muted-foreground',
                     )}
                   />
                   <span className="min-w-0">
                     <span className="font-medium">{cat.label}</span>
                     {cat.description ? (
-                      <span className="ml-1 hidden text-xs text-muted-foreground sm:inline">
+                      <span className="ml-1 hidden text-xs sm:inline">
                         {cat.description}
                       </span>
                     ) : null}
@@ -396,7 +419,25 @@ export function TechnicianAuthForm({ mode, dark = false, onProgressChange }: Tec
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting} disabled={!canSubmit}>
+      {/* Le design system n'a qu'un etat « desactive » : le bouton y reste
+          orange, simplement attenue. Sur fond sombre, un orange attenue
+          se lit comme une couleur terne, pas comme une action indisponible —
+          le visiteur ne distingueait pas « pas encore valide » d'« actifs ».
+          L'etat inactif prend donc un gris neutre, et l'orange vif est
+          reserve au moment ou l'action devient possible. */}
+      <Button
+        type="submit"
+        size="lg"
+        isLoading={isSubmitting}
+        disabled={!canSubmit}
+        data-enabled={canSubmit}
+        className={cn(
+          'w-full transition-colors',
+          canSubmit
+            ? 'bg-primary text-primary-foreground opacity-100 hover:bg-primary-hover'
+            : 'bg-muted text-muted-foreground opacity-60',
+        )}
+      >
         {isSignUp ? 'Créer mon compte technicien' : 'Se connecter'}
       </Button>
     </form>

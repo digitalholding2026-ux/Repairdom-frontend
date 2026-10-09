@@ -104,6 +104,7 @@ export function AuthSplit({
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-slate-950 text-slate-100">
       {/* Halos d'ambiance */}
       <div aria-hidden className="pointer-events-none absolute -top-40 -left-40 size-96 rounded-full bg-orange-500/15 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-orange-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -right-40 -bottom-40 size-96 rounded-full bg-amber-500/10 blur-3xl" />
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-4 py-8 sm:px-6 lg:flex-row lg:items-center lg:gap-16 lg:px-8">
@@ -119,8 +120,8 @@ export function AuthSplit({
             {progress !== undefined ? (
               <div role="group" aria-label="Progression du formulaire">
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-xs font-semibold text-slate-300">Complétion du formulaire</p>
-                  <p className="text-sm font-semibold text-orange-400 tabular-nums" aria-live="polite">
+                  <p className="text-sm font-medium text-white/80">Complétion du formulaire</p>
+                  <p className="text-sm font-bold text-orange-400 tabular-nums" aria-live="polite">
                     {progress}%
                   </p>
                 </div>
@@ -135,7 +136,7 @@ export function AuthSplit({
 
             <div>
               {badge ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/20 px-3 py-1 text-xs font-semibold text-orange-400">
+                <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/15 px-3 py-1 text-xs font-semibold text-orange-400">
                   <Icon name="sparkles" size="sm" />
                   {badge}
                 </span>
@@ -144,8 +145,12 @@ export function AuthSplit({
               <p className="mt-1 text-sm leading-relaxed text-slate-300">{subtitle}</p>
             </div>
 
-            {/* Surcharges ciblées du formulaire partagé pour le thème sombre */}
-            <div className="[&_label]:text-slate-100 [&_input]:bg-slate-800/80 [&_input]:border-slate-700/80 [&_input]:text-white [&_input]:placeholder:text-slate-400 [&_input]:shadow-inner [&_input]:focus:border-orange-500 [&_input]:focus-visible:ring-orange-500/30 [&_select]:bg-slate-800/80 [&_select]:border-slate-700/80 [&_select]:text-white [&_option]:bg-slate-900 [&_option]:text-white [&_.text-muted-foreground]:text-slate-300 [&_.text-error-ink]:text-red-300 [&_.text-success-ink]:text-emerald-300">
+            {/* Surcharges ciblées du formulaire partagé pour le thème sombre.
+                Le blanc à 5 % est le même fond que celui posé par le formulaire
+                lui-même sur la coquille technicien : ces règles-là sont le
+                filet pour les champs qui n'auraient pas été surchargés
+                (client, mot de passe oublié). */}
+            <div className="[&_label]:text-white/90 [&_input]:border [&_input]:border-white/10 [&_input]:bg-white/5 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:focus:border-orange-500 [&_input]:focus-visible:ring-orange-500/30 [&_select]:border-white/10 [&_select]:bg-white/5 [&_select]:text-white [&_option]:bg-slate-900 [&_option]:text-white [&_.text-muted-foreground]:text-white/60 [&_.text-error-ink]:text-red-300 [&_.text-success-ink]:text-emerald-300">
               {children}
             </div>
 
@@ -173,16 +178,23 @@ export function AuthSplit({
 
             <ul className="space-y-3 p-5 sm:p-6">
               {guarantees.map((item) => (
-                <li key={item.title} className="flex items-start gap-3">
+                /* Fond clair translucide et icone dans un halo orange : sur le
+                   panneau nuit, un simple `<li>` sans surface laissait le
+                   texte flotter dans le vide — le titre se lisait, la
+                   description ne se lisait pas. */
+                <li
+                  key={item.title}
+                  className="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm"
+                >
                   <span
                     aria-hidden
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-orange-400"
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-orange-400"
                   >
-                    <Icon name={item.icon} size="sm" />
+                    <Icon name={item.icon} size="md" />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-sm font-semibold text-white">{item.title}</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-slate-400">
+                    <span className="mt-1 block text-sm leading-relaxed text-white/70">
                       {item.text}
                     </span>
                   </span>
