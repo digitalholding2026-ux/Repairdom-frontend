@@ -22,6 +22,17 @@ export interface AppNotificationMetadata {
   disputeCategory?: string;
   disputeStatus?: string;
   resolution?: string;
+  /* ── Chantier 4B — parrainage (montants ENTIERS XAF, jamais formatés ici :
+   * le formatage est fait par `formatFCFA` à l'affichage). ─────────────── */
+  /** Montant crédité au PARRAIN, XAF entier (REFERRAL_REWARDED). */
+  referralRewardXAF?: number;
+  /** Montant crédité au FILLEUL, XAF entier (REFERRAL_WELCOME). */
+  referralWelcomeXAF?: number;
+  /** Prénom du filleul récompensé — permet au parrain de le reconnaître. */
+  referralReferredName?: string;
+  /** Action attendue : `view_referrals` (inviter davantage) | `view_balance`. */
+  referralAction?: string;
+
   /** Chantier #5A — décision KYC. `kycStatus` = statut après décision,
    *  `kycRejectionReason` = motif littéral saisi par l'admin (affiché tel
    *  quel), `kycAction` = action attendue (`view_missions` | `fix_kyc`). */

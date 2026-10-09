@@ -76,6 +76,14 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   REWARD_CREDIT_EARNED: 'ACTION',
   // Un palier nature est atteint et doit être réclamé : ACTION.
   REWARD_NATURE_REACHED: 'ACTION',
+  // ── Chantier 4B — parrainage ──
+  // Le PARRAIN est crédité : ACTION. Le crédit est versé, mais inviter un
+  // autre proche est précisément ce qui relance le mécanisme — la notification
+  // sert d'incitation, pas seulement de confirmation.
+  REFERRAL_REWARDED: 'ACTION',
+  // Le FILLEUL reçoit son bonus : RIEN à faire. Une ACTION le ferait monter en
+  // tête de page pour une action qui n'existe pas.
+  REFERRAL_WELCOME: 'FOLLOW_UP',
   // ── INFO : historique ou secondaire ──
   MISSION_AVAILABLE: 'INFO',
   ADMIN_MESSAGE: 'INFO',
@@ -243,6 +251,24 @@ export function getActionForNotification(
         : NO_ACTION;
 
     /* ── Chantier #4A — récompenses client (sans mission : `demandeId` null) ── */
+
+    /* ── Chantier 4B — parrainage (sans mission : `demandeId` null) ── */
+
+    case 'REFERRAL_REWARDED':
+      // Le crédit est déjà versé ; la seule suite utile est d'en inviter un
+      // autre. Le lien ne dépend pas du rôle, mais seule la surface client
+      // existe : un technicien n'a pas de programme de parrainage.
+      return role === 'CLIENT'
+        ? { label: 'Voir mes parrainages', href: '/client/parrainage' }
+        : NO_ACTION;
+
+    case 'REFERRAL_WELCOME':
+      // Le filleul n'a rien à faire : on le mène à son solde, où le crédit
+      // est visible. Information, pas action — d'où l'absence de bouton
+      // obligatoire côté composant.
+      return role === 'CLIENT'
+        ? { label: 'Voir mon solde', href: '/client/solde' }
+        : NO_ACTION;
 
     case 'REWARD_TIER_REACHED':
       // Un palier vient d'être franchi : la seule suite utile est d'aller

@@ -16,6 +16,11 @@ export interface SignUpInput {
   city?: string;
   address?: string;
   categories?: string[];
+  /** Chantier 4B — code de parrainage (`RELIO-XXXXX`), facultatif et
+   *  CLIENT uniquement : le backend l'ignore pour un technicien. Un code
+   *  invalide ne bloque PAS l'inscription, il crée simplement aucun
+   *  parrainage. */
+  referralCode?: string;
 }
 
 export interface SignInInput {
@@ -101,6 +106,10 @@ export async function signUp(input: SignUpInput): Promise<AuthSession> {
   if (input.role !== 'TECHNICIAN') {
     payload.city = input.city || undefined;
     payload.address = input.address || undefined;
+    /* Le code n'est envoyé que pour un CLIENT : rattacher un compte
+     * technicien consommerait un emplacement de parrain sans jamais donner
+     * lieu à une récompense. */
+    payload.referralCode = input.referralCode || undefined;
   }
 
   const data = await apiFetch<{ user: AuthUser; mode: 'real' }>('/auth/register', {
