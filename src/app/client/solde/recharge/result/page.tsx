@@ -12,7 +12,9 @@ import {
   verifyTopupIntent,
   type TopupIntent,
 } from '@/lib/api/finance-service';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { computeSaspayCollectFee, computeSaspayCollectTotal } from '@/lib/saspay-fees';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Retour navigateur SasPay → Relio (?intent=TOPUP-…).
@@ -153,9 +155,34 @@ export default function RechargeResultPage() {
               <span className="font-mono text-sm font-semibold">{intent.reference}</span>
               <StatusBadge status={intent.status} />
             </div>
-            <p className="text-2xl font-bold tabular-nums">
-              {formatCurrency(intent.amount, intent.currency)}
-            </p>
+            {/* TRANSPARENCE SASPAY : le client a validé un SOLDE, mais
+                l'opérateur a débité le total frais compris. Les deux montants
+                sont affichés séparément pour que l'écart soit explicite et
+                non subi. */}
+            <div
+              aria-label="Montants de la recharge"
+              className="space-y-2 rounded-xl border border-border bg-muted/30 px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Solde crédité</span>
+                <span className="figure font-bold tabular-nums">
+                  {formatFCFA(intent.amount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-muted-foreground">Total payé</span>
+                <span className="figure tabular-nums text-muted-foreground">
+                  {formatFCFA(computeSaspayCollectTotal(intent.amount))}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+               Dont{' '}
+                <span className="figure tabular-nums">
+                  {formatFCFA(computeSaspayCollectFee(intent.amount))}
+                </span>{' '}
+                de frais Mobile Money facturés par l&apos;opérateur.
+              </p>
+            </div>
             {intent.status === 'PENDING' ? (
               <Alert variant="info">
                 {intent.userMessage ?? 'Paiement en attente de confirmation.'} Validez la
@@ -179,7 +206,10 @@ export default function RechargeResultPage() {
             {intent.status === 'SUCCESS' ? (
               <Alert variant="success">
                 {intent.userMessage ?? 'Recharge confirmée — votre solde a été crédité.'}
-                {intent.netAmount ? ` (${formatCurrency(intent.netAmount, intent.currency)})` : ''}.
+                {intent.netAmount
+                  ? ` (${formatFCFA(intent.netAmount)})`
+                  : ''}
+                .
               </Alert>
             ) : null}
             {intent.status === 'FAILED' ? (

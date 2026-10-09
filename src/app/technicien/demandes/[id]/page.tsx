@@ -48,6 +48,7 @@ import {
   previewTechnicianQuote,
   quoteAmountError,
 } from '@/lib/technician-quote';
+import { relioAbsorbsTransferFeesNote } from '@/lib/saspay-relio-absorbs-fees';
 import { useRealtime } from '@/lib/realtime/sse-context';
 import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 import { useUserStream } from '@/lib/realtime/use-user-stream';
@@ -939,6 +940,14 @@ export default function TechnicianDemandeDetailPage() {
                       )}
                     </span>
                   </div>
+                  {/* OPTION A : le montant ci-dessus est votre net — c'est
+                    * exactement ce qui sera versé sur votre Mobile Money au
+                    * moment du retrait. Aucun montant de frais n'est
+                    * exposé : il est pris en charge par Relio. */}
+                  <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+                    <span>{relioAbsorbsTransferFeesNote('mission')}</span>
+                  </p>
                 </div>
               ) : null}
               {demande.status === 'CONFIRMED' && latestQuote ? (
@@ -1019,6 +1028,13 @@ export default function TechnicianDemandeDetailPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Le client paiera {formatFCFA(quotePreview.clientPays)}.
+                  </p>
+                  {/* OPTION A : le net ci-dessus est bien ce que vous
+                    * recevrez, frais de transfert Mobile Money compris dans
+                    * la prise en charge Relio. */}
+                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+                    <span>{relioAbsorbsTransferFeesNote('apercu-devis')}</span>
                   </p>
                 </div>
               ) : null}

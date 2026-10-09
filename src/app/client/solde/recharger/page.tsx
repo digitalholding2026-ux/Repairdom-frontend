@@ -14,7 +14,12 @@ import {
   type TopupNetwork,
 } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
+import { formatFCFA } from '@/lib/format-fcfa';
 import { validateFinanceAmount } from '@/lib/finance-limits';
+import {
+  SASPAY_COLLECT_FEE_LABEL,
+  previewTopupFees,
+} from '@/lib/saspay-fees';
 import { triggerHaptic } from '@/lib/haptics';
 import { normalizeCmPhone } from '@/lib/phone';
 import { useStableIdempotencyKey } from '@/lib/use-stable-idempotency-key';
@@ -59,6 +64,11 @@ export default function RechargerPage() {
 
   // Pré-validation UX (100 ≤ montant ≤ 10 000 000, backend = source de vérité).
   const amountError = validateFinanceAmount(effectiveAmount, 'recharge');
+
+  /* TRANSPARENCE SASPAY : aperçu des 4,5 % facturés par SasPay sur la
+   * recharge. Le montant saisi est le SOLDE voulu ; le total à payer est le
+   * montant que l'opérateur débitera réellement. */
+  const feePreview = previewTopupFees(effectiveAmount);
 
   // Clé d'idempotence stable par contenu : un retry (timeout, 503) rejoue la
   // MÊME intention côté backend au lieu de créer un second paiement. Elle
@@ -232,6 +242,41 @@ export default function RechargerPage() {
               ) : null}
             </section>
 
+            {/* TRANSPARENCE SASPAY : le client voit les 4,5 % AVANT de valider.
+                SasPay débite montant + frais et Relio ne crédite que le
+                montant : sans cet encart, le débit réel serait supérieur au
+                solde annoncé. Recalculé côté client pour rester instantané,
+                verrouillé par `saspay-fees.test.ts` contre la formule backend. */}
+            {feePreview.valid && !amountError ? (
+              <section
+                aria-label="Récapitulatif de la recharge"
+                className="space-y-2 rounded-xl border border-border bg-muted/30 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">Montant rechargé</span>
+                  <span className="figure font-semibold tabular-nums">
+                    {formatFCFA(feePreview.credited)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="text-muted-foreground">{SASPAY_COLLECT_FEE_LABEL}</span>
+                  <span className="figure tabular-nums text-muted-foreground">
+                    {formatFCFA(feePreview.fee)}
+                  </span>
+                </div>
+                <div
+                  aria-hidden
+                  className="border-t border-border pt-2"
+                />
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-semibold">Total à payer</span>
+                  <span className="figure text-base font-bold tabular-nums text-primary">
+                    {formatFCFA(feePreview.totalToPay)}
+                  </span>
+                </div>
+              </section>
+            ) : null}
+
             <section className="space-y-3">
               <SectionHeader title="Réseau" />
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -285,14 +330,14 @@ export default function RechargerPage() {
                 isLoading={submitting}
               >
                 <Icon name="zap" size="md" className="mr-2 h-5 w-5" />
-                Payer{' '}
+                Confirmer et payer{' '}
                 <span className="figure tabular-nums">
-                  {formatCurrency(Number.isInteger(effectiveAmount) ? effectiveAmount : 0, 'FCFA')}
+                  {formatFCFA(feePreview.totalToPay)}
                 </span>
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Le solde disponible est immédiatement mis à jour dès confirmation du paiement
-                par l&apos;opérateur SasPay.
+                Seul le montant rechargé est crédité sur votre compte Relio ; les frais
+                ci-dessus sont débités par votre opérateur.
               </p>
             </div>
           </form>

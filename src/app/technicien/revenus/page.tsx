@@ -24,6 +24,7 @@ import {
   fullName,
 } from '@/lib/format';
 import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
+import { relioAbsorbsTransferFeesNote } from '@/lib/saspay-relio-absorbs-fees';
 import { RevenueOverview } from '@/components/technician/revenus/revenue-overview';
 import { WithdrawalPanel } from '@/components/finance/withdrawal-panel';
 import { RevenueChart } from '@/components/technician/revenus/revenue-chart';
@@ -235,6 +236,12 @@ function MissionEarningCard({
                 {formatCurrency(mission.net, currency)}
               </span>
             </div>
+            {/* OPTION A : ce gain net est ce qui sera versé au retrait, sans
+              * retenue : les frais de transfert sont pris en charge par Relio. */}
+            <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+              <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+              <span>{relioAbsorbsTransferFeesNote('mission')}</span>
+            </p>
           </div>
           {mission.settledAt ? (
             <p className="flex items-center gap-1 text-xs text-muted-foreground">

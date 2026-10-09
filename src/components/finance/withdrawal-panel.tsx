@@ -6,6 +6,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Icon } from '@/components/ui/icon';
 import { SectionHeader } from '@/components/ui/page-header';
 import {
   createWithdrawalRequest,
@@ -20,7 +21,7 @@ import {
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { validateFinanceAmount } from '@/lib/finance-limits';
 import { normalizeCmPhone } from '@/lib/phone';
-import { feeChargeModeNote } from '@/lib/withdrawal-fees';
+import { relioAbsorbsTransferFeesNote } from '@/lib/saspay-relio-absorbs-fees';
 import { useStableIdempotencyKey } from '@/lib/use-stable-idempotency-key';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { OPERATOR_NETWORKS, type OperatorCode } from './operator-network-card';
@@ -288,8 +289,8 @@ export function WithdrawalPanel({
 
               {confirming && !result ? (
                 <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3 text-sm">
-                  <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Montant</span>
+<div className="flex justify-between gap-3">
+                    <span className="font-semibold">Vous recevrez</span>
                     <span className="font-semibold tabular-nums">{formatCurrency(effectiveAmount, currency)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
@@ -300,8 +301,11 @@ export function WithdrawalPanel({
                     <span className="text-muted-foreground">Bénéficiaire</span>
                     <span className="font-semibold">{displayMsisdn || '—'}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Des frais d&apos;opérateur peuvent s&apos;appliquer (montant exact confirmé par SasPay, aucun calcul local).
+                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+                    <span>
+                      {relioAbsorbsTransferFeesNote('retrait')}
+                    </span>
                   </p>
                   {!bare ? (
                     <div className="flex gap-2">
@@ -327,24 +331,15 @@ export function WithdrawalPanel({
                       Le débit n&apos;intervient qu&apos;après confirmation SasPay.
                     </Alert>
                   )}
-                  {/* Reçu : montants réels backend (jamais calculés ici).
-                      Montant demandé / frais / débité / reçu + mode facturation. */}
+                  {/* Reçu : montant réel backend (jamais calculé ici).
+                      OPTION A : aucun montant de frais ni de brut envoyé
+                      n'est exposé — le bénéficiaire voit le NET demandé,
+                      les frais de transfert sont pris en charge par Relio. */}
                   <div className="flex justify-between gap-3 text-sm tabular-nums">
                     <span className="text-muted-foreground">Montant demandé</span>
                     <span className="font-semibold">{formatCurrency(result.request.amount, result.request.currency)}</span>
                   </div>
-                  <WithdrawalFeeBreakdown
-                    fee={result.request.fee}
-                    chargedAmount={result.request.chargedAmount}
-                    netAmount={result.request.netAmount}
-                    feeChargeMode={result.request.feeChargeMode}
-                    currency={result.request.currency}
-                  />
-                  {result.request.fee == null ? (
-                    <p className="text-xs text-muted-foreground">
-                      Frais exacts confirmés par SasPay après traitement (aucun calcul local).
-                    </p>
-                  ) : null}
+                  <WithdrawalFeeBreakdown />
                   <p className="text-xs text-muted-foreground">
                     Référence {result.request.reference} — suivez son statut{' '}
                     {showHistory ? 'ci-dessous.' : 'dans le détail des mouvements.'}
@@ -401,42 +396,32 @@ export function WithdrawalPanel({
  * section (ex. « Détail des mouvements » côté client). `refreshToken`
  * force un rechargement (ex. après création d'une demande ailleurs). */
 
-export function WithdrawalFeeBreakdown({
-  fee,
-  chargedAmount,
-  netAmount,
-  feeChargeMode,
-  currency,
-}: {
-  fee: number | null | undefined;
-  chargedAmount: number | null | undefined;
-  netAmount: number | null | undefined;
-  feeChargeMode: string | null | undefined;
-  currency: string;
-}) {
-  if (fee == null && chargedAmount == null && netAmount == null) return null;
-  const modeNote = feeChargeModeNote(feeChargeMode);
+/** OPTION A : les frais de payout ne sont plus détaillés côté technicien.
+ *
+ *  Avant ce chantier, ce composant affichait le montant des frais SasPay,
+ *  le brut débité du solde Relio et le net versé au bénéficiaire. C'était
+ *  exact à l'époque (Relio envoyait le net, SasPay retenait ses frais sur
+ *  le montant du technicien) — et ça l'est devenu faux : Relio absorbe
+ *  désormais les frais, donc le brut majoré n'a plus de rapport avec le
+ *  débit du solde, qui reste le net demandé.
+ *
+ *  Afficher ces trois lignes serait donc à la fois interdit par la règle du
+ *  chantier (« aucun montant de frais SasPay exposé au technicien ») et
+ *  faux vis-à-vis du débit réel. Il ne reste que la mention.
+ *
+ *  Le coût supporté par Relio reste tracé côté serveur
+ *  (`FinancialTransaction.metadata` + `WithdrawalRequest.fee`), donc
+ *  toujours disponible pour la comptabilité et la réconciliation.
+ *
+ *  `feeChargeModeNote` (`@/lib/withdrawal-fees`) reste en place pour l'admin :
+ *  il n'a plus d'appelant UI ici, mais reste testé et documenté. */
+export function WithdrawalFeeBreakdown() {
   return (
-    <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-2.5 text-xs tabular-nums">
-      {fee != null ? (
-        <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Frais SasPay</span>
-          <span>{formatCurrency(fee, currency)}</span>
-        </div>
-      ) : null}
-      {chargedAmount != null ? (
-        <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Débité de votre solde</span>
-          <span className="font-medium">{formatCurrency(chargedAmount, currency)}</span>
-        </div>
-      ) : null}
-      {netAmount != null ? (
-        <div className="flex justify-between gap-2">
-          <span className="text-muted-foreground">Reçu bénéficiaire</span>
-          <span className="font-medium">{formatCurrency(netAmount, currency)}</span>
-        </div>
-      ) : null}
-      {modeNote ? <p className="text-muted-foreground">{modeNote}</p> : null}
+    <div className="rounded-lg border border-border bg-muted/20 p-2.5">
+      <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+        <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+        <span>{relioAbsorbsTransferFeesNote('retrait')}</span>
+      </p>
     </div>
   );
 }
@@ -551,15 +536,7 @@ export function WithdrawalHistory({
                   <span className="text-muted-foreground">Demandé</span>
                   <span className="font-semibold">{formatCurrency(item.amount, item.currency)}</span>
                 </div>
-                {item.fee != null || item.chargedAmount != null || item.netAmount != null ? (
-                  <WithdrawalFeeBreakdown
-                    fee={item.fee}
-                    chargedAmount={item.chargedAmount}
-                    netAmount={item.netAmount}
-                    feeChargeMode={item.feeChargeMode}
-                    currency={item.currency}
-                  />
-                ) : null}
+                <WithdrawalFeeBreakdown />
                 {item.userMessage ? (
                   <p className="text-xs text-muted-foreground">{item.userMessage}</p>
                 ) : null}
