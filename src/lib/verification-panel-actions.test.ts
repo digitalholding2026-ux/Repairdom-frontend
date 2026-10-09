@@ -100,8 +100,31 @@ void test('les URL pointent vers la boîte, pas vers une page d’accueil', () =
  * session le reflète. Les trois boutons doivent donc être présents. */
 void test('ouvrir la boîte, renvoyer et revérifier sont tous proposés', () => {
   assert.match(panel, /Ouvrir \{mailbox\.label\}/);
-  assert.match(panel, /Renvoyer l&apos;email/);
-  assert.match(panel, /J&apos;ai vérifié mon email/);
+  /* Apostrophe typographique, PAS une entité HTML. Ces deux libellés sont
+   * des expressions JavaScript : `&apos;` y est une chaîne de sept caractères
+   * affichée telle quelle. Le bug a été livré en production avant d'être
+   * vu — le test vérifie donc le caractère réel. */
+  assert.match(panel, /'Renvoyer l’email'/);
+  assert.match(panel, /'J’ai vérifié mon email'/);
+});
+
+void test('aucune entité HTML ne fuit dans une expression JavaScript', () => {
+  /* Les entités ne sont interprétées que dans le JSX. Placées dans une
+   * expression — `{condition ? 'a' : 'b &apos; c'}` — elles s'affichent
+   * littéralement. Le test cherche toute chaîne entre apostrophes simples
+   * contenant une entité, hors commentaire. */
+  const code = panel
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/[^\n]*/g, '');
+  for (const ligne of code.split('\n')) {
+    for (const [, contenu] of ligne.matchAll(/'([^'\n]*)'/g)) {
+      assert.doesNotMatch(
+        contenu,
+        /&(apos|nbsp|amp|lt|gt|quot);/,
+        `entité HTML dans une expression JavaScript : ${contenu}`,
+      );
+    }
+  }
 });
 
 void test('un fournisseur inconnu n’ouvre aucun lien', () => {

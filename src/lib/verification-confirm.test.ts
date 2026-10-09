@@ -150,9 +150,9 @@ void test('token invalide : message explicite et action de renvoi', () => {
 
 void test('le flux « renvoyer le lien » reste câblé et inchangé', () => {
   const source = code(panel());
-  /* Libellé raccourci : l'intention (le renvoi existe et vise cette
-   * adresse) est vérifiée, pas la formulation exacte. */
-  assert.match(source, /Renvoyer l&apos;email/);
+  /* Libellé raccourci, apostrophe typographique : l'intention (le renvoi
+   * existe et vise cette adresse) est vérifiée, pas la graphie. */
+  assert.match(source, /Renvoyer l.\u2019?email/);
   assert.match(source, /resendVerification\(accountEmail\)/);
 });
 

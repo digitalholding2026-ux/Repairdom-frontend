@@ -465,7 +465,7 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
               isLoading={resendBusy}
               disabled={cooldown > 0}
             >
-              {cooldown > 0 ? `Renvoyer dans ${cooldown}s` : 'Renvoyer l&apos;email'}
+              {cooldown > 0 ? `Renvoyer dans ${cooldown}s` : 'Renvoyer l’email'}
             </Button>
           </div>
 
@@ -485,7 +485,7 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline disabled:opacity-60"
             >
               <Icon name="check" size="sm" />
-              {refreshBusy ? 'Vérification…' : 'J&apos;ai vérifié mon email'}
+              {refreshBusy ? 'Vérification…' : 'J’ai vérifié mon email'}
             </button>
             {refreshMessage ? (
               <p className="mt-2 text-xs text-muted-foreground">{refreshMessage}</p>
