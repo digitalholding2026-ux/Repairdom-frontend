@@ -150,7 +150,9 @@ void test('token invalide : message explicite et action de renvoi', () => {
 
 void test('le flux « renvoyer le lien » reste câblé et inchangé', () => {
   const source = code(panel());
-  assert.match(source, /Renvoyer l&apos;email de vérification/);
+  /* Libellé raccourci : l'intention (le renvoi existe et vise cette
+   * adresse) est vérifiée, pas la formulation exacte. */
+  assert.match(source, /Renvoyer l&apos;email/);
   assert.match(source, /resendVerification\(accountEmail\)/);
 });
 
@@ -161,8 +163,10 @@ void test('le message trompeur « Adresse inconnue » a disparu', () => {
    * piège des tests trop naïfs — ici, c'est le test qu'il faut corriger. */
   const source = code(panel());
   assert.doesNotMatch(source, /Adresse inconnue/);
-  /* Remplacé par une explication qui ne laisse pas croire à un problème. */
-  assert.match(panel(), /Nous n&apos;avons pas l&apos;adresse e-mail associée à ce compte/);
+  /* Remplacé par une explication qui ne laisse pas croire à un problème.
+   * La formulation a été resserrée (« associé à ce compte » → « votre
+   * compte ») : on vérifie l'intention, pas la phrase exacte. */
+  assert.match(panel(), /Nous n&apos;avons pas identifié votre compte/);
 });
 
 /* ── Non-régression du tunnel D2/D2.5 ──────────────────────────────── */

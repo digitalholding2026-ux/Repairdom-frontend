@@ -5,11 +5,15 @@ import { BrandLogo } from '@/components/public/brand-logo';
 
 export default function TechnicienVerificationPage() {
   return (
-    <div className="space-y-4">
-      <div className="flex justify-center pt-2">
+    /* Le header global est masqué sur cette route (cf. `layout.tsx`) : ce
+     * logo centré est donc le SEUL de la page. */
+    <div className="flex flex-col items-center py-8">
+      <div className="mb-6 flex justify-center">
         <BrandLogo href="/" />
       </div>
-      <VerificationPanel role="TECHNICIAN" />
+      <div className="w-full">
+        <VerificationPanel role="TECHNICIAN" />
+      </div>
     </div>
   );
 }

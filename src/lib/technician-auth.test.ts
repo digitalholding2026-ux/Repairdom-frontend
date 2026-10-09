@@ -142,15 +142,22 @@ void test('#5B — inscription et connexion technicien utilisent AuthSplit, plus
 });
 
 void test('#5B — le tunnel technicien est IMMERSIF (header global masqué)', () => {
-  // Même mécanisme que client/layout.tsx (coquille split qui pose son logo).
+  /* Même mécanisme que client/layout.tsx (coquille split qui pose son logo).
+   * L'INTENTION est vérifiée, pas la chaîne : une assertion littérale
+   * interdisait d'ajouter une route à la liste, y compris la vérification
+   * qui devait devenir immersive elle aussi. */
   assert.match(technicienLayout, /TECHNICIAN_IMMERSIVE_AUTH_PATHS/);
-  assert.match(
-    technicienLayout,
-    /const TECHNICIAN_IMMERSIVE_AUTH_PATHS = \['\/technicien\/inscription', '\/technicien\/connexion'\]/,
-  );
+  const list = /TECHNICIAN_IMMERSIVE_AUTH_PATHS = \[([^\]]*)\]/.exec(technicienLayout);
+  assert.ok(list, 'liste des routes immersives déclarée');
+  for (const route of ['/technicien/inscription', '/technicien/connexion']) {
+    assert.ok(list![1]!.includes(route), `${route} a quitté les routes immersives`);
+  }
   assert.match(technicienLayout, /isImmersiveAuth \? null : \(/);
-  /* Le conteneur passe en pleine largeur sur ces routes. */
-  assert.match(technicienLayout, /isImmersiveAuth \? 'max-w-none px-0 py-0'/);
+  /* Le conteneur passe en pleine largeur sur ces routes. La vérification est
+   * immersive (pas de header) mais garde une largeur de lecture : sa carte
+   * s'étirerait sinon sur toute la largeur du bureau. */
+  assert.match(technicienLayout, /isFullBleedAuth \? 'max-w-none px-0 py-0'/);
+  assert.match(technicienLayout, /pathname !== '\/technicien\/verification'/);
 });
 
 void test('#5B — le header reste sur les AUTRES pages technicien', () => {

@@ -136,7 +136,10 @@ void test('le bouton propose l’accès direct (l’utilisateur est connecté)',
 void test('le parcours « renvoyer le lien » reste câblé', () => {
   const source = code(panel());
   assert.match(source, /resendVerification\(accountEmail\)/);
-  assert.match(source, /Renvoyer l&apos;email de vérification/);
+  /* L'INTENTION est vérifiée, pas le libellé exact : l'ancien texte
+   * « Renvoyer l'email de vérification » a été raccourci en « Renvoyer
+   * l'email » pour laisser la place à l'action principale au-dessus. */
+  assert.match(source, /Renvoyer l&apos;email/);
 });
 
 void test('l’écran de confirmation est toujours là (rien n’a été retiré)', () => {

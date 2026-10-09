@@ -31,7 +31,18 @@ const TECHNICIAN_PUBLIC_PATHS = ['/technicien/connexion', '/technicien/inscripti
 
 /* Chantier #5B — routes « immergées » : le tunnel d'entrée technician prend
  * tout l'écran (cf. `AuthSplit`). */
-const TECHNICIAN_IMMERSIVE_AUTH_PATHS = ['/technicien/inscription', '/technicien/connexion'];
+/* Chantier #5B — routes « immergées » : le tunnel d'entrée technicien prend
+ * tout l'écran (cf. `AuthSplit`).
+ *
+ * La vérification rejoint cette liste : c'est une page d'attente, sans
+ * navigation. Elle n'utilise pas la coquille split — sa carte est propre —
+ * d'où son exclusion du plein écran plus bas, qui lui garde une largeur de
+ * lecture. */
+const TECHNICIAN_IMMERSIVE_AUTH_PATHS = [
+  '/technicien/inscription',
+  '/technicien/connexion',
+  '/technicien/verification',
+];
 
 export default function TechnicianLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
@@ -45,6 +56,10 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
    * client au chantier #3). Toutes les AUTRES pages technicien gardent
    * header + sidebar + bottom nav. */
   const isImmersiveAuth = TECHNICIAN_IMMERSIVE_AUTH_PATHS.includes(pathname);
+  /* La vérification garde une largeur de lecture : en plein écran, sa carte
+   * s'étirerait sur toute la largeur du bureau. */
+  const isFullBleedAuth =
+    isImmersiveAuth && pathname !== '/technicien/verification';
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -74,7 +89,7 @@ export default function TechnicianLayout({ children }: Readonly<{ children: Reac
       </header>
       )}
 
-      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${isImmersiveAuth ? 'max-w-none px-0 py-0' : `py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}`}>
+      <div className={`mx-auto flex w-full flex-1 items-start gap-8 ${isFullBleedAuth ? 'max-w-none px-0 py-0' : `py-6 ${showPrivateChrome ? 'max-w-7xl px-4 sm:px-6 lg:px-8' : 'max-w-lg px-4'}`}`}>
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar label="Espace technicien" items={TECHNICIAN_NAV} />
         ) : null}

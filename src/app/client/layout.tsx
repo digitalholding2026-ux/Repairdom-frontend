@@ -39,13 +39,21 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
    * immersif (top bar + carte solde) — le header global est masqué ici
    * pour éviter toute duplication. */
   const isNeeroHome = pathname === '/client';
-  /* Connexion ET inscription partagent désormais la même coquille split
-   * immersive (`AuthSplit`), qui pose elle-même son logo. Le header global
-   * est donc masqué sur ces deux routes : plus de doublon de logo, et plus de
-   * bouton « Se connecter » affiché sur la page de connexion elle-même. */
-  const isImmersiveAuth = pathname === '/client/inscription' || pathname === '/client/connexion';
+  /* Connexion, inscription ET vérification partagent le même traitement
+   * immersif : la coquille pose son propre logo (et, pour la vérification,
+   * le centré de la page), donc le header global créerait un doublon. La
+   * vérification n'utilise pas la coquille split — elle a sa propre carte —
+   * mais elle reste une page d'attente immersive, sans navigation. */
+  const isImmersiveAuth =
+    pathname === '/client/inscription' ||
+    pathname === '/client/connexion' ||
+    pathname === '/client/verification';
   const hideGlobalHeader = (isNeeroHome && showPrivateChrome) || isImmersiveAuth;
-  const isFullBleed = isImmersiveAuth || (isNeeroHome && showPrivateChrome);
+  /* La vérification garde une largeur de lecture : passer en pleine largeur
+   * étirerait sa carte sur tout l'écran de bureau. */
+  const isFullBleed =
+    (isImmersiveAuth && pathname !== '/client/verification') ||
+    (isNeeroHome && showPrivateChrome);
 
   return (
     <div className="flex min-h-dvh flex-col">
