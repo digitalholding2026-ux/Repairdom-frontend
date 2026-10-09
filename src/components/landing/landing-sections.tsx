@@ -209,20 +209,21 @@ export function ServicesGrid() {
  * entiers : les afficher ailleurs avec d'autres valeurs ferait diverger la
  * landing de la réalité comptable.
  *
- * Visuels : conservés depuis l'ancien bloc. ⚠️ La correspondance
- * image ↔ récompense n'est pas exacte (t-shirt pour un électroménager) —
- * point connu, non traité dans ce chantier.
+ * Visuels : chaque image représente désormais la récompense qu'elle annonce
+ * (petit électroménager, électroménager moyen, smartphone). Ils ont été
+ * refaits pour cela : les anciens affiches portaient le programme « nombre
+ * de missions » gravé dans l'image.
  */
 const REWARDS_HIGHLIGHTS: { tier: string; title: string; imageSrc: string }[] = [
   {
     tier: '50 000 FCFA de marge',
     title: 'Petit électroménager',
-    imageSrc: '/recompense/tshirt_cap.png',
+    imageSrc: '/recompense/petit-electromenager.png',
   },
   {
     tier: '100 000 FCFA de marge',
     title: 'Électroménager moyen',
-    imageSrc: '/recompense/tv.png',
+    imageSrc: '/recompense/electromenager-moyen.png',
   },
   {
     tier: '250 000 FCFA de marge',

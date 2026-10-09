@@ -21,11 +21,12 @@
  * Ce test est STATIQUE (readFileSync + assertions sur le texte) : il lit donc
  * commentaires et chaînes comprises. Les motifs ci-dessous sont volontairement
  * écrits pour ne pas se auto-déclencher via les commentaires du fichier lu.
+ *
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 
@@ -105,4 +106,72 @@ void test('la FAQ ne réinvente pas de seuil chiffré', () => {
    * divergerait de la page dès le prochain changement de barème. */
   assert.doesNotMatch(FAQ, /\d+\s*000\s*FCFA/);
   assert.match(FAQ, /crédit/i);
+});
+
+/* ── 4. Les visuels montrent bien la récompense annoncée ───────────────
+ *
+ * Les anciennes affiches portaient le programme « nombre de missions » GRAVÉ
+ * DANS L'IMAGE : aucun texte de la landing ne pouvait le rattraper, et une
+ * image ne se relit pas. Elles ont été refaites, et chaque visuel correspond
+ * désormais au palier qu'il accompagne.
+ *
+ * Ces noms de fichiers sont volontairement construits par morceaux : ce test
+ * surveille leur absence dans le fichier lu, et il ne doit pas se
+ * auto-déclencher via son propre texte.
+ */
+
+const VISUALS = [
+  ['petit' + '-electromenager.png', 'Petit électroménager'],
+  ['electro' + 'menager-moyen.png', 'Électroménager moyen'],
+  ['smart' + 'phone.png', 'Smartphone'],
+] as const;
+
+void test('chaque palier dispose de son visuel dédié', () => {
+  for (const [file, label] of VISUALS) {
+    assert.ok(
+      SECTIONS.includes(`/recompense/${file}`),
+      `visuel du palier « ${label} » absent de la landing`,
+    );
+  }
+});
+
+void test('aucune affiche de l’ancien programme ne subsiste dans la landing', () => {
+  /* Chacune de ces affiches était associée à un palier par nombre de
+   * missions et affichait ce décompte dans l'image elle-même. */
+  const retired = [
+    ['tshirt' + '_cap.png'],
+    ['tv' + '.png'],
+    ['free' + '_repair.png'],
+    ['iron' + '.png'],
+    ['mystery' + '_box.png'],
+  ] as const;
+  for (const [file] of retired) {
+    assert.doesNotMatch(
+      SECTIONS,
+      new RegExp(file.replace('.', '\\.')),
+      `la landing référence encore l'affiche ${file}`,
+    );
+  }
+});
+
+void test('les visuels du programme sont bien présents sur disque', () => {
+  /* Le contenu du tableau est-il seulement correct, ou les fichiers ont-ils
+   * été réellement déposés ? Une référence orpheline ne se voit pas à la
+   * lecture du source : elle se voit à l'écran, en image cassée. */
+  for (const [file] of VISUALS) {
+    const onDisk = new URL(`../../public/recompense/${file}`, import.meta.url);
+    assert.ok(existsSync(onDisk), `visuel ${file} référencé mais absent de public/recompense/`);
+  }
+});
+
+/* ── 5. Le catalogue de lots mort a bien disparu ──────────────────────
+ *
+ * Un composant jamais monté, lui aussi resté sur l'ancien modèle, avait
+ * survécu parce que deux tests le lisaient. Il est supprimé : la page de
+ * /client/recompenses tire ses paliers de l'API, elle ne l'a jamais utilisé.
+ */
+
+void test('le composant de lots jamais monté ne fait plus partie du dépôt', () => {
+  const dead = new URL('../components/client/recompenses/reward-catalog.tsx', import.meta.url);
+  assert.ok(!existsSync(dead), 'le composant de lots obsolète est toujours présent');
 });

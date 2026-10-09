@@ -44,7 +44,6 @@ const HEX_ALLOWLIST = new Set([
   'components/client/parrainage/parrainage-overview.tsx',
   'components/ui/gradient-hero-card.tsx',
   'components/ui/reward-progress-card.tsx',
-  'components/client/recompenses/reward-catalog.tsx',
 ]);
 
 void test('tokens : aucune couleur hex arbitraire hors allowlist documentée', () => {

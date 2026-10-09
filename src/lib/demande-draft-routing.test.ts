@@ -108,10 +108,11 @@ void test('D2 : les routes /client/demandes (pluriel) sont INTACTES', () => {
   assert.ok(plural.length > 0, 'les liens vers /client/demandes ont disparu');
 });
 
-void test('D2 : les 16 appels à l’ancien chemin ont bien été migrés', () => {
-  /* Comptage de référence : la liste est celle de l’audit du flux. Si elle
-   * rétrécit, un lien a été oublié — le test échoue au lieu de laisser une
-   * page morte. */
+void test('D2 : tous les appels à l’ancien chemin ont bien été migrés', () => {
+  /* Comptage de référence : la liste est celle de l'audit du flux, diminuée
+   * d'un appel lorsque un écran mort a été retiré (le catalogue de lots,
+   * jamais monté). Si elle rétrécit encore, un lien a été oublié — le test
+   * échoue au lieu de laisser une page morte. */
   const expected = [
     ['../components/landing/hero.tsx', '/demande'],
     ['../components/landing/landing-sections.tsx', '/demande'],
@@ -121,7 +122,6 @@ void test('D2 : les 16 appels à l’ancien chemin ont bien été migrés', () =
     ['../components/client/dashboard/client-home-mobile-view.tsx', '/demande'],
     ['../components/client/dashboard/client-home-blocks.tsx', '/demande'],
     ['../components/client/client-dashboard.tsx', '/demande'],
-    ['../components/client/recompenses/reward-catalog.tsx', '/demande'],
     ['../app/client/layout.tsx', '/demande'],
     ['../app/client/confirmation/page.tsx', '/demande'],
   ] as const;
