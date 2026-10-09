@@ -588,3 +588,90 @@
 .animate-slide-up {
   animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* ── Landing — apparitions au scroll ─────────────────────────────────────────
+ * Amplitude volontairement modérée : 28 px de remontée et 600 ms. La classe
+ * ne fait qu-patienter l'état de départ ; le composant `AnimateOnScroll` y
+ * ajoute `is-visible` au premier croisement, puis se débranche.
+ *
+ * `animation-delay` est volontairement absent : l'apparition est une
+ * `transition` (état de départ → état visible), pas une animation. Le délai de
+ * cascade est posé en ligne par le composant.
+ */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Filet de sécurité : si le script n'a jamais tourné (JavaScript désactivé,
+ * erreur d'hydratation), rien ne basculerait jamais en état visible et la
+ * landing resterait invisible. On rétablit l'état final. */
+@media (scripting: none) {
+  .animate-on-scroll {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Micro-interactions : survol et focus des cartes. Le décalage est de 4 px,
+ * l'ombre reste diffuse — c'est un soulignement, pas un effet de scène. */
+.card-hover {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgb(15 23 42 / 8%);
+}
+
+.card-hover:active {
+  transform: translateY(-1px);
+}
+
+.card-hover:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* L'icône accompagne le survol de sa carte. */
+.icon-hover {
+  transition: transform 200ms ease;
+}
+
+.card-hover:hover .icon-hover,
+.card-hover:focus-visible .icon-hover {
+  transform: scale(1.1) rotate(-3deg);
+}
+
+/* Moins de mouvements : aucun bloc ne se déplace, aucune carte ne se soulève.
+ * La règle globale de ce fichier (`transition-duration: 0.01ms`) couvre déjà
+ * la durée ; cette règle couvre les DEUX états, sans quoi un bloc resterait
+ * figé à mi-parcours plutôt quine'simplement pas l'état final. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-scroll,
+  .animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .card-hover,
+  .card-hover:hover,
+  .card-hover:active,
+  .icon-hover,
+  .card-hover:hover .icon-hover,
+  .card-hover:focus-visible .icon-hover {
+    transform: none;
+    transition: none;
+  }
+}

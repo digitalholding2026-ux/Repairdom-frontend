@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { listCities } from '@/lib/api/cities-service';
+import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Preuves sociales — CHIFFRES 100 % RÉELS, SANS AUCUNE VALEUR EN DUR.
@@ -70,22 +71,21 @@ export function TrustStats() {
         </div>
 
         <dl className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl bg-slate-50 p-4 text-center sm:p-5"
-            >
-              <span
-                aria-hidden
-                className="mx-auto flex size-10 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm"
-              >
-                <Icon name={item.icon} size="sm" />
-              </span>
-              <dd className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
-                {item.value}
-              </dd>
-              <dt className="mt-0.5 text-xs font-medium text-slate-500">{item.label}</dt>
-            </div>
+          {items.map((item, index) => (
+            <AnimateOnScroll key={item.label} delay={index * 150}>
+              <div className="rounded-2xl bg-slate-50 p-4 text-center sm:p-5">
+                <span
+                  aria-hidden
+                  className="mx-auto flex size-10 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm"
+                >
+                  <Icon name={item.icon} size="sm" />
+                </span>
+                <dd className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
+                  {item.value}
+                </dd>
+                <dt className="mt-0.5 text-xs font-medium text-slate-500">{item.label}</dt>
+              </div>
+            </AnimateOnScroll>
           ))}
         </dl>
       </div>

@@ -1,4 +1,5 @@
 import { Icon } from '@/components/ui/icon';
+import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 
 /* FAQ — réponses vérifiables dans le code applicatif.
  * ⚠️ Aucun délai/SLA n'est annoncé : le créneau est confirmé par le
@@ -53,21 +54,23 @@ export function Faq() {
         </p>
       </div>
       <div className="mt-4 space-y-2">
-        {FAQ.map((item) => (
-          <details
-            key={item.question}
-            className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-colors open:border-orange-300"
-          >
-            <summary className="flex min-h-13 cursor-pointer list-none items-center justify-between gap-3 p-3.5 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
-              {item.question}
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-transform duration-300 group-open:rotate-180">
-                <Icon name="chevron-down" size="3.5" />
-              </span>
-            </summary>
-            <div className="border-t border-slate-100 px-3.5 pb-3.5 pt-2.5 text-xs leading-relaxed text-slate-600">
-              {item.answer}
-            </div>
-          </details>
+        {FAQ.map((item, index) => (
+          /* Seule l'APPROBATION de la question est animée. L'ouverture et la
+           * fermeture restent celles du composant natif : `<details>` gère
+           * déjà son propre affichage, et la flèche tourne déjà via le groupe. */
+          <AnimateOnScroll key={item.question} delay={Math.min(index * 50, 250)}>
+            <details className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-colors open:border-orange-300">
+              <summary className="flex min-h-13 cursor-pointer list-none items-center justify-between gap-3 p-3.5 text-sm font-semibold text-slate-900 [&::-webkit-details-marker]:hidden">
+                {item.question}
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-transform duration-300 group-open:rotate-180">
+                  <Icon name="chevron-down" size="3.5" />
+                </span>
+              </summary>
+              <div className="border-t border-slate-100 px-3.5 pb-3.5 pt-2.5 text-xs leading-relaxed text-slate-600">
+                {item.answer}
+              </div>
+            </details>
+          </AnimateOnScroll>
         ))}
       </div>
     </section>

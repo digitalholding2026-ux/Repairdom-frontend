@@ -71,6 +71,7 @@
     "src/lib/saspay-fees.test.ts",
     "src/lib/referrals-frontend.test.ts",
     "src/lib/devenir-technicien.test.ts",
-    "src/lib/landing-rewards-content.test.ts"
+    "src/lib/landing-rewards-content.test.ts",
+    "src/lib/landing-animations.test.ts"
   ]
 }

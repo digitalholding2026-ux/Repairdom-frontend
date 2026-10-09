@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Coquille de section commune : même rythme visuel sur toute la landing
@@ -69,26 +70,27 @@ export function HowItWorks() {
       />
       <ol className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
         {STEPS.map((step, index) => (
-          <li
-            key={step.title}
-            className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm"
-          >
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-orange-600"
-            >
-              <Icon name={step.icon} size="sm" />
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-orange-600 tabular-nums">
-                  {String(index + 1).padStart(2, '0')}
+          <AnimateOnScroll key={step.title} as="li" delay={index * 100}>
+            <div className="card-hover flex h-full items-start gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-orange-600"
+              >
+                <span className="icon-hover inline-flex">
+                  <Icon name={step.icon} size="sm" />
                 </span>
-                <span className="text-sm font-bold leading-tight text-slate-900">{step.title}</span>
               </span>
-              <span className="mt-1 block text-xs leading-relaxed text-slate-500">{step.text}</span>
-            </span>
-          </li>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-orange-600 tabular-nums">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="text-sm font-bold leading-tight text-slate-900">{step.title}</span>
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-500">{step.text}</span>
+              </span>
+            </div>
+          </AnimateOnScroll>
         ))}
       </ol>
     </Section>
@@ -130,24 +132,25 @@ export function WhyRelio() {
         intro="Les garanties qui vous protègent à chaque étape."
       />
       <div className="mt-4 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
-        {WHY.map((item) => (
-          <div
-            key={item.title}
-            className="flex items-start gap-3 rounded-2xl border border-slate-200/60 bg-slate-50 p-4 text-left"
-          >
-            <span
-              aria-hidden
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm"
-            >
-              <Icon name={item.icon} size="sm" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-bold leading-tight text-slate-900">
-                {item.title}
+        {WHY.map((item, index) => (
+          <AnimateOnScroll key={item.title} delay={index * 100}>
+            <div className="card-hover flex h-full items-start gap-3 rounded-2xl border border-slate-200/60 bg-slate-50 p-4 text-left">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm"
+              >
+                <span className="icon-hover inline-flex">
+                  <Icon name={item.icon} size="sm" />
+                </span>
               </span>
-              <span className="mt-1 block text-xs leading-relaxed text-slate-500">{item.text}</span>
-            </span>
-          </div>
+              <span className="min-w-0">
+                <span className="block text-sm font-bold leading-tight text-slate-900">
+                  {item.title}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-slate-500">{item.text}</span>
+              </span>
+            </div>
+          </AnimateOnScroll>
         ))}
       </div>
     </Section>
@@ -179,18 +182,22 @@ export function ServicesGrid() {
         title="Quel service vous faut ?"
         intro="Choisissez une catégorie pour démarrer votre demande."
       />
-      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-        {SERVICES.map((service) => (
-          <Link
-            key={service.label}
-            href='/demande'
-            className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition-all hover:border-orange-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 active:scale-95"
-          >
-            <span aria-hidden className="text-2xl leading-none">
-              {service.emoji}
-            </span>
-            <span className="text-xs font-semibold text-slate-800">{service.label}</span>
-          </Link>
+<div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {SERVICES.map((service, index) => (
+          <AnimateOnScroll key={service.label} delay={Math.min(index * 60, 300)}>
+            {/* Le soulèvement au survol est posé sur le lien lui-même : la
+              tuile reste l'élément focusable, et l'anneau de focus natif
+              n'est ni masqué ni déplacé. */}
+            <Link
+              href="/demande"
+              className="card-hover focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm hover:border-orange-300 hover:shadow-md active:scale-95"
+            >
+              <span aria-hidden className="icon-hover text-2xl leading-none">
+                {service.emoji}
+              </span>
+              <span className="text-xs font-semibold text-slate-800">{service.label}</span>
+            </Link>
+          </AnimateOnScroll>
         ))}
       </div>
     </Section>
@@ -241,27 +248,26 @@ export function Rewards() {
         intro="5 % de ce que Relio gagne sur vos interventions vous revient, sous forme de crédit utilisable sur vos prochaines missions. Plus vous nous faites confiance, plus vous économisez."
       />
       <div className="mt-4 grid gap-2.5 sm:grid-cols-3 sm:gap-3">
-        {REWARDS_HIGHLIGHTS.map((reward) => (
-          <div
-            key={reward.tier}
-            className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
-          >
-            <div className="relative aspect-[4/3] w-full bg-slate-50">
-              <Image
-                src={reward.imageSrc}
-                alt={reward.title}
-                fill
-                sizes="(max-width: 639px) 90vw, 30vw"
-                className="object-cover"
-              />
+        {REWARDS_HIGHLIGHTS.map((reward, index) => (
+          <AnimateOnScroll key={reward.tier} delay={index * 100}>
+            <div className="card-hover overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="relative aspect-[4/3] w-full bg-slate-50">
+                <Image
+                  src={reward.imageSrc}
+                  alt={reward.title}
+                  fill
+                  sizes="(max-width: 639px) 90vw, 30vw"
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-3.5">
+                <p className="text-[11px] font-bold tracking-wide text-orange-600 uppercase">
+                  {reward.tier}
+                </p>
+                <p className="mt-1 text-sm font-bold leading-tight text-slate-900">{reward.title}</p>
+              </div>
             </div>
-            <div className="p-3.5">
-              <p className="text-[11px] font-bold tracking-wide text-orange-600 uppercase">
-                {reward.tier}
-              </p>
-              <p className="mt-1 text-sm font-bold leading-tight text-slate-900">{reward.title}</p>
-            </div>
-          </div>
+          </AnimateOnScroll>
         ))}
       </div>
       <div className="mt-4 text-center">
@@ -285,7 +291,8 @@ export function Rewards() {
 export function BecomeTechnician() {
   return (
     <Section id="technicien-title">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-5 text-center shadow-sm sm:p-7">
+      <AnimateOnScroll>
+        <div className="card-hover rounded-3xl border border-slate-200/70 bg-white p-5 text-center shadow-sm sm:p-7">
         <span
           aria-hidden
           className="mx-auto flex size-12 items-center justify-center rounded-full bg-orange-500/10 text-orange-600"
@@ -305,7 +312,8 @@ export function BecomeTechnician() {
           Devenir technicien
           <Icon name="arrow-right" size="sm" strokeWidth={2.4} />
         </Link>
-      </div>
+        </div>
+      </AnimateOnScroll>
     </Section>
   );
 }
@@ -314,21 +322,23 @@ export function BecomeTechnician() {
 export function CompactCta() {
   return (
     <Section id="cta-title">
-      <div className="rounded-3xl bg-slate-900 p-5 text-center text-white shadow-lg sm:p-7">
-        <h2 id="cta-title-heading" className="text-lg font-extrabold tracking-tight sm:text-xl">
-          Prêt à être dépanné ?
-        </h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-white/70">
-          Déposez votre demande, recevez un devis, validez. Le reste, on s&apos;en occupe.
-        </p>
-        <Link
-          href='/demande'
-          className="brand-gradient mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.99] sm:text-base"
-        >
-          Commencer maintenant
-          <Icon name="arrow-right" size="sm" strokeWidth={2.4} />
-        </Link>
-      </div>
+      <AnimateOnScroll>
+        <div className="rounded-3xl bg-slate-900 p-5 text-center text-white shadow-lg sm:p-7">
+          <h2 id="cta-title-heading" className="text-lg font-extrabold tracking-tight sm:text-xl">
+            Prêt à être dépanné ?
+          </h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-white/70">
+            Déposez votre demande, recevez un devis, validez. Le reste, on s&apos;en occupe.
+          </p>
+          <Link
+            href='/demande'
+            className="brand-gradient mt-5 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-orange-500/25 transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 active:scale-[0.99] sm:text-base"
+          >
+            Commencer maintenant
+            <Icon name="arrow-right" size="sm" strokeWidth={2.4} />
+          </Link>
+        </div>
+      </AnimateOnScroll>
     </Section>
   );
 }
