@@ -137,7 +137,7 @@ export function TechKpiCard({
       </span>
       <p className="mt-3 truncate text-2xl font-bold tracking-tight text-white">{value}</p>
       <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className="mt-1 truncate text-xs text-slate-500">{sub}</p>
+      <p className="mt-1 truncate text-xs text-relio-muted">{sub}</p>
     </TechCard>
   );
   return href ? (
@@ -300,7 +300,7 @@ export function TechActivityCard({ items }: { items: ActivityItem[] }) {
                       {item.subtitle}
                     </span>
                   </span>
-                  <span className="shrink-0 text-[11px] text-slate-500">
+                  <span className="shrink-0 text-[11px] text-relio-muted">
                     {formatRelative(item.createdAt)}
                   </span>
                 </Link>

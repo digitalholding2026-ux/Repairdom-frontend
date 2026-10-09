@@ -66,6 +66,21 @@
   --color-relio-text: #f8fafc;
   --color-relio-muted: #a1a1aa;
 
+  /* Rôles manquants de l'échelle sombre, nommés par USAGE et non par couleur.
+   *
+   * Tant que les surfaces s'écrivaient `slate-900/70` ici et `#0F172A` là —
+   * deux notations de la même valeur sur le même écran — impossible de
+   * re-themer sans relire chaque composant. Ces trois tokens fermentation
+   * la grammaire : une surface, une bordure, un état survolé.
+   *
+   * Contrastes mesurés sur `relio-card` : `relio-muted` 6,86:1 et
+   * `relio-text` 16,81:1, tous deux au-dessus du seuil AA (4,5:1). Le
+   * `slate-500` qui les remplaçait plafonnait à 3,70:1 — sous le seuil, et
+   * c'est le token jamais utilisé qui le corrige. */
+  --color-relio-surface: color-mix(in oklab, var(--color-relio-card) 60%, transparent);
+  --color-relio-border: rgb(255 255 255 / 0.08);
+  --color-relio-elevated: #1b2130;
+
   --color-reward-from: var(--reward-from);
   --color-reward-via: var(--reward-via);
   --color-reward-to: var(--reward-to);
