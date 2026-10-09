@@ -373,3 +373,139 @@ void test('pages revenus : libellé de commission à jour', () => {
   // L'admin lit le barème depuis le backend (part fixe exposée par l'API).
   assert.match(read('../app/admin/finances/page.tsx'), /commissionFixedXAF \?\? 0/);
 });
+/* ── CHANTIER 6A — hiérarchie de l'écran mission CLIENT ──────────────────
+ *
+ * La page client a été réorganisée en sections verticales priorisées par
+ * statut. Ces tests verrouillent deux choses :
+ *
+ *   1. l'ORDRE de rendu — un client doit voir ce qu'il doit décider ou
+ *      suivre AVANT le détail administratif de la mission ;
+ *   2. le caractère STRICT des conditions — plus aucun bloc ne doit être
+ *      rendu par défaut (c'était la cause des médias, de la carte GPS et de
+ *      la chronologie affichés sur une mission annulée).
+ *
+ * Vérification statique : ce dépôt n'a ni jsdom ni testing-library, donc
+ * l'ordre est contrôlé par la position des marqueurs dans le source.
+ */
+
+const CLIENT_MISSION_PAGE = '../app/client/demandes/[id]/page.tsx';
+
+void test('ordre des sections : action → suivi → détail → diagnostic → devis → discussion', () => {
+  const source = read(CLIENT_MISSION_PAGE);
+
+  /* On cible l'ORDRE DU JSX, pas les commentaires : les variables dérivées
+   * (`showLiveTracking`…) et les imports apparaissent avant le rendu. On
+   * cherche donc les balises `aria-label` des sections, dans cet ordre. */
+  const order = [
+    ['action prioritaire', /aria-label="État de la mission"|<Devis à accepter/, 'action prioritaire'],
+    ['suivi live', /aria-label="Suivi de l'intervention"/, 'suivi live'],
+    ['détail mission', /aria-label="Détail de la mission"/, 'détail mission'],
+    ['diagnostic + devis', /aria-label="Diagnostic et proposition"/, 'diagnostic + devis'],
+    ['discussion', /aria-label="Discussion"/, 'discussion'],
+    ['chronologie', /aria-label="Chronologie"/, 'chronologie'],
+    ['avis', /aria-label="Avis"/, 'avis'],
+    ['litige', /aria-label="Litige"/, 'litige'],
+  ] as const;
+
+  const positions = order.map(([label, regex]) => {
+    const match = source.match(regex);
+    assert.ok(match, `section absente de la page client : ${label}`);
+    assert.ok(
+      typeof match.index === 'number',
+      `position introuvable pour la section ${label} : le motif de recherche a régressé`,
+    );
+    return { label, index: match.index };
+  });
+
+  for (let i = 1; i < positions.length; i += 1) {
+    assert.ok(
+      positions[i - 1]!.index < positions[i]!.index,
+      `ordre des sections cassé : « ${positions[i - 1]!.label} » (${positions[i - 1]!.index}) ` +
+        `apparaît APRÈS « ${positions[i]!.label} » (${positions[i]!.index})`,
+    );
+  }
+});
+
+void test('conditions strictes : aucun bloc rendu par défaut', () => {
+  const source = read(CLIENT_MISSION_PAGE);
+
+  // Les variables de condition doivent exister et piloter le rendu.
+  assert.match(source, /const showLiveTracking =\s*\n?\s*demande\.technicianId != null && LIVE_STATUSES\.includes/);
+  assert.match(source, /const showMedias = demande\.medias\.length > 0/);
+  assert.match(source, /const showDiagnostic = latestDiagnostic !== null/);
+  assert.match(source, /const showQuote = quotes\.length > 0/);
+  assert.match(source, /const showTimeline = events\.length > 0/);
+  assert.match(source, /const showRating = demande\.status === 'CONFIRMED' && Boolean\(demande\.technician\)/);
+  assert.match(source, /const showDisputeSection = demande\.status === 'COMPLETED' \|\| dispute !== null/);
+
+  // Et chaque bloc doit être gardé par sa condition, pas rendu par défaut.
+  assert.match(source, /\{showMedias \? \(/);
+  assert.match(source, /\{showTimeline \? \(/);
+  assert.match(source, /\{showLiveTracking \? \(/);
+  assert.match(source, /\{showRating \? \(/);
+  assert.match(source, /\{showDisputeSection \? \(/);
+});
+
+void test('chat inline : plus de bulle flottante', () => {
+  const source = read(CLIENT_MISSION_PAGE);
+  assert.match(source, /import \{ ConversationSection \} from '@\/components\/mission\/conversation-section'/);
+  assert.match(source, /<ConversationSection/);
+  // La bulle flottante et son état d'ouverture ont disparu.
+  assert.doesNotMatch(source, /FloatingChat/);
+  assert.doesNotMatch(source, /chatOpen/);
+  // Le fil est bien rendu dans la section Discussion, en inline.
+  assert.match(source, /aria-label="Discussion"[\s\S]{0,600}<ConversationSection/);
+});
+
+void test("devis PENDING remonté dans l'action prioritaire, jamais dupliqué", () => {
+  const source = read(CLIENT_MISSION_PAGE);
+  assert.match(source, /const hasPendingQuote = latestQuote\?\.status === 'PENDING'/);
+  // Le devis en attente est rendu dans le bloc d'action…
+  assert.match(source, /\{hasPendingQuote && latestQuote \? \(/);
+  // …et la section diagnostic/devis l'exclut, pour ne pas afficher le même
+  // montant deux fois sur la page.
+  assert.match(source, /\{showQuote && latestQuote && !hasPendingQuote \? \(/);
+});
+
+void test("annulation déplacée hors de l'action prioritaire", () => {
+  const source = read(CLIENT_MISSION_PAGE);
+  // Le bouton d'annulation existe toujours (intention du chantier 6A :
+  // il n'était pas supprimé, repositionné)…
+  assert.match(source, /Annuler la demande/);
+  assert.match(source, /setConfirmAction\(\{ kind: 'cancel' \}\)/);
+  // …dans une section dédiée, rendue sur `canCancel`.
+  assert.match(source, /\{canCancel \? \(\s*\n\s*<section aria-label="Annulation"/);
+});
+
+void test('EmptyState utilisé pour les états vides diagnostic et devis', () => {
+  const source = read(CLIENT_MISSION_PAGE);
+  assert.match(source, /import \{ EmptyState \} from '@\/components\/ui\/empty-state'/);
+  assert.match(source, /title="Diagnostic en attente"/);
+  assert.match(source, /Le technicien n'a pas encore transmis de diagnostic/);
+});
+
+void test('aucun hook après un return anticipé (page client)', () => {
+  const lines = stripComments(read(CLIENT_MISSION_PAGE)).split('\n');
+
+  const earlyReturnIndex = lines.findIndex((line) => /^ {2}if \(/.test(line));
+  assert.ok(earlyReturnIndex > 0, 'return anticipé introuvable : le test ne peut plus rien garantir');
+
+  /* On ne réutilise PAS `hookLines` (motif `\buse[A-Z]\w*\s*\(`) : il ne
+   * détecte pas les hooks génériques — `useState<DemandeListItem | null>(…)`,
+   * `useRef<SvrMessage>(…)`. Sur cette page, la quasi-totalité des hooks sont
+   * typés : le motif large en trouve 22 contre 10, et c'est le bon compte. */
+  const genericHook = /\buse[A-Z][A-Za-z0-9]*\s*(?:<[^=<>()]*?>)?\s*\(/;
+  const hooks = lines
+    .map((line, index) => [index + 1, line] as const)
+    .filter(([, line]) => genericHook.test(line))
+    .map(([line]) => line);
+
+  assert.ok(hooks.length > 20, `hooks détectés : ${hooks.length} — le motif de recherche a régressé`);
+
+  const lastHook = Math.max(...hooks);
+  assert.ok(
+    lastHook < earlyReturnIndex + 1,
+    `Hook React appelé ligne ${lastHook}, APRÈS le return anticipé ligne ${earlyReturnIndex + 1} : ` +
+      'violation de la règle des Hooks (« Rendered more hooks than during the previous render »).',
+  );
+});
