@@ -509,3 +509,96 @@ void test('aucun hook après un return anticipé (page client)', () => {
       'violation de la règle des Hooks (« Rendered more hooks than during the previous render »).',
   );
 });
+
+/* ── CHANTIER 6B — hiérarchie de l'écran mission TECHNICIEN ───────────────
+ *
+ * La page technicien est passée d'un empilement de 21 blocs (dont une card
+ * unique de 260 lignes) à un header permanent + 4 onglets contextuels.
+ * Ces tests verrouillent :
+ *
+ *   1. l'usage du composant `Tabs` du design system (auparavant inutilisé) ;
+ *   2. les 4 clés d'onglet et la règle de choix de l'onglet par défaut ;
+ *   3. le fait que l'onglet n'est PAS resynchronisé après le premier rendu ;
+ *   4. les conditions strictes qui vident la page sur une mission annulée.
+ */
+
+void test('6B — le composant Tabs du design system est utilisé', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  assert.match(page, /import \{ Tabs, type TabItem \} from '@\/components\/ui\/tabs'/);
+  assert.match(page, /<Tabs/);
+  assert.match(page, /variant="segmented"/);
+  assert.match(page, /onChange=\{\(id\) => setActiveTab\(id as MissionTab\)\}/);
+});
+
+void test('6B — les 4 clés d\'onglet sont déclarées', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  assert.match(page, /const TAB_OVERVIEW = 'overview'/);
+  assert.match(page, /const TAB_DIAGNOSTIC = 'diagnostic'/);
+  assert.match(page, /const TAB_DISCUSSION = 'discussion'/);
+  assert.match(page, /const TAB_DETAILS = 'details'/);
+  // Les 4 onglets sont déclarés dans la liste rendue.
+  for (const [id, label] of [
+    ['TAB_OVERVIEW', 'Aperçu'],
+    ['TAB_DIAGNOSTIC', 'Diagnostic & Devis'],
+    ['TAB_DISCUSSION', 'Discussion'],
+    ['TAB_DETAILS', 'Détails'],
+  ] as const) {
+    assert.match(page, new RegExp(`\\{ id: ${id}, label: '${label}' \\}`));
+  }
+});
+
+void test('6B — onglet par défaut : diagnostic seulement si ACCEPTED sans devis accepté', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  assert.match(
+    page,
+    /function defaultTabFor\(status: string, hasAcceptedQuote: boolean\): MissionTab \{\s*\n?\s*return status === 'ACCEPTED' && !hasAcceptedQuote \? TAB_DIAGNOSTIC : TAB_OVERVIEW;/,
+  );
+  // Et il est appelé avec le statut réel + la présence d'un devis accepté.
+  assert.match(page, /const chosenTab = defaultTabFor\(demande\.status, hasAcceptedQuote\)/);
+});
+
+void test('6B — l\'onglet n\'est PAS resynchronisé après le premier rendu', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  // Un indicateur « déjà initialisé » gate le choix : sans lui, un événement
+  // SSE ferait sauter l'onglet sous les doigts du technicien.
+  assert.match(page, /const \[tabInitialized, setTabInitialized\] = useState\(false\)/);
+  assert.match(page, /if \(!tabInitialized\) \{\s*\n\s*setActiveTab\(chosenTab\);\s*\n\s*setTabInitialized\(true\);\s*\n\s*\}/);
+  // L'affichage utilise l'onglet mémorisé, jamais une valeur recalculée.
+  assert.match(page, /const visibleTab = tabInitialized \? activeTab : chosenTab/);
+});
+
+void test('6B — conditions strictes : diagnostic et devis vidés en CANCELED', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  assert.match(page, /const showDiagnostic = latestDiagnostic !== null \|\| canChooseDiagnostic/);
+  assert.match(page, /const showQuote = quotes\.length > 0 \|\| canProposeManualQuote/);
+  assert.match(page, /const showMedias = demande\.medias\.length > 0/);
+  assert.match(page, /\{showDiagnostic \? \(/);
+  assert.match(page, /\{showQuote \? \(/);
+  assert.match(page, /\{showMedias \? \(/);
+});
+
+void test('6B — les 3 sous-composants extraits restent dans le même fichier', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+  assert.match(page, /function TechnicianHeader\(\{/);
+  assert.match(page, /function DetailsTab\(\{/);
+  assert.match(page, /function QuoteForm\(\{/);
+});
+
+void test('6B — les 4 points de contrôle KYC survivent à l\'extraction du header', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+
+  // 1. La variable, calculée par le composant PARENT.
+  assert.match(page, /const kycRequired = canAccept && !kycVerified/);
+  assert.match(page, /\{canAccept && kycRequired \?/);
+  // 2. Bandeau + bouton visible mais DÉSACTIVÉ, dans TechnicianHeader.
+  assert.match(page, /<Button disabled className="w-full" size="lg">\s*Accepter la demande/);
+  assert.match(page, /Vérification d’identité requise/);
+  // 3. Écran d'erreur 404 : message métier + squelette intermédiaire, toujours
+  //    dans le composant parent (ce sont des returns anticipés).
+  assert.match(page, /vous ne pouvez pas accepter de mission/);
+  assert.match(page, /if \(!profileLoaded\) \{/);
+  // 4. Le flux user SSE qui refetch le profil reste branché.
+  assert.match(page, /useUserStream/);
+  assert.match(page, /technician\.kyc_verified/);
+  assert.match(page, /technician\.kyc_rejected/);
+});

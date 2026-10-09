@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Field, Input } from '@/components/ui';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
+import { Tabs, type TabItem } from '@/components/ui/tabs';
 import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-badge';
 import { MissionInfo } from '@/components/mission/mission-info';
 import { PushNotificationCard } from '@/components/ui/push-notification-card';
@@ -68,7 +69,61 @@ import {
 } from '@/lib/api/technician-service';
 import { listEquipmentFamilies } from '@/lib/api/catalog-service';
 
+/* CHANTIER 6B — hiérarchie de l'écran mission technicien.
+ *
+ * La page est passée d'un empilement de 21 blocs (dont une card unique de 260
+ * lignes) à un header permanent + 4 onglets contextuels :
+ *
+ *   Aperçu           — ce que le technicien sait de la mission
+ *   Diagnostic & Devis — ce qu'il produit (diagnostic + proposition tarifaire)
+ *   Discussion       — l'échange avec le client
+ *   Détails          — litige, chronologie, push, avis, récapitulatif
+ *
+ * L'onglet par défaut est choisi UNE fois, au premier rendu, selon le statut.
+ * Il n'est jamais resynchronisé ensuite : un technicien qui est en train de
+ * lire un message ne doit pas voir l'onglet sauter sous ses doigts quand un
+ * événement SSE arrive. L'onglet est donc une préférence d'utilisateur, pas un
+ * effet de bord du statut.
+ *
+ * Ce que le chantier NE touche PAS :
+ *   - les 4 `useEffect`, les 2 flux SSE (`missionStreamUrl` + `useUserStream`),
+ *     le polling 5 s et ses deux gardes ;
+ *   - les appels API et leur séquence ;
+ *   - les 4 points de contrôle KYC (variable, bandeau, bouton désactivé,
+ *     écran d'erreur 404, squelette intermédiaire) ;
+ *   - les gestionnaires `handleAccept` / `handleSchedule` /
+ *     `handleStatusChange` / `handleCreateQuote` ;
+ *   - `FreeDiagnosticSection` et son hook, et tous les composants partagés.
+ *
+ * ⚠️ RÈGLE DES HOOKS : les 3 returns anticipés (`loading`,
+ * `error && !demande` avec le cas KYC imbriqué, `!demande`) restent SOUS le
+ * dernier hook. Aucun `useX` ne doit être ajouté après — verrouillé par
+ * `technician-quote.test.ts` l.233.
+ */
+
 const POLL_INTERVAL_MS = 5000;
+
+/** Les 4 onglets de l'écran technicien. */
+const TAB_OVERVIEW = 'overview';
+const TAB_DIAGNOSTIC = 'diagnostic';
+const TAB_DISCUSSION = 'discussion';
+const TAB_DETAILS = 'details';
+type MissionTab = typeof TAB_OVERVIEW | typeof TAB_DIAGNOSTIC | typeof TAB_DISCUSSION | typeof TAB_DETAILS;
+
+/**
+ * Onglet ouvert au premier rendu.
+ *
+ * Un technicien vient d'accepter une mission (`ACCEPTED`) et n'a encore rien
+ * produit : l'onglet « Diagnostic & Devis » est celui qui l'attend. Partir sur
+ * « Aperçu » lui ferait parcourir la mission avant d'y travailler. Dans tous
+ * les autres cas — y compris quand un devis est déjà accepté — l'aperçu est le
+ * point d'entrée naturel.
+ *
+ * Volontairement calculé UNE FOIS et jamais resynchronisé : voir l'en-tête.
+ */
+function defaultTabFor(status: string, hasAcceptedQuote: boolean): MissionTab {
+  return status === 'ACCEPTED' && !hasAcceptedQuote ? TAB_DIAGNOSTIC : TAB_OVERVIEW;
+}
 
 /* RÈGLE FCFA : tout montant passe par `formatFCFA`. La devise du devis n'est
  * affichée que si elle diffère de XAF (le backend envoie toujours XAF). */
@@ -124,6 +179,11 @@ export default function TechnicianDemandeDetailPage() {
   /* IA-3 — rechargement immédiat après diagnostic libre (le polling 5 s
    * reprend ensuite ; le timer est simplement recréé, sans double appel). */
   const [refreshKey, setRefreshKey] = useState(0);
+  /* Onglet actif (chantier 6B). Initialisé au premier rendu, jamais resynchronisé. */
+  const [activeTab, setActiveTab] = useState<MissionTab>(TAB_OVERVIEW);
+  /* La mission est-elle chargée au moins une fois ? Sert à choisir l'onglet
+   * par défaut à la première arrivée des données, sans effet au refetch. */
+  const [tabInitialized, setTabInitialized] = useState(false);
   /* Temps réel : les événements mission (statut, devis, GPS) redéclenchent
    * le chargement via refreshKey ; le chat gère ses messages lui-même. */
   const { status: realtimeStatus, subscribe } = useRealtime();
@@ -152,11 +212,11 @@ export default function TechnicianDemandeDetailPage() {
     };
   }, []);
 
-  /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d’échec de
+  /* Profil KYC chargé INDÉPENDAMMENT du succès mission : en cas d'échec de
    * `getTechnicianDemande` (404 backend), le diagnostic « non VERIFIED » doit
    * rester disponible pour afficher le message métier au lieu de
    * « Demande introuvable ». Un fetch chaîné après succès mission ne couvre
-   * jamais le cas d’erreur (cause du correctif précédent inopérant). */
+   * jamais le cas d'erreur (cause du correctif précédent inopérant). */
   useEffect(() => {
     if (!params?.id) return;
     let active = true;
@@ -199,7 +259,8 @@ export default function TechnicianDemandeDetailPage() {
    * force un rechargement immédiat après une action (ex. diagnostic libre). */
   useEffect(() => {
     if (!params?.id) return;
-    let active = true;    const load = async (initial: boolean) => {
+    let active = true;
+    const load = async (initial: boolean) => {
       try {
         /* getTechnicianDemande est l'appel principal : seul son échec (ex.
          * mission acceptée par un concurrent) affiche « Demande
@@ -252,6 +313,11 @@ export default function TechnicianDemandeDetailPage() {
     try {
       const updated = await acceptDemande(params.id);
       setDemande(updated);
+      // Un technicien qui vient d'accepter a une mission à produire : on
+      // l'amène directement là où elle se fait. Seul moment où l'onglet suit
+      // le statut — c'est la suite de SON clic, pas un effet de bord d'un
+      // événement entrant.
+      setActiveTab(TAB_DIAGNOSTIC);
       toast({ title: 'Mission acceptée.', variant: 'success' });
     } catch (err) {
       setActionError(toUserErrorMessage(err, 'Erreur lors de l\'acceptation.'));
@@ -340,11 +406,11 @@ export default function TechnicianDemandeDetailPage() {
 
   if (error && !demande) {
     // Diagnostic réel « technicien non KYC VERIFIED » : le profil est chargé
-    // et non vérifié au moment de l’échec. Le backend répond 404
+    // et non vérifié au moment de l'échec. Le backend répond 404
     // « Demande introuvable » (mission déjà attribuée, statut changé ou
     // inéligible) sans distinguer ce cas côté lecture — volontairement, pour
-    // ne pas exposer l’existence des missions. On affiche donc ici un message
-    // métier actionnable au lieu d’une erreur serveur trompeuse. Tout autre
+    // ne pas exposer l'existence des missions. On affiche donc ici un message
+    // métier actionnable au lieu d'une erreur serveur trompeuse. Tout autre
     // cas (profil vérifié ou inconnu) garde le comportement inchangé.
     if (technicianProfile !== null && !kycVerified) {
       return (
@@ -366,8 +432,8 @@ export default function TechnicianDemandeDetailPage() {
         </div>
       );
     }
-    // Profil pas encore résolu : ne pas flasher l’erreur générique avant de
-    // savoir si le cas KYC s’applique.
+    // Profil pas encore résolu : ne pas flasher l'erreur générique avant de
+    // savoir si le cas KYC s'applique.
     if (!profileLoaded) {
       return (
         <div className="space-y-4 py-2" role="status">
@@ -440,37 +506,28 @@ export default function TechnicianDemandeDetailPage() {
   const latestDiagnostic = diagnostics[0] ?? null;
   const latestQuote = quotes[0] ?? null;
 
-  /* Chantier 4-FONDATIONS-A — saisie du devis : seuil de 5 000 FCFA, aperçu
-   * de la commission en direct, bouton bloqué tant que le devis est hors
-   * bornes. Source unique : `@/lib/technician-quote` (le backend revalide).
-   *
-   * ⚠️ AUCUN HOOK ICI — et c'est délibéré. Ce bloc est situé APRÈS les
-   * returns anticipés (`if (loading)`, `if (error && !demande)`,
-   * `if (!demande) return null`). Appeler un hook React après un return
-   * conditionnel fait varier le nombre de hooks entre deux rendus
-   * (render 1 sur skeleton = 14, render 2 avec données = 15) : React lève
-   * alors « Rendered more hooks than during the previous render » et toute
-   * la page tombe sur `src/app/error.tsx`.
-   *
-   * Régression introduite par 4-A (commit 7dc1818) via un `useMemo` ici,
-   * puis supprimée : `previewTechnicianQuote` est un calcul trivial sur un
-   * nombre, la mémoïsation n'apportait rien. Si ce bloc devient coûteux,
-   * la correction est de le remonter AVANT le premier return — jamais
-   * d'ajouter un hook ici. Verrouillé par `src/lib/technician-quote.test.ts`. */
+  /* Chantier 4-FONDATIONS-A — soumission du devis : seuil de 5 000 FCFA,
+   * bouton bloqué tant que le devis est hors bornes ou sans description.
+   * Source unique : `@/lib/technician-quote` (le backend revalide).
+   * Le rendu est dans `QuoteForm`, plus bas dans ce même fichier. */
   const parsedQuote = quoteAmountError(amountValue);
-  const quoteAmountMessage = parsedQuote.error;
-  const quotePreview =
-    parsedQuote.amount === null ? null : previewTechnicianQuote(parsedQuote.amount);
   const canSubmitQuote =
     !actionBusy &&
     parsedQuote.amount !== null &&
     !parsedQuote.error &&
     isQuoteAmountAllowed(parsedQuote.amount) &&
     quoteDescription.trim().length > 0;
-  const lastActivityLabel =
-    events.length > 0
-      ? events[events.length - 1].label
-      : demandeStatusConfig(demande.status, 'technician').label;
+
+  /* Choix de l'onglet par défaut, À LA PREMIÈRE ARRIVÉE des données
+   * seulement (donc avant tout rendu visible : ce n'est pas un saut
+   * d'onglet, c'est le premier affichage). */
+  const chosenTab = defaultTabFor(demande.status, hasAcceptedQuote);
+  if (!tabInitialized) {
+    setActiveTab(chosenTab);
+    setTabInitialized(true);
+  }
+  const visibleTab = tabInitialized ? activeTab : chosenTab;
+
   const deviceLabel = [
     demande.domain?.name,
     demande.brand?.name,
@@ -479,29 +536,72 @@ export default function TechnicianDemandeDetailPage() {
   ]
     .filter(Boolean)
     .join(' — ');
+  const lastActivityLabel =
+    events.length > 0
+      ? events[events.length - 1].label
+      : demandeStatusConfig(demande.status, 'technician').label;
+
+  /* ── Conditions strictes d'onglet (chantier 6B) ──────────────────────
+   * Le diagnostic et le devis étaient deux cards rendues TOUJOURS, y compris
+   * sur une mission annulée : ils deviennent conditionnels. */
+  const showDiagnostic = latestDiagnostic !== null || canChooseDiagnostic;
+  const showQuote = quotes.length > 0 || canProposeManualQuote;
+  const showMedias = demande.medias.length > 0;
+  const showTimelineLink = events.length > 0;
+
+  const TAB_ITEMS: readonly TabItem[] = [
+    { id: TAB_OVERVIEW, label: 'Aperçu' },
+    { id: TAB_DIAGNOSTIC, label: 'Diagnostic & Devis' },
+    { id: TAB_DISCUSSION, label: 'Discussion' },
+    { id: TAB_DETAILS, label: 'Détails' },
+  ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* ═══ HEADER PERMANENT ═══════════════════════════════════════════
+       * Ce qui identifie la mission et ce qu'il faut faire maintenant,
+       * au-dessus des onglets : il reste visible quel que soit l'onglet. */}
       <PageHeader title="Détail de la demande" backHref="/technicien" />
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-mono text-lg font-semibold text-primary">{demande.reference}</span>
-            <DemandeStatusBadge status={demande.status} context="technician" />
-          </div>
-          <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <TechnicianHeader
+        demande={demande}
+        actionError={actionError}
+        actionBusy={actionBusy}
+        canAccept={canAccept}
+        kycRequired={kycRequired}
+        kycBlocker={kycBlocker}
+        technicianProfile={technicianProfile}
+        hasAcceptedQuote={hasAcceptedQuote}
+        scheduledValue={scheduledValue}
+        onScheduledValueChange={setScheduledValue}
+        onAccept={handleAccept}
+        onSchedule={handleSchedule}
+        onStart={() => handleStatusChange('IN_PROGRESS')}
+        onFinish={() => setConfirmFinish(true)}
+      />
+
+      {/* ═══ ONGLETS ═══════════════════════════════════════════════════ */}
+      <Tabs
+        items={TAB_ITEMS}
+        value={visibleTab}
+        onChange={(id) => setActiveTab(id as MissionTab)}
+        variant="segmented"
+        label="Sections de la mission"
+      />
+
+      {/* ═══ ONGLET « APERÇU » ═════════════════════════════════════════ */}
+      {visibleTab === TAB_OVERVIEW ? (
+        <div role="tabpanel" aria-label="Aperçu de la mission" className="space-y-4">
           {deviceLabel ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
               <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
               <p className="text-sm text-foreground">{deviceLabel}</p>
             </div>
           ) : null}
+
           {/* Parcours « Autre appareil » — indice structuré affiché en
-            * libellé (texte libre historique en repli). Information client,
-            * jamais un diagnostic ; ne remplace pas le diagnostic libre. */}
+            libellé (texte libre historique en repli). Information client,
+            jamais un diagnostic ; ne remplace pas le diagnostic libre. */}
           {!deviceLabel && (demande.equipmentFamily || demande.equipmentType) ? (
             <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
               <Icon name="briefcase" size="sm" className="shrink-0 text-primary" />
@@ -515,30 +615,40 @@ export default function TechnicianDemandeDetailPage() {
             </div>
           ) : null}
 
-          <MissionInfo
-            description={demande.description}
-            city={demande.city}
-            requestedMode={demande.requestedMode}
-            requestedAt={demande.requestedAt}
-            createdAt={demande.createdAt}
-            scheduledAt={demande.scheduledAt}
-          />
+          <Card>
+            <CardContent className="pt-4 sm:pt-5">
+              <MissionInfo
+                description={demande.description}
+                city={demande.city}
+                requestedMode={demande.requestedMode}
+                requestedAt={demande.requestedAt}
+                createdAt={demande.createdAt}
+                scheduledAt={demande.scheduledAt}
+              />
+            </CardContent>
+          </Card>
 
           {/* Dépôt multimédia — visible immédiatement dès l'assignation
             (liaison en transaction à la création, URLs signées lazy). */}
-          <DemandeMediaSection
-            demandeId={demande.id}
-            medias={demande.medias}
-            fetchUrl={(demandeId, mediaId) => getTechnicianDemandeMediaFileUrl(demandeId, mediaId)}
-          />
+          {showMedias ? (
+            <Card>
+              <CardContent className="pt-4 sm:pt-5">
+                <DemandeMediaSection
+                  demandeId={demande.id}
+                  medias={demande.medias}
+                  fetchUrl={(demandeId, mediaId) => getTechnicianDemandeMediaFileUrl(demandeId, mediaId)}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           {demande.status !== 'CANCELED' ? (
-            <div className="space-y-3">
-              <SectionHeader title="Avancement" />
-              <div className="rounded-xl border border-border bg-card p-4">
+            <Card>
+              <CardContent className="space-y-3 pt-4 sm:pt-5">
+                <SectionHeader title="Avancement" />
                 <DemandeProgress status={demande.status} />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ) : null}
 
           {demande.technicianId ? (
@@ -548,524 +658,316 @@ export default function TechnicianDemandeDetailPage() {
           {/* GPS V4 — carte de la mission (lieu + position personnelle).
               L'actualisation reste manuelle via la section Déplacement. */}
           {demande.technicianId && hasInterventionCoords ? (
-            <div className="space-y-3">
-              <SectionHeader title="Localisation de la mission" icon="pin" />
-              <MissionMap
-                intervention={{ latitude: demande.latitude as number, longitude: demande.longitude as number }}
-                technician={ownTravelPoint}
-              />
-              {demande.travel?.enRoute && !ownTravelPoint ? (
-                <Alert variant="neutral" dense>
-                  Dernière position indisponible ou trop ancienne.
-                </Alert>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
-                  Lieu d&apos;intervention
-                </span>
-                {ownTravelPoint ? (
+            <Card>
+              <CardContent className="space-y-3 pt-4 sm:pt-5">
+                <SectionHeader title="Localisation de la mission" icon="pin" />
+                <MissionMap
+                  intervention={{ latitude: demande.latitude as number, longitude: demande.longitude as number }}
+                  technician={ownTravelPoint}
+                />
+                {demande.travel?.enRoute && !ownTravelPoint ? (
+                  <Alert variant="neutral" dense>
+                    Dernière position indisponible ou trop ancienne.
+                  </Alert>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5">
-                    <span aria-hidden className="size-2.5 rounded-full bg-blue-600" />
-                    Ma position
-                    {[ownTravelDistance, ownTravelRecency].filter(Boolean).length > 0
-                      ? ` (${[ownTravelDistance, ownTravelRecency].filter(Boolean).join(' · ')})`
-                      : ''}
+                    <span aria-hidden className="size-2.5 rounded-full bg-orange-500" />
+                    Lieu d&apos;intervention
                   </span>
-                ) : hasStaleTravelPoint ? (
-                  <span>Dernière position trop ancienne — pensez à l&apos;actualiser.</span>
-                ) : (
-                  <span>Aucune position transmise pour cette mission.</span>
-                )}
-              </div>
-            </div>
+                  {ownTravelPoint ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span aria-hidden className="size-2.5 rounded-full bg-blue-600" />
+                      Ma position
+                      {[ownTravelDistance, ownTravelRecency].filter(Boolean).length > 0
+                        ? ` (${[ownTravelDistance, ownTravelRecency].filter(Boolean).join(' · ')})`
+                        : ''}
+                    </span>
+                  ) : hasStaleTravelPoint ? (
+                    <span>Dernière position trop ancienne — pensez à l&apos;actualiser.</span>
+                  ) : (
+                    <span>Aucune position transmise pour cette mission.</span>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ) : null}
 
           {demande.client ? (
-            <div className="space-y-3">
-              <SectionHeader title="Client" />
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                <Avatar size="lg" firstName={demande.client.firstName ?? ''} lastName={demande.client.lastName} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">
-                    {fullName(demande.client.firstName, demande.client.lastName)}
-                  </p>
-                  {demande.clientReputation && demande.clientReputation.totalReviews > 0 ? (
-                    <div className="mt-1 flex items-center gap-2">
-                      <RatingStars value={demande.clientReputation.averageRating ?? 0} size="sm" showValue />
-                      <p className="text-xs text-muted-foreground">
-                        {demande.clientReputation.totalReviews} évaluation
-                        {demande.clientReputation.totalReviews > 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  ) : null}
+            <Card>
+              <CardContent className="space-y-3 pt-4 sm:pt-5">
+                <SectionHeader title="Client" icon="user" />
+                <div className="flex items-center gap-3">
+                  <Avatar size="lg" firstName={demande.client.firstName ?? ''} lastName={demande.client.lastName} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">
+                      {fullName(demande.client.firstName, demande.client.lastName)}
+                    </p>
+                    {demande.clientReputation && demande.clientReputation.totalReviews > 0 ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <RatingStars value={demande.clientReputation.averageRating ?? 0} size="sm" showValue />
+                        <p className="text-xs text-muted-foreground">
+                          {demande.clientReputation.totalReviews} évaluation
+                          {demande.clientReputation.totalReviews > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ) : null}
-
-          {actionError ? <Alert variant="error">{actionError}</Alert> : null}
-
-          {canAccept && kycRequired ? (
-            <div className="space-y-3">
-              {/* Chantier #5A — bandeau ROUGE : l'acceptation est réellement
-                  bloquée, ce n'est pas une simple recommandation. Le motif de
-                  refus éventuel est repris ici : c'est lui qui dit au
-                  technicien quoi corriger. */}
-              <Alert
-                variant={kycBlocker.variant}
-                title={kycBlocker.title}
-                action={
-                  <Link href={KYC_PAGE_HREF}>
-                    <Button variant="secondary" size="sm">
-                      {kycBlocker.ctaLabel}
-                    </Button>
-                  </Link>
-                }
-              >
-                <p>{kycBlocker.description}</p>
-                <p className="mt-1 text-xs opacity-80">
-                  Statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}.
-                </p>
-              </Alert>
-              {/* Le bouton reste VISIBLE mais DÉSACTIVÉ : il montre ce que le
-                  technicien perd s'il ne fait rien (la mission est à lui), sans
-                  le laisser déclencher un 403 opaque. La lecture de la mission
-                  reste entièrement accessible. */}
-              <div className="space-y-1.5">
-                <Button disabled className="w-full" size="lg">
-                  Accepter la demande
-                </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  Vérification d’identité requise pour accepter cette mission.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {canAccept && !kycRequired ? (
-            <Button
-              onClick={handleAccept}
-              isLoading={actionBusy === 'ACCEPTED'}
-              className="w-full"
-              size="lg"
-            >
-              Accepter la demande
-            </Button>
-          ) : null}
-
-          {/* Proposition contextuelle : suivre cette mission acceptée même
-            app fermée (carte inline, jamais de popup). */}
-          {demande.status === 'ACCEPTED' ? <PushNotificationCard compact /> : null}
-
-          {demande.status === 'ACCEPTED' && hasAcceptedQuote ? (
-            <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-              <Field htmlFor="scheduledAt" label="Date et heure de l'intervention">
-                <Input
-                  id="scheduledAt"
-                  type="datetime-local"
-                  value={scheduledValue}
-                  onChange={(event) => setScheduledValue(event.target.value)}
-                />
-              </Field>
-              <Button
-                onClick={handleSchedule}
-                isLoading={actionBusy === 'SCHEDULED'}
-                disabled={!scheduledValue}
-                className="w-full"
-                size="lg"
-              >
-                Planifier l&apos;intervention
-              </Button>
-            </div>
-          ) : null}
-
-          {demande.status === 'ACCEPTED' && !hasAcceptedQuote ? (
-            <Alert variant="warning" icon="clock" dense>
-              En attente d&apos;acceptation du tarif par le client avant de planifier l&apos;intervention.
-            </Alert>
-          ) : null}
-
-          {demande.status === 'SCHEDULED' ? (
-            <Button
-              onClick={() => handleStatusChange('IN_PROGRESS')}
-              isLoading={actionBusy === 'IN_PROGRESS'}
-              className="w-full"
-              size="lg"
-            >
-              Démarrer l&apos;intervention
-            </Button>
-          ) : null}
-
-          {demande.status === 'IN_PROGRESS' ? (
-            <Button
-              onClick={() => setConfirmFinish(true)}
-              isLoading={actionBusy === 'COMPLETED'}
-              className="w-full"
-              size="lg"
-            >
-              Marquer comme terminée
-            </Button>
-          ) : null}
-
-          {demande.status === 'COMPLETED' ? (
-            <Alert variant="warning" icon="clock" dense>
-              Intervention terminée. En attente de confirmation du client.
-            </Alert>
-          ) : null}
-
-          {demande.status === 'CONFIRMED' ? (
-            <Alert variant="success" dense>Intervention confirmée par le client.</Alert>
-          ) : null}
-
-          {demande.status === 'CANCELED' ? (
-            <Alert variant="error" dense>Cette demande a été annulée.</Alert>
-          ) : null}
-
-          {/* Litige post-intervention : lecture seule (le client conteste,
-              l'admin tranche). */}
-          {dispute ? (
-            <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={disputeStatusConfig(dispute.status).variant}>
-                  Litige : {disputeStatusConfig(dispute.status).label}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {disputeCategoryLabel(dispute.category)}
-                </span>
-              </div>
-              <p className="whitespace-pre-line text-sm">{dispute.description}</p>
-              {dispute.resolution ? (
-                <p className="whitespace-pre-line text-sm text-muted-foreground">
-                  Décision : {dispute.resolution}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {events.length > 0 ? (
-        <Link
-          href={`/technicien/chronologies/${demande.id}`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
-        >
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
-            <p className="truncate text-sm font-medium">{lastActivityLabel}</p>
-          </div>
-          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
-            Voir la chronologie
-            <Icon name="chevron-right" size="sm" />
-          </span>
-        </Link>
+        </div>
       ) : null}
 
-      {/* IA-3 — diagnostic libre + devis en un envoi (sans catalogue) :
-        * après les éléments client, avant les parcours existants conservés. */}
-      {canChooseDiagnostic && canProposeManualQuote ? (
-        <FreeDiagnosticSection
-          demandeId={demande.id}
-          onDone={() => setRefreshKey((key) => key + 1)}
-        />
-      ) : null}
-
-      {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) ? (
-        <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
-      ) : null}
-
-      {baseCanDiscuss && (catalogFlow ? negotiationUnlocked : true) ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="chat" size="sm" className="text-muted-foreground" />
-              Discussion avec le client
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConversationSection
+      {/* ═══ ONGLET « DIAGNOSTIC & DEVIS » ══════════════════════════════
+       * Ce que le technicien produit : diagnostic libre, diagnostic publié,
+       * proposition tarifaire. */}
+      {visibleTab === TAB_DIAGNOSTIC ? (
+        <div role="tabpanel" aria-label="Diagnostic et devis" className="space-y-4">
+          {/* IA-3 — diagnostic libre + devis en un envoi (sans catalogue) */}
+          {canChooseDiagnostic && canProposeManualQuote ? (
+            <FreeDiagnosticSection
               demandeId={demande.id}
-              canSend={canDiscuss}
-              peerName={demande.client ? fullName(demande.client.firstName, demande.client.lastName) : null}
+              onDone={() => setRefreshKey((key) => key + 1)}
             />
-          </CardContent>
-        </Card>
+          ) : null}
+
+          {showDiagnostic ? (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Icon name="file" size="sm" className="text-muted-foreground" />
+                    Diagnostic
+                  </CardTitle>
+                  {latestDiagnostic?.mode === 'MANUAL' ? (
+                    <Badge variant="neutral">Non référencé</Badge>
+                  ) : null}
+                  {latestDiagnostic?.mode === 'CATALOG' ? (
+                    <Badge variant="neutral">Catalogue</Badge>
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {isPreAcceptance && !latestDiagnostic ? (
+                  <Alert variant="neutral" icon="shield" title="Diagnostic verrouillé">
+                    <p>
+                      🔒 Acceptez d&apos;abord la mission pour établir un diagnostic.
+                    </p>
+                  </Alert>
+                ) : null}
+                {latestDiagnostic ? (
+                  <div className="space-y-2">
+                    <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
+                    {latestDiagnostic.hasAudio ? (
+                      <DiagnosticAudioPlayer
+                        demandeId={demande.id}
+                        diagnosticId={latestDiagnostic.id}
+                        diagnosticLabel={latestDiagnostic.content.slice(0, 60)}
+                        fetchUrl={(demandeId, diagnosticId) =>
+                          getDiagnosticAudioUrl(demandeId, diagnosticId)
+                        }
+                      />
+                    ) : null}
+                    {latestDiagnostic.proposedIntervention ? (
+                      <Alert variant="info" title="Intervention proposée">
+                        <p className="whitespace-pre-line">{latestDiagnostic.proposedIntervention}</p>
+                      </Alert>
+                    ) : null}
+                    {latestDiagnostic.justification ? (
+                      <Alert variant="info" title="Justification">
+                        <p className="whitespace-pre-line">{latestDiagnostic.justification}</p>
+                      </Alert>
+                    ) : null}
+                    {latestDiagnostic.notes ? (
+                      <Alert variant="neutral" title="Note complémentaire">
+                        <p className="whitespace-pre-line">{latestDiagnostic.notes}</p>
+                      </Alert>
+                    ) : null}
+                    {latestDiagnostic.recommendation ? (
+                      <Alert variant="info" title="Recommandation">
+                        <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
+                      </Alert>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vous n&apos;avez pas encore publié de diagnostic.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {showQuote ? (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Icon name="badge-check" size="sm" className="text-muted-foreground" />
+                    Proposition tarifaire
+                  </CardTitle>
+                  {canProposeManualQuote ? (
+                    <Button variant="secondary" size="sm" onClick={() => setShowQuoteForm((v) => !v)}>
+                      <Icon name="plus" size="3.5" />
+                      Proposer un tarif
+                    </Button>
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {catalogFlow && !negotiationUnlocked ? (
+                  <Alert variant="info" dense icon="info">
+                    Le tarif automatique Relio est en attente de la décision du client (acceptation ou
+                    demande de négociation).
+                  </Alert>
+                ) : null}
+                {latestQuote ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="figure text-lg font-bold">{formatAmount(latestQuote)}</span>
+                      <QuoteStatusBadge status={latestQuote.status} />
+                    </div>
+                    <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
+                    {latestQuote.repair != null || latestQuote.travel != null || latestQuote.breakdown ? (
+                      <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
+                        {latestQuote.catalogDiagnostic?.name ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">Diagnostic</span>
+                            <span className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</span>
+                          </div>
+                        ) : null}
+                        {latestQuote.catalogIntervention?.name ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">Intervention</span>
+                            <span className="text-right font-medium">{latestQuote.catalogIntervention.name}</span>
+                          </div>
+                        ) : null}
+                        {(latestQuote.catalogDiagnostic?.name || latestQuote.catalogIntervention?.name) ? (
+                          <div className="my-1 h-px bg-border" />
+                        ) : null}
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Réparation</span>
+                          <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Déplacement</span>
+                          <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
+                        </div>
+                        <div className="my-1 h-px bg-border" />
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">Total client (brut)</span>
+                          <span className="font-semibold">{formatPrice(latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0)))}</span>
+                        </div>
+                        {/* Commission affichée APRÈS envoi : ce sont les montants
+                          * renvoyés par le backend (aucun recalcul frontend). Le
+                          * repli `previewTechnicianQuote` ne sert que si un ancien
+                          * devis, émis avant le chantier, n'expose pas encore le
+                          * champ — même formule, donc même résultat. */}
+                        <div className="my-1 h-px bg-border" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
+                          <span className="font-medium text-muted-foreground">
+                            −{formatPrice(
+                              latestQuote.commission ??
+                                previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).commission,
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">Vous recevrez</span>
+                          <span className="font-semibold text-success-ink">
+                            {formatPrice(
+                              latestQuote.netTechnician ??
+                                previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).net,
+                            )}
+                          </span>
+                        </div>
+                        {/* OPTION A : le montant ci-dessus est votre net — c'est
+                          * exactement ce qui sera versé sur votre Mobile Money au
+                          * moment du retrait. Aucun montant de frais n'est
+                          * exposé : il est pris en charge par Relio. */}
+                        <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+                          <span>{relioAbsorbsTransferFeesNote('mission')}</span>
+                        </p>
+                      </div>
+                    ) : null}
+                    {demande.status === 'CONFIRMED' && latestQuote ? (
+                      <Alert variant="info" dense icon="info">
+                        {TECHNICIAN_FEE_LABEL} est prélevée sur le montant de votre devis. Vos 2 000 FCFA
+                        de déplacement vous sont intégralement reversés, en plus du devis. Le détail de
+                        votre gain net apparaît dans l&apos;onglet Revenus.
+                      </Alert>
+                    ) : null}
+                    {latestQuote.status === 'PENDING' ? (
+                      <p className="text-sm text-muted-foreground">En attente de la réponse du client.</p>
+                    ) : null}
+                    {latestQuote.status === 'ACCEPTED' ? (
+                      <Alert variant="success" dense>
+                        Devis accepté. Vous pouvez maintenant planifier l&apos;intervention.
+                      </Alert>
+                    ) : null}
+                    {latestQuote.status === 'REJECTED' ? (
+                      <Alert variant="neutral" dense>
+                        Devis refusé. Vous pouvez proposer un nouveau devis.
+                      </Alert>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Vous n&apos;avez pas encore proposé de devis.
+                  </p>
+                )}
+
+                {showQuoteForm ? (
+                  <QuoteForm
+                    amountValue={amountValue}
+                    quoteDescription={quoteDescription}
+                    onAmountChange={setAmountValue}
+                    onDescriptionChange={setQuoteDescription}
+                    onSubmit={handleCreateQuote}
+                    submitting={actionBusy === 'QUOTE'}
+                    canSubmitQuote={canSubmitQuote}
+                  />
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="file" size="sm" className="text-muted-foreground" />
-              Diagnostic
-            </CardTitle>
-            {latestDiagnostic?.mode === 'MANUAL' ? (
-              <Badge variant="neutral">Non référencé</Badge>
-            ) : null}
-            {latestDiagnostic?.mode === 'CATALOG' ? (
-              <Badge variant="neutral">Catalogue</Badge>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {isPreAcceptance && !latestDiagnostic ? (
-            <Alert variant="neutral" icon="shield" title="Diagnostic verrouillé">
-              <p>
-                🔒 Acceptez d&apos;abord la mission pour établir un diagnostic.
-              </p>
-            </Alert>
-          ) : null}
-          {latestDiagnostic ? (
-            <div className="space-y-2">
-              <p className="whitespace-pre-line text-sm">{latestDiagnostic.content}</p>
-              {latestDiagnostic.hasAudio ? (
-                <DiagnosticAudioPlayer
+      {/* ═══ ONGLET « DISCUSSION » ═══════════════════════════════════════
+       * Plein largeur : la conversation est un contenu de mission, pas une
+         carte d'appoint. */}
+      {visibleTab === TAB_DISCUSSION ? (
+        <div role="tabpanel" aria-label="Discussion avec le client" className="space-y-3">
+          {baseCanDiscuss && (catalogFlow ? negotiationUnlocked : true) ? (
+            <Card>
+              <CardContent className="pt-4 sm:pt-5">
+                <ConversationSection
                   demandeId={demande.id}
-                  diagnosticId={latestDiagnostic.id}
-                  diagnosticLabel={latestDiagnostic.content.slice(0, 60)}
-                  fetchUrl={(demandeId, diagnosticId) =>
-                    getDiagnosticAudioUrl(demandeId, diagnosticId)
-                  }
+                  canSend={canDiscuss}
+                  peerName={demande.client ? fullName(demande.client.firstName, demande.client.lastName) : null}
                 />
-              ) : null}
-              {latestDiagnostic.proposedIntervention ? (
-                <Alert variant="info" title="Intervention proposée">
-                  <p className="whitespace-pre-line">{latestDiagnostic.proposedIntervention}</p>
-                </Alert>
-              ) : null}
-              {latestDiagnostic.justification ? (
-                <Alert variant="info" title="Justification">
-                  <p className="whitespace-pre-line">{latestDiagnostic.justification}</p>
-                </Alert>
-              ) : null}
-              {latestDiagnostic.notes ? (
-                <Alert variant="neutral" title="Note complémentaire">
-                  <p className="whitespace-pre-line">{latestDiagnostic.notes}</p>
-                </Alert>
-              ) : null}
-              {latestDiagnostic.recommendation ? (
-                <Alert variant="info" title="Recommandation">
-                  <p className="whitespace-pre-line">{latestDiagnostic.recommendation}</p>
-                </Alert>
-              ) : null}
-            </div>
+              </CardContent>
+            </Card>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Vous n&apos;avez pas encore publié de diagnostic.
+              La discussion est fermée sur cette mission.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      ) : null}
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Icon name="badge-check" size="sm" className="text-muted-foreground" />
-              Proposition tarifaire
-            </CardTitle>
-            {canProposeManualQuote ? (
-              <Button variant="secondary" size="sm" onClick={() => setShowQuoteForm((v) => !v)}>
-                <Icon name="plus" size="3.5" />
-                Proposer un tarif
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {catalogFlow && !negotiationUnlocked ? (
-            <Alert variant="info" dense icon="info">
-              Le tarif automatique Relio est en attente de la décision du client (acceptation ou
-              demande de négociation).
-            </Alert>
-          ) : null}
-          {latestQuote ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <span className="figure text-lg font-bold">{formatAmount(latestQuote)}</span>
-                <QuoteStatusBadge status={latestQuote.status} />
-              </div>
-              <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
-              {latestQuote.repair != null || latestQuote.travel != null || latestQuote.breakdown ? (
-                <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
-                  {latestQuote.catalogDiagnostic?.name ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Diagnostic</span>
-                      <span className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</span>
-                    </div>
-                  ) : null}
-                  {latestQuote.catalogIntervention?.name ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">Intervention</span>
-                      <span className="text-right font-medium">{latestQuote.catalogIntervention.name}</span>
-                    </div>
-                  ) : null}
-                  {(latestQuote.catalogDiagnostic?.name || latestQuote.catalogIntervention?.name) ? (
-                    <div className="my-1 h-px bg-border" />
-                  ) : null}
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Réparation</span>
-                    <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Déplacement</span>
-                    <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
-                  </div>
-                  <div className="my-1 h-px bg-border" />
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Total client (brut)</span>
-                    <span className="font-semibold">{formatPrice(latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0)))}</span>
-                  </div>
-                  {/* Commission affichée APRÈS envoi : ce sont les montants
-                   * renvoyés par le backend (aucun recalcul frontend). Le
-                   * repli `previewTechnicianQuote` ne sert que si un ancien
-                   * devis, émis avant le chantier, n'expose pas encore le
-                   * champ — même formule, donc même résultat. */}
-                  <div className="my-1 h-px bg-border" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
-                    <span className="font-medium text-muted-foreground">
-                      −{formatPrice(
-                        latestQuote.commission ??
-                          previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).commission,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold">Vous recevrez</span>
-                    <span className="font-semibold text-success-ink">
-                      {formatPrice(
-                        latestQuote.netTechnician ??
-                          previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).net,
-                      )}
-                    </span>
-                  </div>
-                  {/* OPTION A : le montant ci-dessus est votre net — c'est
-                    * exactement ce qui sera versé sur votre Mobile Money au
-                    * moment du retrait. Aucun montant de frais n'est
-                    * exposé : il est pris en charge par Relio. */}
-                  <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
-                    <span>{relioAbsorbsTransferFeesNote('mission')}</span>
-                  </p>
-                </div>
-              ) : null}
-              {demande.status === 'CONFIRMED' && latestQuote ? (
-                <Alert variant="info" dense icon="info">
-                  {TECHNICIAN_FEE_LABEL} est prélevée sur le montant de votre devis. Vos 2 000 FCFA
-                  de déplacement vous sont intégralement reversés, en plus du devis. Le détail de
-                  votre gain net apparaît dans l&apos;onglet Revenus.
-                </Alert>
-              ) : null}
-              {latestQuote.status === 'PENDING' ? (
-                <p className="text-sm text-muted-foreground">En attente de la réponse du client.</p>
-              ) : null}
-              {latestQuote.status === 'ACCEPTED' ? (
-                <Alert variant="success" dense>
-                  Devis accepté. Vous pouvez maintenant planifier l&apos;intervention.
-                </Alert>
-              ) : null}
-              {latestQuote.status === 'REJECTED' ? (
-                <Alert variant="neutral" dense>
-                  Devis refusé. Vous pouvez proposer un nouveau devis.
-                </Alert>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Vous n&apos;avez pas encore proposé de devis.
-            </p>
-          )}
-
-          {showQuoteForm ? (
-            <div className="space-y-3 rounded-xl border border-border bg-card p-3">
-              <Field
-                htmlFor="quoteAmount"
-                label="Montant (FCFA)"
-                hint={`Minimum ${MIN_QUOTE_AMOUNT_XAF.toLocaleString('fr-FR').replace(/\s/g, ' ')} FCFA`}
-                error={quoteAmountMessage}
-              >
-                <Input
-                  id="quoteAmount"
-                  type="number"
-                  min={MIN_QUOTE_AMOUNT_XAF}
-                  step={500}
-                  value={amountValue}
-                  onChange={(event) => setAmountValue(event.target.value)}
-                  placeholder="Ex. : 15000"
-                  aria-describedby="quoteAmount-preview"
-                />
-              </Field>
-
-              {/* Aperçu AVANT envoi (C.1) : à ce stade aucun devis n'existe en
-                  base, l'aperçu ne peut donc pas venir de l'API. Après envoi,
-                  les montants affichés plus haut sont ceux du backend. */}
-              {quotePreview ? (
-                <div
-                  id="quoteAmount-preview"
-                  className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Votre devis</span>
-                    <span className="font-medium">{formatFCFA(quotePreview.quote)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Déplacement (intégralement yours)</span>
-                    <span className="font-medium">{formatFCFA(quotePreview.travel)}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
-                    <span className="font-medium text-muted-foreground">
-                      −{formatFCFA(quotePreview.commission)}
-                    </span>
-                  </div>
-                  <div className="my-1 h-px bg-border" />
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-semibold">Vous recevrez</span>
-                    <span className="font-semibold text-success-ink">
-                      {formatFCFA(quotePreview.net)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Le client paiera {formatFCFA(quotePreview.clientPays)}.
-                  </p>
-                  {/* OPTION A : le net ci-dessus est bien ce que vous
-                    * recevrez, frais de transfert Mobile Money compris dans
-                    * la prise en charge Relio. */}
-                  <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
-                    <span>{relioAbsorbsTransferFeesNote('apercu-devis')}</span>
-                  </p>
-                </div>
-              ) : null}
-
-              <Field htmlFor="quoteDescription" label="Description">
-                <Input
-                  id="quoteDescription"
-                  value={quoteDescription}
-                  onChange={(event) => setQuoteDescription(event.target.value)}
-                  maxLength={1000}
-                  placeholder="Ex. : remplacement du connecteur de charge + main-d'œuvre."
-                />
-              </Field>
-              <Button
-                onClick={handleCreateQuote}
-                isLoading={actionBusy === 'QUOTE'}
-                disabled={!canSubmitQuote}
-                className="w-full"
-              >
-                Proposer
-              </Button>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {demande.status === 'CONFIRMED' ? (
-        <RatingSection
-          demandeId={demande.id}
-          title="Votre avis sur le client"
-          alreadyRatedLabel="Vous avez déjà évalué ce client pour cette intervention."
+      {/* ═══ ONGLET « DÉTAILS » ═══ (voir <DetailsTab />) ═════════════ */}
+      {visibleTab === TAB_DETAILS ? (
+        <DetailsTab
+          demande={demande}
+          dispute={dispute}
+          eventsCount={events.length}
+          lastActivityLabel={lastActivityLabel}
         />
       ) : null}
 
@@ -1081,6 +983,384 @@ export default function TechnicianDemandeDetailPage() {
         description="L’intervention passera en attente de confirmation du client. Cette action déclenche le calcul du règlement (brut, commission Relio 500 FCFA + 4 %, net)."
         confirmLabel="Marquer comme terminée"
       />
+    </div>
+  );
+}
+
+/* ── Formulaire de proposition tarifaire (extrait pour lisibilité) ──────
+ * Ce bloc était de 80 lignes au milieu d'une card de 500 : il est isolé ici
+ * sans changer une ligne de sa logique ni de ses identifiants. Le test
+ * `technician-quote.test.ts` (aperçu, seuil, bouton bloqué) continue de lire
+ * `quoteAmountError`, `previewTechnicianQuote`, `isQuoteAmountAllowed` et
+ * `quoteAmount-preview` dans la page : ces appels sont tous dans ce composant,
+ * qui vit dans le MÊME fichier. */
+function QuoteForm({
+  amountValue,
+  quoteDescription,
+  onAmountChange,
+  onDescriptionChange,
+  onSubmit,
+  submitting,
+  canSubmitQuote,
+}: {
+  amountValue: string;
+  quoteDescription: string;
+  onAmountChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onSubmit: () => void;
+  submitting: boolean;
+  canSubmitQuote: boolean;
+}) {
+  /* Chantier 4-FONDATIONS-A — saisie du devis : seuil de 5 000 FCFA, aperçu
+   * de la commission en direct, bouton bloqué tant que le devis est hors
+   * bornes. Source unique : `@/lib/technician-quote` (le backend revalide).
+   *
+   * ⚠️ AUCUN HOOK ICI — et c'est délibéré. Ce composant est rendu APRÈS les
+   * returns anticipés du composant parent (`if (loading)`, `if (error &&
+   * !demande)`, `if (!demande) return null`). Appeler un hook React ici
+   * ferait varier le nombre de hooks du PARENT entre deux rendus (render 1
+   * sur skeleton = 26, render 2 avec données = 27) : React lève alors
+   * « Rendered more hooks than during the previous render » et toute la page
+   * tombe sur `src/app/error.tsx`.
+   *
+   * Régression introduite par 4-A (commit 7dc1818) via un `useMemo` sur ce
+   * bloc, puis supprimée : `previewTechnicianQuote` est un calcul trivial sur
+   * un nombre, la mémoïsation n'apportait rien. Si ce bloc devient coûteux, la
+   * correction est de le remonter AVANT le premier return — jamais d'ajouter
+   * un hook ici. Verrouillé par `src/lib/technician-quote.test.ts`. */
+  const parsedQuote = quoteAmountError(amountValue);
+  const quoteAmountMessage = parsedQuote.error;
+  const quotePreview =
+    parsedQuote.amount === null ? null : previewTechnicianQuote(parsedQuote.amount);
+
+  return (
+    <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+      <Field
+        htmlFor="quoteAmount"
+        label="Montant (FCFA)"
+        hint={`Minimum ${MIN_QUOTE_AMOUNT_XAF.toLocaleString('fr-FR').replace(/\s/g, ' ')} FCFA`}
+        error={quoteAmountMessage}
+      >
+        <Input
+          id="quoteAmount"
+          type="number"
+          min={MIN_QUOTE_AMOUNT_XAF}
+          step={500}
+          value={amountValue}
+          onChange={(event) => onAmountChange(event.target.value)}
+          placeholder="Ex. : 15000"
+          aria-describedby="quoteAmount-preview"
+        />
+      </Field>
+
+      {/* Aperçu AVANT envoi : à ce stade aucun devis n'existe en base, l'aperçu
+          ne peut donc pas venir de l'API. Après envoi, les montants affichés
+          dans la card sont ceux du backend. */}
+      {quotePreview ? (
+        <div
+          id="quoteAmount-preview"
+          className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">Votre devis</span>
+            <span className="font-medium">{formatFCFA(quotePreview.quote)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">Déplacement (intégralement yours)</span>
+            <span className="font-medium">{formatFCFA(quotePreview.travel)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
+            <span className="font-medium text-muted-foreground">
+              −{formatFCFA(quotePreview.commission)}
+            </span>
+          </div>
+          <div className="my-1 h-px bg-border" />
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-semibold">Vous recevez</span>
+            <span className="font-semibold text-success-ink">
+              {formatFCFA(quotePreview.net)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Le client paiera {formatFCFA(quotePreview.clientPays)}.
+          </p>
+          {/* OPTION A : le net ci-dessus est bien ce que vous recevrez, frais
+            * de transfert Mobile Money compris dans la prise en charge Relio. */}
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Icon name="info" size="sm" className="mt-0.5 shrink-0" />
+            <span>{relioAbsorbsTransferFeesNote('apercu-devis')}</span>
+          </p>
+        </div>
+      ) : null}
+
+      <Field htmlFor="quoteDescription" label="Description">
+        <Input
+          id="quoteDescription"
+          value={quoteDescription}
+          onChange={(event) => onDescriptionChange(event.target.value)}
+          maxLength={1000}
+          placeholder="Ex. : remplacement du connecteur de charge + main-d'œuvre."
+        />
+      </Field>
+      <Button onClick={onSubmit} isLoading={submitting} disabled={!canSubmitQuote} className="w-full">
+        Proposer
+      </Button>
+    </div>
+  );
+}
+/* ── HEADER PERMANENT (extrait, chantier 6B) ────────────────────────────
+ *
+ * Ce bloc faisait 141 lignes à lui seul, au milieu du composant principal.
+ * Il porte les 4 points de contrôle KYC de la page :
+ *
+ *   1. `kycRequired`, calculé par le PARENT (le test `technician-kyc.test.ts`
+ *      lit `const kycRequired = canAccept && !kycVerified` et
+ *      `{canAccept && kycRequired ?` dans ce fichier) ;
+ *   2. le bandeau `kycBlocker` + le bouton « Accepter » VISIBLE mais
+ *      DÉSACTIVÉ (le même test lit `<Button disabled className="w-full"
+ *      size="lg">Accepter la demande`) ;
+ *   3. l'écran d'erreur 404 avec message métier, et le squelette
+ *      intermédiaire — tous deux restent dans le composant PARENT, car ils
+ *      sont des returns anticipés et doivent l'être au plus haut niveau.
+ *
+ * Aucune logique ici : uniquement de l'affichage des props et le rendu de la
+ * bannière. */
+function TechnicianHeader({
+  demande,
+  actionError,
+  actionBusy,
+  canAccept,
+  kycRequired,
+  kycBlocker,
+  technicianProfile,
+  hasAcceptedQuote,
+  scheduledValue,
+  onScheduledValueChange,
+  onAccept,
+  onSchedule,
+  onStart,
+  onFinish,
+}: {
+  demande: TechnicianDemande;
+  actionError: string | null;
+  actionBusy: string | null;
+  canAccept: boolean;
+  kycRequired: boolean;
+  kycBlocker: KycAcceptanceBanner;
+  technicianProfile: { kycStatus: string; kycRejectionReason?: string | null } | null;
+  hasAcceptedQuote: boolean;
+  scheduledValue: string;
+  onScheduledValueChange: (value: string) => void;
+  onAccept: () => void;
+  onSchedule: () => void;
+  onStart: () => void;
+  onFinish: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-mono text-lg font-semibold text-primary">{demande.reference}</span>
+          <DemandeStatusBadge status={demande.status} context="technician" />
+        </div>
+        <CardTitle className="text-base">{demande.categoryLabel}</CardTitle>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {demande.city ? (
+            <span className="flex items-center gap-1">
+              <Icon name="pin" size="3.5" />
+              {demande.city}
+            </span>
+          ) : null}
+          {demande.client ? (
+            <span className="flex items-center gap-1">
+              <Icon name="user" size="3.5" />
+              {fullName(demande.client.firstName, demande.client.lastName)}
+            </span>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {actionError ? <Alert variant="error">{actionError}</Alert> : null}
+
+        {/* ── Point de contrôle KYC n°2 : bandeau + bouton désactivé.
+             Le bandeau est ROUGE : l'acceptation est réellement bloquée,
+             ce n'est pas une simple recommandation. Le motif de refus
+             éventuel est repris ici — c'est lui qui dit au technicien
+             quoi corriger. */}
+        {canAccept && kycRequired ? (
+          <div className="space-y-3">
+            <Alert
+              variant={kycBlocker.variant}
+              title={kycBlocker.title}
+              action={
+                <Link href={KYC_PAGE_HREF}>
+                  <Button variant="secondary" size="sm">
+                    {kycBlocker.ctaLabel}
+                  </Button>
+                </Link>
+              }
+            >
+              <p>{kycBlocker.description}</p>
+              <p className="mt-1 text-xs opacity-80">
+                Statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}.
+              </p>
+            </Alert>
+            {/* Le bouton reste VISIBLE mais DÉSACTIVÉ : il montre ce que le
+                technicien perd s'il ne fait rien (la mission est à lui), sans
+                le laisser déclencher un 403 opaque. La lecture de la mission
+                reste entièrement accessible. */}
+            <div className="space-y-1.5">
+              <Button disabled className="w-full" size="lg">
+                Accepter la demande
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Vérification d’identité requise pour accepter cette mission.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Action principale du header, une seule à la fois. */}
+        {canAccept && !kycRequired ? (
+          <Button onClick={onAccept} isLoading={actionBusy === 'ACCEPTED'} className="w-full" size="lg">
+            Accepter la demande
+          </Button>
+        ) : null}
+
+        {demande.status === 'ACCEPTED' && hasAcceptedQuote ? (
+          <div className="space-y-3">
+            <Field htmlFor="scheduledAt" label="Date et heure de l'intervention">
+              <Input
+                id="scheduledAt"
+                type="datetime-local"
+                value={scheduledValue}
+                onChange={(event) => onScheduledValueChange(event.target.value)}
+              />
+            </Field>
+            <Button
+              onClick={onSchedule}
+              isLoading={actionBusy === 'SCHEDULED'}
+              disabled={!scheduledValue}
+              className="w-full"
+              size="lg"
+            >
+              Planifier l&apos;intervention
+            </Button>
+          </div>
+        ) : null}
+
+        {demande.status === 'ACCEPTED' && !hasAcceptedQuote ? (
+          <Alert variant="warning" icon="clock" dense>
+            En attente d&apos;acceptation du tarif par le client avant de planifier l&apos;intervention.
+          </Alert>
+        ) : null}
+
+        {demande.status === 'SCHEDULED' ? (
+          <Button onClick={onStart} isLoading={actionBusy === 'IN_PROGRESS'} className="w-full" size="lg">
+            Démarrer l&apos;intervention
+          </Button>
+        ) : null}
+
+        {demande.status === 'IN_PROGRESS' ? (
+          <Button onClick={onFinish} isLoading={actionBusy === 'COMPLETED'} className="w-full" size="lg">
+            Marquer comme terminée
+          </Button>
+        ) : null}
+
+        {demande.status === 'COMPLETED' ? (
+          <Alert variant="warning" icon="clock" dense>
+            Intervention terminée. En attente de confirmation du client.
+          </Alert>
+        ) : null}
+
+        {demande.status === 'CONFIRMED' ? (
+          <Alert variant="success" dense>Intervention confirmée par le client.</Alert>
+        ) : null}
+
+        {demande.status === 'CANCELED' ? (
+          <Alert variant="error" dense>Cette demande a été annulée.</Alert>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── ONGLET « DÉTAILS » (extrait, chantier 6B) ───────────────────────────
+ *
+ * Le bloc était de 58 lignes dans le composant principal. Il regroupe ce qui
+ * est secondaire mais nécessaire : litige en lecture seule, opt-in push,
+ * lien vers la chronologie, récapitulatif complet et avis sur le client.
+ *
+ * Le litige reste STRICTEMENT en lecture côté technicien : le client est le
+ * seul à pouvoir le contester, l'admin le seul à pouvoir le trancher. Cette
+ * page n'appelle donc QUE l'endpoint de lecture (invariant verrouillé par
+ * `dispute-status.test.ts`). */
+function DetailsTab({
+  demande,
+  dispute,
+  eventsCount,
+  lastActivityLabel,
+}: {
+  demande: TechnicianDemande;
+  dispute: DemandeDispute | null;
+  eventsCount: number;
+  lastActivityLabel: string;
+}) {
+  return (
+    <div role="tabpanel" aria-label="Détails de la mission" className="space-y-4">
+      {/* Litige post-intervention : lecture seule (le client conteste,
+          l'admin tranche). */}
+      {dispute ? (
+        <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={disputeStatusConfig(dispute.status).variant}>
+              Litige : {disputeStatusConfig(dispute.status).label}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {disputeCategoryLabel(dispute.category)}
+            </span>
+          </div>
+          <p className="whitespace-pre-line text-sm">{dispute.description}</p>
+          {dispute.resolution ? (
+            <p className="whitespace-pre-line text-sm text-muted-foreground">
+              Décision : {dispute.resolution}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Proposition contextuelle : suivre cette mission acceptée même
+          app fermée (carte inline, jamais de popup). */}
+      {demande.status === 'ACCEPTED' ? <PushNotificationCard compact /> : null}
+
+      {eventsCount > 0 ? (
+        <Link
+          href={`/technicien/chronologies/${demande.id}`}
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+        >
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Dernière activité</p>
+            <p className="truncate text-sm font-medium">{lastActivityLabel}</p>
+          </div>
+          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-primary">
+            Voir la chronologie
+            <Icon name="chevron-right" size="sm" />
+          </span>
+        </Link>
+      ) : null}
+
+      {['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CONFIRMED'].includes(demande.status) ? (
+        <MissionSummaryCard demandeId={demande.id} title="Récapitulatif de la mission" />
+      ) : null}
+
+      {demande.status === 'CONFIRMED' ? (
+        <RatingSection
+          demandeId={demande.id}
+          title="Votre avis sur le client"
+          alreadyRatedLabel="Vous avez déjà évalué ce client pour cette intervention."
+        />
+      ) : null}
     </div>
   );
 }
