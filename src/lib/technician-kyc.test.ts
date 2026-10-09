@@ -426,8 +426,12 @@ void test('#5A — détail mission : bouton Accepter DÉSACTIVÉ, jamais masqué
 
 void test('#5A — détail mission : le bandeau ne bloque PAS la consultation', () => {
   const detailPage = read('../app/technicien/demandes/[id]/page.tsx');
-  // Le garde ne porte que sur `canAccept` : la page se rend normalement.
-  assert.match(detailPage, /const kycRequired = canAccept && !kycVerified/);
+  // Le garde ne porte QUE sur `canAccept` : la page se rend normalement. C'est
+  // l'intention du test depuis #5A, et elle reste vraie — le chantier 6C-1
+  // n'élargit pas la condition, il la resserre sur le seul cas où le statut
+  // d'identité est inconnu (chargement ou échec réseau), ce qui ne concerne
+  // qu'une mission en attente d'acceptation.
+  assert.match(detailPage, /const kycRequired = canAccept && \(profileLoadState !== 'loaded' \|\| !kycVerified\)/);
   assert.match(detailPage, /\{canAccept && kycRequired \?/);
 });
 

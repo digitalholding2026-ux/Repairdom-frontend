@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
@@ -166,9 +167,28 @@ export default function TechnicianDemandeDetailPage() {
     kycRejectionReason?: string | null;
   } | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  /* CHANTIER 6C-1 — état du chargement du profil technicien.
+   *
+   * AVANT : l'échec réseau de la lecture du profil était avalé et
+   * `kycVerified` gardait sa valeur par défaut (optimiste). Conséquence
+   * reproduite en production : bouton « Accepter la demande » actif, clic,
+   * refus 403 que le technicien ne comprend pas.
+   *
+   * MAINTENANT : `error` est un état affiché, pas un silence. Tant que le
+   * statut n'est pas connu, l'acceptation reste bloquée — c'est le seul
+   * arbitrage sûr : on préfère refuser une action à l'utilisateur plutôt que
+   * de la laisser déclencher une erreur qu'il ne peut pas interpréter. */
+  const [profileLoadState, setProfileLoadState] = useState<'loading' | 'loaded' | 'error'>('loading');
+  /* Incrémenté par le bouton « Réessayer » pour relancer la lecture du profil. */
+  const [profileReloadKey, setProfileReloadKey] = useState(0);
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [events, setEvents] = useState<MissionEvent[]>([]);
+  /* CHANTIER 6C-1 — la chronologie distingue « vide » de « chargement échoué ».
+   * Un tableau vide est un état normal (mission jeune) ; une liste vide à
+   * cause d'une erreur réseau ne doit pas laisser croire qu'il ne s'est rien
+   * passé. */
+  const [eventsLoadState, setEventsLoadState] = useState<'loading' | 'loaded' | 'error'>('loading');
   /* Litige post-intervention : lecture seule (même endpoint partagé). */
   const [dispute, setDispute] = useState<DemandeDispute | null>(null);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
@@ -176,6 +196,11 @@ export default function TechnicianDemandeDetailPage() {
   const [quoteDescription, setQuoteDescription] = useState('');
   /* Codes familles « Autre appareil » → libellés affichables. */
   const [familyLabels, setFamilyLabels] = useState<Record<string, string>>({});
+  /* 6C-1 (optionnel) : les libellés de famille « Autre appareil » sont un
+     complément cosmétique. Leur échec réseau ne bloque rien, mais il ne doit
+     pas être invisible : le code brut s'affiche alors à la place du libellé,
+     et le technicien doit comprendre pourquoi. */
+  const [familyLabelsFailed, setFamilyLabelsFailed] = useState(false);
   /* IA-3 — rechargement immédiat après diagnostic libre (le polling 5 s
    * reprend ensuite ; le timer est simplement recréé, sans double appel). */
   const [refreshKey, setRefreshKey] = useState(0);
@@ -206,7 +231,13 @@ export default function TechnicianDemandeDetailPage() {
           setFamilyLabels(Object.fromEntries(list.map((family) => [family.code, family.label])));
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        // 6C-1 : l'échec est signalé dans l'UI (badge « Libellé non
+        // disponible »), pas seulement dans la console — un code brut affiché
+        // sans explication ressemble à une donnée erronée.
+        if (active) setFamilyLabelsFailed(true);
+        console.warn('[mission] Libellés de famille indisponibles, repli sur le code brut.');
+      });
     return () => {
       active = false;
     };
@@ -220,21 +251,30 @@ export default function TechnicianDemandeDetailPage() {
   useEffect(() => {
     if (!params?.id) return;
     let active = true;
+    setProfileLoadState('loading');
 
     getTechnicianProfile()
       .then((profile) => {
         if (!active) return;
         setTechnicianProfile(profile);
         if (profile) setKycVerified(profile.kycStatus === 'VERIFIED');
+        setProfileLoadState('loaded');
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!active) return;
+        // 6C-1 : l'échec est un état affiché, plus un silence. `kycVerified`
+        // reste à `true` (valeur par défaut) mais `profileLoadState` bloque
+        // l'acceptation : aucun 403 opaque ne peut plus être déclenché.
+        setProfileLoadState('error');
+      })
       .finally(() => {
         if (active) setProfileLoaded(true);
       });
     return () => {
       active = false;
     };
-  }, [params?.id]);
+    /* `profileReloadKey` : relance manuelle via le bouton « Réessayer ». */
+  }, [params?.id, profileReloadKey]);
 
   /* Chantier #5A — le bandeau doit disparaître SANS rechargement quand l'admin
    * tranche le dossier. Seul le profil est refetché (jamais la mission), donc
@@ -250,8 +290,13 @@ export default function TechnicianDemandeDetailPage() {
       .then((profile) => {
         setTechnicianProfile(profile);
         setKycVerified(profile.kycStatus === 'VERIFIED');
+        setProfileLoadState('loaded');
       })
-      .catch(() => undefined);
+      .catch(() => {
+        // 6C-1 : un flux SSE qui n'aboutit pas ne doit pas laisser le
+        // technicien dans l'incertitude sur son statut d'identité.
+        setProfileLoadState('error');
+      });
   });
 
   /* Chargement unique : premier passage complet (erreur affichée), puis
@@ -268,17 +313,23 @@ export default function TechnicianDemandeDetailPage() {
          * acceptation — les routes backend les réservent au technicien
          * assigné (requireAccess volontairement inchangé) : un 404 ici
          * signifie simplement « pas encore assigné », on utilise []. */
-        const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
+        const [d, diagnosticsList, quotesList, eventsResult] = await Promise.all([
           getTechnicianDemande(params.id!),
           listDemandeDiagnostics(params.id!).catch(() => []),
           listDemandeQuotes(params.id!).catch(() => []),
-          listMissionEvents(params.id!).catch(() => []),
+          // 6C-1 : la chronologie note son propre échec au lieu de le confondre
+          // avec une mission sans historique.
+          listMissionEvents(params.id!).then(
+            (list): [MissionEvent[], 'loading' | 'loaded' | 'error'] => [list, 'loaded'],
+            (): [MissionEvent[], 'loading' | 'loaded' | 'error'] => [[], 'error'],
+          ),
         ]);
         if (!active) return;
         setDemande(d);
         setDiagnostics(diagnosticsList);
         setQuotes(quotesList);
-        setEvents(eventsList);
+        setEvents(eventsResult[0]);
+        setEventsLoadState(eventsResult[1]);
         /* Litige : silencieux, jamais bloquant (null si aucun). */
         getDispute(params.id!)
           .then((result) => { if (active) setDispute(result); })
@@ -480,7 +531,14 @@ export default function TechnicianDemandeDetailPage() {
     : null;
   const ownTravelRecency = formatTravelRecency(demande.travel?.minutesSinceUpdate);
   const isPreAcceptance = canAccept;
-  const kycRequired = canAccept && !kycVerified;
+  /* CHANTIER 6C-1 — le statut d'identité est-il connu ET vérifié ?
+   *
+   * `loading` : on ne sait pas encore. L'acceptation est bloquée par défaut —
+   * laisser passer produirait un refus 403 que le technicien ne comprend pas.
+   * `loaded` + non vérifié : blocage métier, motif de refus affiché.
+   * `error`   : blocage technique, bandeau « Réessayer » affiché.
+   * Un seul cas l'acceptation : statut connu ET vérifié. */
+  const kycRequired = canAccept && (profileLoadState !== 'loaded' || !kycVerified);
   /* Chantier #5A — contenu du bandeau. `kycRequired` implique un statut
    * non vérifié, donc le helper rend toujours un bandeau ici ; le repli
    * `FALLBACK_KYC_BLOCKER` couvre seulement le cas d'un statut `undefined`
@@ -547,7 +605,9 @@ export default function TechnicianDemandeDetailPage() {
   const showDiagnostic = latestDiagnostic !== null || canChooseDiagnostic;
   const showQuote = quotes.length > 0 || canProposeManualQuote;
   const showMedias = demande.medias.length > 0;
-  const showTimelineLink = events.length > 0;
+  /* 6C-1 : une chronologie en erreur n'est PAS une mission sans historique.
+     L'onglet Détails affiche un état explicite avec « Réessayer ». */
+  const timelineFailed = eventsLoadState === 'error';
 
   const TAB_ITEMS: readonly TabItem[] = [
     { id: TAB_OVERVIEW, label: 'Aperçu' },
@@ -570,6 +630,7 @@ export default function TechnicianDemandeDetailPage() {
         canAccept={canAccept}
         kycRequired={kycRequired}
         kycBlocker={kycBlocker}
+        profileLoadState={profileLoadState}
         technicianProfile={technicianProfile}
         hasAcceptedQuote={hasAcceptedQuote}
         scheduledValue={scheduledValue}
@@ -578,6 +639,7 @@ export default function TechnicianDemandeDetailPage() {
         onSchedule={handleSchedule}
         onStart={() => handleStatusChange('IN_PROGRESS')}
         onFinish={() => setConfirmFinish(true)}
+        onRetryProfile={() => setProfileReloadKey((key) => key + 1)}
       />
 
       {/* ═══ ONGLETS ═══════════════════════════════════════════════════ */}
@@ -610,6 +672,9 @@ export default function TechnicianDemandeDetailPage() {
                 {demande.equipmentFamily
                   ? familyLabels[demande.equipmentFamily] ?? demande.equipmentFamily
                   : demande.equipmentType}{' '}
+                {familyLabelsFailed && demande.equipmentFamily && !familyLabels[demande.equipmentFamily] ? (
+                  <Badge variant="neutral" className="mr-1">Libellé non disponible</Badge>
+                ) : null}
                 <span className="text-xs text-muted-foreground">(déclaré par le client)</span>
               </p>
             </div>
@@ -967,7 +1032,9 @@ export default function TechnicianDemandeDetailPage() {
           demande={demande}
           dispute={dispute}
           eventsCount={events.length}
+          timelineFailed={timelineFailed}
           lastActivityLabel={lastActivityLabel}
+          onRetryTimeline={() => setRefreshKey((key) => key + 1)}
         />
       ) : null}
 
@@ -1114,9 +1181,9 @@ function QuoteForm({
  * Ce bloc faisait 141 lignes à lui seul, au milieu du composant principal.
  * Il porte les 4 points de contrôle KYC de la page :
  *
- *   1. `kycRequired`, calculé par le PARENT (le test `technician-kyc.test.ts`
- *      lit `const kycRequired = canAccept && !kycVerified` et
- *      `{canAccept && kycRequired ?` dans ce fichier) ;
+* 1. `kycRequired`, calculé par le PARENT (le test `technician-kyc.test.ts`
+ *      lit la formule complète et `{canAccept && kycRequired ?` dans ce
+ *      fichier) ;
  *   2. le bandeau `kycBlocker` + le bouton « Accepter » VISIBLE mais
  *      DÉSACTIVÉ (le même test lit `<Button disabled className="w-full"
  *      size="lg">Accepter la demande`) ;
@@ -1133,6 +1200,7 @@ function TechnicianHeader({
   canAccept,
   kycRequired,
   kycBlocker,
+  profileLoadState,
   technicianProfile,
   hasAcceptedQuote,
   scheduledValue,
@@ -1141,6 +1209,7 @@ function TechnicianHeader({
   onSchedule,
   onStart,
   onFinish,
+  onRetryProfile,
 }: {
   demande: TechnicianDemande;
   actionError: string | null;
@@ -1148,6 +1217,7 @@ function TechnicianHeader({
   canAccept: boolean;
   kycRequired: boolean;
   kycBlocker: KycAcceptanceBanner;
+  profileLoadState: 'loading' | 'loaded' | 'error';
   technicianProfile: { kycStatus: string; kycRejectionReason?: string | null } | null;
   hasAcceptedQuote: boolean;
   scheduledValue: string;
@@ -1156,6 +1226,7 @@ function TechnicianHeader({
   onSchedule: () => void;
   onStart: () => void;
   onFinish: () => void;
+  onRetryProfile: () => void;
 }) {
   return (
     <Card>
@@ -1190,34 +1261,61 @@ function TechnicianHeader({
              quoi corriger. */}
         {canAccept && kycRequired ? (
           <div className="space-y-3">
-            <Alert
-              variant={kycBlocker.variant}
-              title={kycBlocker.title}
-              action={
-                <Link href={KYC_PAGE_HREF}>
-                  <Button variant="secondary" size="sm">
-                    {kycBlocker.ctaLabel}
+            {/* 6C-1 — le statut est INCONNU (chargement ou échec réseau) :
+                le bandeau métier ci-dessous dirait « vérifiez votre identité »
+                alors que le problème est technique. Message + Réessayer. */}
+            {profileLoadState === 'error' ? (
+              <Alert
+                variant="error"
+                title="Impossible de vérifier votre statut d’identité"
+                action={
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={onRetryProfile}
+                  >
+                    Réessayer
                   </Button>
-                </Link>
-              }
-            >
-              <p>{kycBlocker.description}</p>
-              <p className="mt-1 text-xs opacity-80">
-                Statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}.
-              </p>
-            </Alert>
-            {/* Le bouton reste VISIBLE mais DÉSACTIVÉ : il montre ce que le
-                technicien perd s'il ne fait rien (la mission est à lui), sans
-                le laisser déclencher un 403 opaque. La lecture de la mission
-                reste entièrement accessible. */}
-            <div className="space-y-1.5">
-              <Button disabled className="w-full" size="lg">
-                Accepter la demande
-              </Button>
-              <p className="text-center text-xs text-muted-foreground">
-                Vérification d’identité requise pour accepter cette mission.
-              </p>
-            </div>
+                }
+              >
+                <p>
+                  Nous n’avons pas pu joindre le service de vérification. L’acceptation reste
+                  bloquée tant que votre statut n’est pas connu — ce n’est pas un refus de
+                  votre dossier.
+                </p>
+              </Alert>
+            ) : (
+              <>
+                <Alert
+                  variant={kycBlocker.variant}
+                  title={kycBlocker.title}
+                  action={
+                    <Link href={KYC_PAGE_HREF}>
+                      <Button variant="secondary" size="sm">
+                        {kycBlocker.ctaLabel}
+                      </Button>
+                    </Link>
+                  }
+                >
+                  <p>{kycBlocker.description}</p>
+                  <p className="mt-1 text-xs opacity-80">
+                    Statut actuel : {kycStatusLabel(technicianProfile?.kycStatus ?? 'NOT_SUBMITTED')}.
+                  </p>
+                </Alert>
+                {/* Le bouton reste VISIBLE mais DÉSACTIVÉ : il montre ce que le
+                    technicien perd s'il ne fait rien (la mission est à lui), sans
+                    le laisser déclencher un 403 opaque. La lecture de la mission
+                    reste entièrement accessible. */}
+                <div className="space-y-1.5">
+                  <Button disabled className="w-full" size="lg">
+                    Accepter la demande
+                  </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Vérification d’identité requise pour accepter cette mission.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         ) : null}
 
@@ -1300,12 +1398,16 @@ function DetailsTab({
   demande,
   dispute,
   eventsCount,
+  timelineFailed,
   lastActivityLabel,
+  onRetryTimeline,
 }: {
   demande: TechnicianDemande;
   dispute: DemandeDispute | null;
   eventsCount: number;
+  timelineFailed: boolean;
   lastActivityLabel: string;
+  onRetryTimeline: () => void;
 }) {
   return (
     <div role="tabpanel" aria-label="Détails de la mission" className="space-y-4">
@@ -1334,7 +1436,21 @@ function DetailsTab({
           app fermée (carte inline, jamais de popup). */}
       {demande.status === 'ACCEPTED' ? <PushNotificationCard compact /> : null}
 
-      {eventsCount > 0 ? (
+      {timelineFailed ? (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <EmptyState
+            icon={<Icon name="clock" size="md" />}
+            title="Impossible de charger l’historique"
+            description="La chronologie de la mission n’a pas pu être récupérée. Les autres informations de cet onglet restent valides."
+            action={
+              <Button variant="secondary" size="sm" onClick={onRetryTimeline}>
+                Réessayer
+              </Button>
+            }
+            className="py-6"
+          />
+        </div>
+      ) : eventsCount > 0 ? (
         <Link
           href={`/technicien/chronologies/${demande.id}`}
           className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"

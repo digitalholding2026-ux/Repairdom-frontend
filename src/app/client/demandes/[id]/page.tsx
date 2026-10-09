@@ -107,7 +107,26 @@ export default function ClientDemandeDetailPage() {
   const [diagnostics, setDiagnostics] = useState<MissionDiagnostic[]>([]);
   const [quotes, setQuotes] = useState<MissionQuote[]>([]);
   const [events, setEvents] = useState<MissionEvent[]>([]);
+  /* CHANTIER 6C-1 — la chronologie distingue « vide » de « chargement échoué ».
+   * Un tableau vide est un état normal (mission jeune) ; une liste vide à
+   * cause d'une erreur réseau ne doit pas laisser croire qu'il ne s'est rien
+   * passé. */
+  const [eventsLoadState, setEventsLoadState] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [balance, setBalance] = useState<ClientFinanceSummary | null>(null);
+  /* CHANTIER 6C-1 — le solde est-il connu ET exploitable ?
+   *
+   * AVANT : l'échec réseau de la lecture du solde était avalé, `balance`
+   * restait `null`, et la garde de pré-validation (ligne ~209) était
+   * court-circuitée par `balance &&`. Le client cliquait donc « Accepter le
+   * devis » sans contrôle préalable et recevait un refus `INSUFFICIENT_FUNDS`
+   * — un code qu'il ne peut pas interpréter.
+   *
+   * MAINTENANT : `error` est affiché, et l'acceptation est bloquée tant que le
+   * solde n'est pas connu. Refuser une action est préférable à laisser
+   * déclencher une erreur incompréhensible. */
+  const [balanceLoadState, setBalanceLoadState] = useState<'loading' | 'loaded' | 'error'>('loading');
+  /* Incrémenté par « Réessayer » pour relancer la lecture du solde. */
+  const [balanceReloadKey, setBalanceReloadKey] = useState(0);
   const [insufficientBalance, setInsufficientBalance] = useState<{ deficit: number } | null>(null);
   /* Action en attente de confirmation (Phase A : plus aucun acte
    * irréversible — annulation, réponse au devis, confirmation — en un clic). */
@@ -158,17 +177,23 @@ export default function ClientDemandeDetailPage() {
 
     const load = async (initial: boolean) => {
       try {
-        const [d, diagnosticsList, quotesList, eventsList] = await Promise.all([
+        const [d, diagnosticsList, quotesList, eventsResult] = await Promise.all([
           getDemande(params.id!),
           listDemandeDiagnostics(params.id!),
           listDemandeQuotes(params.id!),
-          listMissionEvents(params.id!).catch(() => []),
+          // 6C-1 : la chronologie note son propre échec au lieu de le
+          // confondre avec une mission sans historique.
+          listMissionEvents(params.id!).then(
+            (list): [MissionEvent[], 'loading' | 'loaded' | 'error'] => [list, 'loaded'],
+            (): [MissionEvent[], 'loading' | 'loaded' | 'error'] => [[], 'error'],
+          ),
         ]);
         if (!active) return;
         setDemande(d);
         setDiagnostics(diagnosticsList);
         setQuotes(quotesList);
-        setEvents(eventsList);
+        setEvents(eventsResult[0]);
+        setEventsLoadState(eventsResult[1]);
         /* Litige : mission terminée uniquement, silencieux (jamais bloquant). */
         if (d.status === 'COMPLETED') {
           getDispute(params.id!)
@@ -176,11 +201,6 @@ export default function ClientDemandeDetailPage() {
             .catch(() => undefined);
         } else if (active) {
           setDispute(null);
-        }
-        if (initial) {
-          getClientFinanceSummary()
-            .then((b) => { if (active) setBalance(b); })
-            .catch(() => undefined);
         }
       } catch (err) {
         if (initial && active) setError(toUserErrorMessage(err, 'Erreur de chargement.'));
@@ -204,6 +224,33 @@ export default function ClientDemandeDetailPage() {
       clearInterval(timer);
     };
   }, [params?.id, sseTick]);
+
+  /* CHANTIER 6C-1 — le solde est lu DANS SON PROPRE effet, séparé de la
+   * mission. Deux raisons :
+   *   - il ne sert qu'à l'acceptation d'un devis, pas à l'affichage de la
+   *     mission : un échec réseau ne doit pas relancer la mission entière ;
+   *   - il doit pouvoir être relancé seul par « Réessayer », sans faire
+   *     recharger les 4 autres ressources.
+   * Le premier passage le lisait au sein du chargement initial, ce qui
+   * rendait tout échec indistinguable d'un « solde encore inconnu ». */
+  useEffect(() => {
+    if (!params?.id) return;
+    let active = true;
+    setBalanceLoadState('loading');
+
+    getClientFinanceSummary()
+      .then((b) => {
+        if (!active) return;
+        setBalance(b);
+        setBalanceLoadState('loaded');
+      })
+      .catch(() => {
+        if (active) setBalanceLoadState('error');
+      });
+    return () => {
+      active = false;
+    };
+  }, [params?.id, balanceReloadKey]);
 
   const handleStatusChange = async (status: 'CONFIRMED' | 'CANCELED') => {
     if (!params?.id) return;
@@ -229,10 +276,12 @@ export default function ClientDemandeDetailPage() {
     setError(null);
     setInsufficientBalance(null);
 
-    // Vérification du solde disponible avant acceptation.
+    // Vérification du solde disponible avant acceptation (6C-1 : le solde
+    // DOIT être connu, sinon on refuse l'acceptation au lieu de laisser le
+    // backend trancher par un refus que le client ne peut pas lire).
     if (action === 'accept') {
       const quote = quotes.find((q) => q.id === quoteId);
-      if (quote && balance) {
+      if (quote && balanceLoadState === 'loaded' && balance) {
         const totalToDebit = quote.totalToDebit ?? (quote.amount + (quote.travel ?? 0));
         if (balance.balance < totalToDebit) {
           setInsufficientBalance({ deficit: totalToDebit - balance.balance });
@@ -376,6 +425,9 @@ export default function ClientDemandeDetailPage() {
   const showDiagnostic = latestDiagnostic !== null;
   const showQuote = quotes.length > 0;
   const showTimeline = events.length > 0;
+  /* 6C-1 : la chronologie est soit affichée, soit explicitement en erreur —
+     jamais silencieusement vide à cause d'un échec réseau. */
+  const timelineFailed = eventsLoadState === 'error';
   const showRating = demande.status === 'CONFIRMED' && Boolean(demande.technician);
   const showDisputeSection = demande.status === 'COMPLETED' || dispute !== null;
   /* Un devis en attente de réponse est la seule chose qui demande vraiment
@@ -488,10 +540,37 @@ export default function ClientDemandeDetailPage() {
             </div>
           ) : (
             <div className="space-y-2">
+              {/* 6C-1 — le solde n'a pas pu être lu. On ne peut ni confirmer
+                  qu'il suffit, ni affirmer qu'il manque : l'acceptation est
+                  suspendue jusqu'à la relance. « Refuser » reste possible —
+                  c'est une décision du client, pas une vérification système. */}
+              {balanceLoadState !== 'loaded' ? (
+                <div className="space-y-2 rounded-xl border border-warning/30 bg-warning/5 p-4">
+                  <p className="text-sm font-semibold">
+                    {balanceLoadState === 'error'
+                      ? 'Impossible de vérifier votre solde.'
+                      : 'Vérification de votre solde en cours…'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    L&apos;acceptation du devis est suspendue tant que votre solde n&apos;est pas
+                    confirmé. Aucun montant ne sera débité d&apos;ici là.
+                  </p>
+                  {balanceLoadState === 'error' ? (
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => setBalanceReloadKey((key) => key + 1)}
+                    >
+                      Réessayer
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex gap-2">
                 <Button
                   onClick={() => setConfirmAction({ kind: 'accept', quoteId: latestQuote.id })}
                   isLoading={actionBusy === 'quote:accept'}
+                  disabled={balanceLoadState !== 'loaded'}
                   className="flex-1"
                 >
                   Accepter le devis
@@ -905,20 +984,42 @@ export default function ClientDemandeDetailPage() {
       ) : null}
 
       {/* ═══ 7. CHRONOLOGIE ═════════════════════════════════════════════ */}
-      {showTimeline ? (
+      {showTimeline || timelineFailed ? (
         <section aria-label="Chronologie" className="space-y-3">
           <Card>
             <CardContent className="space-y-4 pt-4 sm:pt-5">
               <SectionHeader title="Chronologie de la mission" icon="clock" />
-              {showDispatchRadar ? (
-                <DispatchSonarWidget waves={dispatchWaves} active={!demande.technician && canCancel} />
-              ) : null}
-              {timelineEvents.length > 0 ? (
-                <div className="relative space-y-4 before:absolute before:bottom-2 before:left-3 before:top-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
-                  <MissionTimeline events={timelineEvents} />
-                </div>
-              ) : showDispatchRadar ? null : (
-                <DemandeProgress status={demande.status} />
+              {/* 6C-1 : un historique injoignable ne doit pas ressembler à une
+                  mission sans événement. État d'erreur explicite + relance. */}
+              {timelineFailed ? (
+                <EmptyState
+                  icon={<Icon name="clock" size="md" />}
+                  title="Impossible de charger l’historique"
+                  description="La chronologie de la mission n’a pas pu être récupérée. Le reste de la page reste à jour."
+                  action={
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSseTick((tick) => tick + 1)}
+                    >
+                      Réessayer
+                    </Button>
+                  }
+                  className="py-6"
+                />
+              ) : (
+                <>
+                  {showDispatchRadar ? (
+                    <DispatchSonarWidget waves={dispatchWaves} active={!demande.technician && canCancel} />
+                  ) : null}
+                  {timelineEvents.length > 0 ? (
+                    <div className="relative space-y-4 before:absolute before:bottom-2 before:left-3 before:top-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                      <MissionTimeline events={timelineEvents} />
+                    </div>
+                  ) : showDispatchRadar ? null : (
+                    <DemandeProgress status={demande.status} />
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

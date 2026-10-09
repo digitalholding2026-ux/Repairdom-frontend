@@ -440,7 +440,11 @@ void test('conditions strictes : aucun bloc rendu par défaut', () => {
 
   // Et chaque bloc doit être gardé par sa condition, pas rendu par défaut.
   assert.match(source, /\{showMedias \? \(/);
-  assert.match(source, /\{showTimeline \? \(/);
+  assert.match(source, /\{showTimeline \|\| timelineFailed \? \(/);
+  // Depuis 6C-1 la chronologie est aussi rendue en cas d'ÉCHEC de
+  // chargement, pour distinguer « pas d'événement » de « historique
+  // injoignable » — l'un est un état normal, l'autre une panne.
+  assert.match(source, /const timelineFailed = eventsLoadState === 'error'/);
   assert.match(source, /\{showLiveTracking \? \(/);
   assert.match(source, /\{showRating \? \(/);
   assert.match(source, /\{showDisputeSection \? \(/);
@@ -588,7 +592,9 @@ void test('6B — les 4 points de contrôle KYC survivent à l\'extraction du he
   const page = read(TECHNICIAN_MISSION_PAGE);
 
   // 1. La variable, calculée par le composant PARENT.
-  assert.match(page, /const kycRequired = canAccept && !kycVerified/);
+  // 6C-1 : la formule s'est resserrée — l'acceptation exige un statut d'identité
+  // CONNU (`profileLoadState === 'loaded'`), pas seulement « non vérifié ».
+  assert.match(page, /const kycRequired = canAccept && \(profileLoadState !== 'loaded' \|\| !kycVerified\)/);
   assert.match(page, /\{canAccept && kycRequired \?/);
   // 2. Bandeau + bouton visible mais DÉSACTIVÉ, dans TechnicianHeader.
   assert.match(page, /<Button disabled className="w-full" size="lg">\s*Accepter la demande/);
@@ -601,4 +607,93 @@ void test('6B — les 4 points de contrôle KYC survivent à l\'extraction du he
   assert.match(page, /useUserStream/);
   assert.match(page, /technician\.kyc_verified/);
   assert.match(page, /technician\.kyc_rejected/);
+});
+
+/* ── CHANTIER 6C-1 — erreurs silencieuses critiques ──────────────────────
+ *
+ * Trois échecs réseau produisaient des UX-bugs : l'utilisateur voyait un
+ * bouton actif, cliquait, et recevait un refus backend qu'il ne pouvait pas
+ * interpréter. Ces tests verrouillent les garde-fous :
+ *
+ *   - technicien : le statut d'identité doit être CONNU pour accepter ;
+ *   - client      : le solde doit être CONNU pour accepter un devis ;
+ *   - les deux    : un historique injoignable ne doit pas ressembler à une
+ *                   mission sans événement.
+ */
+
+void test('6C-1 — technicien : profileLoadState bloque l\'acceptation tant que le statut est inconnu', () => {
+  const page = read(TECHNICIAN_MISSION_PAGE);
+
+  assert.match(page, /const \[profileLoadState, setProfileLoadState\] = useState<'loading' \| 'loaded' \| 'error'>\('loading'\)/);
+  // L'échec réseau est un état, plus un silence : les deux lectures du profil
+  // (montage + flux utilisateur) signalent leur échec.
+  assert.ok(
+    [...page.matchAll(/setProfileLoadState\('error'\)/g)].length >= 2,
+    'les deux lectures du profil doivent signaler leur échec',
+  );
+  // La formule : bloquer tant que le statut n'est pas connu, ET quand il est
+  // connu mais non vérifié.
+  assert.match(page, /const kycRequired = canAccept && \(profileLoadState !== 'loaded' \|\| !kycVerified\)/);
+  // Le bandeau technique est distinct du bandeau métier.
+  assert.match(page, /profileLoadState === 'error' \? \(/);
+  assert.match(page, /title="Impossible de vérifier votre statut d’identité"/);
+  assert.match(page, /Réessayer/);
+  // Relance réelle : un incrément de clé qui rejoue l'effet.
+  assert.match(page, /const \[profileReloadKey, setProfileReloadKey\] = useState\(0\)/);
+  assert.match(page, /\}, \[params\?\.id, profileReloadKey\]\)/);
+});
+
+void test('6C-1 — client : balanceLoadState bloque l\'acceptation d\'un devis', () => {
+  const page = read(CLIENT_MISSION_PAGE);
+
+  assert.match(page, /const \[balanceLoadState, setBalanceLoadState\] = useState<'loading' \| 'loaded' \| 'error'>\('loading'\)/);
+  // Le solde a son propre effet, relançable seul.
+  assert.match(page, /const \[balanceReloadKey, setBalanceReloadKey\] = useState\(0\)/);
+  assert.match(page, /\}, \[params\?\.id, balanceReloadKey\]\)/);
+  // Le bouton « Accepter le devis » est désactivé hors solde connu.
+  assert.match(page, /onClick=\{\(\) => setConfirmAction\(\{ kind: 'accept', quoteId: latestQuote\.id \}\)\}[\s\S]{0,160}disabled=\{balanceLoadState !== 'loaded'\}/);
+  // Le bandeau distingue « chargement » de « échec ».
+  assert.match(page, /Impossible de vérifier votre solde\./);
+  assert.match(page, /Vérification de votre solde en cours/);
+  assert.match(page, /setBalanceReloadKey\(\(key\) => key \+ 1\)/);
+  // La pré-validation ne se déclenche que sur un solde CONNU.
+  assert.match(page, /if \(quote && balanceLoadState === 'loaded' && balance\)/);
+});
+
+void test('6C-1 — les deux écrans distinguent « historique vide » de « historique injoignable »', () => {
+  for (const page of [read(CLIENT_MISSION_PAGE), read(TECHNICIAN_MISSION_PAGE)]) {
+    assert.match(page, /const \[eventsLoadState, setEventsLoadState\] = useState<'loading' \| 'loaded' \| 'error'>\('loading'\)/);
+    assert.match(page, /const timelineFailed = eventsLoadState === 'error'/);
+    assert.match(page, /title="Impossible de charger l’historique"/);
+    assert.match(page, /Réessayer/);
+  }
+  // Et l'appel ne masque plus son échec derrière un tableau vide.
+  for (const page of [read(CLIENT_MISSION_PAGE), read(TECHNICIAN_MISSION_PAGE)]) {
+    assert.doesNotMatch(
+      page,
+      /listMissionEvents\(params\.id!\)\.catch\(\(\) => \[\]\)/,
+      'listMissionEvents doit signaler son échec, pas le confondre avec une liste vide',
+    );
+  }
+});
+
+void test('6C-1 — aucun hook après un return anticipé sur les deux écrans', () => {
+  const genericHook = /\buse[A-Z][A-Za-z0-9]*\s*(?:<[^=<>()]*?>)?\s*\(/;
+  for (const [label, rel] of [
+    ['client', CLIENT_MISSION_PAGE],
+    ['technicien', TECHNICIAN_MISSION_PAGE],
+  ] as const) {
+    const lines = stripComments(read(rel)).split('\n');
+    const earlyReturnIndex = lines.findIndex((line) => /^ {2}if \(/.test(line));
+    assert.ok(earlyReturnIndex > 0, `${label} : return anticipé introuvable`);
+    const hooks = lines
+      .map((line, index) => [index + 1, line] as const)
+      .filter(([, line]) => genericHook.test(line))
+      .map(([line]) => line);
+    const lastHook = Math.max(...hooks);
+    assert.ok(
+      lastHook < earlyReturnIndex + 1,
+      `${label} : hook ligne ${lastHook} APRÈS le return anticipé ligne ${earlyReturnIndex + 1}`,
+    );
+  }
 });
