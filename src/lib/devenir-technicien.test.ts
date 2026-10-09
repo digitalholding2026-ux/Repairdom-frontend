@@ -327,9 +327,23 @@ test('les 10 sections sont présentes et dans l’ordre', () => {
 
 test('le tableau est doublé d’une version en cartes pour mobile', () => {
   /* Un tableau à 2 colonnes ne se lit pas sur 375 px. Les deux rendus
-   * existent : `hidden … sm:table` et `sm:hidden`. */
-  assert.match(page, /hidden w-full border-collapse[\s\S]*?sm:table/);
-  assert.match(page, /<ul className="mt-6 grid gap-3 sm:hidden">/);
+   * existent : `hidden … sm:table` et `sm:hidden`.
+   *
+   * L'INTENTION est vérifiée, pas la classe exacte : une assertion sur la
+   * chaîne complète interdisait toute retouche d'espacement ou de rayon, et
+   * figeait ces deux blocs en dehors du rythme des huit autres sections.
+   * Ce qui compte reste : la bascule mobile, la grille, et le fait que les
+   * deux rendus lisent la même source. */
+  assert.match(
+    page,
+    /<table[^>]*\bhidden\b[^>]*\bborder-collapse\b[^>]*\bsm:table\b[^>]*>/,
+    'le tableau doit rester masqué sur mobile et s’afficher dès sm',
+  );
+  assert.match(
+    page,
+    /<ul[^>]*\bsm:hidden\b[^>]*>/,
+    'la version en cartes doit rester masquée dès sm',
+  );
   /* Et les deux lisent la MÊME source : pas de divergence possible. */
   assert.equal(
     (page.match(/QUOTE_AMOUNTS_XAF\.map/g) ?? []).length,

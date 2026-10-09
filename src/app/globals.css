@@ -589,6 +589,49 @@
   animation: slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ── Recrutement technicien — halos et cartes ─────────────────────────────
+ * Sur fond profond, deux halos radiaux suffisent à créer de la profondeur sans
+ * image ni dégradé complexe. Ils sont décoratifs : `pointer-events: none` et
+ * placés avant le contenu dans le DOM.
+ *
+ * Les formes sont defined par variables pour etre positionnees par une seule
+ * classe de section plutot qu'une classe par section.
+ */
+.recruit-halo {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in oklab, var(--color-primary) 55%, transparent) 0%,
+    transparent 70%
+  );
+  filter: blur(64px);
+  pointer-events: none;
+}
+
+/* Page de recrutement : carte a l'elevation discrete, plus accentuee au survol.
+ * Le declenchement au focus clavier est volontairement absent : ces cartes ne
+ * sont pas cliquables, un anneau de focus n'aurait rien a designer. */
+.card-premium {
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 0.04);
+}
+
+.card-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-premium,
+  .card-premium:hover {
+    transform: none;
+    transition: none;
+  }
+}
+
 /* ── Landing — apparitions au scroll ─────────────────────────────────────────
  * Amplitude volontairement modérée : 28 px de remontée et 600 ms. La classe
  * ne fait qu-patienter l'état de départ ; le composant `AnimateOnScroll` y

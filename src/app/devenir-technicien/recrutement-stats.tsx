@@ -57,41 +57,44 @@ export function RecrutementStats() {
   ];
 
   return (
-    <section aria-labelledby="chiffres-title" className="mx-auto w-full max-w-3xl px-4 py-6">
-      <div className="rounded-3xl border border-slate-200/70 bg-white p-5 shadow-sm sm:p-6">
-        <div className="text-center">
-          <h2
-            id="chiffres-title"
-            className="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl"
-          >
-            Relio en chiffres
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-            La couverture réelle de nos zones d&apos;intervention, mise à jour par notre
-            service.
-          </p>
-        </div>
-
-        <dl className="mt-5 grid grid-cols-2 gap-2.5 sm:gap-3">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-2xl bg-slate-50 p-4 text-center sm:p-5"
-            >
-              <span
-                aria-hidden
-                className="mx-auto flex size-10 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm"
-              >
-                <Icon name={item.icon} size="sm" />
-              </span>
-              <dd className="mt-2 text-2xl font-extrabold tracking-tight tabular-nums text-slate-900 sm:text-3xl">
-                {item.value}
-              </dd>
-              <dt className="mt-0.5 text-xs font-medium text-slate-500">{item.label}</dt>
-            </div>
-          ))}
-        </dl>
+    <section aria-labelledby="chiffres-title" className="mx-auto w-full max-w-3xl px-4 py-12 md:py-16">
+      <div className="text-center">
+        <h2
+          id="chiffres-title"
+          className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
+        >
+          Relio en chiffres
+        </h2>
+        <p className="mx-auto mt-3 max-w-md text-base text-muted-foreground md:text-lg">
+          La couverture réelle de nos zones d&apos;intervention, mise à jour par notre
+          service.
+        </p>
       </div>
+
+      {/* Chiffres en grand, sans carte autour : sur deux nombres, un cadre
+          zarrait davantage qu'il ne mettrait en valeur. Le filet vertical
+          sépare les deux sans introduire de nouvelle surface. */}
+      <dl className="mt-8 flex justify-center md:mt-12">
+        {items.map((item, index) => (
+          <div
+            key={item.label}
+            className={`flex-1 text-center ${index === 0 ? 'border-r border-border' : ''}`}
+          >
+            <span
+              aria-hidden
+              className="mx-auto flex size-10 items-center justify-center text-primary"
+            >
+              <Icon name={item.icon} size="md" />
+            </span>
+            <dd className="mt-2 text-5xl font-bold tracking-tight tabular-nums text-foreground md:text-6xl">
+              {item.value}
+            </dd>
+            <dt className="mt-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {item.label}
+            </dt>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

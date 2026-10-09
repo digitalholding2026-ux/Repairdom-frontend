@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -202,16 +203,26 @@ export default function DevenirTechnicienPage() {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
         {/* ── 1. HERO ────────────────────────────────────────────────────── */}
-        <section className="brand-gradient overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-12">
-          <div className="flex h-full flex-col items-start gap-4 text-white lg:max-w-3xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+        {/* Fond profond et deux halos discrets : la page s'ouvre sur du calme,
+            les accents orange servent d'orientation, pas d'accroche agressive. */}
+        <section className="relative isolate overflow-hidden rounded-2xl bg-relio-bg p-6 sm:p-8 lg:p-12">
+          <span
+            aria-hidden
+            className="recruit-halo -top-24 -right-16 -z-10 size-72 opacity-20 sm:size-96"
+          />
+          <span
+            aria-hidden
+            className="recruit-halo -bottom-32 -left-24 -z-10 size-80 opacity-15 sm:size-[26rem]"
+          />
+          <div className="relative flex h-full flex-col items-start gap-4 lg:max-w-3xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white">
               <Icon name="briefcase" size="sm" />
               Espace professionnel
             </span>
             <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance text-white sm:text-3xl">
               Devenez technicien Relio
             </h1>
-            <p className="text-base leading-relaxed text-white/85">
+            <p className="text-base leading-relaxed text-white/80">
               Nous ne recrutons pas tout le monde. Chaque technicien de Relio est vérifié,
               et chaque mission confiée l&apos;est à un professionnel. Si vous êtes du genre
               à faire un travail propre et à expliquer ce que vous faites, vous aurez votre
@@ -221,7 +232,7 @@ export default function DevenirTechnicienPage() {
               <Link href={SIGNUP_HREF} className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="w-full bg-white text-orange-800 hover:opacity-90 sm:w-auto"
+                  className="w-full bg-primary text-primary-foreground hover:opacity-90 sm:w-auto"
                 >
                   {SIGNUP_LABEL}
                 </Button>
@@ -230,7 +241,7 @@ export default function DevenirTechnicienPage() {
                 <Button
                   size="lg"
                   variant="secondary"
-                  className="w-full border-white/40 bg-white/10 text-white hover:bg-white/20 sm:w-auto"
+                  className="w-full border-white/20 bg-white/10 text-white hover:bg-white/15 sm:w-auto"
                 >
                   {SIGNIN_CTA_LABEL}
                 </Button>
@@ -245,25 +256,50 @@ export default function DevenirTechnicienPage() {
         </div>
 
         {/* ── 3. LE PARCOURS D'ONBOARDING ─────────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="parcours-title">
-          <div className="max-w-2xl">
+        <section
+          className="relative mt-12 overflow-hidden rounded-2xl bg-muted/60 px-4 py-12 sm:px-6 md:py-16"
+          aria-labelledby="parcours-title"
+        >
+          {/* Rondeau decoratif : casse la monotonie du fond clair sans
+              concurrencer le contenu. */}
+          <span
+            aria-hidden
+            className="recruit-halo -top-20 right-0 -z-10 size-64 opacity-[0.07]"
+          />
+          <div className="relative max-w-2xl">
             <h2
               id="parcours-title"
-              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
             >
               Votre parcours pour rejoindre Relio
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
               4 étapes pour commencer à recevoir des missions. Vous avancez à votre
               rythme : votre compte est créé dès l&apos;inscription, chaque étape se fait
               quand vous le décidez.
             </p>
           </div>
-          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+
+          {/* Illustration du parcours : elle résume les 4 étapes qui suivent,
+              et le degradé la fait fondre dans la section au lieu de la poser
+              comme une carte de plus. */}
+          <div className="relative mt-8 overflow-hidden rounded-3xl md:mt-12">
+            <Image
+              src="/technicien/parcours-illustration.png"
+              alt="Un technicien Relio et son parcours"
+              width={1600}
+              height={900}
+              sizes="(max-width: 1023px) 100vw, 1152px"
+              className="h-auto w-full object-cover"
+            />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-muted/60 to-transparent" />
+          </div>
+
+          <ol className="mt-8 grid gap-4 sm:grid-cols-2 md:gap-6">
             {ONBOARDING_STEP_DEFS.map((step, index) => (
               <li
                 key={step.id}
-                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card"
+                className="card-premium flex flex-col rounded-2xl border border-border bg-card p-6"
               >
                 <span
                   aria-hidden
@@ -290,26 +326,26 @@ export default function DevenirTechnicienPage() {
         </section>
 
         {/* ── 4. UNE INTERVENTION, CONCRÈTEMENT ───────────────────────────── */}
-        <section className="mt-12" aria-labelledby="mission-title">
+        <section className="mt-12 py-12 md:py-16" aria-labelledby="mission-title">
           <div className="max-w-2xl">
             <h2
               id="mission-title"
-              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
             >
               Une intervention, concrètement
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
               Ce que vous faites au quotidien, de la prise de contact au paiement.
             </p>
           </div>
-          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+          <ol className="mt-8 grid gap-4 sm:grid-cols-2 md:gap-6 md:mt-12">
             {MISSION_STEPS.map((step, index) => (
               <li
                 key={step.title}
                 className={
                   step.highlighted
-                    ? 'flex flex-col rounded-xl border border-primary/40 bg-primary/5 p-5 shadow-card sm:col-span-2'
-                    : 'flex flex-col rounded-xl border border-border bg-card p-5 shadow-card'
+                    ? 'card-premium flex flex-col rounded-2xl border border-primary/40 bg-primary/5 p-6 sm:col-span-2'
+                    : 'card-premium flex flex-col rounded-2xl border border-border bg-card p-6'
                 }
               >
                 <div className="flex items-center gap-3">
@@ -333,7 +369,7 @@ export default function DevenirTechnicienPage() {
                     </span>
                   ) : null}
                 </h3>
-                <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+<p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
               </li>
             ))}
           </ol>
@@ -344,48 +380,57 @@ export default function DevenirTechnicienPage() {
         </section>
 
         {/* ── 5. POURQUOI REJOINDRE RELIO ─────────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="arguments-title">
-          <h2
-            id="arguments-title"
-            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
-          >
-            Pourquoi rejoindre Relio ?
-          </h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {ARGUMENTS.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-xl border border-border bg-card p-5 shadow-card"
-              >
-                <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name={item.icon} size="md" />
-                </span>
-                <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
-              </div>
-            ))}
+        <section
+          className="relative mt-12 overflow-hidden rounded-2xl bg-muted/60 px-4 py-12 sm:px-6 md:py-16"
+          aria-labelledby="arguments-title"
+        >
+          <span
+            aria-hidden
+            className="recruit-halo -bottom-24 -left-16 -z-10 size-72 opacity-[0.07]"
+          />
+          <div className="relative">
+            <h2
+              id="arguments-title"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
+            >
+              Pourquoi rejoindre Relio ?
+            </h2>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 md:mt-12 md:gap-6 xl:grid-cols-3">
+              {ARGUMENTS.map((item) => (
+                <div
+                  key={item.title}
+                  className="card-premium rounded-2xl border border-border bg-card p-6"
+                >
+                  <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name={item.icon} size="md" />
+                  </span>
+                  <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ── 6. LE BARÈME, SANS PROMESSE ─────────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="tarifs-title">
+        <section className="mt-12 py-12 md:py-16" aria-labelledby="tarifs-title">
           <div className="max-w-2xl">
             <h2
               id="tarifs-title"
-              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
             >
               Combien vous pouvez gagner
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
               Voici ce que vous recevez selon le montant du devis. Les chiffres sont calculés
               à partir du barème Relio, ils ne sont pas une estimation.
             </p>
           </div>
 
           {/* Tableau sur grand écran, cartes empilées sur mobile : le même
-              contenu, deux presentations. Un tableau à 2 colonnes ne se lit pas
+              contenu, deux présentations. Un tableau à 2 colonnes ne se lit pas
               sur 375 px, et une carte ne se compare pas sur desktop. */}
-          <table className="mt-6 hidden w-full border-collapse overflow-hidden rounded-xl border border-border text-sm sm:table">
+          <table className="mt-8 hidden w-full border-collapse overflow-hidden rounded-2xl border border-border text-sm sm:table md:mt-12">
             <caption className="sr-only">
               Montant du devis et montant net versé au technicien
             </caption>
@@ -414,13 +459,13 @@ export default function DevenirTechnicienPage() {
             </tbody>
           </table>
 
-          <ul className="mt-6 grid gap-3 sm:hidden">
+          <ul className="mt-8 grid gap-4 sm:hidden md:mt-12">
             {QUOTE_AMOUNTS_XAF.map((amount) => {
               const preview = previewTechnicianQuote(amount);
               return (
                 <li
                   key={amount}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
+                  className="card-premium flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4"
                 >
                   <span className="text-sm text-muted-foreground">
                     Devis {formatFCFA(preview.quote)}
@@ -439,48 +484,53 @@ export default function DevenirTechnicienPage() {
         </section>
 
         {/* ── 7. SÉLECTIVITÉ ──────────────────────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="attentes-title">
-          <h2
-            id="attentes-title"
-            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
-          >
-            Ce qu&apos;on attend de vous
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Nous ne recrutons pas tout le monde. C&apos;est ce qui fait la qualité du réseau
-            Relio.
-          </p>
-          <ul className="mt-6 grid gap-3 md:grid-cols-2">
-            {EXPECTATIONS.map((item) => (
-              <li
-                key={item.label}
-                className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon name={item.icon} size="sm" />
-                </span>
-                <p className="pt-1 text-sm">{item.label}</p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Le dossier est vérifié par l&apos;équipe Relio avant votre première mission.
-          </p>
+        <section
+          className="relative mt-12 overflow-hidden rounded-2xl bg-muted/60 px-4 py-12 sm:px-6 md:py-16"
+          aria-labelledby="attentes-title"
+        >
+          <div className="relative">
+            <h2
+              id="attentes-title"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
+            >
+              Ce qu&apos;on attend de vous
+            </h2>
+            <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
+              Nous ne recrutons pas tout le monde. C&apos;est ce qui fait la qualité du réseau
+              Relio.
+            </p>
+            <ul className="mt-8 grid gap-4 md:mt-12 md:gap-6 md:grid-cols-2">
+              {EXPECTATIONS.map((item) => (
+                <li
+                  key={item.label}
+                  className="card-premium flex items-start gap-3 rounded-2xl border border-border bg-card p-4"
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name={item.icon} size="sm" />
+                  </span>
+                  <p className="pt-1 text-sm">{item.label}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Le dossier est vérifié par l&apos;équipe Relio avant votre première mission.
+            </p>
+          </div>
         </section>
 
         {/* ── 8. L'ENGAGEMENT DE LA PLATEFORME ─────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="engagement-title">
+        <section className="mt-12 py-12 md:py-16" aria-labelledby="engagement-title">
           <h2
             id="engagement-title"
-            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
           >
             Notre engagement envers vous
           </h2>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 md:mt-12 md:gap-6">
             {COMMITMENTS.map((item) => (
               <div
                 key={item.title}
-                className="rounded-xl border border-border bg-card p-5 shadow-card"
+                className="card-premium rounded-2xl border border-border bg-card p-6"
               >
                 <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Icon name={item.icon} size="md" />
@@ -493,32 +543,35 @@ export default function DevenirTechnicienPage() {
         </section>
 
         {/* ── 9. FAQ TECHNICIEN ────────────────────────────────────────────── */}
-        <section className="mt-12" aria-labelledby="faq-technicien-title">
+        <section
+          className="mt-12 overflow-hidden rounded-2xl bg-muted/60 px-4 py-12 sm:px-6 md:py-16"
+          aria-labelledby="faq-technicien-title"
+        >
           <div className="max-w-2xl">
             <h2
               id="faq-technicien-title"
-              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+              className="text-3xl font-bold tracking-tight text-foreground md:text-4xl"
             >
               Questions fréquentes
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-base text-muted-foreground md:text-lg">
               Les questions que les techniciens nous posent le plus souvent avant de
               s&apos;inscrire.
             </p>
           </div>
-          <div className="mt-6 space-y-2">
+          <div className="mt-8 space-y-3 md:mt-12">
             {FAQ.map((item) => (
               <details
                 key={item.question}
-                className="group overflow-hidden rounded-xl border border-border bg-card open:border-primary/40"
+                className="group overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgb(15_23_42/0.04)] open:border-primary/40"
               >
-                <summary className="flex min-h-13 cursor-pointer list-none items-center justify-between gap-3 p-4 font-medium [&::-webkit-details-marker]:hidden">
+                <summary className="flex min-h-13 cursor-pointer list-none items-center justify-between gap-3 p-5 font-medium transition-colors hover:bg-muted/50 md:p-6 [&::-webkit-details-marker]:hidden">
                   {item.question}
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform duration-300 group-open:rotate-180">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition-transform duration-300 group-open:rotate-180">
                     <Icon name="chevron-down" size="sm" />
                   </span>
                 </summary>
-                <div className="border-t border-border px-4 pb-4 pt-3 text-sm leading-relaxed text-muted-foreground">
+                <div className="border-t border-border px-5 pb-5 pt-4 text-sm leading-relaxed text-muted-foreground md:px-6 md:pb-6">
                   {item.answer}
                 </div>
               </details>
@@ -527,24 +580,32 @@ export default function DevenirTechnicienPage() {
         </section>
 
         {/* ── 10. CTA FINAL ────────────────────────────────────────────────── */}
-        <section className="mt-12 overflow-hidden rounded-2xl border border-border bg-card p-6 text-center sm:p-10">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <section className="relative mt-12 overflow-hidden rounded-2xl bg-relio-bg p-6 text-center sm:p-10">
+          <span
+            aria-hidden
+            className="recruit-halo -top-24 left-1/2 -z-10 size-72 -translate-x-1/2 opacity-20 sm:size-96"
+          />
+          <span className="relative mx-auto flex size-12 items-center justify-center rounded-full bg-white/10 text-white">
             <Icon name="sparkles" size="lg" />
           </span>
-          <h2 className="mt-3 text-lg font-bold tracking-tight sm:text-xl">
+          <h2 className="relative mt-3 text-2xl font-bold tracking-tight text-white md:text-3xl">
             Prêt à rejoindre Relio ?
           </h2>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+          <p className="relative mx-auto mt-2 max-w-sm text-sm text-white/75">
             Inscription gratuite. Aucun engagement.
           </p>
-          <div className="mt-5 flex flex-col gap-2 sm:mx-auto sm:max-w-xl sm:flex-row">
+          <div className="relative mt-5 flex flex-col gap-2 sm:mx-auto sm:max-w-xl sm:flex-row">
             <Link href={SIGNUP_HREF} className="w-full">
-              <Button size="lg" className="w-full sm:flex-1">
+              <Button size="lg" className="w-full bg-primary text-primary-foreground hover:opacity-90 sm:flex-1">
                 {SIGNUP_LABEL}
               </Button>
             </Link>
             <Link href={SIGNIN_HREF} className="w-full">
-              <Button variant="secondary" size="lg" className="w-full sm:flex-1">
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full border-white/20 bg-white/10 text-white hover:bg-white/15 sm:flex-1"
+              >
                 {SIGNIN_CTA_LABEL}
               </Button>
             </Link>
