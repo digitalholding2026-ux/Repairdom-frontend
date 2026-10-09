@@ -69,6 +69,7 @@
     "src/lib/verification-feedback.test.ts",
     "src/lib/technician-quote.test.ts",
     "src/lib/saspay-fees.test.ts",
-    "src/lib/referrals-frontend.test.ts"
+    "src/lib/referrals-frontend.test.ts",
+    "src/lib/devenir-technicien.test.ts"
   ]
 }

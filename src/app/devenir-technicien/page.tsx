@@ -4,61 +4,195 @@ import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
+import {
+  TECHNICIAN_FEE_LABEL,
+  previewTechnicianQuote,
+} from '@/lib/technician-quote';
+import { relioAbsorbsTransferFeesNote } from '@/lib/saspay-relio-absorbs-fees';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { ONBOARDING_STEP_DEFS } from '@/lib/technician/onboarding-steps';
+import { RecrutementStats } from './recrutement-stats';
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * /devenir-technicien — page de recrutement.
+ *
+ * Ce qui a changé par rapport à la version précédente (audit RAPPORT-AUDIT-
+ * PAGE-DEVENIR-TECHNICIEN.md), et pourquoi :
+ *
+ * 1. LE PARCOURS AFFICHÉ ÉTAIT FAUX. La page listait huit étapes enchaînées,
+ *    dont le contrôle d'identité en troisième position. Le code réel
+ *    (`ONBOARDING_STEP_DEFS`) définit quatre étapes, dans un autre ordre, et
+ *    aucune n'est bloquante. Cette page affiche désormais les étapes réelles,
+ *    avec leur description et leur route — importées, pas recopiées, pour qu'un
+ *    changement du parcours se répercute ici.
+ *
+ * 2. LE PAIEMENT ÉTAIT ABSENT des 8 étapes. C'est la question n° 1 d'un
+ *    technicien candidat, et l'information existait déjà dans le dépôt
+ *    (`auth-split.tsx`). Il est désormais une section à part entière (étape 4
+ *    de la section « Une intervention, concrètement », mise en valeur) et un
+ *    argument à part entière.
+ *
+ * 3. LE BARÈME N'ÉTAIT PAS AFFICHE. Les montants du tableau sont calculés par
+ *    `previewTechnicianQuote`, pas écrits en dur : si le barème change côté
+ *    serveur, ce tableau suit. Le libellé vient de `TECHNICIAN_FEE_LABEL`.
+ *
+ * CE QUE CETTE PAGE NE FAIT PAS, VOLONTAIREMENT :
+ *   • aucun retour d'expérience quotationné — il n'en existe aucun dans le
+ *     produit, et la page d'accueil a déjà retiré les siens pour cette
+ *     raison exacte (`app/page.tsx`) ;
+ *   • aucun décompte de techniciens, aucune moyenne de gains, aucun délai de
+ *     traitement : aucun point d'accès public ne les expose ;
+ *   • aucune promesse d'accompagnement, d'encadrement ou de gain garanti.
+ *
+ * Elle reste un Server Component : le seul fragment client est la section des
+ * chiffres, extraite dans `recrutement-stats.tsx` (même approche que
+ * `components/landing/trust-stats.tsx`).
+ * ──────────────────────────────────────────────────────────────────────────── */
 
 export const metadata: Metadata = {
   title: 'Devenir technicien',
+  /* Le barème n'est pas recopié ici : il vient de la même constante que le
+   * tableau de la section 6. Deux littéraux divergeraient au prochain
+   * changement de commission. */
+  description: `Rejoignez Relio comme technicien vérifié : missions dans vos zones, tarif que vous fixez, paiement après validation. ${TECHNICIAN_FEE_LABEL} par mission, aucun frais caché.`,
 };
 
-const steps: Array<{ icon: IconName; title: string }> = [
-  { icon: 'user', title: 'Créez votre compte' },
-  { icon: 'file', title: 'Complétez votre profil professionnel' },
-  { icon: 'shield-check', title: 'Faites vérifier votre identité' },
+const SIGNUP_HREF = '/technicien/inscription';
+const SIGNIN_HREF = '/technicien/connexion';
+const SIGNUP_LABEL = 'Devenir technicien';
+const SIGNIN_CTA_LABEL = 'Déjà technicien ? Se connecter';
+
+/** Les 4 étapes métier d'une intervention. Le paiement est isolé : il reçoit
+ *  une mise en valeur propre, c'est l'argument décisif du recrutement. */
+const MISSION_STEPS: Array<{
+  icon: IconName;
+  title: string;
+  text: string;
+  highlighted?: boolean;
+}> = [
   {
-    icon: 'pin',
-    title: 'Recevez des demandes correspondant à votre zone et vos compétences',
+    icon: 'search',
+    title: 'Diagnostic',
+    text: 'Vous échangez avec le client et établissez votre diagnostic.',
   },
-  { icon: 'chat', title: 'Échangez avec le client' },
-  { icon: 'search', title: 'Établissez votre diagnostic' },
-  { icon: 'badge-check', title: 'Proposez votre tarif' },
-  { icon: 'wrench', title: 'Réalisez l\u2019intervention' },
+  {
+    icon: 'file',
+    title: 'Proposition tarifaire',
+    text: 'Vous proposez votre prix. Le client le valide avant l’intervention.',
+  },
+  {
+    icon: 'wrench',
+    title: 'Intervention',
+    text: 'Vous vous déplacez et réalisez la réparation.',
+  },
+  {
+    icon: 'wallet',
+    title: 'Paiement après validation',
+    text: 'Vous êtes payé une fois l’intervention validée par le client.',
+    highlighted: true,
+  },
 ];
 
-const benefits: Array<{ icon: IconName; title: string; text: string }> = [
+/** Barème : montant du devis → ce que reçoit réellement le technicien. */
+const QUOTE_AMOUNTS_XAF = [5_000, 10_000, 15_000, 25_000];
+
+const ARGUMENTS: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'pin',
-    title: 'Des demandes près de chez vous',
-    text: 'Vous recevez les demandes correspondant à votre ville d\u2019intervention et à vos compétences.',
+    title: 'Des missions près de chez vous',
+    text: 'Vous recevez uniquement les demandes de votre ville et de vos zones de couverture.',
   },
   {
     icon: 'badge-check',
-    title: 'Vous proposez votre tarif',
-    text: 'C\u2019est vous qui établissez le diagnostic et le tarif avant toute intervention.',
+    title: 'Vous fixez votre tarif',
+    text: 'C’est vous qui établissez le diagnostic et le prix avant chaque intervention.',
+  },
+  {
+    icon: 'shield-check',
+    title: 'Paiement garanti après validation',
+    text: 'Le client paie avant l’intervention. Vous recevez votre paiement une fois la mission validée, sans relance.',
+  },
+  {
+    icon: 'file',
+    title: 'Commission transparente',
+    text: `${TECHNICIAN_FEE_LABEL} par mission. Aucun frais caché : vous voyez exactement ce que vous recevez.`,
+  },
+  {
+    icon: 'user',
+    title: 'Identité vérifiée une fois',
+    text: 'Après vérification, vous intervenez sans autre formalité.',
   },
   {
     icon: 'users',
-    title: 'Un échange direct avec le client',
-    text: 'Discutez avec le client avant de vous engager, via la messagerie de la mission.',
+    title: 'Une communauté sélectionnée',
+    text: 'Chaque technicien est vérifié. Vous travaillez avec des professionnels.',
+  },
+];
+
+const EXPECTATIONS: Array<{ icon: IconName; label: string }> = [
+  { icon: 'user', label: 'Un compte technicien — inscription en 2 minutes' },
+  { icon: 'file', label: 'Un profil professionnel complet : ville, catégories, expérience' },
+  { icon: 'shield-check', label: 'Une pièce d’identité valide (CNI recto-verso ou passeport)' },
+  { icon: 'pin', label: 'Au moins une zone de couverture définie' },
+];
+
+const COMMITMENTS: Array<{ icon: IconName; title: string; text: string }> = [
+  {
+    icon: 'chat',
+    title: 'Support réactif',
+    text: 'Une question, un blocage ? Notre équipe est là.',
   },
   {
-    icon: 'star',
-    title: 'Votre réputation s\u2019affiche',
-    text: 'Clients et techniciens s\u2019évaluent après chaque mission.',
+    icon: 'briefcase',
+    title: 'Outils professionnels',
+    text: 'Diagnostic, devis, suivi GPS, historique : tout est dans votre espace.',
+  },
+  {
+    icon: 'check-circle',
+    title: 'Missions qualifiées',
+    text: 'Clients vérifiés, demandes filtrées par zone et compétences.',
+  },
+  {
+    icon: 'sparkles',
+    title: 'Évolution continue',
+    text: 'Nouvelles fonctionnalités chaque mois, basées sur vos retours.',
   },
 ];
 
-const requirements: Array<{ icon: IconName; label: string }> = [
-  { icon: 'user', label: 'Un compte technicien' },
-  { icon: 'file', label: 'Un profil professionnel complet (zone et compétences)' },
-  { icon: 'phone', label: 'Vos informations professionnelles (téléphone, ville, catégories)' },
-  { icon: 'shield-check', label: 'Une vérification d\u2019identité par l\u2019équipe Relio' },
-];
-
-const framework: Array<{ icon: IconName; label: string }> = [
-  { icon: 'shield-check', label: 'Techniciens vérifiés' },
-  { icon: 'search', label: 'Diagnostic clair' },
-  { icon: 'badge-check', label: 'Tarif avant intervention' },
-  { icon: 'clock', label: 'Suivi de mission' },
-  { icon: 'file', label: 'Historique des interventions' },
+/* FAQ technicien. Volontairement distincte de la FAQ client de la landing,
+ * qui répond à « Combien coûte une intervention ? » — pas à « Combien je gagne,
+ * moi ? ». Aucun délai ni engagement chiffré n'y est annoncé : les seules
+ * durées citées sont l'inscription et le profil, qui dépendent du technicien. */
+const FAQ = [
+  {
+    question: 'Combien de temps prend l’inscription ?',
+    answer:
+      'Inscription en 2 minutes, profil complet en 15 minutes. La vérification d’identité est ensuite traitée par notre équipe.',
+  },
+  {
+    question: 'Quels documents sont nécessaires ?',
+    answer:
+      'Une CNI recto-verso ou un passeport, et un justificatif professionnel — facultatif, mais recommandé pour rassurer les clients.',
+  },
+  {
+    question: 'Comment suis-je payé ?',
+    answer:
+      'Après chaque intervention validée par le client, le montant est crédité sur votre solde Relio. Vous pouvez retirer à tout moment.',
+  },
+  {
+    question: 'Quels sont les frais ?',
+    answer: `${TECHNICIAN_FEE_LABEL} par mission. ${relioAbsorbsTransferFeesNote('mission')}`,
+  },
+  {
+    question: 'Puis-je choisir mes zones et mes horaires ?',
+    answer:
+      'Oui. Vous définissez vos zones de couverture et activez votre disponibilité quand vous le souhaitez.',
+  },
+  {
+    question: 'Y a-t-il un engagement minimum ?',
+    answer:
+      'Non. Vous travaillez quand vous voulez, autant que vous voulez. Aucune obligation de volume.',
+  },
 ];
 
 export default function DevenirTechnicienPage() {
@@ -67,93 +201,262 @@ export default function DevenirTechnicienPage() {
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 lg:px-8">
-        {/* HERO */}
+        {/* ── 1. HERO ────────────────────────────────────────────────────── */}
         <section className="brand-gradient overflow-hidden rounded-2xl p-6 sm:p-8 lg:p-12">
           <div className="flex h-full flex-col items-start gap-4 text-white lg:max-w-3xl">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white backdrop-blur">
               <Icon name="briefcase" size="sm" />
               Espace professionnel
             </span>
-            <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance sm:text-3xl">
+            <h1 className="text-2xl font-bold leading-tight tracking-tight text-balance text-white sm:text-3xl">
               Devenez technicien Relio
             </h1>
             <p className="text-base leading-relaxed text-white/85">
-              Rejoignez la plateforme qui met en relation les clients ayant besoin d&apos;un
-              dépannage avec des techniciens qualifiés près de chez eux.
+              Nous ne recrutons pas tout le monde. Chaque technicien de Relio est vérifié,
+              et chaque mission confiée l&apos;est à un professionnel. Si vous êtes du genre
+              à faire un travail propre et à expliquer ce que vous faites, vous aurez votre
+              place ici.
             </p>
             <div className="mt-1 flex w-full flex-col gap-2 sm:flex-row">
-              <Link href="/technicien/inscription" className="w-full sm:w-auto">
+              <Link href={SIGNUP_HREF} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="w-full bg-white text-orange-800 hover:opacity-90 sm:w-auto"
                 >
-                  Devenir technicien
+                  {SIGNUP_LABEL}
+                </Button>
+              </Link>
+              <Link href={SIGNIN_HREF} className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  className="w-full border-white/40 bg-white/10 text-white hover:bg-white/20 sm:w-auto"
+                >
+                  {SIGNIN_CTA_LABEL}
                 </Button>
               </Link>
             </div>
-            <p className="flex items-center gap-1.5 text-sm text-white/80">
-              <Icon name="check-circle" size="sm" className="text-white/80" />
-              Déjà technicien ?{' '}
-              <Link href="/technicien/connexion" className="font-medium text-white underline underline-offset-4">
-                Se connecter
-              </Link>
-            </p>
           </div>
         </section>
 
-        {/* COMMENT ÇA FONCTIONNE */}
-        <section className="mt-12" aria-labelledby="how-title">
-          <h2 id="how-title" className="text-xl font-bold tracking-tight sm:text-2xl">
-            Comment ça fonctionne ?
-          </h2>
-          <ol className="mt-5 space-y-0 lg:grid lg:grid-cols-2 lg:gap-x-8">
-            {steps.map((step, index) => (
-              <li key={step.title} className="relative flex gap-4 pb-6 last:pb-0 lg:rounded-xl lg:border lg:border-border lg:bg-card lg:p-4">
-                {index < steps.length - 1 ? (
-                  <span aria-hidden className="absolute left-[19px] top-11 bottom-0 w-px bg-border lg:hidden" />
-                ) : null}
+        {/* ── 2. PREUVES SOCIALES (chiffres réels, masqué si l'appel échoue) ── */}
+        <div className="mt-10">
+          <RecrutementStats />
+        </div>
+
+        {/* ── 3. LE PARCOURS D'ONBOARDING ─────────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="parcours-title">
+          <div className="max-w-2xl">
+            <h2
+              id="parcours-title"
+              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            >
+              Votre parcours pour rejoindre Relio
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              4 étapes pour commencer à recevoir des missions. Vous avancez à votre
+              rythme : votre compte est créé dès l&apos;inscription, chaque étape se fait
+              quand vous le décidez.
+            </p>
+          </div>
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+            {ONBOARDING_STEP_DEFS.map((step, index) => (
+              <li
+                key={step.id}
+                className="flex flex-col rounded-xl border border-border bg-card p-5 shadow-card"
+              >
                 <span
                   aria-hidden
-                  className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
+                  className="flex size-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary"
                 >
-                  <Icon name={step.icon} size="md" />
+                  {index + 1}
                 </span>
-                <div className="pt-0.5">
-                  <p className="text-xs font-bold text-primary">Étape {index + 1}</p>
-                  <p className="font-medium">{step.title}</p>
-                </div>
+                <h3 className="mt-3 text-base font-semibold">{step.title}</h3>
+                <p className="mt-1 flex-1 text-sm text-muted-foreground">{step.description}</p>
+                <Link
+                  href={step.href}
+                  className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline underline-offset-4"
+                >
+                  Commencer
+                  <Icon name="arrow-right" size="sm" />
+                </Link>
               </li>
             ))}
           </ol>
+          <p className="mt-4 text-sm text-muted-foreground">
+            L&apos;identité et le profil conditionnent l&apos;accès aux missions : sans
+            dossier vérifié, aucune demande ne vous est proposée.
+          </p>
         </section>
 
-        {/* POURQUOI REJOINDRE */}
-        <section className="mt-12" aria-labelledby="benefits-title">
-          <h2 id="benefits-title" className="text-xl font-bold tracking-tight sm:text-2xl">
+        {/* ── 4. UNE INTERVENTION, CONCRÈTEMENT ───────────────────────────── */}
+        <section className="mt-12" aria-labelledby="mission-title">
+          <div className="max-w-2xl">
+            <h2
+              id="mission-title"
+              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            >
+              Une intervention, concrètement
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Ce que vous faites au quotidien, de la prise de contact au paiement.
+            </p>
+          </div>
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+            {MISSION_STEPS.map((step, index) => (
+              <li
+                key={step.title}
+                className={
+                  step.highlighted
+                    ? 'flex flex-col rounded-xl border border-primary/40 bg-primary/5 p-5 shadow-card sm:col-span-2'
+                    : 'flex flex-col rounded-xl border border-border bg-card p-5 shadow-card'
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className={
+                      step.highlighted
+                        ? 'flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground'
+                        : 'flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary'
+                    }
+                  >
+                    <Icon name={step.icon} size="md" />
+                  </span>
+                  <p className="text-xs font-bold text-primary">Étape {index + 1}</p>
+                </div>
+                <h3 className="mt-3 flex items-center gap-2 text-base font-semibold">
+                  {step.title}
+                  {step.highlighted ? (
+                    <span className="inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-primary-foreground">
+                      La clé
+                    </span>
+                  ) : null}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {relioAbsorbsTransferFeesNote('mission')} Le montant affiché est celui que vous
+            encaissez.
+          </p>
+        </section>
+
+        {/* ── 5. POURQUOI REJOINDRE RELIO ─────────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="arguments-title">
+          <h2
+            id="arguments-title"
+            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+          >
             Pourquoi rejoindre Relio ?
           </h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {benefits.map((item) => (
-              <div key={item.title} className="rounded-xl border border-border bg-card p-4 shadow-card">
-                <span className="flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {ARGUMENTS.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl border border-border bg-card p-5 shadow-card"
+              >
+                <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Icon name={item.icon} size="md" />
                 </span>
-                <p className="mt-3 text-sm font-semibold">{item.title}</p>
+                <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* CE QU'IL FAUT POUR COMMENCER */}
-        <section className="mt-12" aria-labelledby="requirements-title">
-          <h2 id="requirements-title" className="text-xl font-bold tracking-tight sm:text-2xl">
-            Ce qu&apos;il faut pour commencer
+        {/* ── 6. LE BARÈME, SANS PROMESSE ─────────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="tarifs-title">
+          <div className="max-w-2xl">
+            <h2
+              id="tarifs-title"
+              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            >
+              Combien vous pouvez gagner
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Voici ce que vous recevez selon le montant du devis. Les chiffres sont calculés
+              à partir du barème Relio, ils ne sont pas une estimation.
+            </p>
+          </div>
+
+          {/* Tableau sur grand écran, cartes empilées sur mobile : le même
+              contenu, deux presentations. Un tableau à 2 colonnes ne se lit pas
+              sur 375 px, et une carte ne se compare pas sur desktop. */}
+          <table className="mt-6 hidden w-full border-collapse overflow-hidden rounded-xl border border-border text-sm sm:table">
+            <caption className="sr-only">
+              Montant du devis et montant net versé au technicien
+            </caption>
+            <thead>
+              <tr className="bg-muted">
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                  Devis technicien
+                </th>
+                <th scope="col" className="px-4 py-3 text-left font-semibold">
+                  Vous recevez
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {QUOTE_AMOUNTS_XAF.map((amount) => {
+                const preview = previewTechnicianQuote(amount);
+                return (
+                  <tr key={amount} className="border-t border-border bg-card">
+                    <td className="px-4 py-3">{formatFCFA(preview.quote)}</td>
+                    <td className="px-4 py-3 font-semibold text-primary">
+                      {formatFCFA(preview.net)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <ul className="mt-6 grid gap-3 sm:hidden">
+            {QUOTE_AMOUNTS_XAF.map((amount) => {
+              const preview = previewTechnicianQuote(amount);
+              return (
+                <li
+                  key={amount}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
+                >
+                  <span className="text-sm text-muted-foreground">
+                    Devis {formatFCFA(preview.quote)}
+                  </span>
+                  <span className="text-base font-semibold text-primary">
+                    {formatFCFA(preview.net)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          <p className="mt-4 text-sm text-muted-foreground">
+            {TECHNICIAN_FEE_LABEL}. {relioAbsorbsTransferFeesNote('mission')}
+          </p>
+        </section>
+
+        {/* ── 7. SÉLECTIVITÉ ──────────────────────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="attentes-title">
+          <h2
+            id="attentes-title"
+            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+          >
+            Ce qu&apos;on attend de vous
           </h2>
-          <ul className="mt-5 grid gap-3 md:grid-cols-2">
-            {requirements.map((item) => (
-              <li key={item.label} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Nous ne recrutons pas tout le monde. C&apos;est ce qui fait la qualité du réseau
+            Relio.
+          </p>
+          <ul className="mt-6 grid gap-3 md:grid-cols-2">
+            {EXPECTATIONS.map((item) => (
+              <li
+                key={item.label}
+                className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-card"
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Icon name={item.icon} size="sm" />
                 </span>
                 <p className="pt-1 text-sm">{item.label}</p>
@@ -161,47 +464,88 @@ export default function DevenirTechnicienPage() {
             ))}
           </ul>
           <p className="mt-4 text-sm text-muted-foreground">
-            Une fois votre compte créé, votre dossier est revu par l&apos;équipe Relio avant que
-            vous receviez vos premières demandes.
+            Le dossier est vérifié par l&apos;équipe Relio avant votre première mission.
           </p>
         </section>
 
-        {/* UN FONCTIONNEMENT ENCADRÉ */}
-        <section className="mt-12" aria-labelledby="framework-title">
-          <h2 id="framework-title" className="text-xl font-bold tracking-tight sm:text-2xl">
-            Un fonctionnement encadré
+        {/* ── 8. L'ENGAGEMENT DE LA PLATEFORME ─────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="engagement-title">
+          <h2
+            id="engagement-title"
+            className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+          >
+            Notre engagement envers vous
           </h2>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {framework.map((item) => (
-              <span
-                key={item.label}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {COMMITMENTS.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-xl border border-border bg-card p-5 shadow-card"
               >
-                <Icon name={item.icon} size="sm" className="text-primary" />
-                {item.label}
-              </span>
+                <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Icon name={item.icon} size="md" />
+                </span>
+                <h3 className="mt-3 text-sm font-semibold">{item.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
+              </div>
             ))}
           </div>
         </section>
 
-        {/* CTA FINAL */}
-        <section className="mt-12 overflow-hidden rounded-2xl border border-border bg-card p-6 text-center">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+        {/* ── 9. FAQ TECHNICIEN ────────────────────────────────────────────── */}
+        <section className="mt-12" aria-labelledby="faq-technicien-title">
+          <div className="max-w-2xl">
+            <h2
+              id="faq-technicien-title"
+              className="text-xl font-bold tracking-tight text-foreground sm:text-2xl"
+            >
+              Questions fréquentes
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Les questions que les techniciens nous posent le plus souvent avant de
+              s&apos;inscrire.
+            </p>
+          </div>
+          <div className="mt-6 space-y-2">
+            {FAQ.map((item) => (
+              <details
+                key={item.question}
+                className="group overflow-hidden rounded-xl border border-border bg-card open:border-primary/40"
+              >
+                <summary className="flex min-h-13 cursor-pointer list-none items-center justify-between gap-3 p-4 font-medium [&::-webkit-details-marker]:hidden">
+                  {item.question}
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-transform duration-300 group-open:rotate-180">
+                    <Icon name="chevron-down" size="sm" />
+                  </span>
+                </summary>
+                <div className="border-t border-border px-4 pb-4 pt-3 text-sm leading-relaxed text-muted-foreground">
+                  {item.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 10. CTA FINAL ────────────────────────────────────────────────── */}
+        <section className="mt-12 overflow-hidden rounded-2xl border border-border bg-card p-6 text-center sm:p-10">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Icon name="sparkles" size="lg" />
           </span>
-          <h2 className="mt-3 text-lg font-bold tracking-tight">Prêt à rejoindre Relio ?</h2>
+          <h2 className="mt-3 text-lg font-bold tracking-tight sm:text-xl">
+            Prêt à rejoindre Relio ?
+          </h2>
           <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-            Créez votre compte technicien et commencez votre profil dès maintenant.
+            Inscription gratuite. Aucun engagement.
           </p>
-          <div className="mt-4 flex flex-col gap-2 sm:mx-auto sm:max-w-xl sm:flex-row">
-            <Link href="/technicien/inscription">
+          <div className="mt-5 flex flex-col gap-2 sm:mx-auto sm:max-w-xl sm:flex-row">
+            <Link href={SIGNUP_HREF} className="w-full">
               <Button size="lg" className="w-full sm:flex-1">
-                Devenir technicien
+                {SIGNUP_LABEL}
               </Button>
             </Link>
-            <Link href="/technicien/connexion">
-              <Button variant="secondary" className="w-full sm:flex-1">
-                Déjà technicien ? Se connecter
+            <Link href={SIGNIN_HREF} className="w-full">
+              <Button variant="secondary" size="lg" className="w-full sm:flex-1">
+                {SIGNIN_CTA_LABEL}
               </Button>
             </Link>
           </div>
