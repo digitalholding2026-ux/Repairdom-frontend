@@ -146,7 +146,19 @@ void test('logo : le pin est couplé au texte (largeur avancée forcée)', () =>
 
 void test('logo : le pin est posé sur la ligne de base du texte', () => {
   const logo = read(join(SRC, 'components/ui/logo.tsx'));
-  const baseline = /y="(\d+)"/.exec(logo)?.[1];
+  /* La ligne de base est celle du `<text>` du wordmark, PAS le premier `y=`
+   * du fichier : la variante `icon` déclare un `<circle cy="164">` qui
+   * précède le `<text>`, et `/y="(\d+)"/` matchait le `cy` — d'où « 164 »
+   * au lieu de « 212 ».
+   *
+   * On isole donc les LIGNES de l'élément `<text`. `[^>]*` ne suffit pas : le
+   * commentaire du composant cite déjà `<text>` en ligne 76, et le motif
+   * attrapait cette mention au lieu du JSX. Le `\n` force l'attribut à être
+   * sur sa propre ligne, ce qui est le format réel du fichier. */
+  const textBlock = /<text\s+[\s\S]*?>/.exec(logo)?.[0];
+  assert.ok(textBlock, 'bloc <text> du wordmark présent');
+  assert.ok(textBlock.includes('lengthAdjust'), 'le <text> isolé est bien celui du wordmark');
+  const baseline = /\by="(\d+)"/.exec(textBlock)?.[1];
   assert.equal(baseline, '212', 'ligne de base attendue');
   // Échelle + translation du pin : 334 (bas du pin local) × 0.565 + 23.3 = 212.
   const transform = /translate\(([\d.]+) ([\d.]+)\) scale\(([\d.]+)\)/.exec(logo);

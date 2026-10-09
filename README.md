@@ -11,15 +11,33 @@ Interface web **mobile-first** du SaaS RepairDom, construite avec **Next.js (App
 
 ## Prérequis
 
-- Node.js >= 20
+- **Node.js >= 22** (la version est épinglée dans `.nvmrc` : `nvm use`)
 - npm (ou le gestionnaire de paquets de votre choix)
+
+> Pourquoi 22 et pas 20 : la suite de tests utilise le runner `.ts` natif de
+> `node --test`, disponible à partir de Node 22. Sur Node 20, `npm run
+> test:unit` échoue à la résolution des modules TypeScript. Le `package.json`
+> du backend déclare la même contrainte dans `engines`.
 
 ## Installation
 
 ```bash
+nvm use            # lit .nvmrc → Node 22
 npm install
 cp .env.example .env.local   # puis adapter les valeurs
 ```
+
+## Tests
+
+```bash
+npm run test:unit   # runner natif, aucun serveur requis
+npm run typecheck   # tsc --noEmit
+npm run lint        # oxlint + eslint
+```
+
+`test:unit` charge `scripts/register-test-alias.mjs`, un hook de résolution qui
+donne au runner natif l'alias `@/` de `tsconfig.json`. Sans lui, tout test
+important un module du produit échouait sur `Cannot find package '@/lib'`.
 
 ## Lancement en local
 

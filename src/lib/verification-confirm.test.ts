@@ -54,7 +54,19 @@ void test('pas de useEffect de vérification automatique (le mot verifyEmail n�
 
 void test('la présence du token déclenche l’écran de confirmation', () => {
   const source = code(panel());
-  assert.match(source, /if \(!token\) return;\s*setConfirming\(true\)/);
+  /* Le motif a volontairement évolué : l'effet Memoire token n'est plus
+   * « `if (!token) return;` suivi IMMÉDIATEMENT de `setConfirming(true) ».
+   * Un token déjà validé impose `setConfirming(false)` puis `setVerified(true)`
+   * pour ne pas renvoyer l'utilisateur sur un écran qui ne mène nulle part.
+   *
+   * Ce qui est vérifié ici, c'est l'INTENTION — un token présent bascule en
+   * confirmation — pas l'absence de code entre la garde et l'appel. On exige
+   * donc les deux gardes et l'appel dans le MÊME effet, par ordre, sans
+   * exiger qu'ils soient consécutifs. */
+  const effect = /useEffect\(\(\) => \{\s*if \(!token\) return;[\s\S]*?setConfirming\(true\);[\s\S]*?\}, \[token\]\)/.exec(
+    source,
+  );
+  assert.ok(effect, 'un token présent doit basculer l’écran en confirmation');
 });
 
 /* ── 2. L’appel part au clic ───────────────────────────────────────── */
@@ -157,12 +169,24 @@ void test('le message trompeur « Adresse inconnue » a disparu', () => {
 
 void test('le comportement ?from=demande est préservé', () => {
   const source = code(panel());
-  /* `logout()` doit toujours être sauté depuis le tunnel de demande, sinon la
-   * session posée à l’inscription disparaît avec la demande juste envoyée. */
-  assert.match(source, /if \(!fromDemande\) \{/);
-  assert.match(source, /router\.replace\('\/client\/demandes'\)/);
-  /* La redirection attend toujours la synchronisation du contexte. */
-  assert.match(source, /if \(!user\?\.emailVerified\) return;/);
+  /* La session posée à l’inscription ne doit JAMAIS disparaître avec la
+   * demande juste envoyée.
+   *
+   * Ce test cherchait `if (!fromDemande) {` et `router.replace(…)`. Les deux
+   * ont été supprimés depuis, pour de bonnes raisons :
+   *   - le `logout()` qu'ils protégeaient n'existe plus du tout (le mot
+   *     n'apparaît plus que dans un commentaire qui l'explique) ;
+   *   - la redirection passe par `leaveVerification`, qui fait un
+   *     `window.location.assign` — un rechargement complet, là où
+   *     `router.replace` laissait un contexte client périmé.
+   *
+   * On vérifie donc le COMPORTEMENT : le tunnel de demande est toujours isolé,
+   * et il mène toujours à la liste des missions. */
+  assert.match(source, /if \(!verified \|\| !fromDemande\) return;/);
+  assert.match(source, /leaveVerification\('\/client\/demandes'\)/);
+  assert.match(source, /if \(fromDemande\)/);
+  /* Et le mécanisme de sortie ne déconnecte plus personne. */
+  assert.doesNotMatch(code(source), /logout\(/);
 });
 
 void test('la redirection forcée reste absente (une boucle se recréerait)', () => {

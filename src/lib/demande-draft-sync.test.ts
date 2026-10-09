@@ -6,7 +6,7 @@ import {
   draftToWizardFields,
   toDraftPayload,
   type WizardDraftFields,
-} from './demande-draft-sync';
+} from './demande-draft-sync.ts';
 
 /* Chantier D2 — logique PURE du brouillon.
  *
