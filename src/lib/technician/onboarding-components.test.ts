@@ -100,11 +100,29 @@ void test('#5C — le dashboard n’affiche la checklist QUE si l’onboarding e
   assert.match(dashboard, /!onboarding\.loading && !onboarding\.error && !onboarding\.isComplete/);
 });
 
-void test('#5C — la checklist est placée après l’en-tête, avant le bandeau KYC', () => {
+void test('#5C — la checklist reste avant le bandeau KYC, et la mission passe devant', () => {
+  /* INTENTION, ET NON POSITION ABSOLUE.
+   *
+   * Ce test disait « la checklist est placée après l'en-tête ». La mission en
+   * cours est désormais remontée entre les deux : c'est l'élément le plus
+   * temporel de l'écran et il était le sixième bloc, donc hors du premier
+   * écran sur un téléphone.
+   *
+   * L'invariant qu'on cherche à protéger n'est donc plus « juste après », mais
+   * l'ordre de PRIORITÉ : une intervention acceptée passe avant l paperwork,
+   * et le paperwork passe avant le bandeau KYC. Un test qui continue
+   * d'exiger une position absolue bloquerait cette amélioration — ou pire,
+   * donnerait l'impression de la garantir alors qu'elle n'est plus vrai.
+   */
   const header = dashboard.indexOf('</header>');
+  const missionAt = dashboard.indexOf('Intervention en cours');
   const checklistAt = dashboard.indexOf('<OnboardingChecklist');
   const kycAt = dashboard.indexOf('kycBanner ? (');
-  assert.ok(header > -1 && checklistAt > header, 'checklist après l’en-tête');
+
+  assert.ok(header > -1 && missionAt > header, 'la mission doit suivre l’en-tête');
+  assert.ok(missionAt < checklistAt, 'la mission passe avant la checklist');
+  /* Invariant d'origine, inchangé : la checklist reste avant le bandeau KYC
+   * (chantier #5A), quel que soit le nombre de blocs ajoutés au-dessus. */
   assert.ok(checklistAt < kycAt, 'checklist avant le bandeau KYC #5A');
 });
 

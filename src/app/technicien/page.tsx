@@ -355,6 +355,42 @@ export default function TechnicianDashboardPage() {
         </Button>
       </header>
 
+      {/* ── Intervention en cours ──────────────────────────────────
+          Premier bloc de contenu, AVANT tout le reste.
+          C'est l'élément le plus temporel de l'écran : une intervention
+          acceptée se joue à une heure donnée, et un technicien qui la
+          découvre en arrivant doit la voir sans faire défiler. Elle était
+          surtout sixth bloc — sous trois cartes de chiffres et deux bandeaux
+          — donc hors du premier écran sur un téléphone. */}
+      {currentMission ? (
+        <AnimateOnScroll delay={0}>
+          <Link
+            href={`/technicien/demandes/${currentMission.id}`}
+            className="block min-h-13 rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-transparent p-4 transition-colors hover:border-orange-500/50 sm:p-5"
+          >
+            <div className="flex items-center gap-3">
+              <span className="relative flex size-3 shrink-0" aria-hidden>
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-400 opacity-75" />
+                <span className="relative inline-flex size-3 rounded-full bg-orange-400" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
+                  Intervention en cours
+                </p>
+                <p className="mt-0.5 truncate text-sm font-semibold text-white">
+                  {currentMission.reference} · {currentMission.categoryLabel}
+                  {clientName ? ` · ${clientName}` : ''}
+                </p>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-orange-200">
+                Reprendre
+                <Icon name="chevron-right" size="sm" />
+              </span>
+            </div>
+          </Link>
+        </AnimateOnScroll>
+      ) : null}
+
       {/* ── Checklist d'onboarding (chantier #5C) ────────────────
           Juste après l'en-tête, AVANT le bandeau KYC (#5A) : l'ordre des
           étapes suit la progression réelle, et KYC n'est qu'une étape parmi
@@ -413,7 +449,7 @@ export default function TechnicianDashboardPage() {
             tout faire apparaître d'un coup. 80 ms d'écart — au-delà, la
             page « arrive » au lieu de se composer. */}
         <div className="md:col-span-2 lg:col-span-1">
-          <AnimateOnScroll delay={0}>
+          <AnimateOnScroll delay={80}>
             <TechStatusCard
               isAvailable={profile?.isAvailable ?? false}
               busy={availabilityBusy}
@@ -424,7 +460,7 @@ export default function TechnicianDashboardPage() {
           </AnimateOnScroll>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:col-span-2 lg:col-span-2 lg:grid-cols-3">
-          <AnimateOnScroll delay={80}>
+          <AnimateOnScroll delay={120}>
             <TechKpiCard
               icon="briefcase"
               label="Revenus du jour"
@@ -436,7 +472,7 @@ export default function TechnicianDashboardPage() {
               accent="emerald"
             />
           </AnimateOnScroll>
-          <AnimateOnScroll delay={160}>
+          <AnimateOnScroll delay={180}>
             <TechKpiCard
               icon="wrench"
               label="Interventions"
@@ -457,34 +493,6 @@ export default function TechnicianDashboardPage() {
           </AnimateOnScroll>
         </div>
       </div>
-
-      {/* ── Intervention en cours (bandeau prioritaire) ───────── */}
-      {currentMission ? (
-        <Link
-          href={`/technicien/demandes/${currentMission.id}`}
-          className="block rounded-2xl border border-orange-500/30 bg-gradient-to-r from-orange-500/20 via-orange-500/10 to-transparent p-4 transition-colors hover:border-orange-500/50 sm:p-5"
-        >
-          <div className="flex items-center gap-3">
-            <span className="relative flex size-3 shrink-0" aria-hidden>
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-400 opacity-75" />
-              <span className="relative inline-flex size-3 rounded-full bg-orange-400" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-orange-300">
-                Intervention en cours
-              </p>
-              <p className="mt-0.5 truncate text-sm font-semibold text-white">
-                {currentMission.reference} · {currentMission.categoryLabel}
-                {clientName ? ` · ${clientName}` : ''}
-              </p>
-            </div>
-            <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-orange-200">
-              Reprendre
-              <Icon name="chevron-right" size="sm" />
-            </span>
-          </div>
-        </Link>
-      ) : null}
 
       {/* ── C : radar live ────────────────────────────────────── */}
       <TechRadarCard

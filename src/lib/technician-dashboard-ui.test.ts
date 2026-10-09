@@ -155,12 +155,34 @@ void test('le compteur reste borné dans le temps', () => {
 /* Le chantier a porté le SOLC : ni l'ordre des blocs ni les composants
  *Children ne changent. Les tests d'onboarding verrouillent cet ordre par
  * `indexOf` ; ce test rappelle pourquoi il existe. */
-void test('l’ordre des blocs reste : entête, checklist, bandeau KYC', () => {
+void test('l’ordre de priorité : mission, paperwork, KYC, puis chiffres', () => {
+  /* Ordre de LECTURE du technicien, du plus temporel au plus différé :
+   *   1. l'intervention acceptée — elle se joue à une heure donnée ;
+   *   2. le paperwork qui conditionne le paiement (onboarding, dossier) ;
+   *   3. le bandeau KYC ;
+   *   4. les chiffres — utiles, jamais urgents.
+   *
+   * Ce test verrouille cet ordre, pas une position en pixels : ajouter un
+   * bloc entre deux de ces étapes ne doit pas le faire échouer. */
   const entete = page.indexOf('</header>');
+  const mission = page.indexOf('Intervention en cours');
   const checklist = page.indexOf('<OnboardingChecklist');
   const bandeau = page.indexOf('kycBanner ? (');
-  assert.ok(entete < checklist, 'la checklist n’est plus juste après l’entête');
-  assert.ok(checklist < bandeau, 'le bandeau KYC n’est plus après la checklist');
+  const kpi = page.indexOf('<TechKpiCard');
+
+  assert.ok(entete > -1, 'en-tête introuvable');
+  assert.ok(mission > entete, 'la mission doit être le premier bloc de contenu');
+  assert.ok(mission < checklist, 'la mission passe avant le paperwork');
+  assert.ok(checklist < bandeau, 'la checklist avant le bandeau KYC');
+  assert.ok(bandeau < kpi, 'le paperwork avant les chiffres');
+});
+
+void test('la mission en cours reste un lien de toute la largeur', () => {
+  /* Si elle se réduit à une ligne de texte, elle redevient ce qu'elle était :
+   * une information qu'on peut manquer. */
+  const bloc = page.slice(page.indexOf('Intervention en cours'), page.indexOf('Intervention en cours') + 900);
+  assert.match(bloc, /<Link/);
+  assert.match(bloc, /min-h-13/, 'cible tactile absente du bandeau de mission');
 });
 
 void test('la coque du dashboard existe et n’est pas réintroduite en dur', () => {
