@@ -198,26 +198,35 @@ export function ServicesGrid() {
 }
 
 /* ── 7. Programme de récompenses ────────────────────────────────────────────
- * Paliers repris de `REWARDS_CATALOG` (la source de vérité côté client) :
- * 5 → intervention offerte + pack collector, 12 → fer, 25 → TV, 50 →
- * smartphone, 100 → grand prix. Les visuels proviennent de /public/recompense.
- * Trois paliers seulement sont mis en avant ; « Voir tous les paliers »
- * mène au catalogue complet.
+ * Paliers NATURE repris de `NATURE_THRESHOLDS` (backend
+ * `src/rewards/rewards.config.ts:113-116`), miroirés côté client dans
+ * `lib/rewards-view.ts`. Le programme est fondé sur la MARGE CUMULÉE générée
+ * chez Relio — pas sur un nombre de missions.
+ *
+ * Le taux de crédit (5 %) et la tranche (10 000 FCFA → 500 FCFA) sont la
+ * source de vérité du backend (`CREDIT_TRANCHE_XAF`,
+ * `CREDIT_PER_TRANCHE_XAF`, l.47-48). Les seuils ci-dessous sont les mêmes
+ * entiers : les afficher ailleurs avec d'autres valeurs ferait diverger la
+ * landing de la réalité comptable.
+ *
+ * Visuels : conservés depuis l'ancien bloc. ⚠️ La correspondance
+ * image ↔ récompense n'est pas exacte (t-shirt pour un électroménager) —
+ * point connu, non traité dans ce chantier.
  */
 const REWARDS_HIGHLIGHTS: { tier: string; title: string; imageSrc: string }[] = [
   {
-    tier: '5 dépannages',
-    title: 'Dépannage 100 % offert + pack collector Relio',
+    tier: '50 000 FCFA de marge',
+    title: 'Petit électroménager',
     imageSrc: '/recompense/tshirt_cap.png',
   },
   {
-    tier: '25 dépannages',
-    title: 'Écran TV LED Smart',
+    tier: '100 000 FCFA de marge',
+    title: 'Électroménager moyen',
     imageSrc: '/recompense/tv.png',
   },
   {
-    tier: '50 dépannages',
-    title: 'Smartphone moderne',
+    tier: '250 000 FCFA de marge',
+    title: 'Smartphone',
     imageSrc: '/recompense/smartphone.png',
   },
 ];
@@ -228,7 +237,7 @@ export function Rewards() {
       <SectionTitle
         id="rewards-title-heading"
         title="Plus vous êtes fidèle, plus vous gagnez."
-        intro="Chaque dépannage confirmé compte. Le 5ᵉ vous offre votre prochaine intervention."
+        intro="5 % de ce que Relio gagne sur vos interventions vous revient, sous forme de crédit utilisable sur vos prochaines missions. Plus vous nous faites confiance, plus vous économisez."
       />
       <div className="mt-4 grid gap-2.5 sm:grid-cols-3 sm:gap-3">
         {REWARDS_HIGHLIGHTS.map((reward) => (

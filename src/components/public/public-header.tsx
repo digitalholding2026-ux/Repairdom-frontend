@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
@@ -15,6 +16,14 @@ export function PublicHeader() {
   const { user, authenticated, loading } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  /* `document.body` n'existe pas au rendu serveur : le portail ne peut être
+   * construit qu'après le premier passage côté client. Sans cet état, le
+   * drawer ne s'afficherait jamais dans le HTML servi. */
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
@@ -132,9 +141,31 @@ export function PublicHeader() {
         </div>
       </div>
 
-      {/* Drawer mobile : overlay sombre translucide avec tous les liens + CTA */}
-      {isOpen ? (
-        <div className="fixed inset-0 z-50 bg-relio-bg/95 backdrop-blur-md lg:hidden" role="dialog" aria-modal="true" aria-label="Menu de navigation">
+      {/* Drawer mobile : overlay sombre translucide avec tous les liens + CTA.
+       *
+       * ⚠️ PORTAL OBLIGATOIRE — ne pas revenir à un rendu ancré ici.
+       * Le `<header>` porte `backdrop-blur` + `sticky` + `transition-all`. Or
+       * `backdrop-filter` fait de l'élément un BLOC CONTENEUR pour ses
+       * descendants `position: fixed` : un `fixed inset-0` ancré ici se
+       * résolvait contre la hauteur du header (~56 px) au lieu du viewport.
+       * Résultat : drawer hauts de 56 px, fond ne couvrant que la bande du
+       * header, et liens débordant par-dessus le hero sur fond transparent.
+       * Rendu dans `document.body`, le drawer sort de ce contexte et couvre
+       * réellement l'écran. */}
+      {isOpen && mounted
+        ? createPortal(
+        <div
+          className="fixed inset-0 z-50 bg-relio-bg/95 backdrop-blur-md lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de navigation"
+          /* Fermeture au clic sur le fond : `target === currentTarget` ne
+           * se produit que si le clic atteint le calque lui-même, jamais un
+           * lien, le logo ou le bouton de fermeture. */
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setIsOpen(false);
+          }}
+        >
           <div className="flex h-full flex-col px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4">
             <div className="flex h-14 items-center justify-between">
               <BrandLogo href="/" />
@@ -181,8 +212,10 @@ export function PublicHeader() {
               )}
             </div>
           </div>
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+      )
+      : null}
     </header>
   );
 }

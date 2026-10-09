@@ -37,7 +37,7 @@ const FAQ = [
   {
     question: 'Que gagne-t-il un client fidèle ?',
     answer:
-      'Vos interventions confirmées sont comptabilisées. Dès le 5ᵉ dépannage, votre prochaine intervention vous est offerte, et des paliers plus généreux vous attendent jusqu’au smartphone.',
+      'À chaque intervention confirmée, une partie de ce que Relio gagne vous est reversée en crédit, utilisable sur vos prochaines missions. Des récompenses plus généreuses — jusqu’au smartphone — vous attendent selon votre fidélité.',
   },
 ];
 
