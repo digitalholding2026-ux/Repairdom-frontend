@@ -43,7 +43,10 @@ const HEX_ALLOWLIST = new Set([
   'components/ui/logo.tsx',
   'components/client/parrainage/parrainage-overview.tsx',
   'components/ui/gradient-hero-card.tsx',
-  'components/ui/reward-progress-card.tsx',
+  /* `reward-progress-card` est sorti de la liste : ses surfaces et son halo
+   * passent désormais par les tokens Relio. La liste est un registre de
+   * DÉROGATIONS, pas une liste de composants — y faire figurer un fichier
+   * conforme finit par l'immuniser contre la règle qui l'a fait entrer. */
 ]);
 
 void test('tokens : aucune couleur hex arbitraire hors allowlist documentée', () => {

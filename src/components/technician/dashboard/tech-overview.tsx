@@ -7,17 +7,26 @@ import { Button } from '@/components/ui/button';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Switch } from '@/components/ui/switch';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import { CountUp } from '@/components/technician/dashboard/count-up';
 import { cn } from '@/lib/cn';
 import { formatRelative, fullName } from '@/lib/format';
 import type { ActivityItem } from '@/components/client/dashboard/activity-feed';
 import type { TechnicianDemande, TechnicianProfile } from '@/lib/api/technician-service';
 
-/* Coque carte dark slate glassmorphism partagée du dashboard technicien. */
+/* Coque carte partagée du dashboard technicien.
+ *
+ * Surfaces par token, plus en dur : le fond vient de l'échelle Relio
+ * déclarée dans `globals.css`, ce qui permet de re-themer sans relire chaque
+ * composant. Le blanc translucide remplace l'ancienne surface écrite en dur
+ * — même aspect, mais une seule valeur à changer si la surface évolue.
+ *
+ * La bordure n'est pas décorative : `relio-card` sur `relio-bg` ne fait que
+ * 1,11:1, c'est elle qui rend la carte lisible (voir `relio-theme.test.ts`). */
 function TechCard({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/10 bg-slate-900/70 p-4 backdrop-blur-md sm:p-5',
+        'rounded-2xl border border-relio-border bg-relio-card p-4 sm:p-5',
         className,
       )}
     >
@@ -58,7 +67,7 @@ export function TechStatusCard({
         'transform-gpu',
         isAvailable
           ? 'border-emerald-500/30 bg-emerald-500/15'
-          : 'border-white/10 bg-slate-900/70',
+          : 'border-relio-border bg-relio-card',
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -116,6 +125,8 @@ export function TechKpiCard({
   sub,
   href,
   accent = 'orange',
+  numeric,
+  format,
 }: {
   icon: IconName;
   label: string;
@@ -123,6 +134,15 @@ export function TechKpiCard({
   sub: string;
   href?: string;
   accent?: 'orange' | 'emerald' | 'amber';
+  /**
+   * Valeur numérique animatee, optionnelle.
+   *
+   * Le compteur ne s'applique qu'aux KPI d'un seul nombre — un montant. Les
+   * autres affichent « 3 / 10 » ou « – » : les faire défiler donnerait « 0 / 10
+   * » pendant une demi-seconde, soit une information fausse à l'écran.
+   */
+  numeric?: number;
+  format?: (n: number) => string;
 }) {
   const chip =
     accent === 'emerald'
@@ -135,7 +155,13 @@ export function TechKpiCard({
       <span className={cn('flex size-10 items-center justify-center rounded-xl', chip)}>
         <Icon name={icon} size="md" />
       </span>
-      <p className="mt-3 truncate text-2xl font-bold tracking-tight text-white">{value}</p>
+      <p className="mt-3 truncate text-2xl font-bold tracking-tight text-white">
+        {numeric !== undefined && format ? (
+          <CountUp value={numeric} format={format} />
+        ) : (
+          value
+        )}
+      </p>
       <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{label}</p>
       <p className="mt-1 truncate text-xs text-relio-muted">{sub}</p>
     </TechCard>
@@ -191,7 +217,7 @@ export function TechRadarCard({
         icon="zap"
         title={`Missions à proximité (Radar Live) · ${zone}`}
         action={
-          <Badge variant={total > 0 ? 'info' : 'neutral'} className="shrink-0">
+          <Badge tone="dark" variant={total > 0 ? 'info' : 'neutral'} className="shrink-0">
             {total} en attente
           </Badge>
         }
@@ -209,10 +235,10 @@ export function TechRadarCard({
             </p>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={onRefresh}
               isLoading={refreshing}
-              className="border-slate-700 bg-slate-800 text-slate-100 hover:bg-slate-700"
+              className="min-h-12 border-relio-border bg-white/5 text-slate-100 hover:bg-white/10"
             >
               Recharger les missions
             </Button>
@@ -225,16 +251,16 @@ export function TechRadarCard({
             <div className="flex items-center justify-between gap-2 pt-1">
               <Button
                 variant="ghost"
-                size="sm"
+                size="md"
                 onClick={onRefresh}
                 isLoading={refreshing}
-                className="text-slate-300 hover:bg-white/10 hover:text-white"
+                className="min-h-12 text-slate-300 hover:bg-white/10 hover:text-white"
               >
                 Recharger
               </Button>
               <Link
                 href="/technicien/demandes"
-                className="inline-flex items-center gap-1 text-xs font-semibold text-orange-300 hover:text-orange-200"
+                className="inline-flex min-h-12 items-center gap-1 text-xs font-semibold text-orange-300 hover:text-orange-200"
               >
                 Voir les {total} missions
                 <Icon name="chevron-right" size="sm" />
@@ -264,7 +290,7 @@ export function TechActivityCard({ items }: { items: ActivityItem[] }) {
         action={
           <Link
             href="/technicien/historique"
-            className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-orange-300 hover:text-orange-200"
+            className="inline-flex min-h-12 shrink-0 items-center gap-1 text-xs font-semibold text-orange-300 hover:text-orange-200"
           >
             Tout voir
             <Icon name="chevron-right" size="sm" />
@@ -335,7 +361,7 @@ export function TechAccountRow({ profile }: { profile: TechnicianProfile }) {
                 <p className="truncate text-sm font-semibold text-white">
                   {fullName(user.firstName, user.lastName)}
                 </p>
-                <Badge variant={verified ? 'success' : 'warning'} className="shrink-0 gap-0.5">
+                <Badge tone="dark" variant={verified ? 'success' : 'warning'} className="shrink-0 gap-0.5">
                   <Icon name={verified ? 'shield-check' : 'alert'} size="3.5" />
                   {verified ? 'Technicien Vérifié' : 'Vérification en cours'}
                 </Badge>

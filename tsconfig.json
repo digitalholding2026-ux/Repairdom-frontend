@@ -75,6 +75,7 @@
     "src/lib/landing-animations.test.ts",
     "src/lib/verification-panel-actions.test.ts",
     "src/lib/relio-theme.test.ts",
+    "src/lib/technician-dashboard-ui.test.ts",
     "src/lib/technician-recruitment-ui.test.ts"
   ]
 }

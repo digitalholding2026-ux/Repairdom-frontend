@@ -8,6 +8,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { InterventionsCard } from '@/components/technician/dashboard/interventions-card';
 import { DashboardSkeleton } from '@/components/technician/dashboard/dashboard-skeleton';
+import { TechShell } from '@/components/technician/dashboard/tech-shell';
+import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 import {
   TechAccountRow,
   TechActivityCard,
@@ -265,19 +267,29 @@ export default function TechnicianDashboardPage() {
       .slice(0, 6);
   }, [mine, history]);
 
-  if (loading) return <DashboardSkeleton />;
+  /* Les deux sorties anticipées passent par la même coque que le rendu
+   * final : le fond sombre ne peut plus manquer à l'un d'eux. */
+  if (loading) {
+    return (
+      <TechShell>
+        <DashboardSkeleton />
+      </TechShell>
+    );
+  }
 
   if (error) {
     return (
-      <EmptyState
-        title="Accès requis"
-        description={error}
-        action={
-          <Link href="/technicien/connexion">
-            <Button>Se connecter en tant que technicien</Button>
-          </Link>
-        }
-      />
+      <TechShell>
+        <EmptyState
+          title="Accès requis"
+          description={error}
+          action={
+            <Link href="/technicien/connexion">
+              <Button>Se connecter en tant que technicien</Button>
+            </Link>
+          }
+        />
+      </TechShell>
     );
   }
 
@@ -311,7 +323,7 @@ export default function TechnicianDashboardPage() {
     !onboarding.isComplete;
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 rounded-3xl bg-relio-bg p-4 text-slate-100 sm:p-6">
+    <TechShell>
       {/* ── Header contenu : salutation + statut + déconnexion ── */}
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -322,11 +334,11 @@ export default function TechnicianDashboardPage() {
             {greeting}{firstName ? `, ${firstName}` : ''} 👋
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant={verified ? 'success' : 'warning'} className="gap-1">
+            <Badge tone="dark" variant={verified ? 'success' : 'warning'} className="gap-1">
               <Icon name={verified ? 'shield-check' : 'alert'} size="3.5" />
               {verified ? 'Technicien Vérifié' : kycStatusLabel(profile?.kycStatus ?? 'NOT_SUBMITTED')}
             </Badge>
-            <Badge variant="neutral" className="gap-1 border-white/10 bg-white/5 text-slate-300">
+            <Badge tone="dark" variant="neutral" className="gap-1">
               <Icon name="pin" size="3.5" />
               {zone}
             </Badge>
@@ -334,9 +346,9 @@ export default function TechnicianDashboardPage() {
         </div>
         <Button
           variant="ghost"
-          size="sm"
+          size="md"
           onClick={handleLogout}
-          className="shrink-0 border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
+          className="min-h-12 shrink-0 border border-relio-border bg-white/5 text-slate-100 hover:bg-white/10 hover:text-white"
         >
           <Icon name="logout" size="sm" />
           <span className="ml-1 hidden sm:inline">Déconnexion</span>
@@ -386,7 +398,7 @@ export default function TechnicianDashboardPage() {
           </div>
           {kycBanner.ctaLabel ? (
             <Link href={KYC_PAGE_HREF} className="shrink-0">
-              <Button variant="ghost" size="sm" className={KYC_BANNER_TONES[kycBanner.variant].cta}>
+              <Button variant="ghost" size="md" className={`min-h-12 ${KYC_BANNER_TONES[kycBanner.variant].cta}`}>
                 {kycBanner.ctaLabel}
               </Button>
             </Link>
@@ -396,39 +408,53 @@ export default function TechnicianDashboardPage() {
 
       {/* ── A + B : statut + KPIs ─────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Cascade d'apparition : chaque bloc se lève légèrement après le
+            précédent, ce qui guide l'œil dans l'ordre de lecture au lieu de
+            tout faire apparaître d'un coup. 80 ms d'écart — au-delà, la
+            page « arrive » au lieu de se composer. */}
         <div className="md:col-span-2 lg:col-span-1">
-          <TechStatusCard
-            isAvailable={profile?.isAvailable ?? false}
-            busy={availabilityBusy}
-            error={availabilityError}
-            zone={zone}
-            onToggle={() => void handleToggleAvailability()}
-          />
+          <AnimateOnScroll delay={0}>
+            <TechStatusCard
+              isAvailable={profile?.isAvailable ?? false}
+              busy={availabilityBusy}
+              error={availabilityError}
+              zone={zone}
+              onToggle={() => void handleToggleAvailability()}
+            />
+          </AnimateOnScroll>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6 md:col-span-2 lg:col-span-2 lg:grid-cols-3">
-          <TechKpiCard
-            icon="briefcase"
-            label="Revenus du jour"
-            value={formatCurrency(todayRevenue, finance?.currency ?? 'XAF')}
-            sub={`${completedToday} dépannage${completedToday !== 1 ? 's' : ''} aujourd'hui`}
-            href="/technicien/revenus"
-            accent="emerald"
-          />
-          <TechKpiCard
-            icon="wrench"
-            label="Interventions"
-            value={`${interventions} / 10`}
-            sub="Palier 1 · dépannages réalisés"
-            href="/technicien/historique"
-            accent="orange"
-          />
-          <TechKpiCard
-            icon="star"
-            label="Note & Avis"
-            value="–"
-            sub="Aucun avis client pour le moment"
-            accent="amber"
-          />
+          <AnimateOnScroll delay={80}>
+            <TechKpiCard
+              icon="briefcase"
+              label="Revenus du jour"
+              value={formatCurrency(todayRevenue, finance?.currency ?? 'XAF')}
+              numeric={todayRevenue}
+              format={(n) => formatCurrency(n, finance?.currency ?? 'XAF')}
+              sub={`${completedToday} dépannage${completedToday !== 1 ? 's' : ''} aujourd'hui`}
+              href="/technicien/revenus"
+              accent="emerald"
+            />
+          </AnimateOnScroll>
+          <AnimateOnScroll delay={160}>
+            <TechKpiCard
+              icon="wrench"
+              label="Interventions"
+              value={`${interventions} / 10`}
+              sub="Palier 1 · dépannages réalisés"
+              href="/technicien/historique"
+              accent="orange"
+            />
+          </AnimateOnScroll>
+          <AnimateOnScroll delay={240}>
+            <TechKpiCard
+              icon="star"
+              label="Note & Avis"
+              value="–"
+              sub="Aucun avis client pour le moment"
+              accent="amber"
+            />
+          </AnimateOnScroll>
         </div>
       </div>
 
@@ -487,7 +513,7 @@ export default function TechnicianDashboardPage() {
               <Icon name="briefcase" size="sm" className="text-orange-400" />
               Mes interventions
             </h2>
-            <Badge variant="success" className="shrink-0">
+            <Badge tone="dark" variant="success" className="shrink-0">
               {mineList.length} intervention{mineList.length !== 1 ? 's' : ''}
             </Badge>
           </div>
@@ -504,6 +530,6 @@ export default function TechnicianDashboardPage() {
 
       {/* Espace de respiration au-dessus de la navigation basse mobile */}
       <div aria-hidden className="lg:hidden" />
-    </div>
+    </TechShell>
   );
 }
