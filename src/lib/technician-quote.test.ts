@@ -664,9 +664,21 @@ void test('6C-1 — les deux écrans distinguent « historique vide » de « his
   for (const page of [read(CLIENT_MISSION_PAGE), read(TECHNICIAN_MISSION_PAGE)]) {
     assert.match(page, /const \[eventsLoadState, setEventsLoadState\] = useState<'loading' \| 'loaded' \| 'error'>\('loading'\)/);
     assert.match(page, /const timelineFailed = eventsLoadState === 'error'/);
-    assert.match(page, /title="Impossible de charger l’historique"/);
-    assert.match(page, /Réessayer/);
+    /* L'écran d'échec a été factorisé dans un composant partagé : ce qui
+     * protège l'invariant n'est plus la chaîne dans la page, mais le fait que
+     * les DEUX écrans le montent, et que le composant porte toujours le titre
+     * et l'action de réessai. Exiger la chaîne dans chaque page interdisait
+     * la factorisation — et donnait l'impression de garantir un libellé qui
+     * n'est plus là. */
+    assert.match(page, /<TimelineUnavailable/);
   }
+  const composant = read('../components/mission/timeline-unavailable.tsx');
+  assert.match(composant, /title="Impossible de charger l’historique"/);
+  assert.match(composant, /Réessayer/);
+  /* Le composant doit rester paramétrable : les deux écrans n'ont pas la même
+   * forme, donc pas la même phrase. Un composant qui porterait la description
+   * des deux serait une régression de justesse. */
+  assert.match(composant, /description: string/);
   // Et l'appel ne masque plus son échec derrière un tableau vide.
   for (const page of [read(CLIENT_MISSION_PAGE), read(TECHNICIAN_MISSION_PAGE)]) {
     assert.doesNotMatch(

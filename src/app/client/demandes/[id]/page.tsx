@@ -20,6 +20,8 @@ import { DemandeStatusBadge, QuoteStatusBadge } from '@/components/ui/status-bad
 import { DemandeProgress } from '@/components/mission/demande-progress';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
+import { QuoteLines } from '@/components/mission/quote-lines';
+import { TimelineUnavailable } from '@/components/mission/timeline-unavailable';
 import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { TravelBanner } from '@/components/mission/travel-banner';
 import { MissionMap } from '@/components/mission/mission-map';
@@ -93,9 +95,6 @@ const POLL_INTERVAL_MS = 5000;
 /** Statuts où un suivi live (technicien, GPS, discussion) a du sens. */
 const LIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 
-function formatPrice(value: number | null | undefined): string {
-  return formatFCFA(value);
-}
 
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
@@ -483,36 +482,17 @@ export default function ClientDemandeDetailPage() {
 
           {latestQuote.repair != null || latestQuote.travel != null ? (
             <dl className="space-y-1 rounded-xl border border-border bg-muted/20 p-3 text-sm tabular-nums">
-              {latestQuote.catalogDiagnostic?.name ? (
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">Diagnostic</dt>
-                  <dd className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</dd>
-                </div>
-              ) : null}
-              {latestQuote.catalogIntervention?.name ? (
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-muted-foreground">Intervention</dt>
-                  <dd className="text-right font-medium">{latestQuote.catalogIntervention.name}</dd>
-                </div>
-              ) : null}
-              <div className="flex items-center justify-between">
-                <dt className="text-muted-foreground">Réparation</dt>
-                <dd className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-muted-foreground">Déplacement</dt>
-                <dd className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</dd>
-              </div>
-              <div className="my-1 h-px bg-border" aria-hidden />
-              <div className="flex items-center justify-between">
-                <dt className="font-semibold">Total à payer</dt>
-                <dd className="font-semibold tabular-nums">
-                  {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
-                </dd>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Montant débité de votre solde après acceptation.
-              </p>
+              <QuoteLines
+                diagnosticName={latestQuote.catalogDiagnostic?.name}
+                interventionName={latestQuote.catalogIntervention?.name}
+                repair={latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null}
+                travel={latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null}
+                total={latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0))}
+                totalLabel="Total à payer"
+                totalNote="Montant débité de votre solde après acceptation."
+                labelTag="dt"
+                valueTag="dd"
+              />
             </dl>
           ) : null}
 
@@ -904,36 +884,17 @@ export default function ClientDemandeDetailPage() {
 
               {latestQuote.repair != null || latestQuote.travel != null ? (
                 <dl className="space-y-1 rounded-xl border border-border bg-muted/20 p-3 text-sm tabular-nums">
-                  {latestQuote.catalogDiagnostic?.name ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">Diagnostic</dt>
-                      <dd className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</dd>
-                    </div>
-                  ) : null}
-                  {latestQuote.catalogIntervention?.name ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-muted-foreground">Intervention</dt>
-                      <dd className="text-right font-medium">{latestQuote.catalogIntervention.name}</dd>
-                    </div>
-                  ) : null}
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">Réparation</dt>
-                    <dd className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</dd>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">Déplacement</dt>
-                    <dd className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</dd>
-                  </div>
-                  <div className="my-1 h-px bg-border" aria-hidden />
-                  <div className="flex items-center justify-between">
-                    <dt className="font-semibold">Total à payer</dt>
-                    <dd className="font-semibold tabular-nums">
-                      {formatPrice(latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0)))}
-                    </dd>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Montant débité de votre solde après acceptation.
-                  </p>
+                  <QuoteLines
+                    diagnosticName={latestQuote.catalogDiagnostic?.name}
+                    interventionName={latestQuote.catalogIntervention?.name}
+                    repair={latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null}
+                    travel={latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null}
+                    total={latestQuote.totalToDebit ?? (latestQuote.amount + (latestQuote.travel ?? 0))}
+                    totalLabel="Total à payer"
+                    totalNote="Montant débité de votre solde après acceptation."
+                    labelTag="dt"
+                    valueTag="dd"
+                  />
                 </dl>
               ) : null}
 
@@ -992,20 +953,9 @@ export default function ClientDemandeDetailPage() {
               {/* 6C-1 : un historique injoignable ne doit pas ressembler à une
                   mission sans événement. État d'erreur explicite + relance. */}
               {timelineFailed ? (
-                <EmptyState
-                  icon={<Icon name="clock" size="md" />}
-                  title="Impossible de charger l’historique"
+                <TimelineUnavailable
                   description="La chronologie de la mission n’a pas pu être récupérée. Le reste de la page reste à jour."
-                  action={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSseTick((tick) => tick + 1)}
-                    >
-                      Réessayer
-                    </Button>
-                  }
-                  className="py-6"
+                  onRetry={() => setSseTick((tick) => tick + 1)}
                 />
               ) : (
                 <>

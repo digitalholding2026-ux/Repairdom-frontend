@@ -29,6 +29,8 @@ import { formatTravelDistance, formatTravelRecency } from '@/lib/travel-location
 import { MissionSummaryCard } from '@/components/mission/mission-summary';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { RatingSection } from '@/components/mission/rating-section';
+import { QuoteLines } from '@/components/mission/quote-lines';
+import { TimelineUnavailable } from '@/components/mission/timeline-unavailable';
 import { RatingStars } from '@/components/ui/rating-stars';
 import { fullName } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
@@ -133,9 +135,6 @@ function formatAmount(quote: Pick<MissionQuote, 'amount' | 'currency'>): string 
   return quote.currency && quote.currency !== 'XAF' ? `${formatted} (${quote.currency})` : formatted;
 }
 
-function formatPrice(value: number | null | undefined): string {
-  return formatFCFA(value);
-}
 
 /* Repli affichable si le statut KYC n'a pas encore été résolu alors que le
  * bandeau doit s'afficher : jamais de message vide, jamais d'écran cassé. */
@@ -897,34 +896,14 @@ export default function TechnicianDemandeDetailPage() {
                     <p className="whitespace-pre-line text-sm">{latestQuote.description}</p>
                     {latestQuote.repair != null || latestQuote.travel != null || latestQuote.breakdown ? (
                       <div className="space-y-1 rounded-lg border border-border bg-muted/20 p-3 text-sm tabular-nums">
-                        {latestQuote.catalogDiagnostic?.name ? (
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-muted-foreground">Diagnostic</span>
-                            <span className="text-right font-medium">{latestQuote.catalogDiagnostic.name}</span>
-                          </div>
-                        ) : null}
-                        {latestQuote.catalogIntervention?.name ? (
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-muted-foreground">Intervention</span>
-                            <span className="text-right font-medium">{latestQuote.catalogIntervention.name}</span>
-                          </div>
-                        ) : null}
-                        {(latestQuote.catalogDiagnostic?.name || latestQuote.catalogIntervention?.name) ? (
-                          <div className="my-1 h-px bg-border" />
-                        ) : null}
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Réparation</span>
-                          <span className="font-medium">{formatPrice(latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Déplacement</span>
-                          <span className="font-medium">{formatPrice(latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null)}</span>
-                        </div>
-                        <div className="my-1 h-px bg-border" />
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">Total client (brut)</span>
-                          <span className="font-semibold">{formatPrice(latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0)))}</span>
-                        </div>
+                        <QuoteLines
+                          diagnosticName={latestQuote.catalogDiagnostic?.name}
+                          interventionName={latestQuote.catalogIntervention?.name}
+                          repair={latestQuote.repair ?? latestQuote.breakdown?.referencePrice ?? null}
+                          travel={latestQuote.travel ?? latestQuote.breakdown?.travelFee ?? null}
+                          total={latestQuote.totalToDebit ?? ((latestQuote.repair ?? latestQuote.amount) + (latestQuote.travel ?? 0))}
+                          totalLabel="Total client (brut)"
+                        />
                         {/* Commission affichée APRÈS envoi : ce sont les montants
                           * renvoyés par le backend (aucun recalcul frontend). Le
                           * repli `previewTechnicianQuote` ne sert que si un ancien
@@ -934,7 +913,7 @@ export default function TechnicianDemandeDetailPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">{TECHNICIAN_FEE_LABEL}</span>
                           <span className="font-medium text-muted-foreground">
-                            −{formatPrice(
+                            −{formatFCFA(
                               latestQuote.commission ??
                                 previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).commission,
                             )}
@@ -943,7 +922,7 @@ export default function TechnicianDemandeDetailPage() {
                         <div className="flex items-center justify-between">
                           <span className="font-semibold">Vous recevrez</span>
                           <span className="font-semibold text-success-ink">
-                            {formatPrice(
+                            {formatFCFA(
                               latestQuote.netTechnician ??
                                 previewTechnicianQuote(latestQuote.repair ?? latestQuote.amount).net,
                             )}
@@ -1438,16 +1417,9 @@ function DetailsTab({
 
       {timelineFailed ? (
         <div className="rounded-xl border border-border bg-card p-3">
-          <EmptyState
-            icon={<Icon name="clock" size="md" />}
-            title="Impossible de charger l’historique"
+          <TimelineUnavailable
             description="La chronologie de la mission n’a pas pu être récupérée. Les autres informations de cet onglet restent valides."
-            action={
-              <Button variant="secondary" size="sm" onClick={onRetryTimeline}>
-                Réessayer
-              </Button>
-            }
-            className="py-6"
+            onRetry={onRetryTimeline}
           />
         </div>
       ) : eventsCount > 0 ? (
