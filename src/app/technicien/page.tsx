@@ -18,10 +18,7 @@ import {
   TechRadarCard,
   TechStatusCard,
 } from '@/components/technician/dashboard/tech-overview';
-import {
-  type ActivityItem,
-  type ActivityTone,
-} from '@/components/client/dashboard/activity-feed';
+import { type ActivityItem, type ActivityTone } from '@/lib/activity-types';
 import { getMe, logoutAndGoHome } from '@/lib/api/auth-service';
 import {
   listAvailableDemandes,

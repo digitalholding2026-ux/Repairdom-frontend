@@ -1,9 +1,13 @@
 import Link from 'next/link';
 import { Icon, type IconName } from './icon';
 
-/* Phase B — carte de progression gamification unique : unifie RewardsCard
- * (client, objectif 5) et InterventionsCard (technicien, palier 10).
- * Règle 60-30-10 : fond Bleu Nuit structurel, l'orange ne subsiste qu'en
+/* Carte de progression gamification unique, partagée client / technicien.
+ *
+ * Elle a absorbé deux cartes qui lui vivaient à côté : celle du client et
+ * celle du technicien. Ces deux-là ont été supprimées depuis — il n'en
+ * restait plus qu'un enrobage d'un composant plus générique.
+ *
+ * Règle 60-30-10 : fond bleu nuit structurel, l'orange ne subsiste qu'en
  * accent (compteur, progression). */
 
 export interface RewardProgressCardProps {

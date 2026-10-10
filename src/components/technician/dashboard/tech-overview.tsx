@@ -10,7 +10,7 @@ import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { CountUp } from '@/components/technician/dashboard/count-up';
 import { cn } from '@/lib/cn';
 import { formatRelative, fullName } from '@/lib/format';
-import type { ActivityItem } from '@/components/client/dashboard/activity-feed';
+import type { ActivityItem } from '@/lib/activity-types';
 import type { TechnicianDemande, TechnicianProfile } from '@/lib/api/technician-service';
 
 /* Coque carte partagée du dashboard technicien.
