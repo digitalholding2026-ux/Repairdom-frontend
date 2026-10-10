@@ -6,6 +6,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { NotificationTabBadge } from '@/components/notifications/notification-tab-badge';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { categoryIcon, getGreeting, RecentStatusPill } from './client-home-blocks';
+import { LiveMissionCard } from './live-mission-card';
+import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 import type { ClientDashboardData } from './use-client-dashboard-data';
 
 /* CHANTIER UI DESKTOP & MOBILE — accueil client TACTILE (téléphone) :
@@ -18,9 +20,9 @@ export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
   const displayName = user?.firstName?.trim() ? user.firstName.trim() : 'Client';
 
   return (
-    <div className="min-h-dvh bg-slate-100 pb-28 dark:bg-slate-950">
+    <div className="min-h-dvh bg-slate-100 pb-28 dark:bg-relio-bg">
       {/* ── Header sombre + carte solde (Neero style) ──────────── */}
-      <header className="relative overflow-hidden rounded-b-[32px] bg-slate-950 p-6 pb-12 text-white shadow-lg">
+      <header className="relative overflow-hidden rounded-b-[32px] bg-relio-bg p-6 pb-12 text-white shadow-lg">
         <div
           aria-hidden
           className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-relio-orange/25 blur-3xl"
@@ -91,7 +93,7 @@ export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
             </p>
             <Link
               href="/client/solde"
-              className="mt-4 flex items-center justify-between rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+              className="mt-4 flex items-center justify-between rounded-xl bg-relio-bg px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
             >
               Gérer mon solde
               <Icon name="arrow-right" size="sm" />
@@ -100,36 +102,55 @@ export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
         </div>
       </header>
 
+      {/* ── Intervention en cours ─────────────────────────────────
+          AVANT les actions rapides, comme sur le bureau et comme chez le
+          technicien : une intervention vivante prime sur un raccourci de
+          navigation. Elle était noyée dans « Dépannages récents », au même
+          rang qu'une intervention terminée la veille.
+          La carte de solde reste au-dessus : le solde est l'information la
+          plus consultée tous les jours, l'urgence une fois par
+          intervention. */}
+      {data.activeMission ? (
+        <section aria-label="Intervention en cours" className="mx-auto mt-6 max-w-md px-4">
+        <AnimateOnScroll delay={0}>
+          <LiveMissionCard mission={data.activeMission} />
+        </AnimateOnScroll>
+        </section>
+      ) : null}
+
       {/* ── Actions rapides : 3 boutons circulaires ─────────────── */}
       <section aria-label="Actions rapides" className="mx-auto grid max-w-md grid-cols-3 gap-2 px-6 pt-20">
-        <Link href='/demande' className="group flex flex-col items-center gap-2">
-          <span className="flex size-14 items-center justify-center rounded-full bg-orange-500/90 text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition group-hover:scale-105 group-active:scale-95 group-hover:bg-orange-500">
-            <Icon name="plus" size="lg" strokeWidth={2.2} />
-          </span>
-          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
-            Créer une demande
-          </span>
-        </Link>
-        <Link href="/client/solde/recharger" className="group flex flex-col items-center gap-2">
-          <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
-            <Icon name="wallet" size="lg" strokeWidth={1.9} />
-          </span>
-          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
-            Recharger solde
-          </span>
-        </Link>
-        <Link href="/client/demandes" className="group flex flex-col items-center gap-2">
-          <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
-            <Icon name="search" size="lg" strokeWidth={1.9} />
-          </span>
-          <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
-            Mes dépannages
-          </span>
-        </Link>
+        <AnimateOnScroll delay={80}>
+          <Link href='/demande' className="group flex flex-col items-center gap-2">
+            <span className="flex size-14 items-center justify-center rounded-full bg-orange-500/90 text-white shadow-lg shadow-orange-500/20 backdrop-blur-sm transition group-hover:scale-105 group-active:scale-95 group-hover:bg-orange-500">
+              <Icon name="plus" size="lg" strokeWidth={2.2} />
+            </span>
+            <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+              Créer une demande
+            </span>
+          </Link>
+          <Link href="/client/solde/recharger" className="group flex flex-col items-center gap-2">
+            <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
+              <Icon name="wallet" size="lg" strokeWidth={1.9} />
+            </span>
+            <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+              Recharger solde
+            </span>
+          </Link>
+          <Link href="/client/demandes" className="group flex flex-col items-center gap-2">
+            <span className="flex size-14 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-slate-200 shadow-lg transition group-hover:scale-105 group-active:scale-95">
+              <Icon name="search" size="lg" strokeWidth={1.9} />
+            </span>
+            <span className="text-center text-xs font-semibold leading-tight text-slate-700 dark:text-slate-200">
+              Mes dépannages
+            </span>
+          </Link>
+        </AnimateOnScroll>
       </section>
 
       {/* ── Dépannages récents ──────────────────────────────────── */}
       <section aria-label="Dépannages récents" className="mx-auto mt-6 max-w-md px-4">
+        <AnimateOnScroll delay={160} className="block">
         <div className="mb-3 flex items-center justify-between px-1">
           <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
             Dépannages récents
@@ -182,6 +203,7 @@ export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
             ))}
           </ul>
         )}
+              </AnimateOnScroll>
       </section>
     </div>
   );
