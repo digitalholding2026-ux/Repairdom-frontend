@@ -103,9 +103,11 @@ export async function listCatalogProblems(
  *
  * Parcours parallèle du référentiel ci-dessus. Contrairement à celui-ci, il
  * publie bien un prix : `price` est le montant en XAF choisi par le serveur
- * (tarif public ou professionnel selon la session du visiteur), `surDevis` à
- * true signifiant qu'aucun montant n'est annoncé et que le client est rappelé.
- * Le formatage « FCFA » reste uniquement à l'affichage, via `formatFCFA`. */
+ * (tarif public ou professionnel selon la session du visiteur). Le serveur ne
+ * sert que des items ayant un montant dans la monnaie du visiteur : une
+ * prestation non tarifiée est absente des listes, elle n'est pas proposée « sur
+ * devis ». Le formatage « FCFA » reste uniquement à l'affichage, via
+ * `formatFCFA`. */
 
 export interface CatalogServiceLite {
   id: string;
@@ -131,7 +133,6 @@ export interface CatalogItemLite {
   androidVersion: string | null;
   order: number;
   price: number | null;
-  surDevis: boolean;
 }
 
 export async function listServices(): Promise<CatalogServiceLite[]> {

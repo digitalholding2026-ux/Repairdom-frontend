@@ -15,7 +15,7 @@ import {
   type CatalogServiceLite,
 } from '@/lib/api/catalog-service';
 
-/** Sélection remontée au parent (label + montant retenu, null = sur devis). */
+/** Sélection remontée au parent (label + montant retenu par le serveur). */
 export interface CatalogSelection {
   serviceCode: string;
   serviceLabel: string;
@@ -24,18 +24,17 @@ export interface CatalogSelection {
   itemId: string;
   itemLabel: string;
   price: number | null;
-  surDevis: boolean;
 }
 
 interface CatalogServicePickerProps {
   onSelect?: (selection: CatalogSelection) => void;
 }
 
-/* M1 — parcours catalogue v2 branché sur /api/services : choix de la prestation
- * (3 cartes), puis de la catégorie, puis de la prestation détaillée avec son
- * prix. Le tarif n'est jamais choisi ici : le serveur renvoie déjà le montant
- * public ou professionnel selon la session. Un montant null s'affiche « sur
- * devis ». */
+/* M1 — parcours catalogue v2 branché sur /api/services : choix de la prestation,
+ * puis de la catégorie, puis de l'opération avec son prix. Le tarif n'est
+ * jamais choisi ici : le serveur rend déjà le montant public ou professionnel
+ * selon la session. Une opération sans montant n'est pas proposée — le
+ * serveur la retire des listes, l'écran n'a donc pas de cas « non tarifié ». */
 export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
   const [services, setServices] = useState<CatalogServiceLite[]>([]);
   const [categories, setCategories] = useState<CatalogCategoryLite[]>([]);
@@ -111,13 +110,12 @@ export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
       itemId: it.id,
       itemLabel: it.label,
       price: it.price,
-      surDevis: it.surDevis,
     });
   }
 
   const priceLabel = useMemo(() => {
     if (!item) return null;
-    return item.surDevis ? 'Sur devis — vous serez contacté' : formatFCFA(item.price);
+    return formatFCFA(item.price);
   }, [item]);
 
   return (
@@ -196,13 +194,8 @@ export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
                     </span>
                   ) : null}
                 </span>
-                <span
-                  className={cn(
-                    'shrink-0 text-sm font-medium',
-                    entry.surDevis ? 'text-muted-foreground' : 'text-foreground',
-                  )}
-                >
-                  {entry.surDevis ? 'Sur devis' : formatFCFA(entry.price)}
+                <span className="shrink-0 text-sm font-medium text-foreground">
+                  {formatFCFA(entry.price)}
                 </span>
               </button>
             </li>
