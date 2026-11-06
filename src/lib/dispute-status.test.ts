@@ -54,12 +54,6 @@ void test('client : contestation proposée sur COMPLETED, litige affiché sinon'
   assert.match(page, /ConfirmDialog/);
 });
 
-void test('technicien : litige en lecture seule, jamais de POST', () => {
-  const page = read('../app/technicien/demandes/[id]/page.tsx');
-  assert.match(page, /getDispute/);
-  assert.doesNotMatch(page, /openDispute/);
-});
-
 void test('admin : pages litiges liées depuis la navigation', () => {
   assert.ok(existsSync(new URL('../app/admin/litiges/page.tsx', import.meta.url)));
   assert.ok(existsSync(new URL('../app/admin/litiges/[id]/page.tsx', import.meta.url)));
@@ -77,7 +71,6 @@ void test('aucun window.innerWidth hors mécanisme central', () => {
     '../app/admin/litiges/page.tsx',
     '../app/admin/litiges/[id]/page.tsx',
     '../app/client/demandes/[id]/page.tsx',
-    '../app/technicien/demandes/[id]/page.tsx',
   ]) {
     assert.doesNotMatch(read(rel), /window\.innerWidth/);
   }

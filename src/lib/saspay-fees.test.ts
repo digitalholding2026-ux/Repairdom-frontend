@@ -185,10 +185,8 @@ describe('technicien : la mention « pris en charge par Relio » est partagée',
   });
 });
 
-describe('écrans technicien : la mention est présente, les frais jamais chiffrés', () => {
+describe('écran de retrait : la mention est présente, les frais jamais chiffrés', () => {
   const targets = [
-    ['src/app/technicien/demandes/[id]/page.tsx', 'détail mission'],
-    ['src/app/technicien/revenus/page.tsx', 'revenus'],
     ['src/components/finance/withdrawal-panel.tsx', 'demande de retrait'],
   ] as const;
 
@@ -201,16 +199,11 @@ describe('écrans technicien : la mention est présente, les frais jamais chiffr
 
     it(`${label} : n'expose aucun montant de frais SasPay`, () => {
       const source = readSource(path);
-      // Pas de brut envoyé, pas de taux de 3,5 % côté technicien.
+      // Pas de brut envoyé, pas de taux de 3,5 %.
       assert.equal(/0\.035|3,5\s*%/.test(source), false);
       assert.equal(/brutEnvoye|chargedAmount|fraisSaspay/i.test(source), false);
     });
   }
-
-  it('le formulaire de devis (aperçu avant envoi) affiche la mention', () => {
-    const source = readSource('src/app/technicien/demandes/[id]/page.tsx');
-    assert.match(source, /apercu-devis/);
-  });
 });
 
 describe('panneau de retrait : seul le NET est présenté au technicien', () => {

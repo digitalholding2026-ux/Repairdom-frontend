@@ -16,9 +16,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
-const SRC = new URL('../', import.meta.url).pathname;
+const SRC = fileURLToPath(new URL('../', import.meta.url));
 
 const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url), 'utf8');
 

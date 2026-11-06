@@ -14,7 +14,7 @@ import type { AppNotification } from '@/lib/api/notifications-service';
  */
 
 /** Rôles servis par le centre de notifications. */
-export type NotificationRole = 'CLIENT' | 'TECHNICIAN' | 'ADMIN';
+export type NotificationRole = 'CLIENT' | 'ADMIN';
 
 /**
  * Niveaux d'urgence : l'ordre des sections est FIXE (ACTION → SUIVI → INFO).
@@ -49,7 +49,7 @@ const URGENCY_BY_TYPE: Record<string, NotificationUrgency> = {
   DISPUTE_OPENED: 'ACTION',
   CONVERSATION_FLAG: 'ACTION',
   // Chantier #5A — un dossier KYC refusé doit être CORRIGÉ : c'est une action
-  // en attente du technicien, pas une information à classer plus bas.
+  // en attente du titulaire du dossier, pas une information à classer plus bas.
   KYC_REJECTED: 'ACTION',
   // ── SUIVI : information sur un changement en cours ──
   TECHNICIAN_ACCEPTED: 'FOLLOW_UP',
@@ -120,21 +120,24 @@ export interface NotificationAction {
 const NO_ACTION: NotificationAction = { label: '', href: null };
 
 /** Construit le lien d'une mission. `null` si la notification n'en a pas. */
-function missionHref(
-  notification: AppNotification,
-  base: '/client/demandes' | '/technicien/demandes',
-): string | null {
-  return notification.demandeId ? `${base}/${notification.demandeId}` : null;
+function missionHref(notification: AppNotification): string | null {
+  return notification.demandeId ? `/client/demandes/${notification.demandeId}` : null;
 }
 
 /**
  * Action contextuelle par type ET rôle.
  *
- * Rôle → préfixe de mission : un client n'a pas accès à `/technicien/...` et
- * inversement. `ADMIN_MESSAGE` et les deux notifications KYC du chantier #5A
- * sont les seuls cas où le lien est indépendant de `demandeId` (ce sont des
- * notifications SANS mission : `ADMIN_MESSAGE` est générique, KYC porte sur
- * le dossier du technicien lui-même).
+ * Le centre ne dessert que deux surfaces : le client et l'admin. `ADMIN_MESSAGE`
+ * et `CONVERSATION_FLAG` sont les seuls cas où le lien est indépendant de
+ * `demandeId` (ce sont des notifications SANS mission).
+ *
+ * Les types qui ne décrivaient une action que pour le prestataire — répondre à
+ * une négociation, justifier un tarif, voir ses revenus, parcourir les missions
+ * ouvertes à prendre, corriger son dossier — n'ont plus de destination : leur
+ * écran n'existe pas dans la version à opérateur unique. Ils retombent donc sur
+ * le repli « aucun bouton », la même règle que pour un type inconnu. Leur
+ * urgence reste ce qu'elle est : le tri et le regroupement continuent de les
+ * afficher, seulement sans lien.
  *
  * Les ancres (`#chat`, `#map`, `#confirm`) sont conservées telles quelles :
  * elles correspondent aux zones de la page détail de mission. Tant que la
@@ -145,8 +148,7 @@ export function getActionForNotification(
   notification: AppNotification,
   role: NotificationRole,
 ): NotificationAction | null {
-  const clientMission = missionHref(notification, '/client/demandes');
-  const techMission = missionHref(notification, '/technicien/demandes');
+  const clientMission = missionHref(notification);
 
   switch (notification.type) {
     case 'QUOTE_CREATED':
@@ -155,29 +157,9 @@ export function getActionForNotification(
         ? { label: 'Voir le devis', href: clientMission }
         : NO_ACTION;
 
-    case 'QUOTE_ACCEPTED':
-    case 'QUOTE_REJECTED':
-      // Le technicien doit ouvrir la mission pour suite.
-      return role === 'TECHNICIAN' && techMission
-        ? { label: 'Voir la mission', href: techMission }
-        : NO_ACTION;
-
-    case 'NEGOTIATION_REQUESTED':
-      // Répondre = revenir dans la conversation de la mission.
-      return role === 'TECHNICIAN' && techMission
-        ? { label: 'Répondre', href: `${techMission}#chat` }
-        : NO_ACTION;
-
-    case 'PRICING_WARNING':
-      // L'avertissement porte sur le devis de la mission : c'est là que le
-      // technicien justifie son tarif.
-      return role === 'TECHNICIAN' && techMission
-        ? { label: 'Justifier', href: techMission }
-        : NO_ACTION;
-
     case 'TECHNICIAN_EN_ROUTE':
     case 'TECHNICIAN_ARRIVED':
-      // Suivi temps réel de l'arrivée du technicien.
+      // Suivi temps réel de l'arrivée de l'intervention.
       return role === 'CLIENT' && clientMission
         ? { label: 'Voir la carte', href: `${clientMission}#map` }
         : NO_ACTION;
@@ -186,19 +168,6 @@ export function getActionForNotification(
       // Le client doit confirmer la fin de la mission.
       return role === 'CLIENT' && clientMission
         ? { label: 'Confirmer la fin', href: `${clientMission}#confirm` }
-        : NO_ACTION;
-
-    case 'CONFIRMED':
-      // Le technicien veut voir ce que la mission lui rapporte.
-      return role === 'TECHNICIAN'
-        ? { label: 'Voir mes revenus', href: '/technicien/revenus' }
-        : NO_ACTION;
-
-    case 'MISSION_AVAILABLE':
-      // Liste des missions disponibles : pas d'ancrage sur une mission
-      // précise, plusieurs missions sont notifiées à la fois.
-      return role === 'TECHNICIAN'
-        ? { label: 'Voir les missions', href: '/technicien/demandes' }
         : NO_ACTION;
 
     case 'TECHNICIAN_ACCEPTED':
@@ -217,14 +186,10 @@ export function getActionForNotification(
         : NO_ACTION;
 
     case 'DISPUTE_RESOLVED':
-      // La décision se consulte sur la mission, quel que soit le rôle.
-      if (role === 'CLIENT' && clientMission) {
-        return { label: 'Voir la décision', href: clientMission };
-      }
-      if (role === 'TECHNICIAN' && techMission) {
-        return { label: 'Voir la décision', href: techMission };
-      }
-      return NO_ACTION;
+      // La décision se consulte sur la mission du client.
+      return role === 'CLIENT' && clientMission
+        ? { label: 'Voir la décision', href: clientMission }
+        : NO_ACTION;
 
     case 'CONVERSATION_FLAG':
       // Signal à examiner depuis l'espace assistant (seule surface admin
@@ -232,23 +197,15 @@ export function getActionForNotification(
       return role === 'ADMIN' ? { label: 'Voir le signal', href: '/admin/assistant' } : NO_ACTION;
 
     case 'ADMIN_MESSAGE':
-      // Notification générique sans mission : la lecture se fait sur place.
-      return { label: 'Lire', href: '/technicien/notifications' };
+      // Notification générique sans mission : la lecture se fait dans le
+      // centre, seule la surface client en montait un.
+      return role === 'CLIENT' ? { label: 'Lire', href: '/client/notifications' } : NO_ACTION;
 
-    /* ── Chantier #5A — décision KYC (sans mission : `demandeId` null) ── */
-
-    case 'KYC_VERIFIED':
-      // Le dossier est validé : la seule suite utile est d'aller voir les
-      // missions désormais acceptables.
-      return role === 'TECHNICIAN'
-        ? { label: 'Voir les missions', href: '/technicien/demandes' }
-        : NO_ACTION;
-
-    case 'KYC_REJECTED':
-      // Le dossier doit être corrigé : l'action mène au formulaire KYC.
-      return role === 'TECHNICIAN'
-        ? { label: 'Corriger mon dossier', href: '/technicien/kyc' }
-        : NO_ACTION;
+    /* ── Chantier #5A — décision KYC (sans mission : `demandeId` null) ──
+     * Plus de bouton : la surface où se corrigeait un dossier refusé, comme
+     * celle où l'on prenait les missions débloquées par une validation, ont
+     * disparu. Ces deux types restent classés à leur urgence — ils s'affichent,
+     * sans lien. */
 
     /* ── Chantier #4A — récompenses client (sans mission : `demandeId` null) ── */
 
@@ -256,8 +213,8 @@ export function getActionForNotification(
 
     case 'REFERRAL_REWARDED':
       // Le crédit est déjà versé ; la seule suite utile est d'en inviter un
-      // autre. Le lien ne dépend pas du rôle, mais seule la surface client
-      // existe : un technicien n'a pas de programme de parrainage.
+      // autre. Seul le client a un programme de parrainage, donc seul lui
+      // reçoit un lien.
       return role === 'CLIENT'
         ? { label: 'Voir mes parrainages', href: '/client/parrainage' }
         : NO_ACTION;

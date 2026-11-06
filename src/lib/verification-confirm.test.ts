@@ -198,11 +198,8 @@ void test('la redirection forcée reste absente (une boucle se recréerait)', ()
   assert.doesNotMatch(source, /setTimeout[\s\S]{0,400}router\.(push|replace)\('\/client\/demandes'\)/);
 });
 
-void test('le même composant sert le parcours technicien (logique partagée)', () => {
-  const page = read('../app/technicien/verification/page.tsx');
-  assert.match(page, /VerificationPanel/);
-  /* Le technicien passe par le même écran de confirmation : rien de
-   * spécifique au client ne doit conditionner le token. */
+void test('l’écran de confirmation ne conditionne le token à un rôle', () => {
+  /* Rien de spécifique à un rôle ne doit bloquer la vérification. */
   const source = code(panel());
   assert.doesNotMatch(source.slice(source.indexOf('const handleConfirm')), /role === 'CLIENT' &&/);
 });

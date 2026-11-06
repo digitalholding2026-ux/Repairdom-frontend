@@ -1,4 +1,4 @@
-/* Libellés et helpers d'AFFICHAGE du profil technicien.
+/* Libellés et helpers d'AFFICHAGE d'un dossier et d'une fiche.
  *
  * Les règles métier pures (majorité, faces de pièce, structures d'énum) sont
  * dans `technician-kyc-rules.ts` : ce fichier n'ajoute que la présentation et
@@ -6,7 +6,6 @@
  * nationalités). Rien n'est défini deux fois. */
 
 import { REQUEST_CATEGORIES } from '@/lib/data/request-categories';
-import type { TechnicianActivityType } from '@/lib/api/technician-service';
 import {
   ACTIVITY_TYPE_LABELS,
   IDENTITY_DOCUMENT_LABELS,
@@ -24,7 +23,6 @@ import {
   kycVariantFor,
   meetsMinimumAge,
   requiredIdentitySides,
-  TECHNICIAN_MINIMUM_AGE,
   MINIMUM_AGE_ERROR,
   type IdentitySide,
   type KycIdentityDocumentType,
@@ -38,7 +36,6 @@ export {
   IDENTITY_SIDE_LABELS,
   KYC_LABELS,
   KYC_VARIANTS,
-  TECHNICIAN_MINIMUM_AGE,
   MINIMUM_AGE_ERROR,
   activityTypeLabel,
   computeAge,
@@ -52,7 +49,7 @@ export {
   meetsMinimumAge,
   requiredIdentitySides,
 };
-export type { IdentitySide, KycIdentityDocumentType, KycStatus, TechnicianActivityType };
+export type { IdentitySide, KycIdentityDocumentType, KycStatus };
 
 /** Libellé de face : accepte n'importe quelle chaîne (donnée serveur). */
 export const KYC_DOCUMENT_SIDE_LABELS = IDENTITY_SIDE_LABELS;
@@ -71,14 +68,6 @@ export function kycDocumentTypeLabel(type: string): string {
 
 export function categoryLabel(id: string): string {
   return REQUEST_CATEGORIES.find((c) => c.id === id)?.label ?? id;
-}
-
-export function technicianInitials(firstName: string, lastName: string | null): string {
-  const parts = [firstName, lastName ?? ''].filter(Boolean);
-  return parts
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('')
-    .slice(0, 2);
 }
 
 /**

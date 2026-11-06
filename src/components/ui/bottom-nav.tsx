@@ -41,7 +41,7 @@ export function BottomNav({ items, primaryHref, moreItems, className }: BottomNa
   const normalize = (href: string) => (href.length > 1 ? href.replace(/\/+$/, '') : href);
   const isActive = (href: string) => {
     const target = normalize(href);
-    if (target === '/' || target === '/client' || target === '/technicien') return pathname === target;
+    if (target === '/' || target === '/client') return pathname === target;
     return pathname === target || pathname.startsWith(`${target}/`);
   };
   const split = Math.ceil(items.length / 2);

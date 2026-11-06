@@ -41,33 +41,8 @@ void test('CLIENT : sidebar complète, mobile via Plus (aucune section perdue)',
   assert.doesNotMatch(layout, /\/technicien/);
 });
 
-void test('TECHNICIAN : zones + historique accessibles, 4 boutons + Plus', () => {
-  const layout = read('../app/technicien/layout.tsx');
-  for (const href of [
-    '/technicien',
-    '/technicien/demandes',
-    '/technicien/chronologies',
-    '/technicien/historique',
-    '/technicien/revenus',
-    '/technicien/notifications',
-    '/technicien/zones',
-    '/technicien/profil',
-    /* KYC : page DÉDIÉE, doit être atteignable depuis le menu, sinon la
-     * vérification d'identité reste introuvable pour le technicien. */
-    '/technicien/kyc',
-  ]) {
-    assert.ok(layout.includes(`'${href}'`), `menu technicien : ${href}`);
-  }
-  assert.match(layout, /moreItems/);
-  assert.doesNotMatch(layout, /\/admin/);
-  // Plus de rangée à 6 boutons illisibles à 360 px.
-  const itemsBlock = layout.slice(layout.indexOf('<BottomNav'));
-  const directHrefs = (itemsBlock.match(/href: '\/technicien[^']*'/g) ?? []).length;
-  assert.ok(directHrefs >= 8, 'toutes les sections restent déclarées');
-});
-
-void test('ADMIN : aucune route admin dans les menus client/technicien', () => {
-  for (const rel of ['../app/client/layout.tsx', '../app/technicien/layout.tsx']) {
+void test('ADMIN : aucune route admin dans le menu client', () => {
+  for (const rel of ['../app/client/layout.tsx']) {
     const content = read(rel);
     assert.doesNotMatch(content, /href: '\/admin/);
     assert.doesNotMatch(content, /href="\/admin/);
@@ -128,7 +103,6 @@ void test('guards : backend source de vérité, RoleGuard sans flash (écran neu
   // Aucune route protégée sans RoleGuard dans les layouts privés.
   for (const rel of [
     '../app/client/layout.tsx',
-    '../app/technicien/layout.tsx',
     '../app/admin/layout.tsx',
   ]) {
     assert.match(read(rel), /RoleGuard/);

@@ -15,7 +15,7 @@ import {
   type SupervisedMission,
 } from '@/lib/api/admin-service';
 import { formatCurrency, formatDateTime } from '@/lib/format';
-import { categoryLabel } from '@/lib/technician-profile';
+import { categoryLabel } from '@/lib/profile-labels';
 import { AdminInfoRow } from '@/components/admin/info-row';
 import { MissionDetailSkeleton } from '@/components/admin/missions/mission-detail-skeleton';
 import { toUserErrorMessage, isNotFoundError } from '@/lib/ui-error-message';

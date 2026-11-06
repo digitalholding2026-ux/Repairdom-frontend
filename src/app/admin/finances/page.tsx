@@ -25,7 +25,7 @@ import {
   type FinancialMode,
 } from '@/lib/api/finance-service';
 import { formatDateTime, formatCurrency, formatCurrencySigned, fullName } from '@/lib/format';
-import { TECHNICIAN_FEE_LABEL } from '@/lib/technician-quote';
+import { RELIO_FEE_LABEL } from '@/lib/quote-fee';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const MODES: FinancialMode[] = ['REAL'];
@@ -36,7 +36,7 @@ const ADMIN_TXN_LABELS: Record<string, string> = {
   CLIENT_FEE: 'Frais client (historique)',
   TECHNICIAN_REPAIR_REVENUE: 'Réparation technicien',
   TECHNICIAN_TRAVEL_REVENUE: 'Déplacement technicien',
-  TECHNICIAN_FEE: TECHNICIAN_FEE_LABEL,
+  TECHNICIAN_FEE: RELIO_FEE_LABEL,
   REVERSAL: 'Remboursement / contrepassation',
 };
 
@@ -436,7 +436,7 @@ function MissionRow({
           <Metric label="Débité au client" value={formatCurrency(mission.clientDebit, currency)} />
           <Metric label="Net technicien" value={formatCurrency(mission.technicianNet, currency)} />
           <Metric label="Commission client (hist.)" value={formatCurrency(mission.clientFee, currency)} />
-          <Metric label={TECHNICIAN_FEE_LABEL} value={formatCurrency(mission.technicianFee, currency)} />
+          <Metric label={RELIO_FEE_LABEL} value={formatCurrency(mission.technicianFee, currency)} />
           <Metric label="Relio" value={formatCurrency(mission.repairDomRevenue, currency)} />
           <Metric label="Réparation / déplacement" value={formatCurrency(mission.repair + mission.travel, currency)} />
         </div>
@@ -475,7 +475,7 @@ function AdminMissionDetail({ detail, currency }: { detail: AdminMissionFinance;
         <Metric label="Frais client (historique)" value={formatCurrency(f.clientFee, currency)} />
         <Metric label="Réparation technicien" value={formatCurrency(f.technicianRepair, currency)} />
         <Metric label="Déplacement technicien" value={formatCurrency(f.technicianTravel, currency)} />
-        <Metric label={TECHNICIAN_FEE_LABEL} value={formatCurrency(f.technicianFee, currency)} />
+        <Metric label={RELIO_FEE_LABEL} value={formatCurrency(f.technicianFee, currency)} />
         <Metric label="Net technicien" value={formatCurrency(f.netTechnician, currency)} />
         <Metric label="Relio (réel)" value={formatCurrency(f.repairDomRevenue, currency)} />
         <Metric label="Relio attendu" value={formatCurrency(f.expectedRepairDomRevenue, currency)} />

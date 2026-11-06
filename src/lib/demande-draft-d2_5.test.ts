@@ -132,7 +132,7 @@ void test('D2.5 : sans ?from=demande, l’utilisateur accède directement à son
   const panel = read('../components/auth/verification-panel.tsx');
   assert.doesNotMatch(panel, /await logout\(\)/);
   assert.match(panel, /Accéder à mon espace/);
-  assert.match(panel, /homeHref = role === 'TECHNICIAN' \? '\/technicien' : '\/client'/);
+  assert.match(panel, /homeHref = '\/client'/);
 });
 
 void test('D2.5 : ?from=demande propose « Voir mes demandes »', () => {

@@ -2,7 +2,6 @@ import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
 import { Hero } from '@/components/landing/hero';
 import {
-  BecomeTechnician,
   CompactCta,
   HowItWorks,
   Rewards,
@@ -40,8 +39,6 @@ export default function HomePage() {
         <Faq />
         {/* 7 */}
         <Rewards />
-        {/* 8 */}
-        <BecomeTechnician />
         {/* 9 */}
         <CompactCta />
       </main>

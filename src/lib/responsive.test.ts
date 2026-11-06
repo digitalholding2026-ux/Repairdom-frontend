@@ -92,7 +92,7 @@ void test('pilote dashboard : données partagées, vues isolées', () => {
 });
 
 void test('navigation : sidebar desktop ET BottomNav mobile isolés par rôle', () => {
-  for (const rel of ['../app/client/layout.tsx', '../app/technicien/layout.tsx']) {
+  for (const rel of ['../app/client/layout.tsx']) {
     const layout = read(rel);
     assert.match(layout, /WorkspaceSidebar/);
     assert.match(layout, /BottomNav/);

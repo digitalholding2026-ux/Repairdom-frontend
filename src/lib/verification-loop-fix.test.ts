@@ -14,11 +14,6 @@ import { decideGuard } from './guard-decision.ts';
 /* Les 3 chemins publics doivent être fournis : `publicPaths[0]` sert de
  * destination de repli dans le cas non authentifié. */
 const CLIENT_PUBLIC = ['/client/connexion', '/client/inscription', '/client/verification'];
-const TECH_PUBLIC = [
-  '/technicien/connexion',
-  '/technicien/inscription',
-  '/technicien/verification',
-];
 
 const base = {
   loading: false,
@@ -60,16 +55,20 @@ void test('le cas précédent NE BOUCLE PAS : /client/verification n’est plus 
   assert.equal(path, '/client/verification');
 });
 
-void test('TECHNICIAN non vérifié SUR sa page de vérification → show (symétrie)', () => {
-  /* Même boucle, même cause, côté technicien. */
+void test('ADMIN n’est pas bloqué par la vérification e-mail (aucune page à boucler)', () => {
+  /* L’ancienne symétrie testait le même cas côté espace prestataire, supprimé
+   * avec lui. Elle est remplacée par ce qui existe vraiment : l’admin n’a pas
+   * de page de vérification, donc la règle « e-mail non vérifié » ne le
+   * concerne pas — et un aller-retour vers une page inexistante est
+   * structurellement impossible. */
   const verdict = decideGuard({
     loading: false,
     authenticated: true,
-    role: 'TECHNICIAN',
+    role: 'ADMIN',
     emailVerified: false,
-    expectedRole: 'TECHNICIAN',
-    pathname: '/technicien/verification',
-    publicPaths: TECH_PUBLIC,
+    expectedRole: 'ADMIN',
+    pathname: '/admin',
+    publicPaths: CLIENT_PUBLIC,
   });
   assert.deepEqual(verdict, { action: 'show' });
 });

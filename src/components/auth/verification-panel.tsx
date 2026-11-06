@@ -25,13 +25,13 @@ import {
   rememberVerifiedToken,
 } from '@/lib/demande-draft-storage';
 
-export type VerificationRole = 'CLIENT' | 'TECHNICIAN';
+export type VerificationRole = 'CLIENT';
 
 interface VerificationPanelProps {
   role: VerificationRole;
 }
 
-/* Parcours de vérification email (CLIENT et TECHNICIEN, logique identique).
+/* Parcours de vérification e-mail.
  *
  * Règles garanties ici, sans toucher au backend :
  * - l’adresse affichée est en lecture seule : paramètre d’URL (inscription,
@@ -96,12 +96,12 @@ export function VerificationPanel({ role }: VerificationPanelProps) {
    * demandes plutôt que vers un dashboard vide. */
   const fromDemande = params.get('from') === 'demande';
   const { user } = useAuth();
-  const loginHref = role === 'TECHNICIAN' ? '/technicien/connexion' : '/client/connexion';
+  const loginHref = '/client/connexion';
   /* Retour à l'inscription quand l'adresse est connue : c'est le seul endroit
    * où l'on peut en changer. « Retour à la connexion » ne le permettrait pas. */
-  const signupHref = role === 'TECHNICIAN' ? '/technicien/inscription' : '/client/inscription';
+  const signupHref = '/client/inscription';
   /* Destination après vérification réussie : l'espace du rôle. */
-  const homeHref = role === 'TECHNICIAN' ? '/technicien' : '/client';
+  const homeHref = '/client';
 
   /* `confirming` : le token est présent dans l'URL mais RIEN n'a encore été
    * envoyé. Écran de confirmation — voir `handleConfirm`. */

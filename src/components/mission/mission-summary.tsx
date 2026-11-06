@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { getMissionSummary, type MissionSummary } from '@/lib/api/summary-service';
 import { formatDateTime } from '@/lib/format';
-import { categoryLabel } from '@/lib/technician-profile';
+import { categoryLabel } from '@/lib/profile-labels';
 
 const formatPrice = (value: number | null | undefined) =>
   value == null ? '—' : `${value.toLocaleString('fr-FR')} FCFA`;

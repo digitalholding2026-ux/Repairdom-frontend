@@ -40,10 +40,3 @@ void test('service : equipmentFamily transmis (omis si vide), types alignés', (
   const tech = read('./api/technician-service.ts');
   assert.match(tech, /equipmentFamily\?: string \| null;/);
 });
-
-void test('technicien : « Appareil : X (déclaré par le client) », famille prioritaire', () => {
-  const page = read('../app/technicien/demandes/[id]/page.tsx');
-  assert.match(page, /demande\.equipmentFamily/);
-  assert.match(page, /déclaré par le client/);
-  assert.doesNotMatch(page, /equipmentFamily[^}]*diagnostic IA/i);
-});

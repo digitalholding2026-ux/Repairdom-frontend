@@ -38,18 +38,6 @@ void test('pages mission : rechargement piloté par événements', () => {
   const client = read('../../app/client/demandes/[id]/page.tsx');
   assert.match(client, /sseTick/);
   assert.match(client, /mission\.message_created/);
-  const tech = read('../../app/technicien/demandes/[id]/page.tsx');
-  assert.match(tech, /setRefreshKey\(\(key\) => key \+ 1\)/);
-});
-
-void test('liste technicien : refetch silencieux (pas de skeleton)', () => {
-  const src = read('../../app/technicien/demandes/page.tsx');
-  assert.match(src, /useTechnicianStream/);
-  assert.match(src, /technician\.new_mission_available/);
-  assert.match(src, /technician\.mission_taken/);
-  // Refetch silencieux : le handler SSE ne touche pas au flag loading.
-  assert.match(src, /setMissions\(list\)/);
-  assert.match(src, /setError\(null\)/);
 });
 
 void test('notifications : refetch centre + incrément badge', () => {

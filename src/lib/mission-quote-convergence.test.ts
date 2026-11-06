@@ -5,8 +5,8 @@
  * ou : npm run test:unit
  *
  * POURQUOI CE TEST EXISTE
- * Le récapitulatif d'un devis existait en QUATRE copies : deux côté client,
- * deux côté technicien. Chacune pouvait diverger sans qu'aucune réaction
+ * Le récapitulatif d'un devis existait en QUATRE copies éparpillées dans les
+ * écrans. Chacune pouvait diverger sans qu'aucune réaction
  * n'atteigne qui que ce soit — quatre affichages du même chiffre, sans qu'il
  * y ait quatre sources de vérité. Ce test verrouille qu'il n'en reste qu'une.
  *
@@ -28,7 +28,6 @@ const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url)
 
 const COMPOSANT = read('../components/mission/quote-lines.tsx');
 const CLIENT = read('../app/client/demandes/[id]/page.tsx');
-const TECH = read('../app/technicien/demandes/[id]/page.tsx');
 
 /* Le markup EXACT que produisaient les quatre copies. Couter plus lisible
  * qu'un mot comme « Diagnostic », qui apparaît trente fois ailleurs dans les
@@ -44,7 +43,7 @@ void test('le récapitulatif n’existe plus qu’en un seul endroit', () => {
   /* Chaque ligne ne doit être écrite qu'une fois dans tout le dépôt. Deux
    * occurrences = deux affichages du même chiffre, divergibles en silence. */
   for (const marqueur of MARQUEURS_DUPLICES) {
-    for (const source of [CLIENT, TECH]) {
+    for (const source of [CLIENT]) {
       const occurrences = source.split(marqueur).length - 1;
       assert.equal(occurrences, 0, `« ${marqueur} » écrit ${occurrences} fois hors du composant`);
     }
@@ -64,12 +63,10 @@ void test('le récapitulatif n’existe plus qu’en un seul endroit', () => {
   }
 });
 
-void test('les deux écrans montent le composant partagé', () => {
+void test("l'écran client monte le composant partagé", () => {
   assert.match(CLIENT, /<QuoteLines/);
-  assert.match(TECH, /<QuoteLines/);
   /* L'import seul ne prouverait rien — il faut l'appel. */
   assert.match(CLIENT, /<QuoteLines[\s\S]{0,600}totalLabel="Total à payer"/);
-  assert.match(TECH, /<QuoteLines[\s\S]{0,600}totalLabel="Total client \(brut\)"/);
 });
 
 /* Le calcul reste à l'appelant. C'est le cœur du chantier : l'abstraction
@@ -78,40 +75,28 @@ void test('le calcul du total reste visible au point d’appel', () => {
   assert.match(
     CLIENT,
     /total=\{latestQuote\.totalToDebit \?\? \(latestQuote\.amount \+ \(latestQuote\.travel \?\? 0\)\)\}/,
-    'le client ne calcule plus son total : la divergence devient invisible',
-  );
-  assert.match(
-    TECH,
-    /total=\{latestQuote\.totalToDebit \?\? \(\(latestQuote\.repair \?\? latestQuote\.amount\) \+ \(latestQuote\.travel \?\? 0\)\)\}/,
-    'le technicien ne calcule plus son total : la divergence devient invisible',
+    'le client ne calcule plus son total : la formule devient invisible',
   );
 });
 
-/* La divergence doit rester VISIBLE dans les sources. Si quelqu'un unifie les
- * deux formules, le test échoue et le débat est rouvert devant une décision
- * explicite — au lieu qu'un montant change en production sans que personne
- * n'ait tranché. */
-void test('la divergence de formule reste visible, pas silencieuse', () => {
-  const formuleClient = /totalToDebit \?\? \(latestQuote\.amount/;
-  const formuleTechnicien = /totalToDebit \?\? \(\(latestQuote\.repair \?\? latestQuote\.amount\)/;
-  assert.match(CLIENT, formuleClient);
-  assert.match(TECH, formuleTechnicien);
-  assert.notEqual(
-    formuleClient.source,
-    formuleTechnicien.source,
-    'les deux formules se sont rapprochées sans que la décision soit prise',
-  );
+/* La formule du montant à payer reste calculée par l'écran. Le composant
+ * partagé ne reçoit qu'un nombre déjà résolu : c'est ce qui empêche un
+ * montant de changer en production sans qu'une décision ait été prise. */
+void test('la formule du total reste dans l’écran, pas dans le composant', () => {
+  assert.match(CLIENT, /totalToDebit \?\? \(latestQuote\.amount/);
+  assert.doesNotMatch(COMPOSANT, /latestQuote\./, 'l’écran a délégué son calcul au composant');
+  assert.match(COMPOSANT, /total: number \| null;/);
 });
 
-/* Les deux écrans ne sont pas dans le même contexte sémantique : le client
- * rend une liste de définitions, le technicien une grille. Perdre le `dt`/`dd`
+/* L'écran client rend une liste de définitions, le composant sait aussi rendre
+ * une grille simple. Perdre le `dt`/`dd`
  * serait une régression d'accessibilité — invisible à l'œil. */
 void test('la sémantique de liste de définitions est préservée côté client', () => {
   assert.match(CLIENT, /<dl[\s\S]{0,200}<QuoteLines/);
   assert.match(CLIENT, /labelTag="dt"/);
   assert.match(CLIENT, /valueTag="dd"/);
-  /* Le technicien, lui, reste en grille simple — et le composant se fige sur
-   * `span` pour ne pas imposer une sémantique qui n'a pas cours chez lui. */
+  /* Par défaut le composant se fige sur
+   * `span` pour ne pas imposer une sémantique qui n'a pas cours partout. */
   assert.match(COMPOSANT, /labelTag: Label = 'span'/);
 });
 
@@ -122,6 +107,6 @@ void test('le composant porte les libellés, pas les écrans', () => {
     assert.ok(COMPOSANT.includes(libelle), `libellé manquant : ${libelle}`);
   }
   assert.doesNotMatch(COMPOSANT, /Total à payer/, 'libellé du client figé dans le composant');
-  assert.doesNotMatch(COMPOSANT, /Total client \(brut\)/, 'libellé du technicien figé dans le composant');
+  assert.doesNotMatch(COMPOSANT, /Total client \(brut\)/, 'un second libellé de total figé dans le composant');
   assert.match(COMPOSANT, /totalLabel/);
 });

@@ -115,9 +115,7 @@ void test('safeRedirect : interne acceptée, externe et // rejetées (statique)'
   assert.match(src, /!target\.includes\('\\\\'\)/);
   // Miroir local aligné sur la source canonique `homePathForRole`.
   const guard = read('./guard-decision.ts');
-  assert.match(guard, /TECHNICIAN.*\/technicien/);
   assert.match(guard, /ADMIN.*\/admin/);
   assert.match(guard, /return '\/client'/);
-  assert.match(src, /TECHNICIAN.*\/technicien/);
   assert.match(src, /ADMIN.*\/admin/);
 });

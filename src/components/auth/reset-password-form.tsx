@@ -101,9 +101,7 @@ export function ResetPasswordForm() {
     setIsSubmitting(true);
     try {
       const result = await resetPassword(token, password);
-      setPendingRedirect(
-        result.role === 'TECHNICIAN' ? '/technicien/connexion' : '/client/connexion',
-      );
+      setPendingRedirect('/client/connexion');
       setPhase('done');
     } catch (err) {
       setError(toUserErrorMessage(err, 'Une erreur est survenue. Réessayez.'));

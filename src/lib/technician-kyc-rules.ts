@@ -174,9 +174,6 @@ export interface KycAcceptanceBanner {
   ctaLabel: string;
 }
 
-/** Route du dossier KYC (page dédiée). */
-export const KYC_PAGE_HREF = '/technicien/kyc';
-
 /**
  * Bandeau bloquant l'ACCEPTATION d'une mission.
  *

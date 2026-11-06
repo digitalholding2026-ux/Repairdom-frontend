@@ -146,25 +146,28 @@ void test('QUOTE_CREATED : action client uniquement, « Voir le devis »', () =>
   const asClient = getActionForNotification(notification, 'CLIENT');
   assert.equal(asClient?.label, 'Voir le devis');
   assert.equal(asClient?.href, '/client/demandes/d1');
-  // Un technicien ne valide pas de devis : aucun bouton de navigation.
-  assert.equal(getActionForNotification(notification, 'TECHNICIAN')?.href, null);
+  // L'admin ne valide pas de devis à la place du client : aucun bouton.
+  assert.equal(getActionForNotification(notification, 'ADMIN')?.href, null);
 });
 
-void test('QUOTE_ACCEPTED / QUOTE_REJECTED : action technicien', () => {
-  for (const type of ['QUOTE_ACCEPTED', 'QUOTE_REJECTED']) {
-    const action = getActionForNotification(notif({ type }), 'TECHNICIAN');
-    assert.equal(action?.label, 'Voir la mission', type);
-    assert.equal(action?.href, '/technicien/demandes/d1', type);
+void test('les types sans écran de destination ne proposent AUCUN lien', () => {
+  /* Répondre à une négociation, justifier un tarif, voir ses revenus,
+   * parcourir les missions ouvertes à prendre : ce que ces notifications
+   * décrivaient se faisait sur une surface qui n'existe plus. Le mapping
+   * refuse de deviner une route — un bouton qui mène à une page 404 est pire
+   * qu'une notification lue sans action. */
+  for (const type of [
+    'QUOTE_ACCEPTED',
+    'QUOTE_REJECTED',
+    'NEGOTIATION_REQUESTED',
+    'PRICING_WARNING',
+    'CONFIRMED',
+    'MISSION_AVAILABLE',
+  ]) {
+    const action = getActionForNotification(notif({ type }), 'CLIENT');
+    assert.equal(action?.label, '', type);
+    assert.equal(hasNavigableAction(action), false, type);
   }
-});
-
-void test('NEGOTIATION_REQUESTED : « Répondre » vers le chat de la mission', () => {
-  const action = getActionForNotification(
-    notif({ type: 'NEGOTIATION_REQUESTED' }),
-    'TECHNICIAN',
-  );
-  assert.equal(action?.label, 'Répondre');
-  assert.equal(action?.href, '/technicien/demandes/d1#chat');
 });
 
 void test('TECHNICIAN_EN_ROUTE / ARRIVED : « Voir la carte » côté client', () => {
@@ -181,37 +184,20 @@ void test('COMPLETED : « Confirmer la fin » côté client', () => {
   assert.equal(action?.href, '/client/demandes/d1#confirm');
 });
 
-void test('CONFIRMED : « Voir mes revenus » côté technicien', () => {
-  const action = getActionForNotification(notif({ type: 'CONFIRMED' }), 'TECHNICIAN');
-  assert.equal(action?.label, 'Voir mes revenus');
-  assert.equal(action?.href, '/technicien/revenus');
-});
-
-void test('MISSION_AVAILABLE : liste des missions (pas d’ancrage sur une mission)', () => {
-  const action = getActionForNotification(notif({ type: 'MISSION_AVAILABLE' }), 'TECHNICIAN');
-  assert.equal(action?.href, '/technicien/demandes');
-});
-
-void test('PRICING_WARNING : « Justifier » vers la mission du devis', () => {
-  const action = getActionForNotification(notif({ type: 'PRICING_WARNING' }), 'TECHNICIAN');
-  assert.equal(action?.label, 'Justifier');
-  assert.equal(action?.href, '/technicien/demandes/d1');
-});
-
 void test('DISPUTE_OPENED : l’admin ouvre le litige de la mission', () => {
   const action = getActionForNotification(notif({ type: 'DISPUTE_OPENED' }), 'ADMIN');
   assert.equal(action?.label, 'Ouvrir le litige');
   assert.equal(action?.href, '/admin/litiges/d1');
 });
 
-void test('DISPUTE_RESOLVED : consultation de la décision selon le rôle', () => {
+void test('DISPUTE_RESOLVED : la décision se consulte sur la mission du client', () => {
   assert.equal(
     getActionForNotification(notif({ type: 'DISPUTE_RESOLVED' }), 'CLIENT')?.href,
     '/client/demandes/d1',
   );
   assert.equal(
-    getActionForNotification(notif({ type: 'DISPUTE_RESOLVED' }), 'TECHNICIAN')?.href,
-    '/technicien/demandes/d1',
+    hasNavigableAction(getActionForNotification(notif({ type: 'DISPUTE_RESOLVED' }), 'ADMIN')),
+    false,
   );
 });
 
@@ -221,13 +207,13 @@ void test('CONVERSATION_FLAG : l’admin est envoyé vers l’assistant', () => 
   assert.equal(action?.href, '/admin/assistant');
 });
 
-void test('ADMIN_MESSAGE : lecture sur place, sans mission requise', () => {
+void test('ADMIN_MESSAGE : lecture dans le centre client, sans mission requise', () => {
   const action = getActionForNotification(
     notif({ type: 'ADMIN_MESSAGE', demandeId: null, reference: null }),
-    'TECHNICIAN',
+    'CLIENT',
   );
   assert.equal(action?.label, 'Lire');
-  assert.equal(action?.href, '/technicien/notifications');
+  assert.equal(action?.href, '/client/notifications');
 });
 
 void test('un type sans mapping ne propose AUCUN lien (jamais de route devinée)', () => {
@@ -238,7 +224,7 @@ void test('un type sans mapping ne propose AUCUN lien (jamais de route devinée)
 });
 
 void test('une notification sans mission ne fabrique pas de lien vers « undefined »', () => {
-  for (const role of ['CLIENT', 'TECHNICIAN'] as NotificationRole[]) {
+  for (const role of ['CLIENT', 'ADMIN'] as NotificationRole[]) {
     const action = getActionForNotification(
       notif({ type: 'QUOTE_CREATED', demandeId: null }),
       role,
@@ -300,7 +286,7 @@ void test('les notifications SANS demandeId ne sont jamais regroupées', () => {
       notif({ type: 'ADMIN_MESSAGE', demandeId: null, reference: null }),
       notif({ demandeId: 'd1' }),
     ],
-    'TECHNICIAN',
+    'ADMIN',
   );
 
   assert.equal(groups.length, 1);
@@ -324,17 +310,17 @@ void test('l’urgence du groupe est la plus haute de ses notifications', () => 
 });
 
 void test('le groupe affiche la dernière action (notification la plus récente)', () => {
-  // `items` est fourni dans l'ordre de l'API (plus récent d'abord) : la
-  // dernière action est donc le PREMIER élément. Rôle technicien pour rester
-  // sur des types qui ont réellement une action de ce côté.
+  /* `items` est fourni dans l'ordre de l'API (plus récent d'abord) : la
+   * dernière action est donc le PREMIER élément. Des types qui ont réellement
+   * une action côté client, pour que le libellé attendu en découle. */
   const { groups } = groupNotificationsByMission(
     [
-      notif({ type: 'QUOTE_ACCEPTED', demandeId: 'd1', createdAt: '2026-10-11T10:00:00.000Z' }),
-      notif({ type: 'NEGOTIATION_REQUESTED', demandeId: 'd1', createdAt: '2026-10-11T08:00:00.000Z' }),
+      notif({ type: 'COMPLETED', demandeId: 'd1', createdAt: '2026-10-11T10:00:00.000Z' }),
+      notif({ type: 'TECHNICIAN_ACCEPTED', demandeId: 'd1', createdAt: '2026-10-11T08:00:00.000Z' }),
     ],
-    'TECHNICIAN',
+    'CLIENT',
   );
-  assert.equal(groups[0].lastActionLabel, 'Voir la mission');
+  assert.equal(groups[0].lastActionLabel, 'Confirmer la fin');
 });
 
 void test('une notification sans action possible → aucun libellé dans le groupe', () => {
@@ -416,7 +402,7 @@ void test('animation d’insertion SSE, désactivée si reduced-motion', () => {
   // qui doit porter `useUserStream`, pas le composant.
   assert.match(read('./use-notifications-center.ts'), /useUserStream/);
   assert.match(
-    read('../../app/technicien/notifications/page.tsx'),
+    read('../../app/client/notifications/page.tsx'),
     /useNotificationsCenter/,
   );
 });
@@ -457,12 +443,10 @@ void test('#4A — les deux notifications mènent à « Mes récompenses »', ()
   }
 });
 
-void test('#4A — aucun bouton pour un technicien ou un admin (routes client interdites)', () => {
+void test('#4A — aucun bouton pour un admin (routes client interdites)', () => {
   for (const type of ['REWARD_TIER_REACHED', 'REWARD_MISSION_NOT_COUNTED']) {
-    for (const role of ['TECHNICIAN', 'ADMIN'] as const) {
-      const action = getActionForNotification(notif({ type, demandeId: null }), role);
-      assert.equal(hasNavigableAction(action), false, `${type}/${role} : lien exposé`);
-    }
+    const action = getActionForNotification(notif({ type, demandeId: null }), 'ADMIN');
+    assert.equal(hasNavigableAction(action), false, `${type} : lien exposé`);
   }
 });
 
@@ -493,28 +477,16 @@ void test('#5A — KYC_VERIFIED est un SUIVI, KYC_REJECTED est une ACTION', () =
   assert.equal(getUrgencyForNotification(notif({ type: 'KYC_REJECTED' })), 'ACTION');
 });
 
-void test('#5A — un dossier validé mène aux missions, même sans mission rattachée', () => {
-  const action = getActionForNotification(
-    notif({ type: 'KYC_VERIFIED', demandeId: null, reference: null }),
-    'TECHNICIAN',
-  );
-  assert.deepEqual(action, { label: 'Voir les missions', href: '/technicien/demandes' });
-  assert.ok(hasNavigableAction(action));
-});
-
-void test('#5A — un dossier refusé mène directement au formulaire KYC', () => {
-  const action = getActionForNotification(
-    notif({ type: 'KYC_REJECTED', demandeId: null, reference: null }),
-    'TECHNICIAN',
-  );
-  assert.deepEqual(action, { label: 'Corriger mon dossier', href: '/technicien/kyc' });
-  assert.ok(hasNavigableAction(action));
-});
-
-void test('#5A — aucun bouton d’action pour un client (routes technicien interdites)', () => {
+void test('#5A — la décision de dossier s’affiche, sans lien de destination', () => {
+  /* Le formulaire où se corrigeait un dossier refusé et la liste des missions
+   * ouvertes à prendre n'existent plus : exposer un bouton enverrait le lecteur
+   * sur une route morte. Les deux notifications gardent leur urgence (le motif
+   * de rejet reste visible), elles n'ont plus d'action. */
   for (const type of ['KYC_VERIFIED', 'KYC_REJECTED']) {
-    const action = getActionForNotification(notif({ type, demandeId: null }), 'CLIENT');
-    assert.equal(hasNavigableAction(action), false, `${type} : lien exposé au client`);
+    for (const role of ['CLIENT', 'ADMIN'] as NotificationRole[]) {
+      const action = getActionForNotification(notif({ type, demandeId: null }), role);
+      assert.equal(hasNavigableAction(action), false, `${type}/${role} : lien exposé`);
+    }
   }
 });
 
@@ -526,7 +498,7 @@ void test('#5A — les notifications KYC ne sont JAMAIS regroupées par mission'
       notif({ type: 'KYC_REJECTED', demandeId: null, reference: null }),
       notif({ type: 'QUOTE_CREATED', demandeId: 'd1' }),
     ],
-    'TECHNICIAN',
+    'CLIENT',
   );
   assert.equal(groups.length, 1);
   assert.equal(groups[0]!.key, 'd1');

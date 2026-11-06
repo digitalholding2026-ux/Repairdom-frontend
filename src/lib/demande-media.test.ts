@@ -90,9 +90,6 @@ void test('section technicien/client : players lazy, ordre conservé, états exp
   assert.match(section, /Aperçu indisponible/);
   assert.match(section, /Aucun élément transmis/);
   assert.doesNotMatch(section, /\.sort\(/);
-  const tech = read('../app/technicien/demandes/[id]/page.tsx');
-  assert.match(tech, /DemandeMediaSection/);
-  assert.match(tech, /getTechnicianDemandeMediaFileUrl/);
   const client = read('../app/client/demandes/[id]/page.tsx');
   assert.match(client, /DemandeMediaSection/);
   assert.doesNotMatch(client, /MediaGallery/);
@@ -105,17 +102,8 @@ void test('permissions : aucune URL persistée, lecture via endpoint signé', ()
 });
 
 void test('hub catalogue supprimé : ni cadre ni états ni appels restants', () => {
-  const page = read('../app/technicien/demandes/[id]/page.tsx');
+  const page = read('../app/client/demandes/[id]/page.tsx');
   assert.doesNotMatch(page, /Choisir un diagnostic/);
   assert.doesNotMatch(page, /getDemandeSuggestions/);
   assert.doesNotMatch(page, /selectDemandeDiagnostic/);
-  assert.match(page, /FreeDiagnosticSection/);
-});
-
-void test('pré-acceptation : médias affichés et lisibles avant acceptation', () => {
-  const page = read('../app/technicien/demandes/[id]/page.tsx');
-  // La section médias est hors condition d'assignation (visible en détail
-  // d'opportunité éligible comme en mission assignée).
-  assert.match(page, /DemandeMediaSection/);
-  assert.match(page, /getTechnicianDemandeMediaFileUrl/);
 });

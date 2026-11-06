@@ -21,7 +21,7 @@ import {
   categoryLabel,
   kycStatusLabel,
   kycVariantFor,
-} from '@/lib/technician-profile';
+} from '@/lib/profile-labels';
 import { PublicTechnicianHero } from '@/components/technician/public/public-technician-hero';
 import { PublicTechnicianSkeleton } from '@/components/technician/public/public-technician-skeleton';
 import { toUserErrorMessage } from '@/lib/ui-error-message';

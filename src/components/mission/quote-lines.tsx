@@ -1,26 +1,23 @@
 import { formatFCFA } from '@/lib/format-fcfa';
 
-/* Lignes de détail d'un devis — communes au client et au technicien.
+/* Lignes de détail d'un devis — présentation partagée.
  *
  * POURQUOI SEULE LA PRÉSENTATION EST PARTAGÉE
  * Le CALCUL du total, lui, reste à l'appelant, et c'est délibéré.
  *
- * Les deux écrans ne tombaient pas sur la même formule de repli :
- *   client     : amount + travel
- *   technicien : (repair ?? amount) + travel
- * Sur un devis ancien, privé du champ `totalToDebit`, les deux affiche donc
- * des montants DIFFÉRENTS pour le même devis. Corriger l'un des deux
- * corrigerait un montant affiché sans que personne n'ait tranché lequel des
- * deux est le bon — la décision ne relève pas de ce composant.
+ * Les écrans qui affichent un devis ne sont jamais tombés d'accord sur la
+ * formule de repli à utiliser quand le montant à débiter n'est pas encore
+ * arrêté. Selon l'écran, le total affiché pour un même devis pouvait donc
+ * différer. Corriger l'une de ces formules ici aurait changé un montant
+ * affiché sans que personne n'ait tranché lequel est le bon — cette décision
+ * ne relève pas de ce composant.
  *
- * En calculant au point d'appel, la divergence reste visible là où elle se
- * produit, et un test peut encore la voir. Un composant qui calculerait
- * lui-même l'aurait cachée sous une abstraction, et l'aurait rendue
- * invisible.
+ * En laissant le calcul au point d'appel, la divergence reste visible là où
+ * elle se produit et un test peut encore la voir. Un composant qui calculerait
+ * lui-même l'aurait cachée sous une abstraction, et l'aurait rendue invisible.
  *
- * Les libellés de la ligne de total DIFFÈRENT — l'un parle au client de ce
- * qu'il doit, l'autre dit au technicien ce que son client va débiter. Ce
- * n'est pas le même mot, donc pas le même composant figé : c'est une prop.
+ * Les libellés de la ligne de total DIFFÈRENT selon qui lit : ce n'est pas le
+ * même mot, donc pas un libellé figé dans le composant. C'est une prop.
  */
 
 /** Éléments du devis affichés en lignes. */

@@ -39,12 +39,6 @@ void test('zones : helper central unique (pas de getCurrentPosition parallèle)'
   );
   assert.match(source, /getCurrentTravelPosition/);
   assert.doesNotMatch(source, /\.watchPosition\(/);
-  const zones = await import('node:fs').then((fs) =>
-    fs.readFileSync(new URL('../app/technicien/zones/page.tsx', import.meta.url), 'utf8'),
-  );
-  assert.match(zones, /getCurrentTravelPosition/);
-  assert.doesNotMatch(zones, /navigator\.geolocation\.getCurrentPosition\(/);
-  assert.doesNotMatch(zones, /\.watchPosition\(/);
 });
 
 void test('UX : messages non bloquants, jamais de coordonnées brutes', () => {
@@ -76,7 +70,6 @@ void test('sécurité : aucun tracking (watchPosition/WebSocket/historique)', as
   const files = [
     './travel-location.ts',
     '../components/mission/travel-section.tsx',
-    '../app/technicien/zones/page.tsx',
     '../components/client/demande-wizard.tsx',
     '../components/mission/mission-map-inner.tsx',
     './api/technician-service.ts',
@@ -98,7 +91,6 @@ void test('V4.1 : helper unique partout (zones + wizard, maximumAge 0)', async (
   assert.match(helper, /enableHighAccuracy: true/);
   assert.match(helper, /maximumAge: 0/);
   for (const file of [
-    '../app/technicien/zones/page.tsx',
     '../components/client/demande-wizard.tsx',
   ]) {
     const content = readFileSync(new URL(file, import.meta.url), 'utf8');

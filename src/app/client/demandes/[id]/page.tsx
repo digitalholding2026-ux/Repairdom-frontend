@@ -84,9 +84,9 @@ import {
  *     position dans l'arbre change.
  *
  * ⚠️ RÈGLE DES HOOKS : les 3 returns anticipés (`loading`, `error`,
- * `!demande`) restent SOUS le dernier hook. Le test
- * `technician-quote.test.ts` l.233 verrouille cette contrainte sur la page
- * technicien ; elle s'applique ici à l'identique. Aucun `useX` ne doit être
+ * `!demande`) restent SOUS le dernier hook. L'écran de saisie du devis du
+ * prestataire, qui verrouillait cette contrainte par un test, a été supprimé :
+ * elle s'applique ici sans garde automatique. Aucun `useX` ne doit être
  * ajouté après ces returns.
  */
 

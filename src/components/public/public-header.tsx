@@ -93,9 +93,6 @@ export function PublicHeader() {
                 <Link href="/#how-title" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
                   Comment ça marche
                 </Link>
-                <Link href="/devenir-technicien" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                  Devenir technicien
-                </Link>
               </div>
               <Link href="/client/connexion">
                 <Button variant="ghost" size="sm">
@@ -184,9 +181,6 @@ export function PublicHeader() {
               </Link>
               <Link href="/#how-title" onClick={closeMenu} className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors hover:bg-white/10">
                 Comment ça marche
-              </Link>
-              <Link href="/devenir-technicien" onClick={closeMenu} className="rounded-xl px-4 py-3.5 text-base font-medium transition-colors hover:bg-white/10">
-                Devenir technicien
               </Link>
             </nav>
             <div className="mt-auto flex flex-col gap-3">

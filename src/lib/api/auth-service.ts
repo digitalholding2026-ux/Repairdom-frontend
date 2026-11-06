@@ -8,16 +8,10 @@ export interface SignUpInput {
   whatsapp?: string;
   email: string;
   password: string;
-  role?: 'CLIENT' | 'TECHNICIAN';
-  /** Chantier #5B — ville de RÉFÉRENCE (`ServiceCity.id`, un UUID), exigée
-   * pour un TECHNICIAN : c'est elle qui rattache le compte au référentiel et
-   * débloque la gestion des zones. `city` (texte) reste pour le CLIENT. */
-  cityId?: string;
+  role?: 'CLIENT';
   city?: string;
   address?: string;
-  categories?: string[];
-  /** Chantier 4B — code de parrainage (`RELIO-XXXXX`), facultatif et
-   *  CLIENT uniquement : le backend l'ignore pour un technicien. Un code
+  /** Chantier 4B — code de parrainage (`RELIO-XXXXX`), facultatif. Un code
    *  invalide ne bloque PAS l'inscription, il crée simplement aucun
    *  parrainage. */
   referralCode?: string;
@@ -57,8 +51,7 @@ export interface VerifyEmailResult extends AuthSession {
 }
 
 /* `ApiError` vit désormais dans `./api-error` (classe unique partagée).
- * Ré-exporté ici car `client-auth-form` et `technician-auth-form` l'importent
- * depuis ce module. */
+ * Ré-exporté ici car `client-auth-form` l'importe depuis ce module. */
 export { ApiError };
 
 /* Messages backend (contrats stables, utilisés pour orienter le parcours) :
@@ -91,26 +84,13 @@ export async function signUp(input: SignUpInput): Promise<AuthSession> {
     password: input.password,
   };
 
-  if (input.role === 'TECHNICIAN') {
-    payload.role = 'TECHNICIAN';
-    /* Chantier #5B — c'est la RÉFÉRENCE (`ServiceCity.id`) qui part, pas le
-     * texte : le backend l'exige pour un technicien (400 « Ville obligatoire
-     * pour un compte technicien ») et en déduit lui-même le nom via
-     * `ServiceCity`. On n'envoie donc plus `city`. */
-    payload.cityId = input.cityId || undefined;
-    payload.categories = input.categories ?? [];
-  }
-
-  // CLIENT : envoi des champs de profil (ville, adresse) requis pour le
-  // parcours d'inscription renforcé (sprint UX CLIENT).
-  if (input.role !== 'TECHNICIAN') {
-    payload.city = input.city || undefined;
-    payload.address = input.address || undefined;
-    /* Le code n'est envoyé que pour un CLIENT : rattacher un compte
-     * technicien consommerait un emplacement de parrain sans jamais donner
-     * lieu à une récompense. */
-    payload.referralCode = input.referralCode || undefined;
-  }
+  /* Profil : envoi des champs (ville, adresse) requis pour le parcours
+   * d'inscription renforcé (sprint UX CLIENT). */
+  payload.city = input.city || undefined;
+  payload.address = input.address || undefined;
+  /* Le code de parrainage reste facultatif : un code invalide ne bloque pas
+   * l'inscription, il ne crée simplement aucun parrainage. */
+  payload.referralCode = input.referralCode || undefined;
 
   const data = await apiFetch<{ user: AuthUser; mode: 'real' }>('/auth/register', {
     method: 'POST',
@@ -136,7 +116,6 @@ export async function getMe(): Promise<AuthUser> {
 }
 
 export function homePathForRole(role: string | undefined): string {
-  if (role === 'TECHNICIAN') return '/technicien';
   if (role === 'ADMIN') return '/admin';
   return '/client';
 }

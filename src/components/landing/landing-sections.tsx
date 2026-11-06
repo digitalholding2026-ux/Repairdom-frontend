@@ -283,41 +283,6 @@ export function Rewards() {
   );
 }
 
-/* ── 8. Devenir technicien ──────────────────────────────────────────────────
- * Bloc volontairement minimal : il redirige vers la page d'inscription
- * technicien existante. Aucun avantage chiffré n'est annoncé ici, ces
- * données n'existent pas dans le code.
- */
-export function BecomeTechnician() {
-  return (
-    <Section id="technicien-title">
-      <AnimateOnScroll>
-        <div className="card-hover rounded-3xl border border-slate-200/70 bg-white p-5 text-center shadow-sm sm:p-7">
-        <span
-          aria-hidden
-          className="mx-auto flex size-12 items-center justify-center rounded-full bg-orange-500/10 text-orange-600"
-        >
-          <Icon name="briefcase" size="md" />
-        </span>
-        <h2 id="technicien-title-heading" className="mt-3 text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">
-          Vous êtes technicien ?
-        </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-          Rejoignez le réseau Relio et recevez des demandes d&apos;intervention dans votre zone.
-        </p>
-        <Link
-          href="/devenir-technicien"
-          className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 text-sm font-bold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:w-auto"
-        >
-          Devenir technicien
-          <Icon name="arrow-right" size="sm" strokeWidth={2.4} />
-        </Link>
-        </div>
-      </AnimateOnScroll>
-    </Section>
-  );
-}
-
 /* ── 9. CTA final ─────────────────────────────────────────────────────────── */
 export function CompactCta() {
   return (

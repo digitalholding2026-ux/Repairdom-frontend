@@ -47,13 +47,6 @@ export function Hero() {
                 {primaryLabel}
                 <Icon name="arrow-right" size="md" strokeWidth={2.4} />
               </Link>
-              <Link
-                href="/devenir-technicien"
-                className="flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/70 px-6 py-4 text-base font-semibold text-slate-700 backdrop-blur-sm transition hover:border-orange-300 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 sm:w-auto"
-              >
-                <Icon name="briefcase" size="sm" />
-                Devenir technicien
-              </Link>
             </div>
 
             <Link

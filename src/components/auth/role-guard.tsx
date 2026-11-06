@@ -7,7 +7,7 @@ import { LoadingScreen } from './loading-screen';
 import { decideGuard } from '@/lib/guard-decision';
 
 interface RoleGuardProps {
-  expectedRole: 'CLIENT' | 'TECHNICIAN' | 'ADMIN';
+  expectedRole: 'CLIENT' | 'ADMIN';
   publicPaths: string[];
   children: ReactNode;
 }

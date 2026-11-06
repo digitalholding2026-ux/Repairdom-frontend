@@ -33,7 +33,7 @@ import {
   kycDocumentSideLabel,
   kycDocumentTypeLabel,
   typeLabelByCode,
-} from '@/lib/technician-profile';
+} from '@/lib/profile-labels';
 
 export default function AdminKycFolderPage() {
   const params = useParams<{ technicianId: string }>();

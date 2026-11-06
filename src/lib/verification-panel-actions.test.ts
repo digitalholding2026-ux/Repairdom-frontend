@@ -31,9 +31,7 @@ const read = (rel: string): string => readFileSync(new URL(rel, import.meta.url)
 
 const panel = read('../components/auth/verification-panel.tsx');
 const clientLayout = read('../app/client/layout.tsx');
-const techLayout = read('../app/technicien/layout.tsx');
 const clientPage = read('../app/client/verification/page.tsx');
-const techPage = read('../app/technicien/verification/page.tsx');
 
 /* ── 1. Détection du fournisseur — exécutée ──────────────────────────── */
 
@@ -192,14 +190,12 @@ void test('un compte non vérifié reçoit une explication, pas un échec', () =
 
 /* ── 5. Écrans et logos ──────────────────────────────────────────────── */
 
-void test('le double logo est supprimé sur les deux pages', () => {
-  /* Le header global est masqué sur ces routes ; s'il restait un logo dans
-   * l'un des deux wrappers, la page afficherait deux marques. */
+void test('le double logo est supprimé sur la page de vérification', () => {
+  /* Le header global est masqué sur cette route ; s'il restait un second
+   * logo dans le wrapper, la page afficherait deux marques. */
   assert.match(clientLayout, /'\/client\/verification'/);
-  assert.match(techLayout, /'\/technicien\/verification'/);
   for (const [nom, source] of [
     ['client', clientPage],
-    ['technicien', techPage],
   ] as const) {
     assert.equal(
       (source.match(/<BrandLogo/g) ?? []).length,

@@ -8,13 +8,12 @@
  * (afficher / écran de chargement / rediriger). La validation réelle de
  * session reste serveur (`GET /auth/me`). */
 
-export type GuardRole = 'CLIENT' | 'TECHNICIAN' | 'ADMIN';
+export type GuardRole = 'CLIENT' | 'ADMIN';
 
 /** Miroir local de `homePathForRole` (canonique dans
  *  `lib/api/auth-service.ts`) — dupliqué ici uniquement pour garder ce
  *  module importable par les tests Node natifs (pas d'alias `@/`). */
 function roleHomePath(role: string | undefined): string {
-  if (role === 'TECHNICIAN') return '/technicien';
   if (role === 'ADMIN') return '/admin';
   return '/client';
 }
@@ -38,7 +37,6 @@ interface GuardDecisionInput {
  *  y rester : c'est elle qui lui propose de renvoyer l'e-mail. */
 function verificationPathFor(role: string | undefined): string | null {
   if (role === 'CLIENT') return '/client/verification';
-  if (role === 'TECHNICIAN') return '/technicien/verification';
   return null;
 }
 
@@ -66,11 +64,7 @@ export function decideGuard(input: GuardDecisionInput): GuardVerdict {
      *
      * Règle : un utilisateur non vérifié qui est DÉJÀ sur sa page de
      * vérification doit être `show`, jamais redirigé. La redirection ne sert
-     * qu'à l'y AMENER depuis le reste de l'espace.
-     *
-     * Symétrie TECHNICIAN conservée : sans effet tant que le backend vérifie
-     * les techniciens à la création, mais bloquant dès qu'un compte non
-     * vérifié obtiendrait une session. */
+     * qu'à l'y AMENER depuis le reste de l'espace. */
     const verificationPath = verificationPathFor(role);
     if (verificationPath && emailVerified === false) {
       if (path !== verificationPath) return { action: 'redirect', to: verificationPath };

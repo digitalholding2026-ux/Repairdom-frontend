@@ -40,24 +40,6 @@ export function PublicFooter() {
               </li>
             </ul>
           </nav>
-
-          <nav aria-label="Professionnels" className="text-sm">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Professionnels
-            </p>
-            <ul className="mt-2 space-y-2">
-              <li className="text-xs text-muted-foreground">Vous êtes professionnel ?</li>
-              <li>
-                <Link
-                  href="/devenir-technicien"
-                  className="inline-flex items-center gap-1.5 hover:underline underline-offset-4"
-                >
-                  <Icon name="briefcase" size="sm" />
-                  Devenir technicien
-                </Link>
-              </li>
-            </ul>
-          </nav>
         </div>
       </div>
     </footer>

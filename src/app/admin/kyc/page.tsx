@@ -14,7 +14,7 @@ import {
   getAdminKycFolders,
   type AdminKycFolder,
 } from '@/lib/api/admin-service';
-import { categoryLabel, kycStatusLabel, kycVariantFor } from '@/lib/technician-profile';
+import { categoryLabel, kycStatusLabel, kycVariantFor } from '@/lib/profile-labels';
 import { KycListSkeleton } from '@/components/admin/kyc/kyc-list-skeleton';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
