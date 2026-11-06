@@ -38,6 +38,7 @@ import {
   toDraftPayload,
 } from '@/lib/demande-draft-sync';
 import { DemandeAuthModal } from '@/components/client/demande-auth-modal';
+import { CatalogServicePicker } from '@/components/client/catalog-service-picker';
 import { ApiError, type AuthUser } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import {
@@ -970,6 +971,8 @@ export function DemandeWizard() {
           <div key={step} className="animate-pop-in">
             {step === 0 ? (
               <section className="space-y-5" aria-label="Votre appareil">
+                <CatalogServicePicker />
+
                 <div>
                   <p className="text-base font-semibold">Quel appareil avez-vous ?</p>
                   <p className="text-sm text-muted-foreground">

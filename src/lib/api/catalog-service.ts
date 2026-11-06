@@ -98,3 +98,55 @@ export async function listCatalogProblems(
     `/catalog/domains/${encodeURIComponent(domainId)}/problems${qs ? `?${qs}` : ''}`,
   );
 }
+
+/* ── Catalogue Relio v2 (M1) — prestations, catégories, items tarifés ─────
+ *
+ * Parcours parallèle du référentiel ci-dessus. Contrairement à celui-ci, il
+ * publie bien un prix : `price` est le montant en XAF choisi par le serveur
+ * (tarif public ou professionnel selon la session du visiteur), `surDevis` à
+ * true signifiant qu'aucun montant n'est annoncé et que le client est rappelé.
+ * Le formatage « FCFA » reste uniquement à l'affichage, via `formatFCFA`. */
+
+export interface CatalogServiceLite {
+  id: string;
+  code: string;
+  label: string;
+  description: string | null;
+}
+
+export interface CatalogCategoryLite {
+  id: string;
+  serviceId: string;
+  code: string;
+  label: string;
+  order: number;
+}
+
+export interface CatalogItemLite {
+  id: string;
+  categoryId: string;
+  code: string;
+  label: string;
+  description: string | null;
+  androidVersion: string | null;
+  order: number;
+  price: number | null;
+  surDevis: boolean;
+}
+
+export async function listServices(): Promise<CatalogServiceLite[]> {
+  return apiFetch<CatalogServiceLite[]>('/services');
+}
+
+export async function listCategories(serviceCode: string): Promise<CatalogCategoryLite[]> {
+  return apiFetch<CatalogCategoryLite[]>(`/services/${encodeURIComponent(serviceCode)}/categories`);
+}
+
+export async function listItems(
+  serviceCode: string,
+  categoryId: string,
+): Promise<CatalogItemLite[]> {
+  return apiFetch<CatalogItemLite[]>(
+    `/services/${encodeURIComponent(serviceCode)}/categories/${encodeURIComponent(categoryId)}/items`,
+  );
+}
