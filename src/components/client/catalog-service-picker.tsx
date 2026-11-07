@@ -50,6 +50,7 @@ export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     listServices()
       .then((result) => {
         if (!cancelled) setServices(result);
@@ -64,6 +65,21 @@ export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
       cancelled = true;
     };
   }, []);
+
+  function retryServices() {
+    setLoading(true);
+    setError(null);
+    listServices()
+      .then((result) => {
+        setServices(result);
+      })
+      .catch(() => {
+        setError('Prestations momentanément indisponibles.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }
 
   async function chooseService(next: CatalogServiceLite) {
     setService(next);
@@ -127,7 +143,14 @@ export function CatalogServicePicker({ onSelect }: CatalogServicePickerProps) {
         </p>
       </div>
 
-      {error ? <Alert variant="error">{error}</Alert> : null}
+      {error ? (
+        <Alert variant="error">
+          {error}
+          <Button type="button" variant="outline" size="sm" onClick={retryServices}>
+            Réessayer
+          </Button>
+        </Alert>
+      ) : null}
 
       {loading ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3" aria-hidden>

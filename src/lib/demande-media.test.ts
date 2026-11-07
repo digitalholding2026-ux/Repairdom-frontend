@@ -23,17 +23,19 @@ void test('client : description obligatoire (≥10), médias facultatifs', () =>
   assert.match(wizard, /Photos \(facultatif\)/);
 });
 
-void test('parcours simplifié : catégorie → marque réelle → description, sans modèle', () => {
+void test('parcours simplifié M1 : service → catégorie → item, sans marque', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  // Ni étape modèle, ni échappatoire « toutes marques / tous modèles ».
+  // Ni legacy catégorie/marque, ni échappatoire « toutes marques / tous modèles ».
   assert.doesNotMatch(wizard, /Toutes les marques/);
   assert.doesNotMatch(wizard, /Tous les modèles/);
   assert.doesNotMatch(wizard, /modelId/);
   assert.doesNotMatch(wizard, /quickOption/);
-  // Marque réelle obligatoire avec un domaine du catalogue.
-  assert.match(wizard, /brandId !== ''/);
-  assert.match(wizard, /Aucune marque disponible/);
-  assert.match(wizard, /n'est pas encore disponible sur Relio/);
+  assert.doesNotMatch(wizard, /brandId !== ''/);
+  assert.doesNotMatch(wizard, /Aucune marque disponible/);
+  assert.doesNotMatch(wizard, /n'est pas encore disponible sur Relio/);
+  // Nouveau catalogue M1 : sélecteur de prestation branché sur /api/services.
+  assert.match(wizard, /CatalogServicePicker/);
+  assert.match(wizard, /selectedItemId/);
   // Description transmise à la création.
   assert.match(wizard, /description: description\.trim\(\)/);
 });
