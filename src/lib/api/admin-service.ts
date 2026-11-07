@@ -637,6 +637,50 @@ export function searchAdminClients(q: string): Promise<AdminClientUserSearch> {
 
 /* ── Supervision des missions (Sprint 8.6.5) ──────────────────── */
 
+export interface AdminDemandeListItem {
+  id: string;
+  reference: string;
+  status: string;
+  category: string;
+  description: string;
+  contact: {
+    city: string;
+    neighborhood: string | null;
+    address: string | null;
+    contactPhone: string | null;
+  };
+  device: {
+    domain: { id: string; name: string } | null;
+    brand: { id: string; name: string } | null;
+    model: { id: string; name: string } | null;
+    problem: { id: string; name: string } | null;
+  };
+  client: { id: string; firstName: string; lastName: string | null; phone: string | null } | null;
+  finalAmount: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminDemandeList {
+  items: AdminDemandeListItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export function listAdminDemandes(params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminDemandeList> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return catalogFetch<AdminDemandeList>(`/admin/demandes${suffix}`);
+}
+
 export interface SupervisedMissionEvent {
   id: string;
   type: string;
@@ -972,5 +1016,29 @@ export function reviewAdminDispute(
         ? { decision: input.decision }
         : { decision: input.decision, resolution: input.resolution?.trim() },
     ),
+  );
+}
+
+/* ── Catalogue v2 (M1) — prix des items ────────────────────────── */
+
+export interface AdminCatalogItem {
+  id: string;
+  categoryId: string;
+  code: string;
+  label: string;
+  description: string | null;
+  androidVersion: string | null;
+  order: number;
+  price: number | null;
+  active: boolean;
+}
+
+export function updateCatalogItemPrices(
+  itemId: string,
+  data: { price?: number | null; active?: boolean },
+): Promise<AdminCatalogItem> {
+  return catalogFetch<AdminCatalogItem>(
+    `/admin/catalog/items/${encodeURIComponent(itemId)}/prices`,
+    patchBody(data),
   );
 }
