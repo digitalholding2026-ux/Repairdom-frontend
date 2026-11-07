@@ -109,30 +109,30 @@ export default function AdminDashboardPage() {
               variant="revenue"
               href="/admin/finances"
             />
-            <StatCard
-              icon="wrench"
-              label={`Domaines · ${data.problems} problèmes`}
-              value={data.domains}
-              href="/admin/catalog"
-            />
-            <StatCard
-              icon="pin"
-              label="Villes de service"
-              value={`${data.activeCities}/${data.cities} actives`}
-              href="/admin/catalog/villes"
-            />
-            <StatCard
-              icon="search"
-              label="Supervision missions"
-              value="Par référence"
-              href="/admin/missions"
-            />
-            <StatCard
-              icon="users"
-              label="Comptes clients & techniciens"
-              value="Gestion"
-              href="/admin/utilisateurs"
-            />
+              <StatCard
+                icon="wrench"
+                label={`Catalogue · ${data.problems} problèmes`}
+                value={data.domains}
+                href="/admin/catalogue"
+              />
+              <StatCard
+                icon="pin"
+                label="Villes de service"
+                value={`${data.activeCities}/${data.cities} actives`}
+                href="/admin/catalogue"
+              />
+              <StatCard
+                icon="search"
+                label="Supervision demandes"
+                value="Par référence"
+                href="/admin/demandes"
+              />
+              <StatCard
+                icon="users"
+                label="Comptes clients"
+                value="Gestion"
+                href="/admin/clients"
+              />
           </div>
           <p className="text-xs text-muted-foreground">
             « Missions tracées » et « Revenu Relio » proviennent de la synthèse financière

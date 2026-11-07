@@ -23,14 +23,10 @@ interface AdminNavItem {
 
 const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Tableau de bord', icon: 'home' },
-  { href: '/admin/missions', label: 'Missions', icon: 'search' },
-  { href: '/admin/litiges', label: 'Litiges', icon: 'alert' },
-  { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
-  { href: '/admin/catalog/baremes', label: 'Prix courants', icon: 'star' },
-  { href: '/admin/catalog/villes', label: 'Villes & zones', icon: 'pin' },
-  { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
-  { href: '/admin/finances', label: 'Finances', icon: 'file' },
-  { href: '/admin/assistant', label: 'Assistant', icon: 'chat' },
+  { href: '/admin/demandes', label: 'Demandes', icon: 'search' },
+  { href: '/admin/catalogue', label: 'Catalogue', icon: 'wrench' },
+  { href: '/admin/clients', label: 'Clients', icon: 'users' },
+  { href: '/admin/finances', label: 'Finances', icon: 'wallet' },
 ];
 
 function isNavActive(pathname: string, href: string): boolean {
