@@ -133,6 +133,7 @@ export interface CatalogItemLite {
   androidVersion: string | null;
   order: number;
   price: number | null;
+  active: boolean;
 }
 
 export async function listServices(): Promise<CatalogServiceLite[]> {
