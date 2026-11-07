@@ -25,12 +25,10 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Tableau de bord', icon: 'home' },
   { href: '/admin/missions', label: 'Missions', icon: 'search' },
   { href: '/admin/litiges', label: 'Litiges', icon: 'alert' },
-  { href: '/admin/kyc', label: 'KYC', icon: 'badge-check' },
   { href: '/admin/catalog', label: 'Catalogue', icon: 'wrench' },
   { href: '/admin/catalog/baremes', label: 'Prix courants', icon: 'star' },
   { href: '/admin/catalog/villes', label: 'Villes & zones', icon: 'pin' },
   { href: '/admin/utilisateurs', label: 'Utilisateurs', icon: 'users' },
-  { href: '/admin/communication', label: 'Communication', icon: 'send' },
   { href: '/admin/finances', label: 'Finances', icon: 'file' },
   { href: '/admin/assistant', label: 'Assistant', icon: 'chat' },
 ];

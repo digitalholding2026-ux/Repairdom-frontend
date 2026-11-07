@@ -11,19 +11,43 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { getMe, homePathForRole } from '@/lib/api/auth-service';
-import {
-  REFERRAL_MAX_REFERRALS,
-  REFERRAL_REWARD_XAF,
-  REFERRAL_STATUS_LABEL,
-  getMyReferrals,
-  isReferralExpired,
-  type MyReferrals,
-  type ReferralRow,
-} from '@/lib/api/referrals-service';
 import { formatFCFA } from '@/lib/format-fcfa';
 import { formatDate } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { ParrainageSkeleton } from '@/components/client/parrainage/parrainage-skeleton';
+
+/* Types et constantes locales (dépendance `referrals-service` supprimée —
+ * code mort v1 / parrainage retiré). */
+export const REFERRAL_MAX_REFERRALS = 5;
+export const REFERRAL_REWARD_XAF = 500;
+export const REFERRAL_STATUS_LABEL: Record<string, string> = {
+  PENDING: 'Lien partagé',
+  REGISTERED: 'Inscrit',
+  REWARDED: 'Récompensé',
+  EXPIRED: 'Non éligible',
+};
+export type ReferralRow = {
+  id: string;
+  referredName: string | null;
+  referredEmail: string | null;
+  status: string;
+  createdAt: string;
+  rewardedAt: string | null;
+};
+export type MyReferrals = {
+  code: string;
+  shareUrl: string;
+  maxReferrals: number;
+  usedSlots: number;
+  rewardedCount: number;
+  referrals: ReferralRow[];
+};
+export function isReferralExpired(status: string): boolean {
+  return status === 'EXPIRED';
+}
+async function getMyReferrals(): Promise<MyReferrals> {
+  return { code: '', shareUrl: '', maxReferrals: 5, usedSlots: 0, rewardedCount: 0, referrals: [] };
+}
 
 /**
  * Chantier 4B — Page « Mes parrainages ».

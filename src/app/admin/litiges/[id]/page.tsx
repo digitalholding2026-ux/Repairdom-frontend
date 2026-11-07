@@ -14,7 +14,6 @@ import { PageHeader, SectionHeader } from '@/components/ui/page-header';
 import { formatDate, formatDateTime, fullName } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { AdminInfoRow } from '@/components/admin/info-row';
-import { KycDetailSkeleton } from '@/components/admin/kyc/kyc-detail-skeleton';
 import { disputeCategoryLabel, disputeStatusConfig } from '@/lib/dispute-status';
 import {
   getAdminDispute,
@@ -92,7 +91,7 @@ export default function AdminLitigeDetailPage() {
     }
   };
 
-  if (loading) return <KycDetailSkeleton />;
+  if (loading) return <EmptyState title="Chargement…" />;
 
   if (!dispute) {
     return (

@@ -9,7 +9,6 @@ import { Icon } from '@/components/ui/icon';
 import { SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { MissionTimeline } from '@/components/mission/mission-timeline';
-import { MissionStepper } from '@/components/mission/mission-stepper';
 import { TrackingHero } from '@/components/mission/tracking-hero';
 import { Celebration } from '@/components/mission/celebration';
 import { getMissionSummary, type MissionSummary } from '@/lib/api/summary-service';
@@ -129,10 +128,9 @@ export function ChronologyDetail({ missionId, backHref, badgeContext }: Chronolo
         </CardHeader>
         <CardContent>
           {summary ? (
-            <MissionStepper
-              status={summary.status}
-              currentHint={live ? `En attente : ${lastActivityLabel}` : lastActivityLabel}
-            />
+            <p className="text-sm text-muted-foreground">
+              Statut : {summary.status}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">
               Chronologie indisponible pour cette mission.

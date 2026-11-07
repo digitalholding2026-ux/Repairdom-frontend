@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/ui/stat-card';
 import { formatCurrency } from '@/lib/format';
-import { getAdminKycFolders } from '@/lib/api/admin-service';
 import { listDomains } from '@/lib/api/admin-service';
 import { listAdminCities } from '@/lib/api/admin-service';
 import { getAdminFinanceSummary } from '@/lib/api/finance-service';
@@ -15,17 +14,14 @@ import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 /* Tableau de bord admin : UNIQUEMENT des données réellement disponibles via
  * les API existantes (aucun KPI inventé).
- * - KYC en attente : GET /admin/kyc?status=PENDING (décompte réel).
- * - Missions tracées + revenu Relio : GET /admin/finances (ledger réel). « Missions tracées » = missions présentes dans la synthèse
- *   financière, pas l’intégralité de la base.
+ * - Missions tracées + revenu Relio : GET /admin/finances (ledger réel).
  * - Catalogue / villes : décomptes des listes admin.
  * - Supervision missions : accès par référence uniquement (aucun endpoint de
  *   liste) — carte de navigation sans indicateur chiffré.
- * Statistiques non affichées faute d’API : missions en attente, techniciens
+ * Statistiques non affichées faute d'API : missions en attente, techniciens
  * inscrits, missions récentes (voir note en bas de page). */
 
 interface DashboardData {
-  pendingKyc: number;
   financeMissions: number;
   repairDomRevenue: number;
   currency: string;
@@ -45,16 +41,14 @@ export default function AdminDashboardPage() {
     let cancelled = false;
     setLoading(true);
     Promise.all([
-      getAdminKycFolders('PENDING'),
       getAdminFinanceSummary(),
       listDomains(),
       listAdminCities(),
     ])
-      .then(([kyc, finance, domains, cities]) => {
+      .then(([finance, domains, cities]) => {
         if (cancelled) return;
         const modes = [finance.results.REAL].filter(Boolean);
         setData({
-          pendingKyc: kyc.items.length,
           financeMissions: modes.reduce((sum, mode) => sum + mode.totals.missionsCount, 0),
           repairDomRevenue: modes.reduce((sum, mode) => sum + mode.totals.repairDomRevenue, 0),
           currency: finance.currency,
@@ -103,12 +97,6 @@ export default function AdminDashboardPage() {
         <>
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
             <StatCard
-              icon="badge-check"
-              label="KYC en attente"
-              value={data.pendingKyc}
-              href="/admin/kyc"
-            />
-            <StatCard
               icon="briefcase"
               label="Missions tracées"
               value={data.financeMissions}
@@ -144,12 +132,6 @@ export default function AdminDashboardPage() {
               label="Comptes clients & techniciens"
               value="Gestion"
               href="/admin/utilisateurs"
-            />
-            <StatCard
-              icon="send"
-              label="Message aux techniciens"
-              value="Communication"
-              href="/admin/communication"
             />
           </div>
           <p className="text-xs text-muted-foreground">

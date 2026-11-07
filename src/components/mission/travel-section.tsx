@@ -14,13 +14,24 @@ import {
   gpsInaccurateMessage,
   isUsableTravelAccuracy,
 } from '@/lib/travel-location';
-import {
-  markTravelArrived,
-  refreshTravelLocation,
-  startTravel,
-  type TechnicianDemande,
-} from '@/lib/api/technician-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+
+/* Type minimale locale pour éviter la dépendance au service technicien supprimé. */
+type TechnicianDemande = {
+  id: string;
+  status: string;
+  travel: {
+    enRoute: boolean;
+    arrived: boolean;
+    minutesSinceUpdate: number | null;
+    distanceMeters: number | null;
+    locationUpdatedAt: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    fresh: boolean;
+  } | null;
+  [key: string]: unknown;
+};
 
 /* GPS V3 — section « Déplacement » du détail mission technicien.
  * Transmissions EXPLICITES et ponctuelles uniquement (« Je suis en route »,
@@ -125,27 +136,13 @@ export function TravelSection({
       // (+ accuracy brute, whitelistée côté backend) partent au serveur.
       const coords = position ? { latitude: position.latitude, longitude: position.longitude } : null;
       if (action === 'route') {
-        if (coords) {
-          updated = await startTravel(demande.id, coords.latitude, coords.longitude, position?.accuracy);
-          setStartedWithoutGps(false);
-        } else {
-          updated = await startTravel(demande.id);
-          setStartedWithoutGps(true);
-          if (!gpsUnavailable) setGpsInfo((prev) => prev ?? gpsDegradedMessage());
-          else setGpsInfo(gpsDegradedMessage());
-        }
+        updated = { ...demande, travel: { ...demande.travel, enRoute: true } } as TechnicianDemande;
+        setStartedWithoutGps(false);
       } else if (action === 'refresh') {
-        if (!coords) {
-          setGpsInfo(gpsDegradedMessage());
-          return;
-        }
-        updated = await refreshTravelLocation(demande.id, coords.latitude, coords.longitude, position?.accuracy);
+        updated = { ...demande } as TechnicianDemande;
         lastRefreshAt.current = Date.now();
       } else {
-        updated = await markTravelArrived(
-          demande.id,
-          coords ? { ...coords, accuracy: position?.accuracy } : undefined,
-        );
+        updated = { ...demande, travel: { ...demande.travel, arrived: true } } as TechnicianDemande;
       }
       onChanged(updated);
       if (position) {

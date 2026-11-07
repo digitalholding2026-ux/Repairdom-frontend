@@ -22,7 +22,6 @@ import { MissionTimeline } from '@/components/mission/mission-timeline';
 import { ConversationSection } from '@/components/mission/conversation-section';
 import { QuoteLines } from '@/components/mission/quote-lines';
 import { TimelineUnavailable } from '@/components/mission/timeline-unavailable';
-import { DispatchSonarWidget, partitionDispatchWaves } from '@/components/mission/dispatch-sonar-widget';
 import { TravelBanner } from '@/components/mission/travel-banner';
 import { MissionMap } from '@/components/mission/mission-map';
 import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
@@ -408,16 +407,11 @@ export default function ClientDemandeDetailPage() {
   const technicianName = demande.technician
     ? fullName(demande.technician.firstName, demande.technician.lastName)
     : null;
-  /* Vagues de dispatch agrégées en hub radar (anti-bruit) : une vague isolée
-   * reste dans la timeline, 2+ vagues basculent dans le widget. */
-  const { waves: dispatchWaves, rest: nonDispatchEvents } = partitionDispatchWaves(events);
-  const showDispatchRadar = dispatchWaves.length >= 2;
-  const timelineEvents = showDispatchRadar ? nonDispatchEvents : events;
-
   /* ── Conditions strictes de section (chantier 6A) ────────────────────
    * Chaque section a désormais une condition d'affichage explicite : plus
    * aucun bloc n'est rendu par défaut, ce qui vide la page d'une mission
    * annulée ou sans technicien. */
+  const timelineEvents = events;
   const showLiveTracking =
     demande.technicianId != null && LIVE_STATUSES.includes(demande.status);
   const showMedias = demande.medias.length > 0;
@@ -959,14 +953,11 @@ export default function ClientDemandeDetailPage() {
                 />
               ) : (
                 <>
-                  {showDispatchRadar ? (
-                    <DispatchSonarWidget waves={dispatchWaves} active={!demande.technician && canCancel} />
-                  ) : null}
                   {timelineEvents.length > 0 ? (
                     <div className="relative space-y-4 before:absolute before:bottom-2 before:left-3 before:top-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
                       <MissionTimeline events={timelineEvents} />
                     </div>
-                  ) : showDispatchRadar ? null : (
+                  ) : (
                     <DemandeProgress status={demande.status} />
                   )}
                 </>

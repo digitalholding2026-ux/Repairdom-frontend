@@ -12,7 +12,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Timeline } from '@/components/ui/timeline';
-import { MissionStepper } from '@/components/mission/mission-stepper';
 import { TrackingHero } from '@/components/mission/tracking-hero';
 import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
 import { Celebration } from '@/components/mission/celebration';
@@ -184,12 +183,11 @@ export default function SuiviPage() {
                         Étapes de la mission
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <MissionStepper
-                        status={status}
-                        currentHint={lastEntry?.label}
-                      />
-                    </CardContent>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                          Statut : {status}
+                        </p>
+                      </CardContent>
                   </Card>
 
                   {tracking.timeline && tracking.timeline.length > 0 ? (

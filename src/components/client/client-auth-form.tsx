@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
-import { referralCodeError, referralCodeFromSearch } from '@/lib/api/referrals-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -42,10 +41,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [showPassword, setShowPassword] = useState(false);
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
-  /* Chantier 4B — code de parrainage, FACULTATIF. Pré-rempli depuis `?ref=`
-   * quand l'utilisateur arrive par un lien partagé ; saisissable à la main
-   * sinon. Jamais obligatoire : un client sans parrain s'inscrit normalement. */
-  const [referralCode, setReferralCode] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [cities, setCities] = useState<City[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,17 +52,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   useEffect(() => {
     if (!isSignUp) return;
     listCities().then(setCities).catch(() => {});
-  }, [isSignUp]);
-
-  /* Chantier 4B — lecture du code de parrainage dans l'URL.
-   *
-   * Le champ est pré-rempli une seule fois, au montage : si l'utilisateur
-   * corrige ou efface la valeur, la prochaine écriture de l'historique ne doit
-   * pas lui remettre son code sous les yeux. */
-  useEffect(() => {
-    if (!isSignUp) return;
-    const fromUrl = referralCodeFromSearch(window.location.search);
-    if (fromUrl) setReferralCode(fromUrl);
   }, [isSignUp]);
 
   const passwordValid = password.length >= 8;
@@ -135,7 +119,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           role: 'CLIENT',
           city: cityValue.trim() || undefined,
           address: address.trim() || undefined,
-          referralCode: referralCode.trim() || undefined,
         });
         // Si le compte est déjà vérifié (ancien compte), rediriger vers l'habitacle.
         // Sinon, rediriger vers la page de vérification email.
@@ -315,22 +298,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
               * saisie invalide est l'absence de parrainage.
               * L'erreur ne s'affiche que si l'utilisateur a saisi quelque chose
               * de mal formé — pas sur un champ vide. */}
-          <Field
-            label="Code parrainage (facultatif)"
-            htmlFor="client-referral-code"
-            hint="Invité par un proche ? Saisissez son code pour que vous receviez tous les deux 500 FCFA de crédit."
-            error={referralCodeError(referralCode)}
-          >
-            <Input
-              id="client-referral-code"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="RELIO-XXXXX"
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-            />
-          </Field>
+          <></>
         </>
       ) : null}
 
