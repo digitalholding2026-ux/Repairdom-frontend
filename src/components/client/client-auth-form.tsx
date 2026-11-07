@@ -116,7 +116,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           whatsapp: whatsapp.trim() || undefined,
           email: email.trim(),
           password,
-          role: 'CLIENT',
           city: cityValue.trim() || undefined,
           address: address.trim() || undefined,
         });
