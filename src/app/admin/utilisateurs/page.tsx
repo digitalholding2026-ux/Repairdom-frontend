@@ -13,14 +13,13 @@ import { Icon } from '@/components/ui/icon';
 import { Spinner } from '@/components/ui/spinner';
 import {
   searchAdminClients,
-  searchAdminTechnicians,
   getAdminUserAccount,
   deleteAdminUserAccount,
   type AdminUserAccount,
 } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
-type RoleTab = 'CLIENT' | 'TECHNICIAN';
+type RoleTab = 'CLIENT';
 
 interface SearchItem {
   id: string;
@@ -32,19 +31,14 @@ interface SearchItem {
 
 const DEPENDENCY_LABELS: Record<string, string> = {
   demandesClient: 'Missions (client)',
-  demandesTechnicien: 'Missions (technicien)',
   messages: 'Messages',
   diagnostics: 'Diagnostics',
   devis: 'Devis',
   notifications: 'Notifications',
   transactions: 'Écritures ledger',
-  vaguesDispatch: 'Vagues dispatch',
   evenements: 'Événements mission',
   avisRediges: 'Avis rédigés',
   avisRecus: 'Avis reçus',
-  documentsKyc: 'Documents KYC',
-  revuesKyc: 'Revues KYC',
-  profil: 'Profil technicien',
 };
 
 export default function AdminUsersPage() {
@@ -68,8 +62,7 @@ export default function AdminUsersPage() {
     setNotice(null);
     setAccount(null);
     try {
-      const data =
-        tab === 'CLIENT' ? await searchAdminClients(q) : await searchAdminTechnicians(q);
+      const data = await searchAdminClients(q);
       setResults(data.items);
       setSearched(true);
     } catch (err) {
@@ -118,7 +111,7 @@ export default function AdminUsersPage() {
     <div className="space-y-5">
       <PageHeader
         title="Utilisateurs"
-        description="Recherchez un compte client ou technicien, consultez ses données liées, puis supprimez ou désactivez le compte."
+        description="Recherchez un compte client, consultez ses données liées, puis supprimez ou désactivez le compte."
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
@@ -127,29 +120,8 @@ export default function AdminUsersPage() {
       <Card>
         <CardContent className="space-y-3 pt-4">
           <div className="flex gap-2">
-            <Button
-              variant={tab === 'CLIENT' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => {
-                setTab('CLIENT');
-                setResults([]);
-                setSearched(false);
-                setAccount(null);
-              }}
-            >
+            <Button variant="primary" size="sm" disabled>
               Clients
-            </Button>
-            <Button
-              variant={tab === 'TECHNICIAN' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => {
-                setTab('TECHNICIAN');
-                setResults([]);
-                setSearched(false);
-                setAccount(null);
-              }}
-            >
-              Techniciens
             </Button>
           </div>
           <form
@@ -159,7 +131,7 @@ export default function AdminUsersPage() {
               void handleSearch();
             }}
           >
-            <Field label={tab === 'CLIENT' ? 'Rechercher un client' : 'Rechercher un technicien'} htmlFor="userSearch" className="min-w-0 flex-1">
+            <Field label="Rechercher un client" htmlFor="userSearch" className="min-w-0 flex-1">
               <Input
                 id="userSearch"
                 value={query}
