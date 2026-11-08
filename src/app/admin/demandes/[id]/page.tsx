@@ -11,6 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { getAdminMissionByReference, type SupervisedMission } from '@/lib/api/admin-service';
 import { updateDemandeStatus } from '@/lib/api/request-service';
+import { completeAdminDemande, type AdminInvoice } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 function statusVariant(status: string): string {
@@ -49,6 +50,8 @@ export default function AdminDemandeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [invoice, setInvoice] = useState<AdminInvoice | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -76,6 +79,22 @@ export default function AdminDemandeDetailPage() {
       setError(toUserErrorMessage(err, 'Impossible de changer le statut.'));
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!mission) return;
+    setCompleting(true);
+    setError(null);
+    try {
+      const result = await completeAdminDemande(mission.reference);
+      setMission((prev) => (prev ? { ...prev, status: 'COMPLETED' } : prev));
+      setInvoice(result.invoice);
+      setError(null);
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de clôturer la demande.'));
+    } finally {
+      setCompleting(false);
     }
   };
 
@@ -109,6 +128,9 @@ export default function AdminDemandeDetailPage() {
     { value: 'COMPLETED', label: 'Terminer' },
     { value: 'CANCELED', label: 'Annuler' },
   ];
+
+  const escrowStartedAt = (mission as { escrowStartedAt?: string | null }).escrowStartedAt;
+  const escrowHours = escrowStartedAt ? Math.floor((Date.now() - new Date(escrowStartedAt).getTime()) / 3600000) : 0;
 
   return (
     <div className="space-y-5">
@@ -247,6 +269,38 @@ export default function AdminDemandeDetailPage() {
           </div>
         </div>
       )}
+
+      {mission.status !== 'COMPLETED' ? (
+        <div className="bg-card rounded-xl border p-5">
+          <h3 className="text-sm font-semibold mb-3">Clôture et facture</h3>
+          <Button
+            onClick={handleComplete}
+            disabled={completing || !mission.finalAmount}
+            className="w-full"
+          >
+            {completing ? 'Clôture en cours…' : 'Terminer et facturer'}
+          </Button>
+          {!mission.finalAmount && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Aucun montant final défini : impossible de facturer.
+            </p>
+          )}
+        </div>
+      ) : null}
+      {escrowStartedAt ? (
+        <div className="bg-card rounded-xl border p-5">
+          <h3 className="text-sm font-semibold mb-3">État de l&apos;escrow</h3>
+          <div className="space-y-1 text-sm">
+            <p>Fonds bloqués depuis {escrowHours} h</p>
+            <p className="text-xs text-muted-foreground">{mission.status}</p>
+            {invoice && (
+              <p className="text-xs text-muted-foreground">
+                Facture {invoice.invoiceNumber} ({formatCurrency(invoice.amount, 'XAF')})
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6">
         <Button variant="outline" onClick={() => router.push('/admin/demandes')}>

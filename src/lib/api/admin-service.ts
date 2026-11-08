@@ -1062,3 +1062,25 @@ export function updateCatalogItemPrices(
     patchBody(data),
   );
 }
+
+export interface AdminInvoice {
+  id: string;
+  demandeId: string;
+  invoiceNumber: string;
+  amount: number;
+  pdfUrl: string | null;
+  status: 'PENDING' | 'PAID' | 'REFUNDED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function completeAdminDemande(demandeId: string): Promise<{
+  demande: any;
+  hold: any;
+  invoice: AdminInvoice;
+}> {
+  return catalogFetch(
+    `/admin/demandes/${encodeURIComponent(demandeId)}/complete`,
+    { method: 'POST' },
+  );
+}

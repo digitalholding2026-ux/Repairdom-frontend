@@ -267,6 +267,37 @@ export async function updateDemandeStatus(id: string, status: string): Promise<D
   });
 }
 
+export interface PayEscrowResult {
+  hold: {
+    id: string;
+    reference: string;
+    amount: number;
+    status: string;
+    escrowStartedAt: string | null;
+  };
+}
+
+export async function payEscrow(demandeId: string): Promise<PayEscrowResult> {
+  return apiFetch(`/client/demandes/${encodeURIComponent(demandeId)}/pay-escrow`, {
+    method: 'POST',
+  });
+}
+
+export interface ClientInvoice {
+  id: string;
+  demandeId: string;
+  invoiceNumber: string;
+  amount: number;
+  pdfUrl: string | null;
+  status: 'PENDING' | 'PAID' | 'REFUNDED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getClientInvoice(demandeId: string): Promise<ClientInvoice> {
+  return apiFetch<ClientInvoice>(`/client/invoices/${encodeURIComponent(demandeId)}`);
+}
+
 export interface ConversationMessage {
   id: string;
   content: string;

@@ -52,6 +52,7 @@ import {
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
 import { formatFCFA } from '@/lib/format-fcfa';
+import { payEscrow, getClientInvoice, type ClientInvoice } from '@/lib/api/request-service';
 import { useRealtime } from '@/lib/realtime/sse-context';
 import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
@@ -143,6 +144,12 @@ export default function ClientDemandeDetailPage() {
   const [disputeDescription, setDisputeDescription] = useState('');
   const [disputeError, setDisputeError] = useState<string | null>(null);
   const [disputeBusy, setDisputeBusy] = useState(false);
+  /* M2 — facture et escrow. */
+  const [invoice, setInvoice] = useState<ClientInvoice | null>(null);
+  const [invoiceBusy, setInvoiceBusy] = useState(false);
+  const [escrowBusy, setEscrowBusy] = useState(false);
+  /* Tick pour rafraîchir le compte à rebours escrow toutes les minutes. */
+  const [_tick, setTick] = useState(0);
   /* Temps réel : chaque événement mission pertinent (statut, devis, GPS)
    * redéclenche le chargement silencieux ; le chat gère ses messages
    * lui-même (ajout direct, sans refetch). */
@@ -222,6 +229,12 @@ export default function ClientDemandeDetailPage() {
       clearInterval(timer);
     };
   }, [params?.id, sseTick]);
+
+  /* M2 — rafraîchit le compte à rebours escrow chaque minute. */
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   /* CHANTIER 6C-1 — le solde est lu DANS SON PROPRE effet, séparé de la
    * mission. Deux raisons :
@@ -320,6 +333,39 @@ export default function ClientDemandeDetailPage() {
     }
   };
 
+  /* M2 — récupère la facture quand la demande est terminée. */
+  const loadInvoice = async () => {
+    if (!params?.id) return;
+    setInvoiceBusy(true);
+    setError(null);
+    try {
+      const inv = await getClientInvoice(params.id);
+      setInvoice(inv);
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de charger la facture.'));
+    } finally {
+      setInvoiceBusy(false);
+    }
+  };
+
+  /* M2 — met les fonds sous séquestre (smartphone, devis accepté). */
+  const handlePayEscrow = async () => {
+    if (!params?.id || escrowBusy) return;
+    setEscrowBusy(true);
+    setError(null);
+    try {
+      const result = await payEscrow(params.id);
+      setDemande((prev) =>
+        prev ? { ...prev, escrowStartedAt: result.hold.escrowStartedAt } : prev,
+      );
+      toast({ title: 'Fonds mis sous séquestre.', variant: 'success' });
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Erreur lors de la mise sous séquestre.'));
+    } finally {
+      setEscrowBusy(false);
+    }
+  };
+
   /* Litige post-intervention : description 10..2000 (miroir backend). */
   const disputeDescriptionLength = disputeDescription.trim().length;
   const disputeValid =
@@ -406,6 +452,18 @@ export default function ClientDemandeDetailPage() {
     .join(' — ');
   const technicianName = demande.technician
     ? fullName(demande.technician.firstName, demande.technician.lastName)
+    : null;
+  /* M2 — compte à rebours escrow 48h (smartphone). */
+  const escrowStartedAt = (demande as { escrowStartedAt?: string | null }).escrowStartedAt;
+  const escrowTimer = escrowStartedAt
+    ? (() => {
+        const ms = 48 * 60 * 60 * 1000 - (Date.now() - new Date(escrowStartedAt).getTime());
+        return {
+          h: Math.max(0, Math.floor(ms / 3600000)),
+          m: Math.max(0, Math.floor((ms % 3600000) / 60000)),
+          expired: ms <= 0,
+        };
+      })()
     : null;
   /* ── Conditions strictes de section (chantier 6A) ────────────────────
    * Chaque section a désormais une condition d'affichage explicite : plus
@@ -614,11 +672,38 @@ export default function ClientDemandeDetailPage() {
             </div>
           ) : null}
 
+          {demande.status === 'ACCEPTED' && demande.finalAmount ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Mise sous séquestre (Escrow)</p>
+                <p className="text-xs text-muted-foreground">
+                  Les fonds sont bloqués jusqu&apos;à la fin de l&apos;intervention.
+                </p>
+              </div>
+              <Button
+                onClick={handlePayEscrow}
+                isLoading={escrowBusy}
+                className="ml-auto"
+              >
+                Payer {formatFCFA(demande.finalAmount)}
+              </Button>
+            </div>
+          ) : null}
+
           {demande.status === 'IN_PROGRESS' ? (
-            <Alert variant="info" icon="wrench" title="Intervention en cours">
-              Le technicien travaille sur votre appareil. Vous serez prévenu dès que
-              l&apos;intervention sera terminée.
-            </Alert>
+            <div>
+              <Alert variant="info" icon="wrench" title="Intervention en cours">
+                Le technicien travaille sur votre appareil. Vous serez prévenu dès que
+                l&apos;intervention sera terminée.
+              </Alert>
+              {escrowTimer && (
+                <div className="mt-3 rounded-xl border border-warning/30 bg-warning/5 p-3">
+                  <p className="text-xs font-medium text-warning-ink">
+                    Temps restant : <span className="font-mono tabular-nums">{escrowTimer.h}h {escrowTimer.m.toString().padStart(2, '0')}m</span>
+                  </p>
+                </div>
+              )}
+            </div>
           ) : null}
 
           {demande.status === 'COMPLETED' ? (
@@ -642,6 +727,24 @@ export default function ClientDemandeDetailPage() {
               >
                 Confirmer l&apos;intervention
               </Button>
+              {invoice ? (
+                <Button
+                  onClick={() => invoice.pdfUrl && window.open(invoice.pdfUrl, '_blank')}
+                  variant="outline"
+                  disabled={!invoice.pdfUrl}
+                  className="w-full mt-2"
+                >
+                  Télécharger la facture
+                </Button>
+              ) : (
+                <Button
+                  onClick={loadInvoice}
+                  isLoading={invoiceBusy}
+                  className="w-full mt-2"
+                >
+                  Récupérer la facture
+                </Button>
+              )}
               <p className="text-xs text-muted-foreground">
                 Vos fonds restent bloqués jusqu&apos;à votre confirmation : ils ne seront
                 versés au technicien qu&apos;ensuite.
