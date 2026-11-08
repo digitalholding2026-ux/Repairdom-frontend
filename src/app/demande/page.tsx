@@ -17,7 +17,7 @@ import { PublicFooter } from '@/components/public/public-footer';
  * connecté, ce qui donne la porte de sortie à qui a déjà un compte. */
 
 export const metadata: Metadata = {
-  title: 'Décrire ma panne',
+  title: 'Décrire ma demande',
   description:
     'Décrivez votre demande sans créer de compte : votre progression est enregistrée et vous pourrez finaliser ensuite.',
 };
@@ -29,7 +29,7 @@ export default function DemandePage() {
       <main className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 sm:py-10">
         <PageHeader
           title="Décrivez votre demande"
-          description="Quatre étapes, sans compte obligatoire. Vous créerez votre compte à la fin."
+          description="Trois étapes, sans compte obligatoire. Vous créerez votre compte à la fin."
           backHref="/"
         />
         <DemandeWizard />

@@ -46,6 +46,21 @@ const emptyDraft: Draft = {
 
 const SERVICES: Service[] = ['FRP', 'SYSTEME', 'SMARTPHONE'];
 
+const INTERVENTION_TYPES = [
+  'Réinstallation OS',
+  'Installation pilotes',
+  'Nettoyage système',
+  'Autre',
+];
+
+const PHONE_PROBLEM_TYPES = [
+  'Écran',
+  'Batterie',
+  'Connecteur de charge',
+  'Appareil photo',
+  'Autre',
+];
+
 export function DemandeWizard() {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -211,7 +226,17 @@ export function DemandeWizard() {
             {draft.service === 'SYSTEME' ? (
               <>
                 <Field label="Type d'intervention">
-                  <Input value={draft.problem} onChange={(e) => update({ problem: e.target.value })} placeholder="Réinstallation OS, pilotes…" />
+                  <Select
+                    value={draft.problem}
+                    onChange={(e) => update({ problem: e.target.value })}
+                  >
+                    <option value="">Choisir une intervention</option>
+                    {INTERVENTION_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </Select>
                 </Field>
                 <Field label="Décrivez votre demande">
                   <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
@@ -220,7 +245,20 @@ export function DemandeWizard() {
             ) : null}
             {draft.service === 'SMARTPHONE' ? (
               <>
-                <Field label="Décrivez votre demande">
+                <Field label="Type de panne">
+                  <Select
+                    value={draft.problem}
+                    onChange={(e) => update({ problem: e.target.value })}
+                  >
+                    <option value="">Choisir une panne</option>
+                    {PHONE_PROBLEM_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Décrivez votre demande (optionnel)">
                   <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
                 </Field>
               </>
