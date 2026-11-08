@@ -48,7 +48,7 @@ void test('ADMIN : aucune route admin dans le menu client', () => {
     assert.doesNotMatch(content, /href="\/admin/);
   }
   const admin = read('../app/admin/layout.tsx');
-  assert.match(admin, /\/admin\/missions/);
+  assert.match(admin, /\/admin\/demandes/);
   assert.match(admin, /\/admin\/finances/);
 });
 
@@ -69,9 +69,8 @@ void test('ancres : chaque href /#… correspond à une section réelle', () => 
   assert.doesNotMatch(header, /categories-title/);
 });
 
-void test('routes workflow : parrainage lié, confirmation + technicien + historique liés', () => {
+void test('routes workflow : confirmation + technicien + historique liés', () => {
   const recompenses = read('../app/client/recompenses/page.tsx');
-  assert.match(recompenses, /\/client\/parrainage/);
   const wizard = read('../components/client/demande-wizard.tsx');
   assert.match(wizard, /\/client\/confirmation/);
   const dashboard = read('../components/client/client-dashboard.tsx');

@@ -147,13 +147,8 @@ export default function ClientRecompensesPage() {
       <PageHeader
         title="Programme de fidélité"
         description="Vos crédits et vos récompenses évoluent avec la valeur que vous générez chez Relio."
-        backHref="/client"
-        actions={
-          <Link href="/client/parrainage" className="text-sm font-medium text-primary hover:underline">
-            Inviter un ami
-          </Link>
-        }
-      />
+          backHref="/client"
+        />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
