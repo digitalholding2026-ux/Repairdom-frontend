@@ -11,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { getAdminMissionByReference, type SupervisedMission } from '@/lib/api/admin-service';
 import { updateDemandeStatus } from '@/lib/api/request-service';
-import { completeAdminDemande, type AdminInvoice } from '@/lib/api/admin-service';
+import { completeAdminDemande, type AdminInvoice, confirmAdminDemande, noShowAdminDemande } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 function statusVariant(status: string): string {
@@ -51,6 +51,8 @@ export default function AdminDemandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [noshowing, setNoshowing] = useState(false);
   const [invoice, setInvoice] = useState<AdminInvoice | null>(null);
 
   useEffect(() => {
@@ -97,6 +99,54 @@ export default function AdminDemandeDetailPage() {
       setCompleting(false);
     }
   };
+
+  const handleConfirm = async () => {
+    if (!mission) return;
+    setConfirming(true);
+    setError(null);
+    try {
+      const result = await confirmAdminDemande(mission.reference);
+      setMission((prev) =>
+        prev ? { ...prev, confirmationStatus: result.confirmationStatus } : prev,
+      );
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de confirmer le rendez-vous.'));
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handleNoShow = async () => {
+    if (!mission) return;
+    setNoshowing(true);
+    setError(null);
+    try {
+      await noShowAdminDemande(mission.reference);
+      setMission((prev) =>
+        prev ? { ...prev, confirmationStatus: 'CANCELLED_BY_ADMIN', status: 'CANCELED' } : prev,
+      );
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de marquer comme absent.'));
+    } finally {
+      setNoshowing(false);
+    }
+  };
+
+  /* Formate un numéro de téléphone camerounais pour whatsapp.me (237 + 9 chiffres). */
+  function formatWhatsAppNumber(phone: string | null | undefined): string {
+    if (!phone) return '';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('237')) return digits;
+    if (digits.startsWith('0')) return '237' + digits.slice(1);
+    if (digits.length === 9 && digits.startsWith('6')) return '237' + digits;
+    return digits;
+  }
+
+  function getWhatsAppUrl(phone: string | null | undefined, message: string): string {
+    const number = formatWhatsAppNumber(phone);
+    if (!number) return '';
+    return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+  }
 
   if (error) {
     return (
@@ -301,6 +351,75 @@ export default function AdminDemandeDetailPage() {
           </div>
         </div>
       ) : null}
+
+      {/* Confirmation WhatsApp (M2) */}
+      <div className="bg-card rounded-xl border p-5">
+        <h3 className="text-sm font-semibold mb-3">Confirmation du rendez-vous</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-muted-foreground">Statut de confirmation</span>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                mission.confirmationStatus === 'CONFIRMED'
+                  ? 'bg-success-soft text-success-ink'
+                  : mission.confirmationStatus === 'CANCELLED_BY_ADMIN' || mission.confirmationStatus === 'NO_SHOW'
+                    ? 'bg-error-soft text-error-ink'
+                    : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {mission.confirmationStatus === 'CONFIRMED'
+                ? 'Confirmé'
+                : mission.confirmationStatus === 'CANCELLED_BY_ADMIN' || mission.confirmationStatus === 'NO_SHOW'
+                  ? 'Annulé (admin)'
+                  : 'En attente de confirmation'}
+            </span>
+          </div>
+
+          {/* Bouton WhatsApp */}
+          {mission.client && mission.contact.contactPhone ? (
+            <Button
+              onClick={() => {
+                const client = mission.client!;
+                const clientName = `${client.firstName} ${client.lastName ?? ''}`.trim();
+                const model = mission.device.model?.name || mission.category;
+                const address = [mission.contact.address, mission.contact.city]
+                  .filter(Boolean)
+                  .join(', ');
+                const message = `Bonjour ${clientName}, c'est le technicien Relio. J'ai bien reçu votre demande pour ${model}. Je suis disponible pour passer. Confirmez-vous le rendez-vous à l'adresse ${address} ?`;
+                const url = getWhatsAppUrl(mission.contact.contactPhone, message);
+                if (url) window.open(url, '_blank');
+              }}
+              className="w-full flex items-center justify-center gap-2"
+            >
+              <span>Contacter sur WhatsApp</span>
+              <span className="text-[10px]">↗</span>
+            </Button>
+          ) : (
+            <p className="text-xs text-muted-foreground">Aucun numéro de téléphone client disponible.</p>
+          )}
+
+          {/* Boutons d'action confirmation */}
+          {mission.status !== 'COMPLETED' && mission.status !== 'CANCELED' ? (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={handleConfirm}
+                disabled={confirming || mission.confirmationStatus === 'CONFIRMED'}
+                className="w-full"
+              >
+                {confirming ? 'Confirmation…' : 'Marquer comme Confirmé'}
+              </Button>
+              <Button
+                onClick={handleNoShow}
+                disabled={noshowing || mission.confirmationStatus === 'CANCELLED_BY_ADMIN'}
+                variant="destructive"
+                className="w-full"
+              >
+                {noshowing ? 'Traitement…' : 'Annuler (Client injoignable)'}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <div className="mt-6">
         <Button variant="outline" onClick={() => router.push('/admin/demandes')}>

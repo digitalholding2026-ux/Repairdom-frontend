@@ -917,8 +917,8 @@ export default function ClientDemandeDetailPage() {
                     <p className="whitespace-pre-line px-3 py-2 text-sm">
                       {latestDiagnostic.proposedIntervention}
                     </p>
-                  </div>
-                ) : null}
+            </div>
+          ) : null}
                 {latestDiagnostic
                   ? [
                       { label: 'Justification', value: latestDiagnostic.justification },

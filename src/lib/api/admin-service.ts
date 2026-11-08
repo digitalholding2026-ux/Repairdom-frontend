@@ -745,6 +745,7 @@ export interface SupervisedMission {
     negotiationRequestedAt: string | null;
   };
   finalAmount: number | null;
+  confirmationStatus: string | null;
   diagnostics: {
     id: string;
     mode: string;
@@ -1082,5 +1083,31 @@ export async function completeAdminDemande(demandeId: string): Promise<{
   return catalogFetch(
     `/admin/demandes/${encodeURIComponent(demandeId)}/complete`,
     { method: 'POST' },
+  );
+}
+
+/* Confirme le rendez-vous (workflow WhatsApp, M2). Passe confirmationStatus à CONFIRMED. */
+export async function confirmAdminDemande(demandeId: string): Promise<{
+  id: string;
+  reference: string;
+  confirmationStatus: string;
+}> {
+  return catalogFetch(
+    `/admin/demandes/${encodeURIComponent(demandeId)}/confirm`,
+    { method: 'PATCH' },
+  );
+}
+
+/* Marque la demande comme « client injoignable » (no-show).
+ * Passe confirmationStatus à CANCELLED_BY_ADMIN et statut global à CANCELED. */
+export async function noShowAdminDemande(demandeId: string): Promise<{
+  id: string;
+  reference: string;
+  status: string;
+  confirmationStatus: string;
+}> {
+  return catalogFetch(
+    `/admin/demandes/${encodeURIComponent(demandeId)}/no-show`,
+    { method: 'PATCH' },
   );
 }
