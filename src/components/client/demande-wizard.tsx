@@ -4,17 +4,27 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Field, Input, Textarea } from '@/components/ui';
+import { Field, Input, Select, Textarea } from '@/components/ui';
 import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/cn';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { listCategories, listItems } from '@/lib/api/catalog-service';
 
 type Service = 'FRP' | 'SYSTEME' | 'SMARTPHONE';
+
+const SERVICE_LABELS: Record<Service, string> = {
+  FRP: 'Déblocage',
+  SYSTEME: 'Système',
+  SMARTPHONE: 'Smartphone',
+};
 
 const DRAFT_KEY = 'relio_demande_draft';
 
 interface Draft {
   service: Service | null;
-  model: string;
+  brandId: string | null;
+  modelId: string | null;
+  modelPrice: number | null;
   problem: string;
   description: string;
   address: string;
@@ -24,7 +34,9 @@ interface Draft {
 
 const emptyDraft: Draft = {
   service: null,
-  model: '',
+  brandId: null,
+  modelId: null,
+  modelPrice: null,
   problem: '',
   description: '',
   address: '',
@@ -32,10 +44,18 @@ const emptyDraft: Draft = {
   step: 1,
 };
 
+const SERVICES: Service[] = ['FRP', 'SYSTEME', 'SMARTPHONE'];
+
 export function DemandeWizard() {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [loaded, setLoaded] = useState(false);
+
+  /* Données déroulantes (FRP uniquement) */
+  const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
+  const [models, setModels] = useState<{ id: string; label: string; price: number | null }[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
 
   useEffect(() => {
     try {
@@ -51,7 +71,53 @@ export function DemandeWizard() {
     if (loaded) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draft, loaded]);
 
+  /* Quand le service change (ou redevient FRP), on recharge les marques. */
+  useEffect(() => {
+    if (!loaded || draft.service !== 'FRP') {
+      setBrands([]);
+      setModels([]);
+      update({ brandId: null, modelId: null, modelPrice: null });
+      return;
+    }
+    setLoadingBrands(true);
+    listCategories('FRP')
+      .then((cats) =>
+        setBrands(
+          cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setBrands([]))
+      .finally(() => setLoadingBrands(false));
+  }, [loaded, draft.service]);
+
+  /* Quand une marque est choisie, on recharge ses modèles. */
+  useEffect(() => {
+    if (!loaded || draft.service !== 'FRP' || !draft.brandId) {
+      setModels([]);
+      update({ modelId: null, modelPrice: null });
+      return;
+    }
+    setLoadingModels(true);
+    listItems('FRP', draft.brandId)
+      .then((items) =>
+        setModels(
+          items
+            .filter((i) => i.price != null)
+            .map((i) => ({ id: i.id, label: i.label, price: i.price }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setModels([]))
+      .finally(() => setLoadingModels(false));
+  }, [loaded, draft.service, draft.brandId]);
+
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+
+  const serviceLabel = SERVICE_LABELS[draft.service ?? 'FRP'];
+  const isNextEnabled = () => {
+    if (draft.service === 'FRP') return Boolean(draft.modelId && draft.address && draft.phone);
+    return Boolean(draft.address && draft.phone);
+  };
 
   if (!loaded) return null;
 
@@ -62,74 +128,137 @@ export function DemandeWizard() {
         <div className="h-full bg-primary transition-all" style={{ width: `${(draft.step / 3) * 100}%` }} />
       </div>
 
+      {/* Étape 1 : choix du service */}
       {draft.step === 1 ? (
         <div className="grid gap-3 sm:grid-cols-3">
-          {(['FRP', 'SYSTEME', 'SMARTPHONE'] as Service[]).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => update({ service: s, step: 2 })}
-              className={cn(
-                'rounded-2xl border p-6 text-center font-semibold transition-colors',
-                draft.service === s ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50',
-              )}
-            >
-              {s}
-            </button>
-          ))}
+          {SERVICES.map((s) => {
+            const active = draft.service === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => update({ service: s, step: 2 })}
+                className={cn(
+                  'rounded-2xl border p-6 text-center font-semibold transition-colors',
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-muted/50',
+                )}
+              >
+                {SERVICE_LABELS[s]}
+              </button>
+            );
+          })}
         </div>
       ) : null}
 
+      {/* Étape 2 : détails dynamiques + adresse/téléphone */}
       {draft.step === 2 ? (
         <Card>
           <CardContent className="space-y-4 pt-4">
             {draft.service === 'FRP' ? (
-              <Field label="Modèle Tecno">
-                <Input value={draft.model} onChange={(e) => update({ model: e.target.value })} placeholder="Ex: Tecno Spark 10" />
-              </Field>
+              <>
+                <Field label="Marque">
+                  <Select
+                    value={draft.brandId ?? ''}
+                    onChange={(e) => update({ brandId: e.target.value || null, modelId: null, modelPrice: null })}
+                    disabled={loadingBrands}
+                  >
+                    <option value="">Choisir une marque</option>
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </Select>
+                  {loadingBrands && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                </Field>
+
+                {draft.brandId ? (
+                  <Field label="Modèle">
+                    <Select
+                      value={draft.modelId ?? ''}
+                      onChange={(e) => {
+                        const m = models.find((x) => x.id === e.target.value);
+                        update({ modelId: e.target.value || null, modelPrice: m?.price ?? null });
+                      }}
+                      disabled={loadingModels || models.length === 0}
+                    >
+                      <option value="">Choisir un modèle</option>
+                      {models.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {loadingModels && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                    {draft.modelPrice != null && (
+                      <p className="mt-1 text-sm font-semibold text-primary">
+                        Prix : {formatFCFA(draft.modelPrice)}
+                      </p>
+                    )}
+                  </Field>
+                ) : null}
+
+                <Field label="Adresse (ville / quartier)">
+                  <Input value={draft.address} onChange={(e) => update({ address: e.target.value })} />
+                </Field>
+                <Field label="Téléphone WhatsApp">
+                  <Input value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
+                </Field>
+              </>
             ) : null}
             {draft.service === 'SYSTEME' ? (
               <>
                 <Field label="Type d'intervention">
                   <Input value={draft.problem} onChange={(e) => update({ problem: e.target.value })} placeholder="Réinstallation OS, pilotes…" />
                 </Field>
-                <Field label="Description">
+                <Field label="Décrivez votre demande">
                   <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
                 </Field>
               </>
             ) : null}
             {draft.service === 'SMARTPHONE' ? (
               <>
-                <Field label="Type de panne">
-                  <Input value={draft.problem} onChange={(e) => update({ problem: e.target.value })} placeholder="Écran, batterie, connecteur…" />
-                </Field>
-                <Field label="Description (optionnel)">
+                <Field label="Décrivez votre demande">
                   <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
                 </Field>
               </>
             ) : null}
-            <Field label="Adresse (ville / quartier)">
-              <Input value={draft.address} onChange={(e) => update({ address: e.target.value })} />
-            </Field>
-            <Field label="Téléphone WhatsApp">
-              <Input value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
-            </Field>
+            {(draft.service === 'SYSTEME' || draft.service === 'SMARTPHONE') && (
+              <>
+                <Field label="Adresse (ville / quartier)">
+                  <Input value={draft.address} onChange={(e) => update({ address: e.target.value })} />
+                </Field>
+                <Field label="Téléphone WhatsApp">
+                  <Input value={draft.phone} onChange={(e) => update({ phone: e.target.value })} />
+                </Field>
+              </>
+            )}
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => update({ step: 1 })}>Précédent</Button>
-              <Button onClick={() => update({ step: 3 })}>Suivant</Button>
+              <Button onClick={() => update({ step: 3 })} disabled={!isNextEnabled()}>
+                Suivant
+              </Button>
             </div>
           </CardContent>
         </Card>
       ) : null}
 
+      {/* Étape 3 : récapitulatif + validation */}
       {draft.step === 3 ? (
         <Card>
           <CardContent className="space-y-4 pt-4">
             <p className="text-sm text-muted-foreground">Récapitulatif</p>
             <ul className="space-y-1 text-sm">
-              <li>Service : {draft.service}</li>
-              {draft.model ? <li>Modèle : {draft.model}</li> : null}
-              {draft.problem ? <li>Problème : {draft.problem}</li> : null}
+              <li>Service : {serviceLabel}</li>
+              {draft.modelId ? (
+                <li>
+                  Modèle : {models.find((m) => m.id === draft.modelId)?.label ?? draft.modelId}
+                </li>
+              ) : null}
+              {draft.problem ? <li>Intervention : {draft.problem}</li> : null}
+              {draft.description ? <li>Détail : {draft.description}</li> : null}
               <li>Adresse : {draft.address}</li>
               <li>Téléphone : {draft.phone}</li>
             </ul>
