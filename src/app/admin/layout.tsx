@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
-import { BrandLogo } from '@/components/public/brand-logo';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -25,7 +23,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin', label: 'Tableau de bord', icon: 'home' },
   { href: '/admin/demandes', label: 'Demandes', icon: 'search' },
   { href: '/admin/catalogue', label: 'Catalogue', icon: 'wrench' },
-  { href: '/admin/clients', label: 'Clients', icon: 'users' },
+  { href: '/admin/clients', label: 'Clients B2B', icon: 'users' },
   { href: '/admin/finances', label: 'Finances', icon: 'wallet' },
 ];
 
@@ -34,23 +32,11 @@ function isNavActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/* Un seul onglet actif : le href correspondant le plus long gagne
- * (ex. `/admin/catalog/baremes` n'active plus aussi `/admin/catalog`). */
-function activeNavHref(pathname: string): string | null {
-  let best: string | null = null;
-  for (const item of ADMIN_NAV) {
-    if (isNavActive(pathname, item.href) && (best === null || item.href.length > best.length)) {
-      best = item.href;
-    }
-  }
-  return best;
-}
-
 export default function AdminLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
-  const activeHref = activeNavHref(pathname);
   const { authenticated, user, loading } = useAuth();
   const showChrome = authenticated && user?.role === 'ADMIN';
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -59,24 +45,31 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
   };
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col bg-slate-50">
       <ScrollToTop />
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur safe-top">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur safe-top">
         <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <BrandLogo href="/admin" />
-          {loading ? (
-            <Spinner size="sm" className="border-muted-foreground/30 border-t-muted-foreground" />
-          ) : showChrome ? (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-foreground lg:hidden"
+              aria-label="Ouvrir le menu"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Icon name="menu" size="sm" />
+            </button>
+            <Link href="/admin" className="flex items-center gap-2">
+              <span className="text-lg font-bold text-relio-orange">Relio</span>
+              <Badge variant="info">Admin</Badge>
+            </Link>
+          </div>
+          {loading ? null : showChrome ? (
             <div className="flex items-center gap-2">
-              <Badge variant="info">Espace admin</Badge>
+              <span className="hidden text-sm text-muted-foreground sm:inline">
+                {user?.email ?? user?.firstName ?? 'Admin'}
+              </span>
               <UserAvatar href="/admin" />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                isLoading={loggingOut}
-                aria-label="Se déconnecter"
-              >
+              <Button variant="ghost" size="icon" onClick={handleLogout} isLoading={loggingOut} aria-label="Se déconnecter">
                 <Icon name="logout" size="sm" />
               </Button>
             </div>
@@ -84,23 +77,50 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 items-start gap-6 px-4 py-6 sm:px-6 lg:gap-8 lg:px-8">
-        {showChrome ? (
-          <aside className="sticky top-20 hidden w-60 shrink-0 lg:block" aria-label="Navigation admin">
-            <nav className="space-y-1 rounded-2xl border border-border bg-card p-2">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        <aside className="sticky top-20 hidden h-[calc(100vh-6rem)] w-60 shrink-0 lg:block">
+          <nav className="space-y-1 rounded-2xl border border-border bg-card p-2 shadow-sm">
+            {ADMIN_NAV.map((item) => {
+              const active = isNavActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                    active
+                      ? 'bg-relio-orange/10 text-relio-orange'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                  )}
+                >
+                  <Icon name={item.icon} size="sm" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {mobileOpen ? (
+          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
+            <nav className="absolute left-0 top-0 h-full w-72 space-y-1 bg-card p-4 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <span className="text-lg font-bold text-relio-orange">Relio Admin</span>
+                <button type="button" className="h-9 w-9 rounded-lg" aria-label="Fermer" onClick={() => setMobileOpen(false)}>
+                  <Icon name="x" size="sm" />
+                </button>
+              </div>
               {ADMIN_NAV.map((item) => {
-                const active = activeHref === item.href;
+                const active = isNavActive(pathname, item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    aria-current={active ? 'page' : undefined}
+                    onClick={() => setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-xl border-l-4 border-transparent px-3 py-2.5 text-sm font-medium transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      active
-                        ? 'border-l-relio-orange bg-slate-100 font-semibold text-slate-900 dark:bg-white/5 dark:text-white'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white',
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium',
+                      active ? 'bg-relio-orange/10 text-relio-orange' : 'text-slate-600 hover:bg-slate-100',
                     )}
                   >
                     <Icon name={item.icon} size="sm" />
@@ -109,57 +129,34 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
                 );
               })}
             </nav>
-          </aside>
+          </div>
         ) : null}
 
-        <main className="min-w-0 flex-1 pb-28 lg:pb-10">
-          <div key={pathname} className="animate-slide-up">
-            <RoleGuard expectedRole="ADMIN" publicPaths={[]}>
-              {children}
-            </RoleGuard>
-          </div>
+        <main className="min-w-0 flex-1 pb-24 lg:pb-6">
+          <RoleGuard expectedRole="ADMIN" publicPaths={[]}>
+            {children}
+          </RoleGuard>
         </main>
       </div>
 
-      {showChrome ? (
-        <div className="lg:hidden">
-          {/* Phase A : les 8 sections admin restent accessibles en mobile via
-            * une rangée à défilement horizontal (la BottomNav à 4 items en
-            * amputait 4). */}
-          <nav
-            aria-label="Navigation admin"
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur"
-          >
-            <div className="flex gap-1 overflow-x-auto px-2">
-              {ADMIN_NAV.map((item) => {
-                const active = activeHref === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'flex min-w-16 shrink-0 flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-2xs font-medium',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      active ? 'text-slate-900 dark:text-white' : 'text-muted-foreground',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-6 items-center justify-center rounded-full px-3',
-                        active && 'bg-slate-100 dark:bg-white/10',
-                      )}
-                    >
-                      <Icon name={item.icon} size="sm" strokeWidth={active ? 2.4 : 1.9} />
-                    </span>
-                    <span className="max-w-full truncate leading-none">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        </div>
-      ) : null}
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-card/95 backdrop-blur lg:hidden">
+        {ADMIN_NAV.map((item) => {
+          const active = isNavActive(pathname, item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium',
+                active ? 'text-relio-orange' : 'text-muted-foreground',
+              )}
+            >
+              <Icon name={item.icon} size="sm" />
+              <span className="truncate">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
