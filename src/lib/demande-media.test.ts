@@ -16,7 +16,7 @@ const read = (rel: string): string =>
 
 void test('client : description obligatoire (≥10), médias facultatifs', () => {
   const wizard = read('../components/client/demande-wizard.tsx');
-  assert.match(wizard, /Décrivez votre panne/);
+  assert.match(wizard, /Décrivez votre demande/);
   assert.match(wizard, /demande-description/);
   assert.match(wizard, /DESCRIPTION_MIN_LENGTH = 10/);
   assert.match(wizard, /description\.trim\(\)\.length >= DESCRIPTION_MIN_LENGTH/);
