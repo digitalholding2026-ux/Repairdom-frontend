@@ -1,38 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatCard } from '@/components/ui/stat-card';
-import { formatCurrency } from '@/lib/format';
-import { listDomains } from '@/lib/api/admin-service';
-import { listAdminCities } from '@/lib/api/admin-service';
-import { getAdminFinanceSummary } from '@/lib/api/finance-service';
+import { formatFCFA } from '@/lib/format-fcfa';
+import { getAdminDashboardStats, type AdminDashboardStats, type DashboardStatRequest } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
-/* Tableau de bord admin : UNIQUEMENT des données réellement disponibles via
- * les API existantes (aucun KPI inventé).
- * - Missions tracées + revenu Relio : GET /admin/finances (ledger réel).
- * - Catalogue / villes : décomptes des listes admin.
- * - Supervision missions : accès par référence uniquement (aucun endpoint de
- *   liste) — carte de navigation sans indicateur chiffré.
- * Statistiques non affichées faute d'API : missions en attente, techniciens
- * inscrits, missions récentes (voir note en bas de page). */
-
-interface DashboardData {
-  financeMissions: number;
-  repairDomRevenue: number;
-  currency: string;
-  domains: number;
-  problems: number;
-  cities: number;
-  activeCities: number;
-}
-
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<AdminDashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -40,23 +20,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      getAdminFinanceSummary(),
-      listDomains(),
-      listAdminCities(),
-    ])
-      .then(([finance, domains, cities]) => {
+    getAdminDashboardStats()
+      .then((stats) => {
         if (cancelled) return;
-        const modes = [finance.results.REAL].filter(Boolean);
-        setData({
-          financeMissions: modes.reduce((sum, mode) => sum + mode.totals.missionsCount, 0),
-          repairDomRevenue: modes.reduce((sum, mode) => sum + mode.totals.repairDomRevenue, 0),
-          currency: finance.currency,
-          domains: domains.length,
-          problems: domains.reduce((sum, domain) => sum + (domain._count?.problems ?? 0), 0),
-          cities: cities.length,
-          activeCities: cities.filter((city) => city.isActive).length,
-        });
+        setData(stats);
         setError(null);
       })
       .catch((err) => {
@@ -74,7 +41,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-5">
       <PageHeader
         title="Tableau de bord"
-        description="Supervision Relio : indicateurs issus des modules existants."
+        description="Centre de commande Relio : indicateurs et demandes à traiter."
       />
 
       {error ? (
@@ -89,56 +56,96 @@ export default function AdminDashboardPage() {
       {loading || !data ? (
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3" role="status" aria-label="Chargement du tableau de bord">
           <span className="sr-only">Chargement…</span>
-          {Array.from({ length: 6 }).map((_, index) => (
+          {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-28 rounded-xl" />
           ))}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
-            <StatCard
-              icon="briefcase"
-              label="Missions tracées"
-              value={data.financeMissions}
-              href="/admin/finances"
-            />
-            <StatCard
-              icon="file"
-              label="Revenu Relio"
-              value={formatCurrency(data.repairDomRevenue, data.currency)}
-              variant="revenue"
-              href="/admin/finances"
-            />
-              <StatCard
-                icon="wrench"
-                label={`Catalogue · ${data.problems} problèmes`}
-                value={data.domains}
-                href="/admin/catalogue"
-              />
-              <StatCard
-                icon="pin"
-                label="Villes de service"
-                value={`${data.activeCities}/${data.cities} actives`}
-                href="/admin/catalogue"
-              />
-              <StatCard
-                icon="search"
-                label="Supervision demandes"
-                value="Par référence"
-                href="/admin/demandes"
-              />
-              <StatCard
-                icon="users"
-                label="Comptes clients"
-                value="Gestion"
-                href="/admin/clients"
-              />
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  Demandes en attente
+                </p>
+                <p className="text-2xl font-bold">{data.demandesEnAttente}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Reçues ou devis en cours
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  En cours
+                </p>
+                <p className="text-2xl font-bold">{data.demandesEnCours}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Planifiées ou en intervention
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  Chiffre d’affaires du mois
+                </p>
+                <p className="text-2xl font-bold">
+                  {formatFCFA(data.caMois)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">Transactions validées</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4 pb-4">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+                  À traiter ce mois
+                </p>
+                <p className="text-2xl font-bold">
+                  {data.dernieresDemandes.length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">Dernières demandes</p>
+              </CardContent>
+            </Card>
           </div>
-          <p className="text-xs text-muted-foreground">
-            « Missions tracées » et « Revenu Relio » proviennent de la synthèse financière
-            (réel). Les missions en attente, les techniciens inscrits et les
-            missions récentes ne sont pas affichés : aucun endpoint dédié ne les expose.
-          </p>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              À traiter en priorité
+            </h2>
+            <div className="space-y-2">
+              {data.dernieresDemandes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune demande récente.
+                </p>
+              ) : (
+                data.dernieresDemandes.map((r: DashboardStatRequest) => (
+                  <Card key={r.id}>
+                    <CardContent className="pt-3 pb-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">
+                            {r.reference}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {r.client} · {r.service}
+                          </p>
+                        </div>
+                        <span className="text-xs font-medium">
+                          {r.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-end">
+                        <Link href={`/admin/demandes/${r.id}`} passHref legacyBehavior>
+                          <Button size="sm">Gérer</Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </section>
         </>
       )}
     </div>

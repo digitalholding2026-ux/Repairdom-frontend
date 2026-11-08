@@ -681,6 +681,26 @@ export function listAdminDemandes(params?: {
   return catalogFetch<AdminDemandeList>(`/admin/demandes${suffix}`);
 }
 
+export interface DashboardStatRequest {
+  id: string;
+  reference: string;
+  status: string;
+  service: string;
+  client: string;
+  createdAt: string;
+}
+
+export interface AdminDashboardStats {
+  demandesEnAttente: number;
+  demandesEnCours: number;
+  caMois: number;
+  dernieresDemandes: DashboardStatRequest[];
+}
+
+export async function getAdminDashboardStats(): Promise<AdminDashboardStats> {
+  return catalogFetch<AdminDashboardStats>('/admin/dashboard/stats');
+}
+
 export interface SupervisedMissionEvent {
   id: string;
   type: string;

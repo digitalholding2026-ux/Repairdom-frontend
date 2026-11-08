@@ -223,7 +223,7 @@ export default function AdminFinancesPage() {
               value={formatCurrency(totalRevenue, data.currency)}
               variant="revenue"
             />
-            <StatCard icon="briefcase" label="Missions" value={totalMissions} />
+            <StatCard icon="briefcase" label="Demandes" value={totalMissions} />
             <StatCard
               icon="check-circle"
               label="Écarts"
@@ -309,7 +309,7 @@ function ModeSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Metric label="Revenu Relio" value={formatCurrency(result.totals.repairDomRevenue, currency)} />
-            <Metric label="Commissions techniciens" value={formatCurrency(result.totals.technicianFees, currency)} />
+            <Metric label="Commissions Relio" value={formatCurrency(result.totals.technicianFees, currency)} />
             <Metric label="Frais clients (historique)" value={formatCurrency(result.totals.clientFees, currency)} />
             <Metric label="Débité sur les clients" value={formatCurrency(result.totals.clientDebits, currency)} />
             <Metric label="Net techniciens" value={formatCurrency(result.totals.technicianNet, currency)} />
