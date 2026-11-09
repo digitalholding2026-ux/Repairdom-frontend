@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
+import EscrowCountdown from '@/components/client/EscrowCountdown';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { Alert } from '@/components/ui/alert';
@@ -632,6 +633,15 @@ export default function ClientDemandeDetailPage() {
         </section>
       ) : (
         <section aria-label="État de la mission" className="space-y-3">
+          {demande.escrowStatus === 'ACTIVE' && demande.escrowEndsAt ? (
+            <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
+              <EscrowCountdown escrowEndsAt={demande.escrowEndsAt} />
+              <p className="mt-2 text-xs text-muted-foreground">
+                Votre argent est sécurisé. Si la réparation n'est pas terminée
+                dans ce délai, vous serez automatiquement remboursé.
+              </p>
+            </div>
+          ) : null}
           {demande.status === 'SUBMITTED' || demande.status === 'PENDING' ? (
             /* Recherche en cours : le statut est déjà porté par le badge du
              * header, ce bloc sert à expliquer CE QUI SE PASSE. */

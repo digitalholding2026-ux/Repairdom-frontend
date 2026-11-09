@@ -109,6 +109,9 @@ export interface CreateDemandeResult {
   problem: DeviceContext | null;
   negotiationRequestedAt: string | null;
   finalAmount: number | null;
+  // M2 — escrow smartphone : heure de fin du séquestre et statut du hold.
+  escrowEndsAt: string | null;
+  escrowStatus: string | null;
   medias: Array<{
     id: string;
     kind: string;
