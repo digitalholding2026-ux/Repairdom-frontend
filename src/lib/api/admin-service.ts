@@ -745,6 +745,9 @@ export interface SupervisedMission {
     negotiationRequestedAt: string | null;
   };
   finalAmount: number | null;
+  depositAmount: number | null;
+  depositPaid: boolean;
+  isNoShow: boolean;
   confirmationStatus: string | null;
   diagnostics: {
     id: string;
@@ -1052,11 +1055,12 @@ export interface AdminCatalogItem {
   order: number;
   price: number | null;
   active: boolean;
+  travelFee: number | null;
 }
 
 export function updateCatalogItemPrices(
   itemId: string,
-  data: { price?: number | null; active?: boolean },
+  data: { price?: number | null; active?: boolean; travelFee?: number | null },
 ): Promise<AdminCatalogItem> {
   return catalogFetch<AdminCatalogItem>(
     `/admin/catalog/items/${encodeURIComponent(itemId)}/prices`,
@@ -1098,16 +1102,16 @@ export async function confirmAdminDemande(demandeId: string): Promise<{
   );
 }
 
-/* Marque la demande comme « client injoignable » (no-show).
- * Passe confirmationStatus à CANCELLED_BY_ADMIN et statut global à CANCELED. */
+/* Marque la demande comme « client absent » (no-show).
+ * Passe isNoShow à true, libère le FundsHold de dépôt et statut global à CANCELED. */
 export async function noShowAdminDemande(demandeId: string): Promise<{
   id: string;
   reference: string;
   status: string;
-  confirmationStatus: string;
+  isNoShow: boolean;
 }> {
   return catalogFetch(
     `/admin/demandes/${encodeURIComponent(demandeId)}/no-show`,
-    { method: 'PATCH' },
+    { method: 'POST' },
   );
 }

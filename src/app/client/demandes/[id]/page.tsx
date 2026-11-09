@@ -700,6 +700,24 @@ export default function ClientDemandeDetailPage() {
             </div>
           ) : null}
 
+          {demande.status === 'ACCEPTED' && demande.depositPaid && demande.depositAmount ? (
+            <div className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/5 p-4">
+              <Badge variant="success" className="ml-auto">
+                Réservation payée
+              </Badge>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">
+                  Frais de déplacement payés : {formatFCFA(demande.depositAmount)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {demande.finalAmount != null && demande.finalAmount > demande.depositAmount
+                    ? `Le reste (${formatFCFA(demande.finalAmount - demande.depositAmount)}) sera payé après la réparation.`
+                    : 'Le solde sera payé après la réparation.'}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {demande.status === 'IN_PROGRESS' ? (
             <div>
               <Alert variant="info" icon="wrench" title="Intervention en cours">

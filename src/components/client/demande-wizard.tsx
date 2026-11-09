@@ -25,6 +25,7 @@ interface Draft {
   brandId: string | null;
   modelId: string | null;
   modelPrice: number | null;
+  depositAmount: number | null;
   problem: string;
   description: string;
   address: string;
@@ -37,6 +38,7 @@ const emptyDraft: Draft = {
   brandId: null,
   modelId: null,
   modelPrice: null,
+  depositAmount: null,
   problem: '',
   description: '',
   address: '',
@@ -152,7 +154,10 @@ export function DemandeWizard() {
               <button
                 key={s}
                 type="button"
-                onClick={() => update({ service: s, step: 2 })}
+                onClick={() => {
+                  const deposit = s === 'SMARTPHONE' ? null : 1000;
+                  update({ service: s, step: 2, depositAmount: deposit });
+                }}
                 className={cn(
                   'rounded-2xl border p-6 text-center font-semibold transition-colors',
                   active
@@ -300,6 +305,22 @@ export function DemandeWizard() {
               <li>Adresse : {draft.address}</li>
               <li>Téléphone : {draft.phone}</li>
             </ul>
+            {draft.service !== 'SMARTPHONE' && draft.depositAmount != null && draft.depositAmount > 0 ? (
+              <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
+                <p className="text-sm font-medium">
+                  Frais de déplacement à payer :{' '}
+                  <span className="font-semibold">{formatFCFA(draft.depositAmount)}</span>.
+                  {draft.modelPrice != null ? (
+                    <>
+                      Le reste ({formatFCFA(draft.modelPrice - draft.depositAmount)}) sera payé après
+                      la réparation.
+                    </>
+                  ) : (
+                    'Le solde restant sera payé après la réparation.'
+                  )}
+                </p>
+              </div>
+            ) : null}
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => update({ step: 2 })}>Précédent</Button>
               <Button
@@ -308,7 +329,9 @@ export function DemandeWizard() {
                   router.push('/demande/succes');
                 }}
               >
-                Valider la demande
+                {draft.service !== 'SMARTPHONE' && draft.depositAmount != null
+                  ? `Payer les frais de déplacement (${formatFCFA(draft.depositAmount)})`
+                  : 'Valider la demande'}
               </Button>
             </div>
           </CardContent>

@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { useToast } from '@/lib/toast-context';
 import { getAdminMissionByReference, type SupervisedMission } from '@/lib/api/admin-service';
 import { updateDemandeStatus } from '@/lib/api/request-service';
 import { completeAdminDemande, type AdminInvoice, confirmAdminDemande, noShowAdminDemande } from '@/lib/api/admin-service';
@@ -44,6 +45,7 @@ function formatStatus(status: string): string {
 
 export default function AdminDemandeDetailPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const { id } = useParams();
   const reference = (Array.isArray(id) ? id[0] : id ?? '').toUpperCase();
   const [mission, setMission] = useState<SupervisedMission | null>(null);
@@ -121,10 +123,17 @@ export default function AdminDemandeDetailPage() {
     setNoshowing(true);
     setError(null);
     try {
-      await noShowAdminDemande(mission.reference);
+      const updated = await noShowAdminDemande(mission.reference);
       setMission((prev) =>
-        prev ? { ...prev, confirmationStatus: 'CANCELLED_BY_ADMIN', status: 'CANCELED' } : prev,
+        prev
+          ? { ...prev, isNoShow: true, status: 'CANCELED' }
+          : prev,
       );
+      toast({
+        title: 'Client absent (No-Show)',
+        description: `Les frais de déplacement ont été acquis à Relio pour la mission ${updated.reference}.`,
+        variant: 'error',
+      });
     } catch (err) {
       setError(toUserErrorMessage(err, 'Impossible de marquer comme absent.'));
     } finally {
@@ -410,11 +419,11 @@ export default function AdminDemandeDetailPage() {
               </Button>
               <Button
                 onClick={handleNoShow}
-                disabled={noshowing || mission.confirmationStatus === 'CANCELLED_BY_ADMIN'}
+                disabled={noshowing || mission.isNoShow || mission.status === 'CANCELED'}
                 variant="destructive"
                 className="w-full"
               >
-                {noshowing ? 'Traitement…' : 'Annuler (Client injoignable)'}
+                {noshowing ? 'Traitement…' : 'Signaler un client absent (No-Show)'}
               </Button>
             </div>
           ) : null}

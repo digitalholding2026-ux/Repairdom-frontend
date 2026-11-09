@@ -109,6 +109,11 @@ export interface CreateDemandeResult {
   problem: DeviceContext | null;
   negotiationRequestedAt: string | null;
   finalAmount: number | null;
+  // Frais de déplacement (booking fee) : dépôt payé à la validation (FRP/Système).
+  depositAmount: number | null;
+  depositPaid: boolean;
+  // Client absent au rendez-vous (no-show).
+  isNoShow: boolean;
   // M2 — escrow smartphone : heure de fin du séquestre et statut du hold.
   escrowEndsAt: string | null;
   escrowStatus: string | null;

@@ -40,7 +40,7 @@ export default function AdminCataloguePage() {
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; active: boolean }>>({});
+  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean }>>({});
   const [categoriesByService, setCategoriesByService] = useState<Record<string, CatalogCategoryLite[]>>({});
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, CatalogItemLite[]>>({});
 
@@ -135,7 +135,11 @@ export default function AdminCataloguePage() {
               setEditingItem(item.id);
               setItemPrices((prev) => ({
                 ...prev,
-                [item.id]: { price: String(item.price ?? ''), active: item.active },
+                [item.id]: {
+                  price: String(item.price ?? ''),
+                  travelFee: String(item.travelFee ?? ''),
+                  active: item.active,
+                },
               }));
             }}
             onSaveItem={async (itemId) => {
@@ -144,6 +148,7 @@ export default function AdminCataloguePage() {
               try {
                 await updateCatalogItemPrices(itemId, {
                   price: values.price === '' ? null : Number(values.price),
+                  travelFee: values.travelFee === '' ? null : Number(values.travelFee),
                   active: values.active,
                 });
                 setEditingItem(null);
@@ -176,8 +181,8 @@ interface ServiceCardProps {
   categories: CatalogCategoryLite[];
   itemsByCategory: Record<string, CatalogItemLite[]>;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
   loadCategories: () => void;
   loadItems: (catId: string, categoryId: string) => void;
   onEditItem: (item: CatalogItemLite) => void;
@@ -268,8 +273,8 @@ interface CategorySectionProps {
   itemsLoaded: boolean;
   loadItems: () => void;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -330,8 +335,8 @@ function CategorySection({
 interface ItemRowProps {
   item: CatalogItemLite;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -374,6 +379,17 @@ function ItemRow({
               className="w-24 h-10 text-sm"
               placeholder="Prix"
             />
+            <Input
+              value={values.travelFee}
+              onChange={(e) => {
+                setItemPrices((prev) => ({
+                  ...prev,
+                  [item.id]: { ...prev[item.id], travelFee: e.target.value },
+                }));
+              }}
+              className="w-24 h-10 text-sm"
+              placeholder="Frais dépl."
+            />
             <label className="flex items-center gap-1 text-xs cursor-pointer">
               <input
                 type="checkbox"
@@ -403,6 +419,11 @@ function ItemRow({
             <span className="text-xs text-muted-foreground">
               {item.price != null ? formatCurrency(item.price, 'XAF') : '—'}
             </span>
+            {item.travelFee != null && item.travelFee > 0 && (
+              <span className="text-xs text-muted-foreground">
+                + {formatCurrency(item.travelFee, 'XAF')} déplacement
+              </span>
+            )}
             <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
               <span className="size-4">✎</span>
             </Button>
