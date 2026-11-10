@@ -16,7 +16,7 @@ export default function SuccesPage() {
           <span className="font-medium">WhatsApp</span> pour confirmer votre
           rendez-vous. Aucun paiement en ligne n&apos;est requis pour le moment
           : le règlement se fait à la fin de l&apos;intervention (sauf
-          réparation smartphone : paiement en ligne par escrow).
+          réparation smartphone : paiement en ligne par paiement sécurisé).
         </p>
       </div>
     </div>

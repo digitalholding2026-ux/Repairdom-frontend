@@ -428,9 +428,9 @@ export default function AdminDemandeDetailPage() {
       ) : null}
       {escrowStartedAt ? (
         <div className="bg-card rounded-xl border p-5">
-          <h3 className="text-sm font-semibold mb-3">État de l&apos;escrow</h3>
+          <h3 className="text-sm font-semibold mb-3">État du paiement sécurisé</h3>
           <div className="space-y-1 text-sm">
-            <p>Fonds bloqués depuis {escrowHours} h</p>
+              <p>Fonds sécurisés depuis {escrowHours} h</p>
             <p className="text-xs text-muted-foreground">{mission.status}</p>
             {invoice && (
               <p className="text-xs text-muted-foreground">

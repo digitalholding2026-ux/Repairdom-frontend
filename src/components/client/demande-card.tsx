@@ -119,7 +119,7 @@ export function DemandeCard({ demande }: DemandeCardProps) {
                 isLoading={escrowBusy}
                 className="flex-1 bg-primary text-white hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Payer et sécuriser (Escrow)
+                Procéder au paiement sécurisé
               </Button>
             )}
             {demande.categoryId === 'SMARTPHONE' && demande.status === 'IN_PROGRESS' && demande.escrowEndsAt && (

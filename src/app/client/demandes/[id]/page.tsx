@@ -776,7 +776,7 @@ export default function ClientDemandeDetailPage() {
           {demande.status === 'ACCEPTED' && demande.finalAmount ? (
             <div className="flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <div className="min-w-0">
-                <p className="text-sm font-semibold">Mise sous séquestre (Escrow)</p>
+                <p className="text-sm font-semibold">Paiement Sécurisé</p>
                 <p className="text-xs text-muted-foreground">
                   Les fonds sont bloqués jusqu&apos;à la fin de l&apos;intervention.
                 </p>
