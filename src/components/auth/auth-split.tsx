@@ -28,8 +28,8 @@ export interface AuthGuarantee {
 
 const GUARANTEES: AuthGuarantee[] = [
   {
-    title: 'Techniciens vérifiés',
-    text: 'Identité contrôlée avant la mise en relation.',
+    title: 'Technicien agréé',
+    text: 'Intervention par un professionnel qualifié de l\'équipe Relio.',
     icon: 'badge-check',
   },
   {
@@ -164,7 +164,7 @@ export function AuthSplit({
             <div className="relative aspect-[16/10] w-full bg-slate-900">
               <Image
                 src="/hero/hero_main.webp"
-                alt="Technicien Relio en intervention"
+                alt="Intervention Relio à domicile"
                 fill
                 priority
                 sizes="(max-width: 1023px) 90vw, 40vw"
