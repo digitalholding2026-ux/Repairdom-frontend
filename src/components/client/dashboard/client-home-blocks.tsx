@@ -108,12 +108,12 @@ const REASSURANCE_CARDS: Array<{ icon: IconName; title: string; text: string }> 
   {
     icon: 'shield-check',
     title: 'Expertise Relio',
-    text: 'R\u00e9paration garantie par un professionnel qualifi\u00e9 de l\u2019\u00e9quipe Relio.',
+    text: 'Intervention à domicile par un professionnel qualifié de l’équipe Relio.',
   },
   {
     icon: 'wallet',
-    title: 'Paiement sécurisé',
-    text: 'Votre solde n\u2019est débité qu\u2019après confirmation de l\u2019opérateur Mobile Money.',
+    title: 'Paiement à la fin',
+    text: 'Payez uniquement une fois la réparation terminée et validée. Aucun frais caché.',
   },
   {
     icon: 'clock',
@@ -131,20 +131,21 @@ export function MissionsEmptyState() {
         <Icon name="wrench" size="xl" className="relative z-10 h-10 w-10 text-slate-500 dark:text-slate-300" />
       </div>
       <h3 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">
-        Aucune intervention en cours
+        Aucune demande en cours
       </h3>
       <p className="mb-6 max-w-md text-sm text-slate-500 dark:text-slate-400">
-        Besoin d&apos;un électricien, plombier ou réparateur ? Décrivez votre problème et
-        recevez des propositions de nos techniciens vérifiés.
+        Besoin d\u2019un d\u00e9pannage informatique, d\u2019une r\u00e9paration de smartphone
+        ou d\u2019un d\u00e9blocage ? D\u00e9posez votre demande en 2 minutes. Un expert
+        Relio vous contactera sur WhatsApp pour confirmer votre rendez-vous.
       </p>
       <Link href='/demande'>
-        <Button
-          size="lg"
-          className="shadow-lg shadow-primary/25 transition-all duration-200 hover:scale-[1.02] hover:shadow-primary/40 active:scale-[0.98]"
-        >
-          <Icon name="plus" size="sm" />
-          Demander un dépannage
-        </Button>
+          <Button
+            size="lg"
+            className="shadow-lg shadow-primary/25 transition-all duration-200 hover:scale-[1.02] hover:shadow-primary/40 active:scale-[0.98]"
+          >
+            <Icon name="plus" size="sm" />
+            Déposer une demande
+          </Button>
       </Link>
       <div className="mt-8 grid w-full grid-cols-1 gap-4 border-t border-slate-100 pt-8 dark:border-slate-800/60 md:grid-cols-3">
         {REASSURANCE_CARDS.map((card) => (
