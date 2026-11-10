@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { Modal } from '@/components/ui/modal';
 import { Tabs } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
@@ -19,16 +18,13 @@ import {
 } from '@/lib/api/finance-service';
 import { formatCurrency, formatCurrencySigned, formatDateTime, formatRelative } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
-import { WithdrawalHistory, WithdrawalPanel } from '@/components/finance/withdrawal-panel';
-import { SpendChart } from '@/components/client/solde/spend-chart';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 const CLIENT_TXN_LABELS: Record<string, string> = {
   INITIAL_TEST_CREDIT: 'Crédit initial',
   CLIENT_TOPUP: 'Recharge SasPay',
-  CLIENT_WITHDRAWAL: 'Retrait',
-  CLIENT_MISSION_DEBIT: 'Prélèvement intervention',
+  CLIENT_MISSION_DEBIT: 'Paiement réparation',
   CLIENT_FEE: 'Frais Relio (historique)',
   REVERSAL: 'Remboursement',
 };
@@ -39,19 +35,17 @@ function txnLabel(type: string): string {
 
 type MovementFilter = 'ALL' | 'TOPUP' | 'WITHDRAW' | 'HOLD';
 
-type SoldeTab = 'MOVEMENTS' | 'WITHDRAWALS' | 'CHART';
+type SoldeTab = 'MOVEMENTS';
 
 const SOLDE_TABS = [
   { id: 'MOVEMENTS', label: 'Historique des mouvements' },
-  { id: 'WITHDRAWALS', label: 'Demandes de retrait' },
-  { id: 'CHART', label: 'Évolution' },
 ] as const;
 
 const MOVEMENT_TABS = [
   { id: 'ALL', label: 'Tous' },
   { id: 'TOPUP', label: 'Recharges' },
   { id: 'WITHDRAW', label: 'Retraits' },
-  { id: 'HOLD', label: 'Réservations' },
+  { id: 'HOLD', label: 'Garantie' },
 ] as const;
 
 /* Répartition des écritures par onglet. Les contrepassations (REVERSAL)
@@ -80,10 +74,6 @@ export default function ClientSoldePage() {
   const [summary, setSummary] = useState<ClientFinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Pilotage du formulaire de retrait (modale) depuis la carte « Mon solde ».
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
-  // Rafraîchit l'historique des retraits après chaque demande créée.
-  const [withdrawToken, setWithdrawToken] = useState(0);
   // Filtre d'onglets de la liste des mouvements.
   const [movementFilter, setMovementFilter] = useState<MovementFilter>('ALL');
   // Onglet principal du conteneur d'activité financière.
@@ -130,11 +120,6 @@ export default function ClientSoldePage() {
   // arrondie (jamais de décimales type « 3 333,333 FCFA »). Les valeurs
   // comptables ne sont pas modifiées, seul l'affichage est corrigé.
   const avgPerMission = missionCount > 0 ? Math.round(summary.totals.debit / missionCount) : 0;
-  // Fonds engagés (holds ACTIFS) = brut validé − disponible. Le clamp à 0
-  // protège l'affichage, mais un brut négatif signalerait une incohérence
-  // ledger : il est alors exposé en état d'anomalie au lieu d'être masqué.
-  const rawEngaged = summary.totals.credit - summary.totals.debit - summary.balance;
-  const hasEngagedAnomaly = rawEngaged < 0;
   const visibleTransactions = summary.transactions.filter((t) =>
     matchesMovementFilter(t.type, movementFilter),
   );
@@ -144,34 +129,7 @@ export default function ClientSoldePage() {
       <PageHeader title="Mon solde" description="Suivi de votre portefeuille Relio." backHref="/client" />
 
       {/* Carte principale : solde + actions */}
-      <SoldeOverview summary={summary} onWithdraw={() => setWithdrawOpen(true)} />
-
-      {hasEngagedAnomaly ? (
-        <Alert variant="warning">
-          Un écart a été détecté dans le calcul des fonds engagés. Vos fonds disponibles
-          restent corrects ; contactez le support si ce message persiste.
-        </Alert>
-      ) : null}
-
-      {/* Modale de retrait (la carte porte déjà les CTA) */}
-      <Modal
-        open={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        title="Retirer des fonds"
-        description="Vers votre compte Mobile Money."
-        sheet
-      >
-        <WithdrawalPanel
-          bare
-          available={summary.balance}
-          currency={summary.currency}
-          showHistory={false}
-          onChanged={() => {
-            void loadSummary();
-            setWithdrawToken((t) => t + 1);
-          }}
-        />
-      </Modal>
+      <SoldeOverview summary={summary} />
 
       {/* Activité financière : empilée sur mobile, 2 colonnes sur desktop */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
@@ -221,23 +179,6 @@ export default function ClientSoldePage() {
                 )}
               </div>
             ) : null}
-            {mainTab === 'WITHDRAWALS' ? (
-              <WithdrawalHistory
-                refreshToken={withdrawToken}
-                showTitle={false}
-                onChanged={() => void loadSummary()}
-              />
-            ) : null}
-            {mainTab === 'CHART' ? (
-              <Card>
-                <CardContent className="py-4">
-                  <SpendChart
-                    transactions={summary.transactions}
-                    currency={summary.currency}
-                  />
-                </CardContent>
-              </Card>
-            ) : null}
           </div>
         </div>
 
@@ -256,14 +197,14 @@ export default function ClientSoldePage() {
               <span className="shrink-0 font-semibold tabular-nums">{missionCount}</span>
             </div>
           </div>
-          <div className="space-y-1 rounded-2xl border border-orange-500/15 bg-orange-500/5 p-4 text-xs text-slate-600 dark:text-slate-300">
+          <div className="space-y-1 rounded-2xl border border-slate-200/80 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
             <p className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-              <Icon name="shield-check" size="md" className="text-orange-500" />
-              Sécurité SasPay
+              <Icon name="shield-check" size="md" className="text-slate-600" />
+              Argent sécurisé
             </p>
             <p className="leading-relaxed">
-              Toutes vos transactions sont sécurisées par SasPay. Vos retraits sont crédités
-              directement sur votre compte Mobile Money (MTN / Orange).
+              Votre argent est sécurisé chez Relio. Il est utilisé pour payer les
+              pièces de vos réparations smartphone (Garantie).
             </p>
           </div>
         </aside>

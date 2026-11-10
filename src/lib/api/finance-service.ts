@@ -43,6 +43,7 @@ export interface ClientFinanceSummary {
   mode: FinancialMode;
   currency: string;
   balance: number;
+  heldAmount: number;
   totals: { credit: number; debit: number; net: number };
   missions: ClientFinanceMission[];
   transactions: ClientFinanceTransaction[];

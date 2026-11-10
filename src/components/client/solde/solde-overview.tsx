@@ -5,16 +5,14 @@ import type { ClientFinanceSummary } from '@/lib/api/finance-service';
 
 export function SoldeOverview({
   summary,
-  onWithdraw,
 }: {
   summary: ClientFinanceSummary;
-  onWithdraw?: () => void;
 }) {
   const totalRefunds = summary.missions
     .filter((m) => m.refunded)
     .reduce((acc, m) => acc + (m.refundAmount || 0), 0);
-  // Fonds engagés (holds ACTIFS sur devis acceptés) = brut validé − disponible.
-  const engaged = Math.max(0, summary.totals.credit - summary.totals.debit - summary.balance);
+  // Fonds engagés (holds ACTIVE sur devis acceptés) = montant bloqué en garantie.
+  const held = summary.heldAmount;
   // Recharges créditées sur le mois civil en cours.
   const now = new Date();
   const topupsThisMonth = summary.transactions
@@ -26,7 +24,7 @@ export function SoldeOverview({
     .reduce((acc, t) => acc + t.amount, 0);
 
   const stats = [
-    { label: 'En attente / Engagé', value: formatCurrency(engaged, summary.currency) },
+    { label: 'Fonds bloqués (Garantie)', value: formatCurrency(held, summary.currency) },
     { label: 'Recharges ce mois', value: formatCurrency(topupsThisMonth, summary.currency) },
     { label: 'Remboursements', value: formatCurrency(totalRefunds, summary.currency) },
   ];
@@ -57,16 +55,6 @@ export function SoldeOverview({
             Recharger
           </span>
         </Link>
-        {onWithdraw ? (
-          <button
-            type="button"
-            onClick={onWithdraw}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 py-3 font-semibold text-white transition hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 active:scale-[0.98]"
-          >
-            <Icon name="wallet" size="sm" />
-            Retirer
-          </button>
-        ) : null}
       </div>
 
       <dl className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4">
