@@ -53,7 +53,7 @@ const CODE_MESSAGES: Record<string, string> = {
  * le code reste prioritaire). Messages FR courts et actionnables. */
 const STATUS_MESSAGES: Record<number, string> = {
   400: 'La demande est invalide. Vérifiez votre saisie.',
-  401: 'Votre session a expiré. Reconnectez-vous.',
+  401: 'Identifiant ou mot de passe incorrect.',
   403: "Cette action ne vous est pas autorisée.",
   404: 'Ressource introuvable. Elle a peut-être été déplacée ou supprimée.',
   409: "Action impossible : l'état de la ressource a changé. Actualisez puis réessayez.",
