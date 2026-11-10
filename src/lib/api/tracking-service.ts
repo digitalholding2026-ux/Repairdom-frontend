@@ -35,6 +35,17 @@ export interface PublicTracking {
   contactPhone: string | null;
 }
 
+/* Résultat de la recherche par numéro de téléphone (client invité). */
+export interface TrackSearchResult {
+  id: string;
+  trackingToken: string | null;
+  reference: string;
+  service: string;
+  status: string;
+  createdAt: string;
+  price: number | null;
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',
@@ -62,4 +73,14 @@ export async function trackByToken(token: string): Promise<PublicTracking> {
 export function isValidTrackingReference(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   return /^RD-[A-HJ-NP-Z0-9]{6}$/.test(value.trim().toUpperCase());
+}
+
+/* Recherche publique des demandes par numéro de téléphone (client invité,
+ * pas de compte). Aucun paramètre d'authentification requis. */
+export async function trackByPhone(phone: string): Promise<TrackSearchResult[]> {
+  return apiFetch<TrackSearchResult[]>(`/tracking/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone }),
+  });
 }

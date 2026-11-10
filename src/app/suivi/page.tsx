@@ -1,230 +1,290 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
-import { DemandeStatusBadge } from '@/components/ui/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Timeline } from '@/components/ui/timeline';
-import { TrackingHero } from '@/components/mission/tracking-hero';
-import { RechercheTechnicienAnimation } from '@/components/lottie/lottie-animations';
-import { Celebration } from '@/components/mission/celebration';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
-import { trackByReference, isValidTrackingReference, type PublicTracking } from '@/lib/api/tracking-service';
-import { STATUS_PROGRESS } from '@/lib/mission-progress';
-import { demandeStatusConfig } from '@/lib/request-status';
-import { formatDateTime } from '@/lib/format';
+import {
+  trackByPhone,
+  type TrackSearchResult,
+} from '@/lib/api/tracking-service';
+import { trackByReference } from '@/lib/api/tracking-service';
+import { formatDate } from '@/lib/format';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    SUBMITTED: 'Reçue',
+    PENDING: 'En attente',
+    ACCEPTED: 'Acceptée',
+    SCHEDULED: 'Planifiée',
+    IN_PROGRESS: 'En cours',
+    COMPLETED: 'Terminée',
+    CONFIRMED: 'Confirmée',
+    CANCELED: 'Annulée',
+  };
+  return labels[status] ?? status;
+}
+
 export default function SuiviPage() {
-  const [reference, setReference] = useState('');
-  const [tracking, setTracking] = useState<PublicTracking | null>(null);
+  const router = useRouter();
+
+  const [phone, setPhone] = useState('');
+  const [results, setResults] = useState<TrackSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleTrack = async (ref?: string) => {
-    const value = (ref ?? reference).trim().toUpperCase();
-    if (!value) return;
-    /* Format vérifié avant l'appel (miroir backend) : aucune donnée
-     * privée n'est demandée, le suivi reste anonyme. */
-    if (!isValidTrackingReference(value)) {
-      setTracking(null);
-      setError('Référence invalide. Format attendu : RD-XXXXXX (ex. RD-8F4K29).');
-      return;
-    }
+  /* Recherche par référence (RD-XXXXXX) - redirige vers la page détaillée */
+  const [reference, setReference] = useState('');
+
+  const handleSearchByPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const result = await trackByReference(value);
-      setTracking(result);
+      const result = await trackByPhone(phone.trim());
+      setResults(result);
     } catch (err) {
-      setTracking(null);
+      setResults([]);
       setError(toUserErrorMessage(err, 'Erreur lors de la recherche.'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Si ?reference= est présent (lien depuis la page de confirmation), on
-  // préremplit le champ et on lance le suivi automatiquement. Lecture côté
-  // client uniquement (window.location) pour rester compatible avec le
-  // rendu statique du build Vercel.
-  useEffect(() => {
-    const fromUrl = new URLSearchParams(window.location.search)
-      .get('reference')
-      ?.trim()
-      .toUpperCase();
-    if (!fromUrl) return;
-    setReference(fromUrl);
-    void handleTrack(fromUrl);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleTrackByReference = async (ref: string) => {
+    try {
+      await trackByReference(ref);
+      router.push(`/suivi/${ref}`);
+    } catch (err) {
+      setResults([]);
+      setError(toUserErrorMessage(err, 'Demande introuvable.'));
+    }
+  };
+
+  const inProgress = results.filter(
+    (r) => r.status === 'RECEIVED' || r.status === 'IN_PROGRESS',
+  );
+  const history = results.filter(
+    (r) => r.status === 'COMPLETED' || r.status === 'CONFIRMED' || r.status === 'CANCELED',
+  );
+
+  if (loading && results.length === 0) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <PublicHeader />
+        <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8">
+          <PageHeader title="Suivi de votre demande" backHref="/" />
+          <div className="space-y-4" role="status">
+            <span className="sr-only">Recherche de votre demande…</span>
+            <Skeleton className="h-44 rounded-3xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+            <Skeleton className="h-32 rounded-2xl" />
+          </div>
+        </main>
+        <PublicFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8">
-        <PageHeader
-          title="Suivre une intervention"
-          description="Entrez votre numéro de suivi (ex. RD-8F4K29) pour consulter l'avancement de votre mission."
-          backHref="/"
-        />
+        <PageHeader title="Suivi de votre demande" backHref="/" />
 
-        <Card className="mx-auto max-w-2xl">
-          <CardContent className="space-y-3">
-            <Field label="Numéro de suivi" htmlFor="tracking-reference">
-              <Input
-                id="tracking-reference"
-                value={reference}
-                onChange={(e) => setReference(e.target.value.toUpperCase())}
-                placeholder="RD-XXXXXX"
-                className="font-mono"
-              />
-            </Field>
-            <Button
-              onClick={() => void handleTrack()}
-              isLoading={loading}
-              disabled={reference.trim().length === 0}
-              className="w-full"
-              size="lg"
-            >
-              Suivre
-            </Button>
-            {error ? <Alert variant="error">{error}</Alert> : null}
+        {/* Recherche par numéro de téléphone (client invité) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rechercher ma demande</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearchByPhone} className="space-y-3">
+              <Field label="Numéro WhatsApp" htmlFor="tracking-phone">
+                <Input
+                  id="tracking-phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  type="tel"
+                  placeholder="6XX XXX XXX"
+                  inputMode="tel"
+                  maxLength={15}
+                />
+              </Field>
+              <Button
+                type="submit"
+                isLoading={loading}
+                disabled={!phone.trim()}
+                className="w-full"
+              >
+                Rechercher
+              </Button>
+            </form>
           </CardContent>
         </Card>
 
-        {loading ? (
-          <div className="space-y-4" role="status">
-            <span className="sr-only">Recherche de la demande…</span>
-            {/* UI-0 : shimmer unifié du design system (`Skeleton`, 1.6 s). */}
-            <Skeleton className="h-44 rounded-3xl" />
-            <Skeleton className="h-32 rounded-2xl" />
-            <Skeleton className="h-32 rounded-2xl" />
-          </div>
+        {error ? (
+          <Alert variant="error">{error}</Alert>
         ) : null}
 
-        {!loading && !tracking && !error ? (
+        {/* Résultats de recherche */}
+        {results.length > 0 && (
+          <div className="space-y-4">
+            {inProgress.length > 0 && (
+              <section>
+                <Card className="border-warning/30 bg-warning/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold text-warning">
+                      <Icon name="clock" size="sm" />
+                      Demandes en cours ({inProgress.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {inProgress.map((d) => (
+                      <Card
+                        key={d.id}
+                        className="border-warning/20 hover:border-warning/40 transition-border cursor-pointer"
+                        onClick={() =>
+                          d.trackingToken && router.push(`/suivi/${d.trackingToken}`)
+                        }
+                      >
+                        <CardContent className="space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">
+                                {d.service} - {d.reference}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {d.status ? statusLabel(d.status) : '—'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-mono font-medium">
+                                {formatDate(d.createdAt)}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (d.trackingToken) {
+                                    router.push(`/suivi/${d.trackingToken}`);
+                                  }
+                                }}
+                              >
+                                Voir le suivi
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+
+            {history.length > 0 && (
+              <section>
+                <Card className="border-muted/30 bg-muted/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold text-muted">
+                      <Icon name="file" size="sm" />
+                      Historique ({history.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {history.map((d) => (
+                      <Card
+                        key={d.id}
+                        className="border-muted/20 hover:border-muted/40 transition-border cursor-pointer"
+                        onClick={() =>
+                          d.trackingToken && router.push(`/suivi/${d.trackingToken}`)
+                        }
+                      >
+                        <CardContent className="space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">
+                                {d.service} - {d.reference}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {d.status ? statusLabel(d.status) : '—'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-mono font-medium">
+                                {formatDate(d.createdAt)}
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (d.trackingToken) {
+                                    router.push(`/suivi/${d.trackingToken}`);
+                                  }
+                                }}
+                              >
+                                Voir le suivi
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </CardContent>
+                </Card>
+              </section>
+            )}
+          </div>
+        )}
+
+        {/* Référence de suivi (RD-XXXXXX) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Suivi par référence</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-3">
+              <Field label="Numéro de suivi" htmlFor="tracking-reference">
+                <Input
+                  id="tracking-reference"
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value.toUpperCase())}
+                  placeholder="RD-XXXXXX"
+                  className="font-mono"
+                />
+              </Field>
+              <Button
+                type="button"
+                onClick={() => handleTrackByReference(reference)}
+                disabled={reference.trim().length === 0}
+                className="w-full"
+              >
+                Suivre
+              </Button>
+              {error ? <Alert variant="error">{error}</Alert> : null}
+            </form>
+          </CardContent>
+        </Card>
+
+        {!loading && results.length === 0 && !error && phone.trim() === '' && reference.trim() === '' ? (
           <EmptyState
             icon={<Icon name="search" size="lg" />}
             title="Suivez votre intervention"
-            description="Saisissez ci-dessus le numéro reçu lors de votre demande pour voir son avancement (mis à jour à chaque étape)."
+            description="Saisissez votre numéro WhatsApp ou votre référence de suivi (ex. RD-8F4K29) pour consulter l'avancement de votre mission."
           />
-        ) : null}
-
-        {!loading && tracking ? (
-          <div className="space-y-4">
-            {(() => {
-              const status = tracking.status;
-              const config = demandeStatusConfig(status, 'client');
-              const success = status === 'COMPLETED' || status === 'CONFIRMED';
-              const canceled = status === 'CANCELED';
-              const live = !success && !canceled;
-              const lastEntry = tracking.timeline[tracking.timeline.length - 1] ?? null;
-
-              return (
-                <>
-                  <TrackingHero
-                    badge={<DemandeStatusBadge status={status} context="client" />}
-                    reference={tracking.reference}
-                    title={tracking.category}
-                    subtitle={
-                      [
-                        tracking.device.domain?.name,
-                        tracking.device.brand?.name,
-                        tracking.device.model?.name,
-                        tracking.device.problem?.name,
-                      ]
-                        .filter(Boolean)
-                        .join(' — ') || undefined
-                    }
-                    progress={STATUS_PROGRESS[status] ?? 0}
-                    live={live}
-                    canceled={canceled}
-                    statusLabel={lastEntry?.label ?? config.label}
-                    technician={
-                      tracking.technicianAssigned
-                        ? { label: 'Technicien', verified: tracking.technicianVerified }
-                        : null
-                    }
-                  />
-                  {/* LottieFlow : statut backend réel (`live` + aucun
-                    * technicien assigné). S'arrête dès que le statut change
-                    * (plus de `live` ou technicien trouvé). Texte porteur
-                    * du sens, jamais l'animation seule. */}
-                  {live && !tracking.technicianAssigned ? (
-                    <Card>
-                      <CardContent className="flex items-center gap-4 py-4">
-                        <RechercheTechnicienAnimation className="h-20 w-20 sm:h-24 sm:w-24" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold">
-                            Recherche d&apos;un technicien disponible…
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            Votre demande est visible par les techniciens vérifiés à proximité.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : null}
-
-                  <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Icon name="clock" size="sm" className="text-muted-foreground" />
-                        Étapes de la mission
-                      </CardTitle>
-                    </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                          Statut : {status}
-                        </p>
-                      </CardContent>
-                  </Card>
-
-                  {tracking.timeline && tracking.timeline.length > 0 ? (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Icon name="file" size="sm" className="text-muted-foreground" />
-                          Journal des événements
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Timeline
-                          steps={tracking.timeline.map((entry, index) => ({
-                            id: `${entry.type}-${index}`,
-                            title: entry.label,
-                            state: 'done',
-                            icon: 'check',
-                            timestamp: entry.date ? formatDateTime(entry.date) : undefined,
-                          }))}
-                          className="mt-3"
-                        />
-                      </CardContent>
-                    </Card>
-                  ) : null}
-
-                  </div>
-
-                  {success ? (
-                    <Celebration
-                      title={status === 'CONFIRMED' ? 'Mission confirmée' : 'Intervention terminée'}
-                      subtitle="Merci pour votre confiance !"
-                    />
-                  ) : null}
-                </>
-              );
-            })()}
-          </div>
         ) : null}
       </main>
 
