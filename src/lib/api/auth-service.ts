@@ -30,10 +30,13 @@ export interface AuthUser {
   phone?: string;
   whatsapp?: string;
   role?: string;
+  clientType?: string;
   emailVerified?: boolean;
   avatarUrl?: string | null;
   city?: string | null;
   address?: string | null;
+  companyName?: string | null;
+  codePro?: string | null;
   createdAt?: string;
 }
 
@@ -213,4 +216,15 @@ export async function uploadClientAvatar(file: File): Promise<AuthUser> {
   const form = new FormData();
   form.append('file', file);
   return apiFetch<AuthUser>('/auth/me/avatar', { method: 'POST', body: form });
+}
+
+export async function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>('/auth/change-password', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 }
