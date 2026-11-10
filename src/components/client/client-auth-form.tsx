@@ -1,5 +1,3 @@
-'use client';
-
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -10,11 +8,20 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
-import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
+import {
+  signIn,
+  signUp,
+  homePathForRole,
+  safeRedirect,
+  ApiError,
+  EMAIL_VERIFICATION_REQUIRED_MESSAGE,
+  convertDemandeDraft,
+} from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { isPasswordStrong } from '@/lib/password-strength';
 import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { useAuth } from '@/components/auth/auth-provider';
+import { useToast } from '@/lib/toast-context';
 
 export type ClientAuthMode = 'signup' | 'signin';
 
@@ -35,7 +42,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -46,6 +52,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [cities, setCities] = useState<City[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   /* Formulaire multi-step (inscription uniquement) :
    * étape 1 = Identité & Contact, étape 2 = Localisation & Sécurité. */
   const [step, setStep] = useState<1 | 2>(1);
@@ -71,7 +78,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
     email.trim() !== '' &&
     passwordValid &&
     passwordsMatch &&
-    (isSignUp ? firstName.trim() !== '' && lastName.trim() !== '' && cityValue.trim() !== '' && address.trim() !== '' && acceptTerms : true);
+    (isSignUp ? firstName.trim() !== '' && lastName.trim() !== '' && acceptTerms : true);
 
   /* Complétion (inscription) : prénom, nom, e-mail, ville, adresse,
    * mot de passe valide, confirmation concordante, CGU acceptées.
@@ -114,12 +121,24 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: phone.trim() || undefined,
-          whatsapp: whatsapp.trim() || undefined,
           email: email.trim(),
           password,
           city: cityValue.trim() || undefined,
           address: address.trim() || undefined,
         });
+        toast.success('Compte créé avec succès !');
+        // Après inscription réussie, tenter de convertir un éventuel brouillon
+        // de demande en attente vers ce nouveau compte.
+        const draftToken = localStorage.getItem('relio_demande_draft_token');
+        if (draftToken) {
+          try {
+            await convertDemandeDraft(draftToken);
+            localStorage.removeItem('relio_demande_draft_token');
+          } catch (err) {
+            // Ne bloque pas l'inscription si la conversion du brouillon échoue
+            console.error('Échec de la conversion du brouillon:', err);
+          }
+        }
         // Si le compte est déjà vérifié (ancien compte), rediriger vers l'habitacle.
         // Sinon, rediriger vers la page de vérification email.
         if (session.user.emailVerified === false) {
@@ -214,7 +233,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
 
       {isSignUp ? (
         step === 1 ? (
-        <Field label="Téléphone" htmlFor="client-phone" hint="WhatsApp de préférence" required>
+        <Field label="Num�ro WhatsApp" htmlFor="client-phone" hint="WhatsApp de préférence" required>
           <Input
             id="client-phone"
             value={phone}
@@ -263,7 +282,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       ) : null}
 
       {isSignUp && step === 2 ? (
-        <Field label="Ville" htmlFor="client-city" required>
+        <Field label="Ville" htmlFor="client-city">
           <Select id="client-city" value={cityValue} onChange={(e) => setCity(e.target.value)}>
             <option value="">Sélectionnez votre ville</option>
             {cities.map((c) => (
