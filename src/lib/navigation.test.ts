@@ -28,7 +28,6 @@ void test('CLIENT : sidebar complète, mobile via Plus (aucune section perdue)',
   for (const href of [
     '/client',
     '/client/demandes',
-    '/client/chronologies',
     '/client/notifications',
     '/client/solde',
     '/client/recompenses',

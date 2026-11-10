@@ -117,7 +117,6 @@ void test('D2 : tous les appels à l’ancien chemin ont bien été migrés', ()
   const expected = [
     ['../components/landing/hero.tsx', '/demande'],
     ['../components/landing/landing-sections.tsx', '/demande'],
-    ['../components/chronologies/tracking-preview.tsx', '/demande'],
     ['../components/public/public-header.tsx', '/demande'],
     ['../components/client/dashboard/client-home-desktop-view.tsx', '/demande'],
     ['../components/client/dashboard/client-home-mobile-view.tsx', '/demande'],

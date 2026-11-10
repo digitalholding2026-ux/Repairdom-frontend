@@ -17,7 +17,6 @@ import { WorkspaceSidebar, type WorkspaceNavItem } from '@/components/ui/workspa
 const CLIENT_NAV: WorkspaceNavItem[] = [
   { href: '/client', label: 'Vue d’ensemble', icon: 'home' },
   { href: '/client/demandes', label: 'Mes demandes', icon: 'briefcase' },
-  { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
   { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
   { href: '/client/solde', label: 'Mon solde', icon: 'file' },
   { href: '/client/recompenses', label: 'Récompenses', icon: 'sparkles' },
@@ -111,7 +110,6 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
             /* CHANTIER NAVIGATION P1/P2 — sections desktop accessibles
              * sur mobile via « Plus » (jamais de bouton minuscule). */
             moreItems={[
-              { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
               { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
               { href: '/client/recompenses', label: 'Récompenses', icon: 'sparkles' },
             ]}

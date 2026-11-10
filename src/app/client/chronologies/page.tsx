@@ -1,20 +1,8 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import { PageHeader } from '@/components/ui/page-header';
-import { ChronologiesView } from '@/components/chronologies/chronologies-view';
-
-export default function ClientChronologiesPage() {
-  return (
-    <div className="space-y-4">
-      <PageHeader
-        title="Chronologies"
-        description="Suivez l'avancement de vos interventions en temps réel."
-      />
-      <ChronologiesView
-        detailPrefix="/client/chronologies"
-        badgeContext="client"
-        educationalEmptyState
-      />
-    </div>
-  );
+/* Redirection de sécurité : l'onglet "Chronologies" (V1) a été supprimé.
+ * Les anciens liens en favori aboutissent ici et sont renvoyés vers
+ * "Mes demandes", qui couvre désormais le même périmètre en V2. */
+export default async function ChronologiesRedirect() {
+  redirect('/client/demandes');
 }
