@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import { useToast } from '@/lib/toast-context';
 import { getAdminMissionByReference, type SupervisedMission } from '@/lib/api/admin-service';
-import { updateDemandeStatus } from '@/lib/api/request-service';
+import { updateAdminDemandeStatus } from '@/lib/api/request-service';
 import { completeAdminDemande, type AdminInvoice, confirmAdminDemande, noShowAdminDemande } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
@@ -38,9 +37,36 @@ function formatStatus(status: string): string {
     SCHEDULED: 'Planifié',
     IN_PROGRESS: 'En cours',
     COMPLETED: 'Terminé',
+    CONFIRMED: 'Confirmé',
     CANCELED: 'Annulé',
   };
   return map[status] ?? status;
+}
+
+/* Statuts V2 pour le workflow admin : REGARDER les statuts Prisma existants
+ * et les regrouper sous les libellés V2. */
+function toV2Status(status: string): 'RECEIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | null {
+  const map: Record<string, 'RECEIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | null> = {
+    SUBMITTED: 'RECEIVED',
+    PENDING: 'RECEIVED',
+    ACCEPTED: 'RECEIVED',
+    SCHEDULED: 'RECEIVED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CONFIRMED: 'COMPLETED',
+    CANCELED: 'CANCELLED',
+  };
+  return map[status] ?? null;
+}
+
+function v2StatusLabel(v2: string): string {
+  const map: Record<string, string> = {
+    RECEIVED: 'Reçue',
+    IN_PROGRESS: 'En cours',
+    COMPLETED: 'Terminée',
+    CANCELLED: 'Annulée',
+  };
+  return map[v2] ?? v2;
 }
 
 export default function AdminDemandeDetailPage() {
@@ -51,10 +77,10 @@ export default function AdminDemandeDetailPage() {
   const [mission, setMission] = useState<SupervisedMission | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [updating, setUpdating] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [noshowing, setNoshowing] = useState(false);
+  const [adminStatusUpdating, setAdminStatusUpdating] = useState(false);
   const [invoice, setInvoice] = useState<AdminInvoice | null>(null);
 
   useEffect(() => {
@@ -72,19 +98,6 @@ export default function AdminDemandeDetailPage() {
         setLoading(false);
       });
   }, [reference]);
-
-  const handleStatusChange = async (newStatus: string) => {
-    if (!mission) return;
-    setUpdating(true);
-    try {
-      await updateDemandeStatus(mission.reference, newStatus);
-      setMission((prev) => (prev ? { ...prev, status: newStatus } : prev));
-    } catch (err) {
-      setError(toUserErrorMessage(err, 'Impossible de changer le statut.'));
-    } finally {
-      setUpdating(false);
-    }
-  };
 
   const handleComplete = async () => {
     if (!mission) return;
@@ -141,6 +154,26 @@ export default function AdminDemandeDetailPage() {
     }
   };
 
+  /* Change le statut via l'API admin V2 (PATCH /api/admin/demandes/:id/status). */
+  const handleAdminStatusChange = async (newV2Status: string) => {
+    if (!mission) return;
+    setAdminStatusUpdating(true);
+    setError(null);
+    try {
+      const result = await updateAdminDemandeStatus(mission.reference, newV2Status);
+      setMission((prev) => (prev ? { ...prev, status: result.status } : prev));
+      toast({
+        title: 'Statut mis à jour',
+        description: `Demande ${result.reference} : ${v2StatusLabel(newV2Status)}.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de changer le statut.'));
+    } finally {
+      setAdminStatusUpdating(false);
+    }
+  };
+
   /* Formate un numéro de téléphone camerounais pour whatsapp.me (237 + 9 chiffres). */
   function formatWhatsAppNumber(phone: string | null | undefined): string {
     if (!phone) return '';
@@ -180,13 +213,6 @@ export default function AdminDemandeDetailPage() {
       </div>
     );
   }
-
-  const statusOptions = [
-    { value: 'ACCEPTED', label: 'Prendre en charge' },
-    { value: 'IN_PROGRESS', label: 'En cours' },
-    { value: 'COMPLETED', label: 'Terminer' },
-    { value: 'CANCELED', label: 'Annuler' },
-  ];
 
   const escrowStartedAt = (mission as { escrowStartedAt?: string | null }).escrowStartedAt;
   const escrowHours = escrowStartedAt ? Math.floor((Date.now() - new Date(escrowStartedAt).getTime()) / 3600000) : 0;
@@ -265,21 +291,75 @@ export default function AdminDemandeDetailPage() {
         </div>
         <div className="bg-card rounded-xl border p-5 flex flex-col justify-between">
           <h3 className="text-sm font-semibold mb-3">Changer le statut</h3>
-          <select
-            value={mission.status}
-            onChange={(e) => void handleStatusChange(e.target.value)}
-            disabled={updating}
-            className="w-full h-11 appearance-none rounded-lg border border-border bg-card pl-3.5 pr-10 text-base text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-          >
-            {statusOptions
-              .filter((o) => o.value !== mission.status)
-              .map((o) => (
-                <option key={o.value} value={o.value} disabled={updating}>
-                  {o.label}
-                </option>
-              ))}
-          </select>
-          {updating && <Spinner className="h-4 w-4 mx-auto mt-2" />}
+          <div className="space-y-2">
+            {(() => {
+              const v2 = toV2Status(mission.status);
+              if (!v2) return null;
+
+              /* Déjà complété ou annulé : plus de transition possible. */
+              if (v2 === 'COMPLETED' || v2 === 'CANCELLED') {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Aucune transition disponible depuis ce statut.
+                  </p>
+                );
+              }
+
+              /* RECEIVED → peut passer EN COURS ou ANNULÉE */
+              if (v2 === 'RECEIVED') {
+                return (
+                  <>
+                    <Button
+                      onClick={() => void handleAdminStatusChange('IN_PROGRESS')}
+                      disabled={adminStatusUpdating}
+                      className="w-full"
+                    >
+                      {adminStatusUpdating ? 'Mise à jour…' : 'Marquer comme En cours'}
+                    </Button>
+                    <Button
+                      onClick={() => void handleAdminStatusChange('CANCELLED')}
+                      disabled={adminStatusUpdating}
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      {adminStatusUpdating ? 'Traitement…' : 'Annuler la demande'}
+                    </Button>
+                  </>
+                );
+              }
+
+              /* IN_PROGRESS → peut passer TERMINÉE ou ANNULÉE */
+              if (v2 === 'IN_PROGRESS') {
+                return (
+                  <>
+                    <Button
+                      onClick={() => void handleAdminStatusChange('COMPLETED')}
+                      disabled={adminStatusUpdating || !mission.finalAmount}
+                      className="w-full"
+                    >
+                      {adminStatusUpdating ? 'Mise à jour…' : 'Marquer comme Terminée'}
+                    </Button>
+                    {!mission.finalAmount && (
+                      <p className="text-xs text-muted-foreground">
+                        Aucun montant final défini : impossible de clore.
+                      </p>
+                    )}
+                    <Button
+                      onClick={() => void handleAdminStatusChange('CANCELLED')}
+                      disabled={adminStatusUpdating}
+                      variant="destructive"
+                      className="w-full"
+                    >
+                      {adminStatusUpdating ? 'Traitement…' : 'Annuler la demande'}
+                    </Button>
+                  </>
+                );
+              }
+
+              return null;
+            })()}
+          </div>
+          {adminStatusUpdating && <Spinner className="h-4 w-4 mx-auto mt-2" />}
         </div>
       </div>
 
@@ -357,6 +437,27 @@ export default function AdminDemandeDetailPage() {
                 Facture {invoice.invoiceNumber} ({formatCurrency(invoice.amount, 'XAF')})
               </p>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Facture (téléchargement quand la mission est terminée) */}
+      {mission.status === 'COMPLETED' && invoice?.pdfUrl ? (
+        <div className="bg-card rounded-xl border p-5">
+          <h3 className="text-sm font-semibold mb-3">Facture</h3>
+          <div className="space-y-2">
+            <p className="text-sm">
+              Facture {invoice.invoiceNumber} ({formatCurrency(invoice.amount, 'XAF')})
+            </p>
+            <a
+              href={invoice.pdfUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-primary underline-offset-4 hover:underline"
+            >
+              <Icon name="file" size="sm" />
+              Télécharger la facture PDF
+            </a>
           </div>
         </div>
       ) : null}

@@ -278,6 +278,23 @@ export async function updateDemandeStatus(id: string, status: string): Promise<D
   });
 }
 
+/* Met à jour le statut d'une demande depuis l'admin (workflow V2).
+ * Appelle PATCH /api/admin/demandes/:id/status. */
+export async function updateAdminDemandeStatus(id: string, status: string): Promise<{
+  id: string;
+  reference: string;
+  status: string;
+}> {
+  return apiFetch(
+    `/admin/demandes/${encodeURIComponent(id)}/status`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+  );
+}
+
 export interface PayEscrowResult {
   hold: {
     id: string;

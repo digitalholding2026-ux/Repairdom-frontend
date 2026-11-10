@@ -210,7 +210,7 @@ export function DemandeWizard() {
       });
 
       localStorage.removeItem(DRAFT_KEY);
-      router.push(`/suivi?token=${encodeURIComponent(result.trackingToken ?? '')}`);
+      router.push(`/suivi/${encodeURIComponent(result.trackingToken ?? '')}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
       setCreating(false);

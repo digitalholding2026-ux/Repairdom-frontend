@@ -31,6 +31,8 @@ export interface PublicTracking {
   technicianAssigned: boolean;
   technicianVerified: boolean;
   timeline: TrackingTimelineEntry[];
+  address: string | null;
+  contactPhone: string | null;
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
