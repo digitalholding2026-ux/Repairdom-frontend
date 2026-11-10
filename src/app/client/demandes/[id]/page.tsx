@@ -642,6 +642,53 @@ export default function ClientDemandeDetailPage() {
               </p>
             </div>
           ) : null}
+          {demande.confirmationStatus && (
+            <div
+              className={`rounded-2xl border p-4 ${
+                demande.confirmationStatus === 'CONFIRMED'
+                  ? 'border-success/30 bg-success/5'
+                  : demande.confirmationStatus === 'PENDING'
+                    ? 'border-warning/30 bg-warning/5'
+                    : 'border-error/30 bg-error/5'
+              }`}
+            >
+              {demande.confirmationStatus === 'PENDING' ? (
+                <>
+                  <p className="text-sm font-semibold">
+                    En attente de confirmation WhatsApp
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Un technicien vous contactera sur WhatsApp pour confirmer
+                    votre rendez-vous.
+                  </p>
+                </>
+              ) : demande.confirmationStatus === 'CONFIRMED' ? (
+                <>
+                  <p className="text-sm font-semibold">
+                    Rendez-vous confirmé
+                  </p>
+                  {demande.scheduledAt ? (
+                    <p className="text-xs text-muted-foreground">
+                      Prévu le{' '}
+                      {new Date(demande.scheduledAt).toLocaleDateString(
+                        'fr-FR',
+                        { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' },
+                      )}
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold">
+                    Confirmation annulée
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Le rendez-vous a été annulé par l&apos;administration.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
           {demande.status === 'SUBMITTED' || demande.status === 'PENDING' ? (
             /* Recherche en cours : le statut est déjà porté par le badge du
              * header, ce bloc sert à expliquer CE QUI SE PASSE. */

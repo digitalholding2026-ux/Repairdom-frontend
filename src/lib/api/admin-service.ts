@@ -1109,9 +1109,10 @@ export async function noShowAdminDemande(demandeId: string): Promise<{
   reference: string;
   status: string;
   isNoShow: boolean;
+  confirmationStatus: string;
 }> {
   return catalogFetch(
     `/admin/demandes/${encodeURIComponent(demandeId)}/no-show`,
-    { method: 'POST' },
+    { method: 'PATCH' },
   );
 }

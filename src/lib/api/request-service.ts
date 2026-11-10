@@ -114,6 +114,8 @@ export interface CreateDemandeResult {
   depositPaid: boolean;
   // Client absent au rendez-vous (no-show).
   isNoShow: boolean;
+  // M2 — statut de confirmation WhatsApp du rendez-vous.
+  confirmationStatus: string | null;
   // M2 — escrow smartphone : heure de fin du séquestre et statut du hold.
   escrowEndsAt: string | null;
   escrowStatus: string | null;
