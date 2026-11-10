@@ -25,6 +25,7 @@ const ADMIN_NAV: AdminNavItem[] = [
   { href: '/admin/catalogue', label: 'Catalogue', icon: 'wrench' },
   { href: '/admin/clients', label: 'Clients B2B', icon: 'users' },
   { href: '/admin/finances', label: 'Finances', icon: 'wallet' },
+  { href: '/admin/parametres', label: 'Paramètres', icon: 'settings' },
 ];
 
 function isNavActive(pathname: string, href: string): boolean {

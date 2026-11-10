@@ -13,10 +13,8 @@ import { Timeline } from '@/components/ui/timeline';
 import { PublicHeader } from '@/components/public/public-header';
 import { PublicFooter } from '@/components/public/public-footer';
 import { trackByToken, type PublicTracking } from '@/lib/api/tracking-service';
+import { getPublicSettings, type PublicPlatformSetting } from '@/lib/api/settings-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
-
-/* Numéro de Relio pour le WhatsApp client (indicatif Cameroun 237). */
-const RELIO_WHATSAPP_NUMBER = '237698473737';
 
 function formatWhatsAppNumber(phone: string | null | undefined): string {
   if (!phone) return '';
@@ -27,7 +25,7 @@ function formatWhatsAppNumber(phone: string | null | undefined): string {
   return digits;
 }
 
-function getWhatsAppUrl(phone: string | null | undefined, message: string): string {
+function buildWhatsAppUrl(phone: string | null | undefined, message: string): string {
   const number = formatWhatsAppNumber(phone);
   if (!number) return '';
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
@@ -60,6 +58,7 @@ function statusStep(
 export default function SuiviTokenPage() {
   const { token } = useParams<{ token: string }>();
   const [tracking, setTracking] = useState<PublicTracking | null>(null);
+  const [settings, setSettings] = useState<PublicPlatformSetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +82,15 @@ export default function SuiviTokenPage() {
         setLoading(false);
       });
   }, [token]);
+
+  /* Chargement des paramètres publics (nom, numéro WhatsApp de l'admin). */
+  useEffect(() => {
+    void getPublicSettings()
+      .then((s) => setSettings(s))
+      .catch(() => {
+        // Échec silencieux : le bouton WhatsApp utilisera le numéro par défaut.
+      });
+  }, []);
 
   if (loading) {
     return (
@@ -112,7 +120,7 @@ export default function SuiviTokenPage() {
             <CardContent>
               <Alert variant="error">{error}</Alert>
               <Link href="/">
-                <Button variant="outline">Retour à l’accueil</Button>
+                <Button variant="outline">Retour à l'accueil</Button>
               </Link>
             </CardContent>
           </Card>
@@ -192,7 +200,7 @@ export default function SuiviTokenPage() {
           {/* Timeline visuelle */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Suivi de l’intervention</CardTitle>
+              <CardTitle className="text-base">Suivi de l'intervention</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <Timeline
@@ -267,7 +275,7 @@ export default function SuiviTokenPage() {
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold text-error-ink">Demande annulée</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Cette demande a été annulée. Contactez-nous pour plus d’informations.
+                    Cette demande a été annulée. Contactez-nous pour plus d'informations.
                   </p>
                 </div>
               </CardContent>
@@ -282,8 +290,9 @@ export default function SuiviTokenPage() {
             <CardContent>
               <Button
                 onClick={() => {
-                  const message = `Bonjour, je suis le client de la demande ${tracking.reference}. Pourriez-vous me donner des nouvelles de mon intervention ?`;
-                  const url = getWhatsAppUrl(RELIO_WHATSAPP_NUMBER, message);
+                  const adminName = settings?.adminName ?? 'Relio';
+                  const message = `Bonjour ${adminName}, j'ai une demande ${tracking.reference} en cours chez Relio. Pouvez-vous me contacter ?`;
+                  const url = buildWhatsAppUrl(settings?.adminWhatsApp, message);
                   if (url) window.open(url, '_blank');
                 }}
                 className="w-full flex items-center justify-center gap-2"
@@ -292,7 +301,7 @@ export default function SuiviTokenPage() {
                 Contacter le technicien sur WhatsApp
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Ouverture de WhatsApp avec le numéro de Relio ({RELIO_WHATSAPP_NUMBER}).
+                Ouverture de WhatsApp avec le numéro configuré par l'administration.
               </p>
             </CardContent>
           </Card>
@@ -309,7 +318,7 @@ export default function SuiviTokenPage() {
                 </p>
                 {/* Le lien de facture est généré par l'admin lors de la clôture de la mission. */}
                 <p className="text-sm text-muted-foreground">
-                  La facture sera disponible ici dès que l’administrateur l’aura générée.
+                  La facture sera disponible ici dès que l'administrateur l'aura générée.
                 </p>
               </CardContent>
             </Card>

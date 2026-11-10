@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -13,6 +11,7 @@ import { formatFCFA } from '@/lib/format-fcfa';
 import { normalizeCmPhone } from '@/lib/phone';
 import { listCategories, listItems } from '@/lib/api/catalog-service';
 import { createDemande } from '@/lib/api/request-service';
+import { getPublicSettings } from '@/lib/api/settings-service';
 import { useAuth } from '@/components/auth/auth-provider';
 import { DemandeAuthModal } from '@/components/client/demande-auth-modal';
 
@@ -75,6 +74,13 @@ export function DemandeWizard() {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [loaded, setLoaded] = useState(false);
 
+  /* Paramètres publics (nom WhatsApp, avatar du technicien) */
+  const [settings, setSettings] = useState<{
+    adminName: string;
+    adminWhatsApp: string;
+    adminAvatarUrl: string | null;
+  } | null>(null);
+
   /* Auth + création de la demande */
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -103,6 +109,16 @@ export function DemandeWizard() {
   useEffect(() => {
     if (loaded) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [draft, loaded]);
+
+  /* Chargement des paramètres publics (avatar, numéro WhatsApp). */
+  useEffect(() => {
+    if (!loaded) return;
+    void getPublicSettings()
+      .then((s) => setSettings(s))
+      .catch(() => {
+        // Échec silencieux : on garde les valeurs par défaut codées en dur.
+      });
+  }, [loaded]);
 
   /* Quand le service change (ou redevient FRP), on recharge les marques. */
   useEffect(() => {
@@ -254,6 +270,13 @@ export function DemandeWizard() {
     if (draft.service === 'FRP') return Boolean(draft.modelId && draft.address && draft.phone);
     return Boolean(draft.address && draft.phone);
   };
+
+  /* Construit l'URL WhatsApp proprement avec les paramètres configurés. */
+  const buildWhatsAppUrl = (phone: string, message: string): string | null => {
+    const waNumber = phone.replace(/\+/g, '');
+    const text = encodeURIComponent(message);
+    return `https://wa.me/${waNumber}?text=${text}`;
+  }
 
   if (!loaded) return null;
 
@@ -432,7 +455,13 @@ export function DemandeWizard() {
             {draft.service === 'SMARTPHONE' ? (
               <div className="rounded-2xl border border-success/30 bg-success/5 p-4">
                 <div className="flex items-start gap-3">
-                  <Avatar src="/admin.jpg" firstName="Technicien" lastName="Relio" size="lg" className="shrink-0" />
+                  <Avatar
+                    src={settings?.adminAvatarUrl ?? '/admin.jpg'}
+                    firstName={settings?.adminName ?? 'Technicien'}
+                    lastName="Relio"
+                    size="lg"
+                    className="shrink-0"
+                  />
                   <div className="flex-1">
                     <p className="text-sm font-semibold">Votre technicien</p>
                     <p className="text-xs text-muted-foreground">
@@ -444,11 +473,9 @@ export function DemandeWizard() {
                       onClick={() => {
                         const phone = normalizeCmPhone(draft.phone);
                         if (!phone) return;
-                        const waNumber = phone.replace(/\+/g, '');
-                        const text = encodeURIComponent(
-                          'Bonjour, j&rsquo;ai une demande de réparation smartphone en cours chez Relio. Pouvez-vous me contacter ?',
-                        );
-                        window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
+                        const message = `Bonjour ${settings?.adminName ?? 'Technicien'}, j'ai une demande de réparation smartphone en cours chez Relio. Pouvez-vous me contacter ?`;
+                        const url = buildWhatsAppUrl(phone, message);
+                        if (url) window.open(url, '_blank');
                       }}
                     >
                       Poser une question sur WhatsApp
