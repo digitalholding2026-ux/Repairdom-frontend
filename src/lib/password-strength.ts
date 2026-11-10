@@ -31,3 +31,9 @@ export function passwordStrength(password: string): PasswordStrength {
 export function isPasswordStrong(password: string): boolean {
   return passwordRules(password).every((rule) => rule.satisfied);
 }
+
+/* Message des exigences de mot de passe, généré à partir des règles pour
+ * éviter tout hardcodage divergent entre le backend et le frontend. */
+export function passwordRequirementsMessage(): string {
+  return passwordRules('').map((rule) => rule.label).join(', ');
+}

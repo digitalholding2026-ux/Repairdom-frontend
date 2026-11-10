@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import { listCities, type City } from '@/lib/api/cities-service';
 import {
   signIn,
   signUp,
@@ -20,8 +19,7 @@ import {
 } from '@/lib/api/auth-service';
 import { convertDemandeDraft } from '@/lib/api/request-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
-import { isPasswordStrong } from '@/lib/password-strength';
-import { WhatsAppMark } from '@/components/lottie/lottie-animations';
+import { isPasswordStrong, passwordRequirementsMessage } from '@/lib/password-strength';
 import { useAuth } from '@/components/auth/auth-provider';
 import { useToast } from '@/lib/toast-context';
 
@@ -48,11 +46,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [whatsapp, setWhatsapp] = useState('');
-  const [city, setCity] = useState('');
-  const [address, setAddress] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [cities, setCities] = useState<City[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -60,14 +54,8 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
    * étape 1 = Identité & Contact, étape 2 = Localisation & Sécurité. */
   const [step, setStep] = useState<1 | 2>(1);
 
-  useEffect(() => {
-    if (!isSignUp) return;
-    listCities().then(setCities).catch(() => {});
-  }, [isSignUp]);
-
   const passwordValid = isPasswordStrong(password);
   const passwordsMatch = isSignUp ? password === confirmPassword : true;
-  const cityValue = city || '';
   const emailValid = /\S+@\S+\.\S+/.test(email.trim());
 
   /* Passage à l'étape 2 : identité + contact valides. */
@@ -94,8 +82,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       firstName.trim() !== '',
       lastName.trim() !== '',
       email.trim() !== '',
-      cityValue.trim() !== '',
-      address.trim() !== '',
       passwordValid,
       confirmPassword !== '' && passwordsMatch,
       acceptTerms,
@@ -112,7 +98,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       lastProgress.current = { percent, ...identity };
       onProgressChange(percent, identity);
     }
-  }, [isSignUp, onProgressChange, firstName, lastName, email, cityValue, address, passwordValid, confirmPassword, passwordsMatch, acceptTerms]);
+  }, [isSignUp, onProgressChange, firstName, lastName, email, passwordValid, confirmPassword, passwordsMatch, acceptTerms]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -124,23 +110,31 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: phone.trim() || undefined,
+          whatsapp: phone.trim() || undefined,
           email: email.trim(),
           password,
-          city: cityValue.trim() || undefined,
-          address: address.trim() || undefined,
         });
         toast({ variant: 'success', title: 'Compte créé avec succès !' });
         // Après inscription réussie, tenter de convertir un éventuel brouillon
         // de demande en attente vers ce nouveau compte.
+        let convertedDemandeId: string | null = null;
         const draftToken = localStorage.getItem('relio_demande_draft_token');
         if (draftToken) {
           try {
-            await convertDemandeDraft(draftToken);
+            const result = await convertDemandeDraft(draftToken);
+            convertedDemandeId = result.id;
             localStorage.removeItem('relio_demande_draft_token');
           } catch (err) {
             // Ne bloque pas l'inscription si la conversion du brouillon échoue
             console.error('Échec de la conversion du brouillon:', err);
           }
+        }
+        // Si un brouillon a été converti, emmener le client sur sa demande
+        // pour qu'il puisse payer l'Escrow immédiatement.
+        if (convertedDemandeId) {
+          await refresh();
+          router.push(`/client/demandes/${convertedDemandeId}`);
+          return;
         }
         // Si le compte est déjà vérifié (ancien compte), rediriger vers l'habitacle.
         // Sinon, rediriger vers la page de vérification email.
@@ -236,7 +230,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
 
       {isSignUp ? (
         step === 1 ? (
-        <Field label="Num�ro WhatsApp" htmlFor="client-phone" hint="WhatsApp de préférence" required>
+        <Field label="Numéro WhatsApp" htmlFor="client-phone" hint="WhatsApp de préférence" required>
           <Input
             id="client-phone"
             value={phone}
@@ -244,28 +238,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
             placeholder="6XX XXX XXX"
             inputMode="tel"
             autoComplete="tel"
-          />
-        </Field>
-        ) : null
-      ) : null}
-
-      {isSignUp ? (
-        step === 1 ? (
-        <Field
-          label={
-            <span className="inline-flex items-center gap-1.5">
-              WhatsApp (facultatif)
-              <WhatsAppMark />
-            </span>
-          }
-          htmlFor="client-whatsapp"
-        >
-          <Input
-            id="client-whatsapp"
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-            placeholder="6XX XXX XXX"
-            inputMode="tel"
           />
         </Field>
         ) : null
@@ -282,46 +254,6 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           autoComplete="email"
         />
       </Field>
-      ) : null}
-
-      {isSignUp && step === 2 ? (
-        <Field label="Ville" htmlFor="client-city">
-          <Select id="client-city" value={cityValue} onChange={(e) => setCity(e.target.value)}>
-            <option value="">Sélectionnez votre ville</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      ) : null}
-
-      {isSignUp && step === 2 ? (
-        <>
-          <Field
-            label="Adresse précise"
-            htmlFor="client-address"
-            hint="Quartier, rue, lieu-dit, numéro de maison…"
-            required
-          >
-            <Input
-              id="client-address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Quartier, rue, lieu-dit, numéro de maison…"
-              autoComplete="street-address"
-            />
-          </Field>
-
-          {/* Chantier 4B — champ de parrainage.
-              * Le code n'est JAMAIS bloquant : un code mal recopié ne doit
-              * pas empêcher une inscription. La seule conséquence d'une
-              * saisie invalide est l'absence de parrainage.
-              * L'erreur ne s'affiche que si l'utilisateur a saisi quelque chose
-              * de mal formé — pas sur un champ vide. */}
-          <></>
-        </>
       ) : null}
 
       {!isSignUp || step === 2 ? (
@@ -359,9 +291,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           </button>
         </div>
         {isSignUp && password.length > 0 && !passwordValid ? (
-          <p className="text-xs text-error-ink">
-            8 caractères minimum, 1 majuscule, 1 minuscule, 1 chiffre
-          </p>
+          <p className="text-xs text-error-ink">{passwordRequirementsMessage()}</p>
         ) : null}
         {isSignUp && password.length > 0 && passwordValid ? (
           <p className="text-xs text-success-ink">Mot de passe valide</p>
@@ -430,28 +360,39 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       ) : null}
 
       {isSignUp && step === 2 ? (
-        <div className="flex flex-col-reverse gap-3 sm:flex-row">
-          <Button
-            type="button"
-            size="lg"
-            variant="secondary"
-            onClick={() => setStep(1)}
-            disabled={isSubmitting}
-            className={dark ? 'min-h-12 w-full border-slate-700/80 bg-slate-800/60 text-slate-100 hover:bg-slate-800 text-sm sm:w-auto sm:text-base' : 'w-full sm:w-auto'}
-          >
-            <span aria-hidden>←</span>
-            Retour
-          </Button>
-          <Button
-            type="submit"
-            size="lg"
-            isLoading={isSubmitting}
-            disabled={!canSubmit}
-            className={dark ? `${darkCtaClass} sm:w-auto sm:flex-1` : 'w-full flex-1'}
-          >
-            Créer mon compte
-          </Button>
-        </div>
+        <>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              onClick={() => setStep(1)}
+              disabled={isSubmitting}
+              className={dark ? 'min-h-12 w-full border-slate-700/80 bg-slate-800/60 text-slate-100 hover:bg-slate-800 text-sm sm:w-auto sm:text-base' : 'w-full sm:w-auto'}
+            >
+              <span aria-hidden>←</span>
+              Retour
+            </Button>
+            <Button
+              type="submit"
+              size="lg"
+              isLoading={isSubmitting}
+              disabled={!canSubmit}
+              className={dark ? `${darkCtaClass} sm:w-auto sm:flex-1` : 'w-full flex-1'}
+            >
+              Créer mon compte
+            </Button>
+          </div>
+          <p className="text-center text-sm mt-3">
+            Déjà un compte ?{' '}
+            <Link
+              href="/client/connexion"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Se connecter
+            </Link>
+          </p>
+        </>
       ) : null}
 
       {!isSignUp ? (
