@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select';
 import { listCities, type City } from '@/lib/api/cities-service';
 import { signIn, signUp, homePathForRole, safeRedirect, ApiError, EMAIL_VERIFICATION_REQUIRED_MESSAGE } from '@/lib/api/auth-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+import { isPasswordStrong } from '@/lib/password-strength';
 import { WhatsAppMark } from '@/components/lottie/lottie-animations';
 import { useAuth } from '@/components/auth/auth-provider';
 
@@ -54,7 +55,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
     listCities().then(setCities).catch(() => {});
   }, [isSignUp]);
 
-  const passwordValid = password.length >= 8;
+  const passwordValid = isPasswordStrong(password);
   const passwordsMatch = isSignUp ? password === confirmPassword : true;
   const cityValue = city || '';
   const emailValid = /\S+@\S+\.\S+/.test(email.trim());
@@ -336,7 +337,9 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           </button>
         </div>
         {isSignUp && password.length > 0 && !passwordValid ? (
-          <p className="text-xs text-error-ink">Minimum 8 caractères</p>
+          <p className="text-xs text-error-ink">
+            8 caractères minimum, 1 majuscule, 1 minuscule, 1 chiffre
+          </p>
         ) : null}
         {isSignUp && password.length > 0 && passwordValid ? (
           <p className="text-xs text-success-ink">Mot de passe valide</p>
@@ -430,6 +433,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       ) : null}
 
       {!isSignUp ? (
+      <>
       <Button
         type="submit"
         size="lg"
@@ -439,6 +443,18 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
       >
         Se connecter
       </Button>
+      <div className="mt-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          Vous avez déposé une demande sans créer de compte ?
+        </p>
+        <Link
+          href="/suivi"
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Suivez votre demande ici
+        </Link>
+      </div>
+      </>
       ) : null}
       </motion.div>
       </AnimatePresence>
