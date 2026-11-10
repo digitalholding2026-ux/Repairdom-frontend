@@ -16,7 +16,7 @@ import { WorkspaceSidebar, type WorkspaceNavItem } from '@/components/ui/workspa
 
 const CLIENT_NAV: WorkspaceNavItem[] = [
   { href: '/client', label: 'Vue d’ensemble', icon: 'home' },
-  { href: '/client/demandes', label: 'Mes missions', icon: 'briefcase' },
+  { href: '/client/demandes', label: 'Mes demandes', icon: 'briefcase' },
   { href: '/client/chronologies', label: 'Chronologies', icon: 'clock' },
   { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
   { href: '/client/solde', label: 'Mon solde', icon: 'file' },
@@ -104,7 +104,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
           <BottomNav
             items={[
               { href: '/client', label: 'Accueil', icon: 'home' },
-              { href: '/client/demandes', label: 'Missions', icon: 'briefcase' },
+              { href: '/client/demandes', label: 'Demandes', icon: 'briefcase' },
               { href: '/client/solde', label: 'Solde', icon: 'wallet' },
               { href: '/client/profil', label: 'Profil', icon: 'user' },
             ]}

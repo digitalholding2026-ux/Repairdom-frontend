@@ -18,6 +18,7 @@ export interface RecentItem {
   categoryLabel: string;
   reference: string;
   status: string;
+  confirmationStatus: string | null;
   createdAt: string;
   href: string;
   /* Normalisés à `null` et jamais `undefined` : « absent » est une absence de
@@ -49,6 +50,7 @@ export function toRecentItem(d: DemandeListItem, kind: 'demande' | 'history'): R
     categoryLabel: d.categoryLabel,
     reference: d.reference,
     status: d.status,
+    confirmationStatus: d.confirmationStatus ?? null,
     createdAt: d.createdAt,
     href: kind === 'demande' ? `/client/demandes/${d.id}` : '/client/demandes/historique',
     description: d.description ?? null,

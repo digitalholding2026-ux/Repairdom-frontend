@@ -29,40 +29,86 @@ export function categoryIcon(label: string): IconName {
 }
 
 /** Badge de statut pill : sémantique design system (warning/info/success/muted). */
-export function RecentStatusPill({ status }: { status: string }) {
+export function RecentStatusPill({ status, confirmationStatus }: { status: string; confirmationStatus?: string | null }) {
+  // Badge de statut principal
+  let baseBadge: React.ReactElement | null = null;
   if (status === 'SUBMITTED' || status === 'PENDING') {
-    return (
+    baseBadge = (
       <span className="shrink-0 rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning-ink">
         En attente
       </span>
     );
   }
   if (status === 'ACCEPTED' || status === 'SCHEDULED' || status === 'IN_PROGRESS') {
-    return (
+    baseBadge = (
       <span className="shrink-0 rounded-full bg-info-soft px-3 py-1 text-xs font-semibold text-info-ink">
         En cours
       </span>
     );
   }
   if (status === 'COMPLETED' || status === 'CONFIRMED') {
-    return (
+    baseBadge = (
       <span className="shrink-0 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success-ink">
         Terminé
       </span>
     );
   }
-  return (
+  baseBadge = baseBadge ?? (
     <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
       Annulée
     </span>
   );
+
+  // Badge de confirmation WhatsApp (affiché en complément du statut)
+  let confirmationBadge: React.ReactElement | null = null;
+  if (confirmationStatus === 'PENDING') {
+    confirmationBadge = (
+      <span className="shrink-0 rounded-full border border-warning/30 bg-warning/5 p-2 px-2 text-xs font-semibold text-warning-ink">
+        En attente de confirmation
+      </span>
+    );
+  }
+  if (confirmationStatus === 'CONFIRMED') {
+    confirmationBadge = (
+      <span className="shrink-0 rounded-full border border-success/30 bg-success/5 p-2 px-2 text-xs font-semibold text-success-ink">
+        RDV confirmé
+      </span>
+    );
+  }
+
+  return (
+    <>
+      {baseBadge}
+      {confirmationBadge}
+    </>
+  );
+}
+
+/** Confirmation WhatsApp badge : affiché sur les cartes de demande pour
+ *  indiquer le statut de confirmation du rendez-vous. */
+export function ConfirmationStatusBadge({ confirmationStatus }: { confirmationStatus?: string | null }) {
+  if (confirmationStatus === 'PENDING') {
+    return (
+      <span className="shrink-0 rounded-full border border-warning/30 bg-warning/5 p-2 px-2 text-xs font-semibold text-warning-ink">
+        En attente de confirmation
+      </span>
+    );
+  }
+  if (confirmationStatus === 'CONFIRMED') {
+    return (
+      <span className="shrink-0 rounded-full border border-success/30 bg-success/5 p-2 px-2 text-xs font-semibold text-success-ink">
+        RDV confirmé
+      </span>
+    );
+  }
+  return null;
 }
 
 const REASSURANCE_CARDS: Array<{ icon: IconName; title: string; text: string }> = [
   {
     icon: 'shield-check',
-    title: 'Techniciens vérifiés',
-    text: 'Identité et qualifications contrôlées par l\u2019équipe Relio avant chaque intervention.',
+    title: 'Expertise Relio',
+    text: 'R\u00e9paration garantie par un professionnel qualifi\u00e9 de l\u2019\u00e9quipe Relio.',
   },
   {
     icon: 'wallet',
@@ -117,3 +163,4 @@ export function MissionsEmptyState() {
     </div>
   );
 }
+

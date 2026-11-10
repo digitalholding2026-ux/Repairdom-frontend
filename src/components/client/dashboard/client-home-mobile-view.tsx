@@ -197,7 +197,7 @@ export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
                       </span>
                     </span>
                   </span>
-                  <RecentStatusPill status={item.status} />
+                        <RecentStatusPill status={item.status} confirmationStatus={item.confirmationStatus} />
                 </Link>
               </li>
             ))}
