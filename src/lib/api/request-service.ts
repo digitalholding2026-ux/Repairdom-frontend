@@ -130,6 +130,7 @@ export interface CreateDemandeResult {
   mediaPersisted: boolean;
   storageStatus: string;
   createdAt: string;
+  trackingToken: string | null;
 }
 
 export type DemandeListItem = CreateDemandeResult;

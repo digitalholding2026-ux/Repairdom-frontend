@@ -47,6 +47,13 @@ export async function trackByReference(reference: string): Promise<PublicTrackin
   return apiFetch<PublicTracking>(`/tracking/${encodeURIComponent(reference)}`);
 }
 
+/* Suivi public par token (client invité, pas de compte) : le token
+ * `trackingToken` (UUID v4) est passé dans l'URL. Aucune authentification
+ * requise. */
+export async function trackByToken(token: string): Promise<PublicTracking> {
+  return apiFetch<PublicTracking>(`/tracking/token/${encodeURIComponent(token)}`);
+}
+
 /* CHANTIER NAVIGATION P1/P2 — format public `RD-XXXXXX` (miroir backend
  * `tracking-reference.ts`) : validé AVANT l'appel pour éviter une requête
  * inutile et afficher un message clair. Pur, sans dépendance. */

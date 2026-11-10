@@ -161,12 +161,18 @@ export function DemandeWizard() {
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
-  /* Validation de l'étape 3 : si non connecté, ouvre la modale d'inscription ;
-   * sinon crée la demande directement. */
+  /* Validation de l'étape 3 :
+   * - SMARTPHONE + non connecté : ouvre la modale d'inscription (obligatoire pour l'escrow).
+   * - FRP / SYSTEME + non connecté : crée la demande en anonyme (pas de compte requis).
+   * - Connecté : crée la demande directement. */
   const handleValidate = async () => {
     setCreateError(null);
     if (!user) {
-      setAuthModalOpen(true);
+      if (draft.service === 'SMARTPHONE') {
+        setAuthModalOpen(true);
+        return;
+      }
+      await createDemandeAnonymous();
       return;
     }
     await createDemandeAndRedirect();
@@ -178,6 +184,38 @@ export function DemandeWizard() {
     setAuthModalOpen(false);
     await createDemandeAndRedirect();
   };
+
+  /* Crée une demande en mode anonyme (pas de compte) et redirige vers la
+   * page de suivi anonyme avec le trackingToken. */
+  async function createDemandeAnonymous() {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const category = categories[0];
+      if (!category) {
+        setCreateError('Aucune catégorie disponible pour ce service.');
+        setCreating(false);
+        return;
+      }
+
+      const result = await createDemande({
+        categoryId: category.id,
+        city: draft.address,
+        contactPhone: draft.phone || undefined,
+        address: draft.address,
+        brandId: draft.brandId || undefined,
+        modelId: draft.modelId || undefined,
+        requestedMode: 'ASAP',
+        medias: [],
+      });
+
+      localStorage.removeItem(DRAFT_KEY);
+      router.push(`/suivi?token=${encodeURIComponent(result.trackingToken ?? '')}`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
+      setCreating(false);
+    }
+  }
 
   /* Appelle l'API de création de demande puis redirige vers /client/demandes/[id]
    * avec un bandeau différencié selon le service. */
@@ -446,7 +484,9 @@ export function DemandeWizard() {
               >
                 {draft.service === 'SMARTPHONE'
                   ? 'Continuer vers le paiement sécurisé'
-                  : 'Valider ma demande'}
+                  : draft.service === 'FRP' || draft.service === 'SYSTEME'
+                    ? 'Envoyer ma demande'
+                    : 'Valider ma demande'}
               </Button>
             </div>
 
