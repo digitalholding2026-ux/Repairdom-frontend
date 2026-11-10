@@ -38,6 +38,9 @@ export interface DemandeAuthModalProps {
   onSuccess: (user: AuthUser) => void;
   /* Email déjà connu du wizard (reprise d'une saisie), s'il y en a un. */
   prefillEmail?: string;
+  /* Téléphone WhatsApp saisi à l'étape 2 du wizard, reporté pour ne pas
+   * le redemander à l'inscription. */
+  prefillPhone?: string;
   /* `city` et `address` sont EXIGÉS par le backend pour un compte CLIENT
    * (`auth.service.ts` : 400 « Veuillez renseigner votre ville. » sinon). Le
    * wizard les a déjà collectés à l'étape 3 — ils sont donc reportés tels
@@ -83,6 +86,7 @@ export function DemandeAuthModal({
   onClose,
   onSuccess,
   prefillEmail,
+  prefillPhone,
   city,
   address,
   busyLabel,
@@ -97,7 +101,7 @@ export function DemandeAuthModal({
   const [tab, setTab] = useState<Tab>('signup');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(prefillPhone ?? '');
   const [email, setEmail] = useState(prefillEmail ?? '');
   const [password, setPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -114,7 +118,9 @@ export function DemandeAuthModal({
     setInfo(null);
     setPassword('');
     setSubmitting(false);
-  }, [open]);
+    setPhone(prefillPhone ?? '');
+    setEmail(prefillEmail ?? '');
+  }, [open, prefillPhone, prefillEmail]);
 
   /* Le parent peut demander la bascule vers l'onglet connexion (401 sur la
    * conversion du brouillon) : on incrémente `signInRequestId` pour le
@@ -126,11 +132,12 @@ export function DemandeAuthModal({
     setInfo(null);
   }, [signInRequestId]);
 
-  /* `prefillEmail` peut arriver APRÈS le montage (le parent le renseigne en
-   * même temps que `open`). */
+  /* `prefillEmail` / `prefillPhone` peuvent arriver APRÈS le montage (le
+   * parent les renseigne en même temps que `open`). */
   useEffect(() => {
     if (open && prefillEmail) setEmail(prefillEmail);
-  }, [open, prefillEmail]);
+    if (open && prefillPhone) setPhone(prefillPhone);
+  }, [open, prefillEmail, prefillPhone]);
 
   const isSignUp = tab === 'signup';
   const passwordOk = isSignUp ? isStrongEnough(password) : password.length > 0;

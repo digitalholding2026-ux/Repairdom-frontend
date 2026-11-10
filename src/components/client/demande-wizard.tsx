@@ -6,9 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Field, Input, Select, Textarea } from '@/components/ui';
 import { PageHeader } from '@/components/ui/page-header';
+import { Alert } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatFCFA } from '@/lib/format-fcfa';
+import { normalizeCmPhone } from '@/lib/phone';
 import { listCategories, listItems } from '@/lib/api/catalog-service';
+import { createDemande } from '@/lib/api/request-service';
+import { useAuth } from '@/components/auth/auth-provider';
+import { DemandeAuthModal } from '@/components/client/demande-auth-modal';
 
 type Service = 'FRP' | 'SYSTEME' | 'SMARTPHONE';
 
@@ -65,8 +71,18 @@ const PHONE_PROBLEM_TYPES = [
 
 export function DemandeWizard() {
   const router = useRouter();
+  const { user } = useAuth();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [loaded, setLoaded] = useState(false);
+
+  /* Auth + création de la demande */
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  /* Catégories du service sélectionné (chargées à la demande pour
+   * l'appel createDemande). */
+  const [categories, setCategories] = useState<{ id: string; label: string }[]>([]);
 
   /* Données déroulantes (FRP uniquement) */
   const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
@@ -128,7 +144,72 @@ export function DemandeWizard() {
       .finally(() => setLoadingModels(false));
   }, [loaded, draft.service, draft.brandId]);
 
+  /* Catégories du service sélectionné (pour createDemande). */
+  useEffect(() => {
+    if (!loaded || !draft.service) {
+      setCategories([]);
+      return;
+    }
+    listCategories(draft.service)
+      .then((cats) =>
+        setCategories(
+          cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setCategories([]));
+  }, [loaded, draft.service]);
+
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+
+  /* Validation de l'étape 3 : si non connecté, ouvre la modale d'inscription ;
+   * sinon crée la demande directement. */
+  const handleValidate = async () => {
+    setCreateError(null);
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    await createDemandeAndRedirect();
+  };
+
+  /* Après authentification réussie (inscription ou connexion) : crée la
+   * demande et redirige vers sa page de détail. */
+  const handleAuthSuccess = async () => {
+    setAuthModalOpen(false);
+    await createDemandeAndRedirect();
+  };
+
+  /* Appelle l'API de création de demande puis redirige vers /client/demandes/[id]
+   * avec un bandeau différencié selon le service. */
+  async function createDemandeAndRedirect() {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const category = categories[0];
+      if (!category) {
+        setCreateError('Aucune catégorie disponible pour ce service.');
+        setCreating(false);
+        return;
+      }
+
+      const result = await createDemande({
+        categoryId: category.id,
+        city: draft.address,
+        contactPhone: draft.phone || undefined,
+        address: draft.address,
+        brandId: draft.brandId || undefined,
+        modelId: draft.modelId || undefined,
+        requestedMode: 'ASAP',
+        medias: [],
+      });
+
+      localStorage.removeItem(DRAFT_KEY);
+      router.push(`/client/demandes/${result.id}?new=true&service=${encodeURIComponent(draft.service ?? 'FRP')}`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
+      setCreating(false);
+    }
+  }
 
   const serviceLabel = SERVICE_LABELS[draft.service ?? 'FRP'];
   const isNextEnabled = () => {
@@ -292,6 +373,9 @@ export function DemandeWizard() {
       {draft.step === 3 ? (
         <Card>
           <CardContent className="space-y-4 pt-4">
+            {createError ? (
+              <Alert variant="error">{createError}</Alert>
+            ) : null}
             <p className="text-sm text-muted-foreground">Récapitulatif</p>
             <ul className="space-y-1 text-sm">
               <li>Service : {serviceLabel}</li>
@@ -305,6 +389,37 @@ export function DemandeWizard() {
               <li>Adresse : {draft.address}</li>
               <li>Téléphone : {draft.phone}</li>
             </ul>
+
+            {/* Votre Technicien — uniquement SMARTPHONE */}
+            {draft.service === 'SMARTPHONE' ? (
+              <div className="rounded-2xl border border-success/30 bg-success/5 p-4">
+                <div className="flex items-start gap-3">
+                  <Avatar firstName="Technicien" lastName="Relio" size="lg" className="shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">Votre technicien</p>
+                    <p className="text-xs text-muted-foreground">
+                      Un technicien Relio s'occupera de votre appareil.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const phone = normalizeCmPhone(draft.phone);
+                        if (!phone) return;
+                        const waNumber = phone.replace(/\+/g, '');
+                        const text = encodeURIComponent(
+                          'Bonjour, j&rsquo;ai une demande de réparation smartphone en cours chez Relio. Pouvez-vous me contacter ?',
+                        );
+                        window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank');
+                      }}
+                    >
+                      Poser une question sur WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {draft.service !== 'SMARTPHONE' && draft.depositAmount != null && draft.depositAmount > 0 ? (
               <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
                 <p className="text-sm font-medium">
@@ -324,16 +439,27 @@ export function DemandeWizard() {
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => update({ step: 2 })}>Précédent</Button>
               <Button
-                onClick={() => {
-                  localStorage.removeItem(DRAFT_KEY);
-                  router.push('/demande/succes');
-                }}
+                onClick={handleValidate}
+                isLoading={creating}
+                disabled={creating}
+                className="flex-1"
               >
-                {draft.service !== 'SMARTPHONE' && draft.depositAmount != null
-                  ? `Payer les frais de déplacement (${formatFCFA(draft.depositAmount)})`
-                  : 'Valider la demande'}
+                {draft.service === 'SMARTPHONE'
+                  ? 'Continuer vers le paiement sécurisé'
+                  : 'Valider ma demande'}
               </Button>
             </div>
+
+            {authModalOpen ? (
+              <DemandeAuthModal
+                open={authModalOpen}
+                onClose={() => setAuthModalOpen(false)}
+                onSuccess={handleAuthSuccess}
+                prefillPhone={draft.phone}
+                city={draft.address}
+                address={draft.address}
+              />
+            ) : null}
           </CardContent>
         </Card>
       ) : null}

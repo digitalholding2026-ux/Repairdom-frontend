@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Skeleton, SkeletonCard, SkeletonRow } from '@/components/ui/skeleton';
@@ -32,6 +32,7 @@ import { DiagnosticAudioPlayer } from '@/components/mission/diagnostic-audio-pla
 import { getDemandeMediaFileUrl } from '@/lib/api/request-service';
 import { RatingSection } from '@/components/mission/rating-section';
 import { formatDate, formatDateTime, formatTime, fullName } from '@/lib/format';
+import { cn } from '@/lib/cn';
 import { listMissionEvents, type MissionEvent } from '@/lib/api/mission-events-service';
 import {
   getDemande,
@@ -53,6 +54,7 @@ import {
 import { getClientFinanceSummary, type ClientFinanceSummary } from '@/lib/api/finance-service';
 import { formatCurrency } from '@/lib/format';
 import { formatFCFA } from '@/lib/format-fcfa';
+import { normalizeCmPhone } from '@/lib/phone';
 import { payEscrow, getClientInvoice, type ClientInvoice } from '@/lib/api/request-service';
 import { useRealtime } from '@/lib/realtime/sse-context';
 import { missionStreamUrl } from '@/lib/realtime/use-mission-stream';
@@ -99,6 +101,7 @@ const LIVE_STATUSES = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
 
 export default function ClientDemandeDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [demande, setDemande] = useState<DemandeListItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -486,8 +489,49 @@ export default function ClientDemandeDetailPage() {
    * une décision : il passe donc au-dessus de tous les bandeaux d'état. */
   const hasPendingQuote = latestQuote?.status === 'PENDING';
 
+  /* Bandeau de succès affiché juste après création de la demande
+   * (passage par le wizard public). Différencié selon le service. */
+  const isNewDemande = searchParams.get('new') === 'true';
+  const newService = searchParams.get('service');
+
   return (
     <div className="space-y-6">
+      {isNewDemande && newService && demande ? (
+        <div
+          className={cn(
+            'rounded-xl border p-4',
+            newService === 'SMARTPHONE'
+              ? 'border-warning/30 bg-warning/5'
+              : 'border-success/30 bg-success/5',
+          )}
+        >
+          {newService === 'SMARTPHONE' ? (
+            <>
+              <h3 className="text-sm font-semibold text-warning">Action requise : bloquez les fonds</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Votre demande est enregistrée. Pour lancer la réparation smartphone, veuillez bloquer
+                les fonds via le paiement sécurisé (SasPay).
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-sm font-semibold text-success">Demande enregistrée !</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Aucun paiement en ligne n&apos;est requis. Le technicien vous contactera sur WhatsApp
+                pour convenir du rendez-vous.
+              </p>
+              <a
+                href={`https://wa.me/${normalizeCmPhone(demande.contactPhone ?? '')?.replace(/\+/g, '') ?? ''}?text=${encodeURIComponent('Bonjour, j&rsquo;ai une demande en cours chez Relio. Pouvez-vous me contacter ?')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-input bg-transparent px-3 py-2 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:text-primary hover:border-primary focus:outline-none"
+              >
+                Ouvrir WhatsApp
+              </a>
+            </>
+          )}
+        </div>
+      ) : null}
       {/* ═══ 1. HEADER ═══════════════════════════════════════════════════ */}
       <header className="space-y-3">
         <nav aria-label="Fil d'Ariane">
