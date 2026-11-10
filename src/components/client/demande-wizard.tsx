@@ -30,7 +30,6 @@ interface Draft {
   brandId: string | null;
   modelId: string | null;
   modelPrice: number | null;
-  depositAmount: number | null;
   problem: string;
   description: string;
   address: string;
@@ -43,7 +42,6 @@ const emptyDraft: Draft = {
   brandId: null,
   modelId: null,
   modelPrice: null,
-  depositAmount: null,
   problem: '',
   description: '',
   address: '',
@@ -85,10 +83,6 @@ export function DemandeWizard() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-
-  /* Catégories du service sélectionné (chargées à la demande pour
-   * l'appel createDemande). */
-  const [categories, setCategories] = useState<{ id: string; label: string }[]>([]);
 
   /* Données déroulantes (FRP uniquement) */
   const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
@@ -160,21 +154,6 @@ export function DemandeWizard() {
       .finally(() => setLoadingModels(false));
   }, [loaded, draft.service, draft.brandId]);
 
-  /* Catégories du service sélectionné (pour createDemande). */
-  useEffect(() => {
-    if (!loaded || !draft.service) {
-      setCategories([]);
-      return;
-    }
-    listCategories(draft.service)
-      .then((cats) =>
-        setCategories(
-          cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
-        ),
-      )
-      .catch(() => setCategories([]));
-  }, [loaded, draft.service]);
-
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
   /* Validation de l'étape 3 :
@@ -207,22 +186,11 @@ export function DemandeWizard() {
     setCreating(true);
     setCreateError(null);
     try {
-      const category = categories[0];
-      if (!category) {
-        setCreateError('Aucune catégorie disponible pour ce service.');
-        setCreating(false);
-        return;
-      }
-
       const result = await createDemande({
-        categoryId: category.id,
-        city: draft.address,
-        contactPhone: draft.phone || undefined,
+        serviceCode: draft.service ?? 'FRP',
         address: draft.address,
-        brandId: draft.brandId || undefined,
-        modelId: draft.modelId || undefined,
-        requestedMode: 'ASAP',
-        medias: [],
+        phone: draft.phone ?? '',
+        description: draft.description || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
@@ -239,22 +207,11 @@ export function DemandeWizard() {
     setCreating(true);
     setCreateError(null);
     try {
-      const category = categories[0];
-      if (!category) {
-        setCreateError('Aucune catégorie disponible pour ce service.');
-        setCreating(false);
-        return;
-      }
-
       const result = await createDemande({
-        categoryId: category.id,
-        city: draft.address,
-        contactPhone: draft.phone || undefined,
+        serviceCode: draft.service ?? 'FRP',
         address: draft.address,
-        brandId: draft.brandId || undefined,
-        modelId: draft.modelId || undefined,
-        requestedMode: 'ASAP',
-        medias: [],
+        phone: draft.phone ?? '',
+        description: draft.description || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
@@ -266,10 +223,7 @@ export function DemandeWizard() {
   }
 
   const serviceLabel = SERVICE_LABELS[draft.service ?? 'FRP'];
-  const isNextEnabled = () => {
-    if (draft.service === 'FRP') return Boolean(draft.modelId && draft.address && draft.phone);
-    return Boolean(draft.address && draft.phone);
-  };
+  const isNextEnabled = () => Boolean(draft.address && draft.phone);
 
   /* Construit l'URL WhatsApp proprement avec les paramètres configurés. */
   const buildWhatsAppUrl = (phone: string, message: string): string | null => {
@@ -296,10 +250,7 @@ export function DemandeWizard() {
               <button
                 key={s}
                 type="button"
-                onClick={() => {
-                  const deposit = s === 'SMARTPHONE' ? null : 1000;
-                  update({ service: s, step: 2, depositAmount: deposit });
-                }}
+                onClick={() => update({ service: s, step: 2 })}
                 className={cn(
                   'rounded-2xl border p-6 text-center font-semibold transition-colors',
                   active
@@ -485,22 +436,6 @@ export function DemandeWizard() {
               </div>
             ) : null}
 
-            {draft.service !== 'SMARTPHONE' && draft.depositAmount != null && draft.depositAmount > 0 ? (
-              <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
-                <p className="text-sm font-medium">
-                  Frais de déplacement à payer :{' '}
-                  <span className="font-semibold">{formatFCFA(draft.depositAmount)}</span>.
-                  {draft.modelPrice != null ? (
-                    <>
-                      Le reste ({formatFCFA(draft.modelPrice - draft.depositAmount)}) sera payé après
-                      la réparation.
-                    </>
-                  ) : (
-                    'Le solde restant sera payé après la réparation.'
-                  )}
-                </p>
-              </div>
-            ) : null}
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => update({ step: 2 })}>Précédent</Button>
               <Button

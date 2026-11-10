@@ -25,28 +25,11 @@ export interface DeviceContext {
 }
 
 export interface CreateDemandeInput {
-  categoryId: string;
-  /* Dépôt multimédia : description textuelle optionnelle (vocal/vidéo /
-   * photos). Backend : au moins un média exigé sans texte. */
+  serviceCode: string;
+  catalogItemId?: string;
   description?: string;
-  /* Parcours « Autre appareil » : indice structuré (code de famille choisi
-   * dans la liste du catalogue, jamais de texte libre). */
-  equipmentFamily?: string;
-  medias: Array<{ name: string; type: string; size: number; storagePath?: string }>;
-  city: string;
-  neighborhood?: string;
-  address?: string;
-  landmark?: string;
-  contactPhone?: string;
-  /* GPS V1 — position optionnelle (jamais exigée, jamais déduite). */
-  latitude?: number;
-  longitude?: number;
-  requestedMode: RequestTimingMode;
-  requestedAt?: string;
-  domainId?: string;
-  brandId?: string;
-  modelId?: string;
-  problemId?: string;
+  address: string;
+  phone: string;
 }
 
 export interface TechnicianInfo {
@@ -135,19 +118,6 @@ export interface CreateDemandeResult {
 
 export type DemandeListItem = CreateDemandeResult;
 
-const MEDIA_KIND_MAP: Record<string, string> = {
-  'image/': 'IMAGE',
-  'video/': 'VIDEO',
-  'audio/': 'AUDIO',
-};
-
-function resolveMediaKind(mimeType: string): string {
-  for (const [prefix, kind] of Object.entries(MEDIA_KIND_MAP)) {
-    if (mimeType.startsWith(prefix)) return kind;
-  }
-  return 'IMAGE';
-}
-
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${siteConfig.apiBaseUrl}${path}`, {
     credentials: 'include',
@@ -163,39 +133,11 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      categoryId: input.categoryId,
-      // Description textuelle optionnelle (dépôt multimédia) : omise si vide.
+      serviceCode: input.serviceCode,
+      ...(input.catalogItemId ? { catalogItemId: input.catalogItemId } : {}),
+      address: input.address,
+      phone: input.phone,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
-      // Parcours « Autre appareil » : indice structuré (code validé backend).
-      ...(input.equipmentFamily?.trim() ? { equipmentFamily: input.equipmentFamily.trim() } : {}),
-      city: input.city,
-      neighborhood: input.neighborhood || undefined,
-      address: input.address || undefined,
-      landmark: input.landmark || undefined,
-      contactPhone: input.contactPhone || undefined,
-      // GPS V1 — transmis uniquement si fini (jamais NaN/Infinity).
-      latitude:
-        typeof input.latitude === 'number' && Number.isFinite(input.latitude)
-          ? input.latitude
-          : undefined,
-      longitude:
-        typeof input.longitude === 'number' && Number.isFinite(input.longitude)
-          ? input.longitude
-          : undefined,
-      requestedMode: input.requestedMode,
-      requestedAt: input.requestedAt || undefined,
-      domainId: input.domainId ?? undefined,
-      brandId: input.brandId ?? undefined,
-      modelId: input.modelId ?? undefined,
-      problemId: input.problemId ?? undefined,
-      medias: input.medias.map((m) => ({
-        kind: resolveMediaKind(m.type),
-        name: m.name,
-        mimeType: m.type,
-        sizeBytes: m.size,
-        // Chemin d'upload réel (lié en transaction à la création).
-        ...(m.storagePath ? { storagePath: m.storagePath } : {}),
-      })),
     }),
   });
 
