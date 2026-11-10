@@ -1,3 +1,5 @@
+'use client';
+
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -15,8 +17,8 @@ import {
   safeRedirect,
   ApiError,
   EMAIL_VERIFICATION_REQUIRED_MESSAGE,
-  convertDemandeDraft,
 } from '@/lib/api/auth-service';
+import { convertDemandeDraft } from '@/lib/api/request-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 import { isPasswordStrong } from '@/lib/password-strength';
 import { WhatsAppMark } from '@/components/lottie/lottie-animations';
@@ -46,6 +48,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [whatsapp, setWhatsapp] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -126,7 +129,7 @@ export function ClientAuthForm({ mode, dark = false, onProgressChange }: ClientA
           city: cityValue.trim() || undefined,
           address: address.trim() || undefined,
         });
-        toast.success('Compte créé avec succès !');
+        toast({ variant: 'success', title: 'Compte créé avec succès !' });
         // Après inscription réussie, tenter de convertir un éventuel brouillon
         // de demande en attente vers ce nouveau compte.
         const draftToken = localStorage.getItem('relio_demande_draft_token');
