@@ -134,8 +134,8 @@ export function MissionsEmptyState() {
         Aucune demande en cours
       </h3>
       <p className="mb-6 max-w-md text-sm text-slate-500 dark:text-slate-400">
-        Besoin d\u2019un d\u00e9pannage informatique, d\u2019une r\u00e9paration de smartphone
-        ou d\u2019un d\u00e9blocage ? D\u00e9posez votre demande en 2 minutes. Un expert
+        Besoin d'un dépannage informatique, d'une réparation de smartphone
+        ou d'un déblocage ? Déposez votre demande en 2 minutes. Un expert
         Relio vous contactera sur WhatsApp pour confirmer votre rendez-vous.
       </p>
       <Link href='/demande'>
