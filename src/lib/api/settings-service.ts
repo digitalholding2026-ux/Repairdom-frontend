@@ -58,3 +58,13 @@ export async function updateAdminSettings(
     body: JSON.stringify(input),
   });
 }
+
+/* Upload l’avatar admin (multipart/form-data). Retourne l’URL publique. */
+export async function uploadAdminAvatar(file: File): Promise<{ adminAvatarUrl: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiFetch<{ adminAvatarUrl: string }>('/settings/avatar', {
+    method: 'POST',
+    body: form,
+  });
+}
