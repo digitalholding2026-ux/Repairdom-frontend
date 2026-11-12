@@ -28,6 +28,7 @@ export default function AdminClientsPage() {
 
   /* Création B2B (modale) */
   const [createOpen, setCreateOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [b2bResult, setB2BResult] = useState<CreateB2BClientResult | null>(null);
@@ -275,9 +276,27 @@ export default function AdminClientsPage() {
                 <p className="text-muted-foreground">E-mail</p>
                 <p className="text-foreground font-mono">{b2bResult.user.email}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">Mot de passe temporaire</p>
-                <p className="text-foreground font-mono">{b2bResult.plainPassword}</p>
+              <div className="col-span-2">
+                <p className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground">Mot de passe temporaire</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="text-xs text-orange-600 hover:underline"
+                  >
+                    {showPassword ? 'Masquer' : 'Afficher'}
+                  </button>
+                </p>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={b2bResult.plainPassword}
+                  readOnly
+                  className="w-full font-mono text-xs text-foreground bg-muted rounded border border-border p-1 select-all"
+                  onSelect={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    target.select();
+                  }}
+                />
               </div>
               <div className="col-span-2">
                 <p className="text-muted-foreground">Code Pro</p>
@@ -288,6 +307,18 @@ export default function AdminClientsPage() {
                 <p className="text-foreground">{b2bResult.user.companyName}</p>
               </div>
             </div>
+            <Button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `E-mail : ${b2bResult.user.email}\nMot de passe : ${b2bResult.plainPassword}\nCode Pro : ${b2bResult.user.codePro ?? '—'}\nStructure : ${b2bResult.user.companyName}`,
+                );
+              }}
+              className="w-full text-xs"
+            >
+              <Icon name="copy" size="sm" />
+              Copier les identifiants
+            </Button>
           </div>
         </Alert>
       )}
