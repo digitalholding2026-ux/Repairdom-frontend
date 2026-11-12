@@ -623,6 +623,10 @@ export interface AdminClientUser {
   firstName: string;
   lastName: string | null;
   email: string;
+  phone: string | null;
+  clientType: string;
+  companyName: string | null;
+  codePro: string | null;
 }
 
 export interface AdminClientUserSearch {
@@ -633,6 +637,36 @@ export function searchAdminClients(q: string): Promise<AdminClientUserSearch> {
   const params = new URLSearchParams();
   if (q.trim()) params.set('q', q.trim());
   return catalogFetch<AdminClientUserSearch>(`/admin/users/clients?${params.toString()}`);
+}
+
+export interface CreateB2BClientInput {
+  companyName: string;
+  firstName: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+}
+
+export interface CreateB2BClientResult {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string | null;
+    companyName: string | null;
+    codePro: string | null;
+    clientType: string;
+    createdAt: string;
+  };
+  plainPassword: string;
+}
+
+export function createB2BClient(input: CreateB2BClientInput): Promise<CreateB2BClientResult> {
+  return catalogFetch<CreateB2BClientResult>('/admin/clients/b2b', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 }
 
 /* ── Supervision des missions (Sprint 8.6.5) ──────────────────── */
@@ -1056,11 +1090,12 @@ export interface AdminCatalogItem {
   price: number | null;
   active: boolean;
   travelFee: number | null;
+  paymentType: string;
 }
 
 export function updateCatalogItemPrices(
   itemId: string,
-  data: { price?: number | null; active?: boolean; travelFee?: number | null },
+  data: { price?: number | null; active?: boolean; travelFee?: number | null; paymentType?: string },
 ): Promise<AdminCatalogItem> {
   return catalogFetch<AdminCatalogItem>(
     `/admin/catalog/items/${encodeURIComponent(itemId)}/prices`,

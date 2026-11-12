@@ -135,6 +135,7 @@ export interface CatalogItemLite {
   price: number | null;
   active: boolean;
   travelFee: number | null;
+  paymentType: string;
 }
 
 export async function listServices(): Promise<CatalogServiceLite[]> {

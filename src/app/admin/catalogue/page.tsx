@@ -40,7 +40,7 @@ export default function AdminCataloguePage() {
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean }>>({});
+  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>({});
   const [categoriesByService, setCategoriesByService] = useState<Record<string, CatalogCategoryLite[]>>({});
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, CatalogItemLite[]>>({});
 
@@ -139,6 +139,7 @@ export default function AdminCataloguePage() {
                   price: String(item.price ?? ''),
                   travelFee: String(item.travelFee ?? ''),
                   active: item.active,
+                  paymentType: item.paymentType ?? 'END_OF_SERVICE',
                 },
               }));
             }}
@@ -150,6 +151,7 @@ export default function AdminCataloguePage() {
                   price: values.price === '' ? null : Number(values.price),
                   travelFee: values.travelFee === '' ? null : Number(values.travelFee),
                   active: values.active,
+                  paymentType: values.paymentType,
                 });
                 setEditingItem(null);
                 setItemPrices((prev) => {
@@ -181,8 +183,8 @@ interface ServiceCardProps {
   categories: CatalogCategoryLite[];
   itemsByCategory: Record<string, CatalogItemLite[]>;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
   loadCategories: () => void;
   loadItems: (catId: string, categoryId: string) => void;
   onEditItem: (item: CatalogItemLite) => void;
@@ -273,8 +275,8 @@ interface CategorySectionProps {
   itemsLoaded: boolean;
   loadItems: () => void;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -335,8 +337,8 @@ function CategorySection({
 interface ItemRowProps {
   item: CatalogItemLite;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -390,6 +392,19 @@ function ItemRow({
               className="w-24 h-10 text-sm"
               placeholder="Frais dépl."
             />
+            <select
+              value={values.paymentType}
+              onChange={(e) => {
+                setItemPrices((prev) => ({
+                  ...prev,
+                  [item.id]: { ...prev[item.id], paymentType: e.target.value },
+                }));
+              }}
+              className="h-10 text-sm border border-border rounded-lg px-2 bg-input"
+            >
+              <option value="END_OF_SERVICE">Paiement à la fin</option>
+              <option value="DEPOSIT_50">Acompte 50%</option>
+            </select>
             <label className="flex items-center gap-1 text-xs cursor-pointer">
               <input
                 type="checkbox"
@@ -424,6 +439,9 @@ function ItemRow({
                 + {formatCurrency(item.travelFee, 'XAF')} déplacement
               </span>
             )}
+            <span className={`text-xs font-medium ${item.paymentType === 'DEPOSIT_50' ? 'text-orange-700' : 'text-slate-500'}`}>
+              {item.paymentType === 'DEPOSIT_50' ? 'Acompte 50%' : 'Paiement à la fin'}
+            </span>
             <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
               <span className="size-4">✎</span>
             </Button>
