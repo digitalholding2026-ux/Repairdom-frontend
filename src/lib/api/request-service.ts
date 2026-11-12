@@ -27,6 +27,10 @@ export interface DeviceContext {
 export interface CreateDemandeInput {
   serviceCode: string;
   catalogItemId?: string;
+  brandId?: string;
+  modelId?: string;
+  problemId?: string;
+  finalAmount?: number;
   description?: string;
   address: string;
   phone: string;
@@ -136,6 +140,10 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
     body: JSON.stringify({
       serviceCode: input.serviceCode,
       ...(input.catalogItemId ? { catalogItemId: input.catalogItemId } : {}),
+      ...(input.brandId ? { brandId: input.brandId } : {}),
+      ...(input.modelId ? { modelId: input.modelId } : {}),
+      ...(input.problemId ? { problemId: input.problemId } : {}),
+      ...(input.finalAmount !== undefined ? { finalAmount: input.finalAmount } : {}),
       ...(input.discountCode ? { discountCode: input.discountCode } : {}),
       address: input.address,
       phone: input.phone,

@@ -270,10 +270,6 @@ export default function SuiviReferencePage() {
                   <p className="text-sm font-medium">{tracking.model ?? '—'}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Problème</p>
-                  <p className="text-sm font-medium">{tracking.problem ?? '—'}</p>
-                </div>
-                <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Adresse</p>
                   <p className="text-sm font-medium">{tracking.address ?? '—'}</p>
                 </div>
