@@ -64,7 +64,7 @@ export default function SuiviPage() {
   const handleTrackByReference = async (ref: string) => {
     try {
       await trackByReference(ref);
-      router.push(`/suivi/${ref}`);
+      router.push(`/suivi/ref/${ref}`);
     } catch (err) {
       setResults([]);
       setError(toUserErrorMessage(err, 'Demande introuvable.'));

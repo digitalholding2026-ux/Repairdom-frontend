@@ -149,7 +149,7 @@ export default function SuccesPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           type="button"
-          onClick={() => router.push(`/suivi/${encodeURIComponent(reference)}`)}
+          onClick={() => router.push(`/suivi/ref/${encodeURIComponent(reference)}`)}
           className="flex-1"
         >
           <Icon name="arrow-right" size="sm" className="mr-2" />
