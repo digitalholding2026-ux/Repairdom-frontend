@@ -1,11 +1,6 @@
 import { siteConfig } from '@/lib/site-config';
 import { toApiError } from './api-error';
 
-export interface DeviceContext {
-  name: string;
-  slug: string;
-}
-
 export interface TrackingTimelineEntry {
   type: string;
   label: string;
@@ -16,23 +11,14 @@ export interface PublicTracking {
   reference: string;
   status: string;
   category: string;
-  device: {
-    domain: DeviceContext | null;
-    brand: DeviceContext | null;
-    model: DeviceContext | null;
-    problem: DeviceContext | null;
-  };
-  timing: {
-    mode: string;
-    requestedAt: string | null;
-  };
-  scheduledAt: string | null;
-  submittedAt: string;
-  technicianAssigned: boolean;
-  technicianVerified: boolean;
-  timeline: TrackingTimelineEntry[];
+  model: string | null;
+  problem: string | null;
+  price: number | null;
+  createdAt: string;
   address: string | null;
+  city: string | null;
   contactPhone: string | null;
+  timeline: TrackingTimelineEntry[];
 }
 
 /* Résultat de la recherche par numéro de téléphone (client invité). */
@@ -57,7 +43,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function trackByReference(reference: string): Promise<PublicTracking> {
-  return apiFetch<PublicTracking>(`/tracking/${encodeURIComponent(reference)}`);
+  return apiFetch<PublicTracking>(`/demandes/tracking/reference/${encodeURIComponent(reference)}`);
 }
 
 /* Suivi public par token (client invité, pas de compte) : le token

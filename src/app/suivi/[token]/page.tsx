@@ -172,9 +172,7 @@ export default function SuiviTokenPage() {
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Modèle / Service</p>
                   <p className="text-sm font-medium">
-                    {tracking.device.model?.name ||
-                    tracking.device.problem?.name ||
-                    tracking.category}
+                    {tracking.model || tracking.problem || tracking.category}
                   </p>
                 </div>
                 <div className="space-y-1">
@@ -210,7 +208,7 @@ export default function SuiviTokenPage() {
                     title: 'Demande reçue',
                     state: statusStep(status, 'received'),
                     icon: 'check',
-                    timestamp: tracking.submittedAt,
+                    timestamp: tracking.createdAt,
                   },
                   {
                     id: 'in_progress',
@@ -219,7 +217,7 @@ export default function SuiviTokenPage() {
                     icon: 'wrench',
                     timestamp:
                       tracking.timeline.find((e) => e.type === 'IN_PROGRESS')?.date ??
-                      tracking.scheduledAt,
+                      null,
                   },
                   {
                     id: 'completed',
