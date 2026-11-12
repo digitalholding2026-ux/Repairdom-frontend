@@ -15,6 +15,7 @@ export interface PublicPlatformSetting {
   adminName: string;
   adminWhatsApp: string;
   adminAvatarUrl: string | null;
+  supportEmail: string | null;
 }
 
 export interface UpdatePlatformSettingInput {

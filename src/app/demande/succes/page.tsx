@@ -23,6 +23,7 @@ export default function SuccesPage() {
     adminName: string;
     adminWhatsApp: string;
     adminAvatarUrl: string | null;
+    supportEmail: string | null;
   } | null>(null);
   const [paying, setPaying] = useState(false);
 
@@ -41,6 +42,7 @@ export default function SuccesPage() {
           adminName: s.adminName,
           adminWhatsApp: s.adminWhatsApp,
           adminAvatarUrl: s.adminAvatarUrl,
+          supportEmail: s.supportEmail ?? null,
         });
       })
       .catch(() => {
@@ -134,10 +136,10 @@ export default function SuccesPage() {
           </p>
           <div className="flex items-center gap-3">
             <span className="font-mono text-sm font-semibold">
-              support@relio.cm
+              {settings?.supportEmail ?? 'contact@relioo.space'}
             </span>
             <Button variant="outline" size="sm" onClick={() => {
-              navigator.clipboard.writeText('support@relio.cm');
+              navigator.clipboard.writeText(settings?.supportEmail ?? 'contact@relioo.space');
             }}>
               Copier
             </Button>
