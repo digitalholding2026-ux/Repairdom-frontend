@@ -18,6 +18,113 @@ import type { ClientDashboardData } from './use-client-dashboard-data';
 export function ClientHomeMobileView({ data }: { data: ClientDashboardData }) {
   const { user, balance, showBalance, setShowBalance, recent } = data;
   const displayName = user?.firstName?.trim() ? user.firstName.trim() : 'Client';
+  const isB2B = user?.clientType === 'B2B';
+
+  /* ── Espace B2B : accueil professionnel ────────────────────────── */
+  if (isB2B) {
+    return (
+      <div className="min-h-dvh bg-slate-100 pb-28 dark:bg-relio-bg">
+        <header className="relative overflow-hidden rounded-b-[32px] bg-relio-bg p-6 pb-12 text-white shadow-lg">
+          <div className="relative">
+            <div className="flex items-center justify-between gap-3">
+              <Link href="/client/profil" className="flex min-w-0 items-center gap-3" aria-label="Mon profil">
+                <Avatar
+                  src={user?.avatarUrl}
+                  firstName={user?.firstName}
+                  lastName={user?.lastName}
+                  size="md"
+                  alt="Photo de profil"
+                  className="rounded-full shadow-lg shadow-orange-500/30 ring-2 ring-orange-500/70"
+                />
+                <span className="min-w-0">
+                  <span className="block text-xs text-white/60">{getGreeting()},</span>
+                  <span className="block truncate text-base font-bold leading-tight">
+                    Bienvenue, {user.companyName ?? displayName}
+                  </span>
+                </span>
+              </Link>
+              <div className="flex shrink-0 items-center gap-2">
+                <Link href="/client/notifications" aria-label="Notifications" className="relative flex size-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 active:scale-95">
+                  <Icon name="bell" size="md" strokeWidth={1.8} />
+                  <NotificationTabBadge />
+                </Link>
+              </div>
+            </div>
+
+            {/* Carte Code Pro */}
+            {user.codePro && (
+              <div className="mt-8 rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-900/20 dark:bg-orange-900/10">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-orange-700 uppercase tracking-wider">
+                      Code Pro
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      Partagez ce code à vos clients pour qu'ils bénéficient de -20% sur leur réparation.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm font-semibold text-orange-900 bg-orange-100 px-3 py-1 rounded-lg">
+                      {user.codePro}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(user.codePro ?? '')}
+                      className="size-8 rounded-lg border border-border bg-white text-muted-foreground hover:bg-muted transition"
+                      aria-label="Copier le Code Pro"
+                    >
+                      <Icon name="copy" size="sm" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Liste des demandes B2B */}
+        <section aria-label="Mes demandes professionnelles" className="mx-auto mt-6 max-w-md px-4">
+          <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-white mb-3">
+            Mes demandes professionnelles
+          </h2>
+          {recent.length === 0 ? (
+            <div className="rounded-2xl border border-slate-100 bg-white p-6 text-center shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">Aucune demande pour le moment</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Déposez une nouvelle demande pour un client.
+              </p>
+            </div>
+          ) : (
+            <ul>
+              {recent.map((item) => (
+                <li key={item.key} className="mb-3">
+                  <Link
+                    href={item.href}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-orange-500"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                        <Icon name={categoryIcon(item.categoryLabel)} size="md" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-slate-900">
+                          {item.categoryLabel}
+                        </span>
+                        <span className="block truncate text-xs text-slate-500">
+                          {item.reference} • {formatDateTime(item.createdAt)}
+                        </span>
+                      </span>
+                    </span>
+                    <RecentStatusPill status={item.status} confirmationStatus={item.confirmationStatus} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-slate-100 pb-28 dark:bg-relio-bg">

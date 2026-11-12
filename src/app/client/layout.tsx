@@ -3,7 +3,7 @@
 import { type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
+import { BottomNav, type BottomNavItem } from '@/components/ui/bottom-nav';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { ScrollToTop } from '@/components/ui/scroll-to-top';
@@ -32,8 +32,39 @@ const CLIENT_PUBLIC_PATHS = [
 export default function ClientLayout({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname() ?? '';
   const { user, authenticated, loading } = useAuth();
+  const isB2B = user?.clientType === 'B2B';
   const isPublicPath = CLIENT_PUBLIC_PATHS.includes(pathname);
   const showPrivateChrome = authenticated && user?.role === 'CLIENT';
+
+  const _CLIENT_NAV: WorkspaceNavItem[] = [
+    { href: '/client', label: 'Vue d’ensemble', icon: 'home' as const },
+    { href: '/client/demandes', label: 'Mes demandes', icon: 'briefcase' as const },
+    { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+    ...(isB2B
+      ? [{ href: '/client/bonus', label: 'Mes Bonus', icon: 'badge-check' as const }]
+      : [{ href: '/client/solde', label: 'Mon solde', icon: 'file' as const }]),
+    { href: '/client/profil', label: 'Mon profil', icon: 'user' as const },
+  ];
+
+  const BOTTOM_NAV_ITEMS: BottomNavItem[] = isB2B
+    ? [
+      { href: '/client', label: 'Accueil', icon: 'home' as const },
+      { href: '/client/demandes', label: 'Demandes', icon: 'briefcase' as const },
+      { href: '/client/bonus', label: 'Bonus', icon: 'badge-check' as const },
+      { href: '/client/profil', label: 'Profil', icon: 'user' as const },
+    ]
+    : [
+      { href: '/client', label: 'Accueil', icon: 'home' as const },
+      { href: '/client/demandes', label: 'Demandes', icon: 'briefcase' as const },
+      { href: '/client/solde', label: 'Solde', icon: 'wallet' as const },
+      { href: '/client/profil', label: 'Profil', icon: 'user' as const },
+    ];
+
+  const BOTTOM_NAV_MORE_ITEMS: BottomNavItem[] = isB2B
+    ? []
+    : [
+      { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
+    ];
   /* Accueil Neero-style : le dashboard fournit son propre header sombre
    * immersif (top bar + carte solde) — le header global est masqué ici
    * pour éviter toute duplication. */
@@ -85,7 +116,7 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
         {showPrivateChrome && !isPublicPath ? (
           <WorkspaceSidebar
             label="Espace client"
-            items={CLIENT_NAV}
+            items={_CLIENT_NAV}
             action={{ href: '/demande', label: 'Nouvelle demande', icon: 'plus' }}
           />
         ) : null}
@@ -101,18 +132,10 @@ export default function ClientLayout({ children }: Readonly<{ children: ReactNod
       {showPrivateChrome && !isPublicPath ? (
         <div className="lg:hidden">
           <BottomNav
-            items={[
-              { href: '/client', label: 'Accueil', icon: 'home' },
-              { href: '/client/demandes', label: 'Demandes', icon: 'briefcase' },
-              { href: '/client/solde', label: 'Solde', icon: 'wallet' },
-              { href: '/client/profil', label: 'Profil', icon: 'user' },
-            ]}
+            items={BOTTOM_NAV_ITEMS}
             /* CHANTIER NAVIGATION P1/P2 — sections desktop accessibles
              * sur mobile via « Plus » (jamais de bouton minuscule). */
-            moreItems={[
-              { href: '/client/notifications', label: 'Notifications', icon: 'bell', notifications: true },
-              { href: '/client/recompenses', label: 'Récompenses', icon: 'sparkles' },
-            ]}
+            moreItems={BOTTOM_NAV_MORE_ITEMS}
           />
         </div>
       ) : null}

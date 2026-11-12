@@ -11,11 +11,13 @@ import { Icon } from '@/components/ui/icon';
 import { Tabs } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/ui/page-header';
 import { DemandeStatusBadge } from '@/components/ui/status-badge';
+import EscrowCountdown from '@/components/client/EscrowCountdown';
 import {
   getClientFinanceSummary,
   type ClientFinanceSummary,
   type ClientFinanceTransaction,
 } from '@/lib/api/finance-service';
+import { listMyDemandes } from '@/lib/api/request-service';
 import { formatCurrency, formatCurrencySigned, formatDateTime, formatRelative } from '@/lib/format';
 import { SoldeOverview } from '@/components/client/solde/solde-overview';
 import { SoldeSkeleton } from '@/components/client/solde/solde-skeleton';
@@ -78,6 +80,8 @@ export default function ClientSoldePage() {
   const [movementFilter, setMovementFilter] = useState<MovementFilter>('ALL');
   // Onglet principal du conteneur d'activité financière.
   const [mainTab, setMainTab] = useState<SoldeTab>('MOVEMENTS');
+  // Réparation smartphone en cours avec séquestre (pour afficher le compte à rebours).
+  const [escrowEndsAt, setEscrowEndsAt] = useState<string | null>(null);
 
   useEffect(() => {
     void loadSummary();
@@ -90,6 +94,20 @@ export default function ClientSoldePage() {
       const data = await getClientFinanceSummary();
       setSummary(data);
       setError(null);
+
+      // Détecter une réparation smartphone en cours avec séquestre actif.
+      const activeEscrow = data.missions.find((m) => {
+        const active = ['ACCEPTED', 'SCHEDULED', 'IN_PROGRESS'].includes(m.status);
+        return active && !m.refunded;
+      });
+      if (activeEscrow?.reference) {
+        // Récupérer l'heure de fin du séquestre depuis les demandes du client.
+        const demandes = await listMyDemandes();
+        const d = demandes.find((dem) => dem.reference === activeEscrow.reference);
+        if (d?.escrowEndsAt) {
+          setEscrowEndsAt(d.escrowEndsAt);
+        }
+      }
     } catch (err) {
       setError(toUserErrorMessage(err, 'Erreur de chargement.'));
     } finally {
@@ -130,6 +148,17 @@ export default function ClientSoldePage() {
 
       {/* Carte principale : solde + actions */}
       <SoldeOverview summary={summary} />
+
+      {/* Compte à rebours du séquestre — réparation smartphone en cours */}
+      {escrowEndsAt && (
+        <section className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm dark:border-orange-900/20 dark:bg-orange-900/10">
+          <EscrowCountdown escrowEndsAt={escrowEndsAt} />
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+            Cet argent est bloqué pour votre réparation. Il sera remboursé
+            automatiquement si non effectué sous 48h.
+          </p>
+        </section>
+      )}
 
       {/* Activité financière : empilée sur mobile, 2 colonnes sur desktop */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">

@@ -20,6 +20,125 @@ import { AnimateOnScroll } from '@/components/landing/animate-on-scroll';
 export function ClientHomeDesktopView({ data }: { data: ClientDashboardData }) {
   const { user, balance, showBalance, setShowBalance, recent } = data;
   const displayName = user?.firstName?.trim() ? user.firstName.trim() : 'Client';
+  const isB2B = user?.clientType === 'B2B';
+
+  /* ── Espace B2B : accueil professionnel ────────────────────────── */
+  if (isB2B) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link href="/client/profil" aria-label="Mon profil" className="shrink-0">
+              <Avatar
+                src={user?.avatarUrl}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                size="lg"
+                alt="Photo de profil"
+              />
+            </Link>
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">{getGreeting()},</p>
+              <h1 className="truncate text-2xl font-bold tracking-tight">
+                Bienvenue, {user.companyName ?? displayName}
+              </h1>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link href="/client/notifications" aria-label="Notifications">
+              <Button variant="outline" size="icon">
+                <span className="relative flex items-center justify-center">
+                  <Icon name="bell" size="md" />
+                  <NotificationTabBadge />
+                </span>
+              </Button>
+            </Link>
+            <Link href='/demande'>
+              <Button>
+                <Icon name="plus" size="sm" />
+                Nouvelle demande
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Carte Code Pro */}
+        {user.codePro && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    Code Pro
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Partagez ce code à vos clients pour qu'ils bénéficient
+                    de -20% sur leur réparation.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-semibold text-slate-900 dark:text-white bg-slate-100 px-3 py-1 rounded-lg dark:bg-slate-800">
+                    {user.codePro}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(user.codePro ?? '')}
+                    className="size-8 rounded-lg border border-border bg-card text-muted-foreground hover:bg-muted transition"
+                    aria-label="Copier le Code Pro"
+                  >
+                    <Icon name="copy" size="sm" />
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Liste des demandes B2B (Système et FRP uniquement) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Mes demandes professionnelles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recent.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-sm font-semibold">Aucune demande pour le moment</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Déposez une nouvelle demande pour un client.
+                </p>
+              </div>
+            ) : (
+              <ul className="grid gap-3 md:grid-cols-2">
+                {recent.map((item) => (
+                  <li key={item.key}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                          <Icon name={categoryIcon(item.categoryLabel)} size="md" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">
+                            {item.categoryLabel}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {item.reference} • {formatDateTime(item.createdAt)}
+                          </span>
+                        </span>
+                      </span>
+                      <RecentStatusPill status={item.status} confirmationStatus={item.confirmationStatus} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
