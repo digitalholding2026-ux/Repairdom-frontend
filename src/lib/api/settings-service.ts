@@ -40,19 +40,19 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 /* Récupère les paramètres publics (client) : nom, numéro WhatsApp, avatar. */
 export async function getPublicSettings(): Promise<PublicPlatformSetting> {
-  return apiFetch<PublicPlatformSetting>('/api/settings/public');
+  return apiFetch<PublicPlatformSetting>('/settings/public');
 }
 
 /* Récupère tous les paramètres (admin). */
 export async function getAdminSettings(): Promise<PlatformSetting> {
-  return apiFetch<PlatformSetting>('/api/settings/admin');
+  return apiFetch<PlatformSetting>('/settings/admin');
 }
 
 /* Met à jour les paramètres (admin). */
 export async function updateAdminSettings(
   input: UpdatePlatformSettingInput,
 ): Promise<PlatformSetting> {
-  return apiFetch<PlatformSetting>('/api/settings/admin', {
+  return apiFetch<PlatformSetting>('/settings/admin', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
