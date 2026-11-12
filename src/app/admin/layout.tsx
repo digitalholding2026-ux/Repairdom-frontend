@@ -133,31 +133,12 @@ export default function AdminLayout({ children }: Readonly<{ children: ReactNode
           </div>
         ) : null}
 
-        <main className="min-w-0 flex-1 pb-24 lg:pb-6">
+        <main className="min-w-0 flex-1 pb-6 lg:pb-6">
           <RoleGuard expectedRole="ADMIN" publicPaths={[]}>
             {children}
           </RoleGuard>
         </main>
       </div>
-
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-card/95 backdrop-blur lg:hidden">
-        {ADMIN_NAV.map((item) => {
-          const active = isNavActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium',
-                active ? 'text-relio-orange' : 'text-muted-foreground',
-              )}
-            >
-              <Icon name={item.icon} size="sm" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
     </div>
   );
 }
