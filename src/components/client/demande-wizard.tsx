@@ -11,7 +11,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/cn';
 import { formatFCFA } from '@/lib/format-fcfa';
 import { normalizeCmPhone } from '@/lib/phone';
-import { listCategories, listItems } from '@/lib/api/catalog-service';
+import { listCatalogDomains, listCatalogBrands, listCatalogModels, listCatalogProblems } from '@/lib/api/catalog-service';
 import { createDemande } from '@/lib/api/request-service';
 import { getPublicSettings } from '@/lib/api/settings-service';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -32,7 +32,7 @@ interface Draft {
   brandId: string | null;
   modelId: string | null;
   modelPrice: number | null;
-  problem: string;
+  problem: string | null;
   description: string;
   address: string;
   phone: string;
@@ -45,7 +45,7 @@ const emptyDraft: Draft = {
   brandId: null,
   modelId: null,
   modelPrice: null,
-  problem: '',
+  problem: null,
   description: '',
   address: '',
   phone: '',
@@ -88,11 +88,18 @@ export function DemandeWizard() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  /* Données déroulantes (FRP uniquement) */
+  /* Données du catalogue référentiel (vrais IDs Prisma) */
+  const [domains, setDomains] = useState<{ id: string; label: string }[]>([]);
   const [brands, setBrands] = useState<{ id: string; label: string }[]>([]);
   const [models, setModels] = useState<{ id: string; label: string; price: number | null }[]>([]);
+  const [problems, setProblems] = useState<{ id: string; label: string }[]>([]);
+  const [loadingDomains, setLoadingDomains] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingProblems, setLoadingProblems] = useState(false);
+
+  /* Sélection du domain pour FRP (nécessaire pour charger les marques). */
+  const [selectedDomainId, setSelectedDomainId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -118,45 +125,81 @@ export function DemandeWizard() {
       });
   }, [loaded]);
 
-  /* Quand le service change (ou redevient FRP), on recharge les marques. */
+  /* Chargement des domains (Sprint 8.1 référentiel) au premier rendu. */
+  useEffect(() => {
+    if (!loaded) return;
+    setLoadingDomains(true);
+    void listCatalogDomains()
+      .then((ds) =>
+        setDomains(
+          ds.map((d) => ({ id: d.id, label: d.name })).sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setDomains([]))
+      .finally(() => setLoadingDomains(false));
+  }, [loaded]);
+
+  /* Quand le service change : on réinitialise brand/model/problem et on recharge
+   * les brands si FRP et un domain est sélectionné. */
   useEffect(() => {
     if (!loaded || draft.service !== 'FRP') {
       setBrands([]);
       setModels([]);
-      update({ brandId: null, modelId: null, modelPrice: null });
+      setProblems([]);
+      setSelectedDomainId(null);
+      update({ brandId: null, modelId: null, modelPrice: null, problem: '' });
       return;
     }
-    setLoadingBrands(true);
-    listCategories('FRP')
-      .then((cats) =>
-        setBrands(
-          cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
-        ),
-      )
-      .catch(() => setBrands([]))
-      .finally(() => setLoadingBrands(false));
-  }, [loaded, draft.service]);
+    if (selectedDomainId) {
+      setLoadingBrands(true);
+      void listCatalogBrands(selectedDomainId)
+        .then((bs) =>
+          setBrands(
+            bs.map((b) => ({ id: b.id, label: b.name })).sort((a, b) => a.label.localeCompare(b.label)),
+          ),
+        )
+        .catch(() => setBrands([]))
+        .finally(() => setLoadingBrands(false));
+    }
+  }, [loaded, draft.service, selectedDomainId]);
 
-  /* Quand une marque est choisie, on recharge ses modèles. */
+  /* Quand une marque est choisie : on recharge ses modèles. */
   useEffect(() => {
     if (!loaded || draft.service !== 'FRP' || !draft.brandId) {
       setModels([]);
-      update({ modelId: null, modelPrice: null });
+      setProblems([]);
+      update({ modelId: null, modelPrice: null, problem: '' });
       return;
     }
     setLoadingModels(true);
-    listItems('FRP', draft.brandId)
-      .then((items) =>
+    void listCatalogModels(draft.brandId)
+      .then((ms) =>
         setModels(
-          items
-            .filter((i) => i.price != null)
-            .map((i) => ({ id: i.id, label: i.label, price: i.price }))
+          ms.map((m) => ({ id: m.id, label: m.name, price: null as number | null }))
             .sort((a, b) => a.label.localeCompare(b.label)),
         ),
       )
       .catch(() => setModels([]))
       .finally(() => setLoadingModels(false));
   }, [loaded, draft.service, draft.brandId]);
+
+  /* Quand un modèle est choisi : on recharge ses problèmes. */
+  useEffect(() => {
+    if (!loaded || draft.service !== 'FRP' || !draft.modelId || !selectedDomainId || !draft.brandId) {
+      setProblems([]);
+      update({ problem: '' });
+      return;
+    }
+    setLoadingProblems(true);
+    void listCatalogProblems(selectedDomainId, draft.brandId, draft.modelId)
+      .then((ps) =>
+        setProblems(
+          ps.map((p) => ({ id: p.id, label: p.name })).sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setProblems([]))
+      .finally(() => setLoadingProblems(false));
+  }, [loaded, draft.service, draft.modelId, selectedDomainId, draft.brandId]);
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -291,21 +334,42 @@ export function DemandeWizard() {
           <CardContent className="space-y-4 pt-4">
             {draft.service === 'FRP' ? (
               <>
-                <Field label="Marque">
+                <Field label="Domaine">
                   <Select
-                    value={draft.brandId ?? ''}
-                    onChange={(e) => update({ brandId: e.target.value || null, modelId: null, modelPrice: null })}
-                    disabled={loadingBrands}
+                    value={selectedDomainId ?? ''}
+                    onChange={(e) => {
+                      setSelectedDomainId(e.target.value || null);
+                      update({ brandId: null, modelId: null, modelPrice: null, problem: '' });
+                    }}
+                    disabled={loadingDomains || domains.length === 0}
                   >
-                    <option value="">Choisir une marque</option>
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.label}
+                    <option value="">Choisir un domaine</option>
+                    {domains.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.label}
                       </option>
                     ))}
                   </Select>
-                  {loadingBrands && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                  {loadingDomains && <span className="text-xs text-muted-foreground">Chargement…</span>}
                 </Field>
+
+                {selectedDomainId ? (
+                  <Field label="Marque">
+                    <Select
+                      value={draft.brandId ?? ''}
+                      onChange={(e) => update({ brandId: e.target.value || null, modelId: null, modelPrice: null, problem: '' })}
+                      disabled={loadingBrands || brands.length === 0}
+                    >
+                      <option value="">Choisir une marque</option>
+                      {brands.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {loadingBrands && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                  </Field>
+                ) : null}
 
                 {draft.brandId ? (
                   <Field label="Modèle">
@@ -313,7 +377,7 @@ export function DemandeWizard() {
                       value={draft.modelId ?? ''}
                       onChange={(e) => {
                         const m = models.find((x) => x.id === e.target.value);
-                        update({ modelId: e.target.value || null, modelPrice: m?.price ?? null });
+                        update({ modelId: e.target.value || null, modelPrice: m?.price ?? null, problem: '' });
                       }}
                       disabled={loadingModels || models.length === 0}
                     >
@@ -333,6 +397,24 @@ export function DemandeWizard() {
                   </Field>
                 ) : null}
 
+                {draft.modelId ? (
+                  <Field label="Problème">
+                    <Select
+                      value={draft.problem ?? ''}
+                      onChange={(e) => update({ problem: e.target.value || null })}
+                      disabled={loadingProblems || problems.length === 0}
+                    >
+                      <option value="">Choisir un problème</option>
+                      {problems.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {loadingProblems && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                  </Field>
+                ) : null}
+
                 <Field label="Adresse (ville / quartier)">
                   <Input value={draft.address} onChange={(e) => update({ address: e.target.value })} />
                 </Field>
@@ -345,7 +427,7 @@ export function DemandeWizard() {
               <>
                 <Field label="Type d'intervention">
                   <Select
-                    value={draft.problem}
+                    value={draft.problem ?? ''}
                     onChange={(e) => update({ problem: e.target.value })}
                   >
                     <option value="">Choisir une intervention</option>
@@ -365,7 +447,7 @@ export function DemandeWizard() {
               <>
                 <Field label="Type de panne">
                   <Select
-                    value={draft.problem}
+                    value={draft.problem ?? ''}
                     onChange={(e) => update({ problem: e.target.value })}
                   >
                     <option value="">Choisir une panne</option>
