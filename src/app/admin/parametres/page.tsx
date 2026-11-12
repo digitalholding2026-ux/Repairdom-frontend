@@ -53,7 +53,7 @@ export default function AdminParametresPage() {
     }
   };
 
-  if (loading || !setting) return (
+  if (loading) return (
     <div className="flex min-h-dvh flex-col">
       <div className="mx-auto w-full max-w-5xl flex-1 space-y-5 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8">
         <PageHeader title="Paramètres" description="Configuration globale de la plateforme." />
@@ -61,6 +61,16 @@ export default function AdminParametresPage() {
           <span className="sr-only">Chargement…</span>
           <Spinner />
         </div>
+      </div>
+    </div>
+  );
+
+  if (!setting) return (
+    <div className="flex min-h-dvh flex-col">
+      <div className="mx-auto w-full max-w-5xl flex-1 space-y-5 overflow-x-clip px-4 py-6 sm:px-6 lg:px-8">
+        <PageHeader title="Paramètres" description="Configuration globale de la plateforme." />
+        <Alert variant="error">{error ?? 'Impossible de charger les paramètres.'}</Alert>
+        <Button onClick={() => void loadSettings()}>Réessayer</Button>
       </div>
     </div>
   );
