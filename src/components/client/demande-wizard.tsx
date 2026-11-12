@@ -196,6 +196,10 @@ export function DemandeWizard() {
         phone: draft.phone ?? '',
         description: draft.description || undefined,
         discountCode: draft.discountCode || undefined,
+        brandId: draft.brandId ?? undefined,
+        modelId: draft.modelId ?? undefined,
+        problemId: draft.problem ?? undefined,
+        finalAmount: draft.modelPrice ?? undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
@@ -221,6 +225,10 @@ export function DemandeWizard() {
         phone: draft.phone ?? '',
         description: draft.description || undefined,
         discountCode: draft.discountCode || undefined,
+        brandId: draft.brandId ?? undefined,
+        modelId: draft.modelId ?? undefined,
+        problemId: draft.problem ?? undefined,
+        finalAmount: draft.modelPrice ?? undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
