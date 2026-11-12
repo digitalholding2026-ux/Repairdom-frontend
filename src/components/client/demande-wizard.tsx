@@ -36,6 +36,7 @@ interface Draft {
   description: string;
   address: string;
   phone: string;
+  discountCode: string;
   step: number;
 }
 
@@ -48,6 +49,7 @@ const emptyDraft: Draft = {
   description: '',
   address: '',
   phone: '',
+  discountCode: '',
   step: 1,
 };
 
@@ -193,17 +195,21 @@ export function DemandeWizard() {
         address: draft.address,
         phone: draft.phone ?? '',
         description: draft.description || undefined,
+        discountCode: draft.discountCode || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
-      router.push(`/suivi/${encodeURIComponent(result.trackingToken ?? '')}`);
+      const modelLabel = draft.modelId ? models.find((m) => m.id === draft.modelId)?.label ?? '' : '';
+      router.push(
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}`,
+      );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
       setCreating(false);
     }
   }
 
-  /* Appelle l'API de création de demande puis redirige vers /client/demandes/[id]
+  /* Appelle l'API de création de demande puis redirige vers /demande/succes
    * avec un bandeau différencié selon le service. */
   async function createDemandeAndRedirect() {
     setCreating(true);
@@ -214,10 +220,14 @@ export function DemandeWizard() {
         address: draft.address,
         phone: draft.phone ?? '',
         description: draft.description || undefined,
+        discountCode: draft.discountCode || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
-      router.push(`/client/demandes/${result.id}?new=true&service=${encodeURIComponent(draft.service ?? 'FRP')}`);
+      const modelLabel = draft.modelId ? models.find((m) => m.id === draft.modelId)?.label ?? '' : '';
+      router.push(
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}`,
+      );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
       setCreating(false);
@@ -404,6 +414,24 @@ export function DemandeWizard() {
               <li>Téléphone : {draft.phone}</li>
             </ul>
 
+            {/* Code de réduction (B2B) — désactivé, disponible prochainement */}
+            <Field
+              label="Code de réduction (B2B)"
+              htmlFor="wizard-discount-code"
+              className="min-w-0"
+            >
+              <Input
+                id="wizard-discount-code"
+                value={draft.discountCode}
+                onChange={(e) => update({ discountCode: e.target.value })}
+                disabled
+                placeholder="Bientôt disponible"
+              />
+              <p className="text-xs text-muted-foreground">
+                Le code de réduction B2B sera bientôt disponible.
+              </p>
+            </Field>
+
             {/* Votre Technicien — uniquement SMARTPHONE */}
             {draft.service === 'SMARTPHONE' ? (
               <div className="rounded-2xl border border-success/30 bg-success/5 p-4">
@@ -435,6 +463,37 @@ export function DemandeWizard() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            ) : null}
+
+            {/* Paiement — SMARTPHONE : acompte 50% */}
+            {draft.service === 'SMARTPHONE' ? (
+              <div className="rounded-2xl border border-orange/30 bg-orange/5 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                      50%
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">Acompte requis</p>
+                    <p className="text-sm text-orange-900 font-semibold">
+                      {draft.modelPrice != null ? formatFCFA(Math.round(draft.modelPrice / 2)) : '—'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Pour garantir votre réparation, un acompte de 50% est requis. Il sera bloqué en toute sécurité.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Paiement — FRP / SYSTEME : pas de paiement en ligne */}
+            {(draft.service === 'FRP' || draft.service === 'SYSTEME') ? (
+              <div className="rounded-2xl border border-slate-100 bg-white p-4 dark:border-slate-800 dark:bg-relio-card">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Aucun paiement en ligne. Vous réglerez à la fin de la réparation.
+                </p>
               </div>
             ) : null}
 

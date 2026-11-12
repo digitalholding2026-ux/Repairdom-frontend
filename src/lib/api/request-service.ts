@@ -30,6 +30,7 @@ export interface CreateDemandeInput {
   description?: string;
   address: string;
   phone: string;
+  discountCode?: string;
 }
 
 export interface TechnicianInfo {
@@ -135,6 +136,7 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
     body: JSON.stringify({
       serviceCode: input.serviceCode,
       ...(input.catalogItemId ? { catalogItemId: input.catalogItemId } : {}),
+      ...(input.discountCode ? { discountCode: input.discountCode } : {}),
       address: input.address,
       phone: input.phone,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
