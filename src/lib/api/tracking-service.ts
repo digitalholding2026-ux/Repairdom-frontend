@@ -42,8 +42,9 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-export async function trackByReference(reference: string): Promise<PublicTracking> {
-  return apiFetch<PublicTracking>(`/demandes/tracking/reference/${encodeURIComponent(reference)}`);
+export async function trackByReference(reference: string, phone?: string): Promise<PublicTracking> {
+  const qs = phone ? `?phone=${encodeURIComponent(phone)}` : '';
+  return apiFetch<PublicTracking>(`/demandes/tracking/reference/${encodeURIComponent(reference)}${qs}`);
 }
 
 /* Suivi public par token (client invité, pas de compte) : le token

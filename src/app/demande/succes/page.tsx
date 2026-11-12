@@ -34,6 +34,7 @@ export default function SuccesPage() {
   const model = searchParams.get('model') ?? '';
   const price = Number(searchParams.get('price') ?? '0');
   const depositAmount = Number(searchParams.get('depositAmount') ?? '0');
+  const draftPhone = searchParams.get('phone') ?? '';
 
   useEffect(() => {
     void getPublicSettings()
@@ -151,7 +152,7 @@ export default function SuccesPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           type="button"
-          onClick={() => router.push(`/suivi/ref/${encodeURIComponent(reference)}`)}
+          onClick={() => router.push(`/suivi/ref/${encodeURIComponent(reference)}?phone=${encodeURIComponent(draftPhone)}`)}
           className="flex-1"
         >
           <Icon name="arrow-right" size="sm" className="mr-2" />

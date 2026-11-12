@@ -205,7 +205,7 @@ export function DemandeWizard() {
       localStorage.removeItem(DRAFT_KEY);
       const modelLabel = draft.modelId ? items.find((i) => i.id === draft.modelId)?.label ?? '' : '';
       router.push(
-        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}`,
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}`,
       );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
@@ -232,7 +232,7 @@ export function DemandeWizard() {
       localStorage.removeItem(DRAFT_KEY);
       const modelLabel = draft.modelId ? items.find((i) => i.id === draft.modelId)?.label ?? '' : '';
       router.push(
-        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}`,
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}`,
       );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');

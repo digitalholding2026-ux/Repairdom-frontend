@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
+import { Field, Input } from '@/components/ui';
 import { Icon } from '@/components/ui/icon';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -67,6 +68,11 @@ export default function SuiviReferencePage() {
   const [settings, setSettings] = useState<PublicPlatformSetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [unlockPhone, setUnlockPhone] = useState('');
+
+  const SESSION_KEY = 'relio_track_phone';
 
   useEffect(() => {
     if (!reference) {
@@ -74,19 +80,36 @@ export default function SuiviReferencePage() {
       setLoading(false);
       return;
     }
+
+    /* Si déjà déverrouillé dans cette session, réutiliser le numéro
+     * enregistré pour recharger automatiquement sans redemander. */
+    const savedPhone = sessionStorage.getItem(SESSION_KEY);
+    if (savedPhone) {
+      setUnlockPhone(savedPhone);
+      setLoading(true);
+      setError(null);
+      void trackByReference(reference, savedPhone)
+        .then((result) => {
+          setTracking(result);
+          setIsUnlocked(true);
+          setUnlockError(null);
+        })
+        .catch((err) => {
+          setTracking(null);
+          sessionStorage.removeItem(SESSION_KEY);
+          setUnlockError(toUserErrorMessage(err, 'Numéro incorrect. Veuillez réessayer.'));
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    void trackByReference(reference)
-      .then((result) => {
-        setTracking(result);
-      })
-      .catch((err) => {
-        setTracking(null);
-        setError(toUserErrorMessage(err, 'Référence introuvable.'));
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    setUnlockError(null);
+    setIsUnlocked(false);
+    setTracking(null);
   }, [reference]);
 
   /* Chargement des paramètres publics (nom, numéro WhatsApp de l'admin). */
@@ -97,6 +120,28 @@ export default function SuiviReferencePage() {
         // Échec silencieux : le bouton WhatsApp utilisera le numéro par défaut.
       });
   }, []);
+
+  /* Déverrouiller l'accès aux données de la demande avec le numéro
+   * de téléphone fourni. Enregistre le numéro en session pour ne pas
+   * le redemander au rechargement. */
+  const handleUnlock = async (phone: string) => {
+    setLoading(true);
+    setUnlockError(null);
+    void trackByReference(reference, phone)
+      .then((result) => {
+        setTracking(result);
+        setIsUnlocked(true);
+        setUnlockError(null);
+        sessionStorage.setItem(SESSION_KEY, phone);
+      })
+      .catch((err) => {
+        setTracking(null);
+        setUnlockError(toUserErrorMessage(err, 'Numéro incorrect. Veuillez réessayer.'));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   if (loading) {
     return (
@@ -133,6 +178,51 @@ export default function SuiviReferencePage() {
                   <Button variant="outline">Retour à l'accueil</Button>
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+        </main>
+        <PublicFooter />
+      </div>
+    );
+  }
+
+  if (!isUnlocked) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <PublicHeader />
+        <main className="mx-auto w-full max-w-md flex-1 space-y-5 overflow-x-clip px-4 py-12 sm:px-6 lg:px-8">
+          <PageHeader title="Accès sécurisé" backHref="/" />
+          <Card>
+            <CardContent className="p-6 space-y-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Icon name="shield" size="xl" className="text-muted-foreground" />
+                <span className="text-lg font-semibold">Déverrouiller l'accès</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Pour consulter l'avancement de votre demande{' '}
+                <span className="font-mono font-semibold">{reference}</span>,
+                veuillez saisir le numéro de téléphone utilisé lors de la
+                création de la demande.
+              </p>
+              {unlockError && <Alert variant="error">{unlockError}</Alert>}
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                void handleUnlock(unlockPhone.trim());
+              }} className="space-y-3">
+                <Field label="Numéro de téléphone" htmlFor="unlock-phone" required>
+                  <Input
+                    id="unlock-phone"
+                    type="tel"
+                    value={unlockPhone}
+                    onChange={(e) => setUnlockPhone(e.target.value)}
+                    placeholder="237698473737"
+                    disabled={loading}
+                  />
+                </Field>
+                <Button type="submit" disabled={loading || !unlockPhone.trim()} className="w-full">
+                  {loading ? 'Vérification…' : 'Déverrouiller'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </main>
