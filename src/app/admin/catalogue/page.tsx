@@ -105,6 +105,20 @@ export default function AdminCataloguePage() {
     }
   }, []);
 
+  /* Recharge les items de la catégorie actuellement développée, pour que
+   * toute modification (prix, statut, suppression) soit immédiatement
+   * visible dans l'interface. */
+  const refreshExpandedCategory = useCallback(async () => {
+    if (!expandedCategory) return;
+    const service = services.find((s) => {
+      const cats = categoriesByService[s.id] ?? [];
+      return cats.some((c) => c.id === expandedCategory);
+    });
+    if (service) {
+      void loadItems(service.code, expandedCategory, expandedCategory);
+    }
+  }, [expandedCategory, services, categoriesByService, loadItems]);
+
   const openCreateModal = () => {
     setModalMode('create');
     setModalItemId(null);
@@ -165,6 +179,7 @@ export default function AdminCataloguePage() {
       }
       setModalOpen(false);
       void loadServices();
+      void refreshExpandedCategory();
     } catch (err) {
       setError(toUserErrorMessage(err, 'Impossible d\'enregistrer l\'item.'));
     }
@@ -175,6 +190,7 @@ export default function AdminCataloguePage() {
     try {
       await deleteCatalogItem(itemId);
       void loadServices();
+      void refreshExpandedCategory();
     } catch (err) {
       setError(toUserErrorMessage(err, 'Impossible de supprimer l\'item.'));
     }
@@ -184,6 +200,7 @@ export default function AdminCataloguePage() {
     try {
       await updateCatalogItemPrices(itemId, { active });
       void loadServices();
+      void refreshExpandedCategory();
     } catch (err) {
       setError(toUserErrorMessage(err, 'Impossible de modifier l\'état de l\'item.'));
     }
