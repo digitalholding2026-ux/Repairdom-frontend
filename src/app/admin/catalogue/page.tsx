@@ -23,16 +23,6 @@ import {
 import { updateCatalogItemPrices } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
-function statusVariant(active: boolean): string {
-  return active
-    ? 'bg-success-soft text-success-ink'
-    : 'bg-muted text-muted-foreground';
-}
-
-function formatStatus(active: boolean): string {
-  return active ? 'Actif' : 'Inactif';
-}
-
 export default function AdminCataloguePage() {
   const [services, setServices] = useState<CatalogServiceLite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,6 +159,14 @@ export default function AdminCataloguePage() {
             onCancelItem={() => {
               setEditingItem(null);
             }}
+            onToggleActive={async (itemId, active) => {
+              try {
+                await updateCatalogItemPrices(itemId, { active });
+                void loadServices();
+              } catch (err) {
+                setError(toUserErrorMessage(err, 'Impossible de modifier l\'état de l\'item.'));
+              }
+            }}
           />
         ))}
       </div>
@@ -192,6 +190,7 @@ interface ServiceCardProps {
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
+  onToggleActive: (itemId: string, active: boolean) => void;
 }
 
 function ServiceCard({
@@ -210,6 +209,7 @@ function ServiceCard({
   onEditItem,
   onSaveItem,
   onCancelItem,
+  onToggleActive,
 }: ServiceCardProps) {
   const categoriesLoaded = categories.length > 0;
 
@@ -259,6 +259,7 @@ function ServiceCard({
                   onEditItem={onEditItem}
                   onSaveItem={onSaveItem}
                   onCancelItem={onCancelItem}
+                  onToggleActive={onToggleActive}
                 />
               );
             })}
@@ -282,6 +283,7 @@ interface CategorySectionProps {
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
+  onToggleActive: (itemId: string, active: boolean) => void;
 }
 
 function CategorySection({
@@ -297,6 +299,7 @@ function CategorySection({
   onEditItem,
   onSaveItem,
   onCancelItem,
+  onToggleActive,
 }: CategorySectionProps) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -314,7 +317,7 @@ function CategorySection({
           {itemsLoaded && items.length === 0 && (
             <EmptyState title="Aucun item" description="Cette catégorie n'a pas encore d'items." className="p-2" />
           )}
-          {itemsLoaded && items.length > 0 && (
+              {itemsLoaded && items.length > 0 && (
             <div className="space-y-2">
               {items.map((item) => (
                 <ItemRow
@@ -326,6 +329,7 @@ function CategorySection({
                   onEditItem={onEditItem}
                   onSaveItem={onSaveItem}
                   onCancelItem={onCancelItem}
+                  onToggleActive={onToggleActive}
                 />
               ))}
             </div>
@@ -344,6 +348,7 @@ interface ItemRowProps {
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
+  onToggleActive: (itemId: string, active: boolean) => void;
 }
 
 function ItemRow({
@@ -354,23 +359,63 @@ function ItemRow({
   onEditItem,
   onSaveItem,
   onCancelItem,
+  onToggleActive,
 }: ItemRowProps) {
   const isEditing = editingItem === item.id;
   const values = itemPrices[item.id] ?? { price: String(item.price ?? ''), travelFee: String(item.travelFee ?? ''), active: item.active, paymentType: item.paymentType ?? 'END_OF_SERVICE', targetDevice: item.targetDevice ?? 'ALL' };
 
   return (
-    <div className={`border-b last:border-b-0 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-        <span className="text-sm font-medium">{item.label}</span>
-        {item.androidVersion && (
-          <span className="text-xs text-muted-foreground">{item.androidVersion}</span>
-        )}
-        {item.description && (
-          <p className="text-xs text-muted-foreground">{item.description}</p>
+    <div className={`border-b last:border-b-0 p-3 sm:flex sm:items-center sm:justify-between gap-3`}>
+      {/* Nom de l'item sur une ligne claire (gauche) */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between w-full">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm font-medium">{item.label}</span>
+          {item.description && (
+            <p className="text-xs text-muted-foreground">{item.description}</p>
+          )}
+          {item.androidVersion && (
+            <span className="text-xs text-muted-foreground">{item.androidVersion}</span>
+          )}
+        </div>
+        {/* Prix et état à droite, alignés */}
+        <div className="flex items-center gap-3 mt-2 sm:mt-0 sm:w-auto">
+          <span className="text-sm font-medium text-foreground tabular-nums">
+            {item.price != null ? formatCurrency(item.price, 'XAF') : '—'}
+          </span>
+          <button
+            type="button"
+            onClick={() => void onToggleActive(item.id, !item.active)}
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium transition-colors ${
+              item.active
+                ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                : 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
+            }`}
+          >
+            {item.active ? 'Actif' : 'Inactif'}
+          </button>
+        </div>
+      </div>
+
+      {/* Détails secondaires (cible, paiement, déplacement) */}
+      <div className="flex items-center gap-3 mt-2 sm:mt-0 text-xs text-muted-foreground">
+        <span>
+          {item.targetDevice === 'ALL' ? 'Tous' : item.targetDevice === 'PC' ? 'PC' : 'Mac'}
+        </span>
+        <span className="w-0.5 h-3 bg-slate-300 rounded-full mx-1" aria-hidden="true" />
+        <span>
+          {item.paymentType === 'DEPOSIT_50' ? 'Acompte 50%' : 'Paiement à la fin'}
+        </span>
+        {item.travelFee != null && item.travelFee > 0 && (
+          <>
+            <span className="w-0.5 h-3 bg-slate-300 rounded-full mx-1" aria-hidden="true" />
+            <span>+ {formatCurrency(item.travelFee, 'XAF')} déplacement</span>
+          </>
         )}
       </div>
-      <div className="flex flex-col sm:flex-row gap-2">
-        {isEditing ? (
+
+      {/* Mode édition */}
+      {isEditing ? (
+        <div className="mt-3 sm:mt-0 sm:ml-auto flex flex-col sm:flex-row sm:items-end gap-2 w-full sm:w-auto">
           <div className="flex items-center gap-2">
             <Input
               value={values.price}
@@ -380,7 +425,7 @@ function ItemRow({
                   [item.id]: { ...prev[item.id], price: e.target.value },
                 }));
               }}
-              className="w-24 h-10 text-sm"
+              className="w-24 h-9 text-sm"
               placeholder="Prix"
             />
             <Input
@@ -391,7 +436,7 @@ function ItemRow({
                   [item.id]: { ...prev[item.id], travelFee: e.target.value },
                 }));
               }}
-              className="w-24 h-10 text-sm"
+              className="w-24 h-9 text-sm"
               placeholder="Frais dépl."
             />
             <select
@@ -402,7 +447,7 @@ function ItemRow({
                   [item.id]: { ...prev[item.id], paymentType: e.target.value },
                 }));
               }}
-              className="h-10 text-sm border border-border rounded-lg px-2 bg-input"
+              className="h-9 text-sm border border-border rounded-lg px-2 bg-input"
             >
               <option value="END_OF_SERVICE">Paiement à la fin</option>
               <option value="DEPOSIT_50">Acompte 50%</option>
@@ -415,7 +460,7 @@ function ItemRow({
                   [item.id]: { ...prev[item.id], targetDevice: e.target.value },
                 }));
               }}
-              className="h-10 text-sm border border-border rounded-lg px-2 bg-input"
+              className="h-9 text-sm border border-border rounded-lg px-2 bg-input"
             >
               <option value="ALL">Tous les appareils</option>
               <option value="PC">PC uniquement</option>
@@ -435,6 +480,8 @@ function ItemRow({
               />
               Actif
             </label>
+          </div>
+          <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" onClick={() => void onSaveItem(item.id)}>
               Enregistrer
             </Button>
@@ -442,31 +489,17 @@ function ItemRow({
               Annuler
             </Button>
           </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium ${statusVariant(item.active)}`}>
-              {formatStatus(item.active)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {item.price != null ? formatCurrency(item.price, 'XAF') : '—'}
-            </span>
-            {item.travelFee != null && item.travelFee > 0 && (
-              <span className="text-xs text-muted-foreground">
-                + {formatCurrency(item.travelFee, 'XAF')} déplacement
-              </span>
-            )}
-            <span className={`text-xs font-medium ${item.paymentType === 'DEPOSIT_50' ? 'text-orange-700' : 'text-slate-500'}`}>
-              {item.paymentType === 'DEPOSIT_50' ? 'Acompte 50%' : 'Paiement à la fin'}
-            </span>
-            <span className={`text-xs font-medium ${item.targetDevice === 'ALL' ? 'text-slate-500' : item.targetDevice === 'PC' ? 'text-blue-600' : 'text-indigo-600'}`}>
-              {item.targetDevice === 'ALL' ? 'Tous' : item.targetDevice === 'PC' ? 'PC' : 'Mac'}
-            </span>
-            <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
-              <span className="size-4">✎</span>
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : null}
+
+      {/* Bouton modifier (vue normale) */}
+      {!isEditing ? (
+        <div className="mt-2 sm:mt-0 sm:ml-auto">
+          <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
+            <span className="size-4">✎</span>
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }
