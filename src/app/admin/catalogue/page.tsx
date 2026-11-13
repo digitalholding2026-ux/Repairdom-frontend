@@ -1,16 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Icon } from '@/components/ui/icon';
+import { useCallback, useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Spinner } from '@/components/ui/spinner';
 import { formatCurrency } from '@/lib/format';
 import {
   listCategories,
@@ -20,8 +19,37 @@ import {
   type CatalogItemLite,
   type CatalogServiceLite,
 } from '@/lib/api/catalog-service';
-import { updateCatalogItemPrices } from '@/lib/api/admin-service';
+import { createCatalogItem, deleteCatalogItem, updateCatalogItemPrices } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
+
+function targetDeviceBadgeClass(targetDevice: string): string {
+  switch (targetDevice) {
+    case 'ALL':
+      return 'bg-slate-100 text-slate-700 border border-slate-200';
+    case 'PC':
+      return 'bg-blue-100 text-blue-700 border border-blue-200';
+    case 'MAC':
+      return 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+    default:
+      return 'bg-slate-100 text-slate-700 border border-slate-200';
+  }
+}
+
+function targetDeviceLabel(targetDevice: string): string {
+  if (targetDevice === 'ALL') return 'Tous';
+  if (targetDevice === 'PC') return 'PC';
+  return 'Mac';
+}
+
+function activeButtonClass(active: boolean): string {
+  return active
+    ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+    : 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200';
+}
+
+function activeIconClass(active: boolean): string {
+  return active ? 'text-green-600 hover:bg-green-50' : 'text-red-600 hover:bg-red-50';
+}
 
 export default function AdminCataloguePage() {
   const [services, setServices] = useState<CatalogServiceLite[]>([]);
@@ -29,10 +57,18 @@ export default function AdminCataloguePage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
-  const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>({});
   const [categoriesByService, setCategoriesByService] = useState<Record<string, CatalogCategoryLite[]>>({});
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, CatalogItemLite[]>>({});
+  /* Modale */
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [modalItemId, setModalItemId] = useState<string | null>(null);
+  const [modalForm, setModalForm] = useState<{
+    label: string; description: string; targetDevice: string;
+    pricePublic: string; pricePro: string; paymentType: string; active: boolean;
+  }>({
+    label: '', description: '', targetDevice: 'ALL', pricePublic: '', pricePro: '', paymentType: 'END_OF_SERVICE', active: true,
+  });
 
   const loadServices = useCallback(async () => {
     setLoading(true);
@@ -69,6 +105,78 @@ export default function AdminCataloguePage() {
     }
   }, []);
 
+  const openCreateModal = () => {
+    setModalMode('create');
+    setModalItemId(null);
+    setModalForm({ label: '', description: '', targetDevice: 'ALL', pricePublic: '', pricePro: '', paymentType: 'END_OF_SERVICE', active: true });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (item: CatalogItemLite) => {
+    setModalMode('edit');
+    setModalItemId(item.id);
+    setModalForm({
+      label: item.label,
+      description: item.description ?? '',
+      targetDevice: item.targetDevice ?? 'ALL',
+      pricePublic: String(item.price ?? ''),
+      pricePro: '',
+      paymentType: item.paymentType ?? 'END_OF_SERVICE',
+      active: item.active,
+    });
+    setModalOpen(true);
+  };
+
+  const handleModalSave = async () => {
+    try {
+      if (modalMode === 'create' && modalItemId === null) {
+        await createCatalogItem({
+          categoryId: expandedCategory ?? '',
+          code: modalForm.label.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+          label: modalForm.label,
+          description: modalForm.description || null,
+          androidVersion: null,
+          pricePublic: modalForm.pricePublic === '' ? null : Number(modalForm.pricePublic),
+          pricePro: modalForm.pricePro === '' ? null : Number(modalForm.pricePro),
+          active: modalForm.active,
+          paymentType: modalForm.paymentType,
+          targetDevice: modalForm.targetDevice,
+        });
+      } else if (modalItemId) {
+        await updateCatalogItemPrices(modalItemId, {
+          price: modalForm.pricePublic === '' ? null : Number(modalForm.pricePublic),
+          travelFee: null,
+          active: modalForm.active,
+          paymentType: modalForm.paymentType,
+          targetDevice: modalForm.targetDevice,
+        });
+      }
+      setModalOpen(false);
+      void loadServices();
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible d\'enregistrer l\'item.'));
+    }
+  };
+
+  const handleDelete = async (itemId: string) => {
+    if (!window.confirm('Supprimer cet item ?')) return;
+    try {
+      await deleteCatalogItem(itemId);
+      void loadServices();
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de supprimer l\'item.'));
+    }
+  };
+
+  const handleToggleActive = async (itemId: string, active: boolean) => {
+    try {
+      await updateCatalogItemPrices(itemId, { active });
+      void loadServices();
+    } catch (err) {
+      setError(toUserErrorMessage(err, 'Impossible de modifier l\'état de l\'item.'));
+    }
+  };
+
   if (error) {
     return (
       <div className="space-y-5">
@@ -98,408 +206,246 @@ export default function AdminCataloguePage() {
   }
 
   return (
-    <div className="space-y-5">
-      <PageHeader title="Catalogue" description="Gestion des services, catégories et items v2." />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {services.map((service) => (
-          <ServiceCard
-            key={service.id}
-            service={service}
-            isExpanded={expandedService === service.id}
-            onToggle={() =>
-              setExpandedService(expandedService === service.id ? null : service.id)
-            }
-            onSelectCategory={(catId) =>
-              setExpandedCategory(expandedCategory === catId ? null : catId)
-            }
-            expandedCategory={expandedCategory}
-            categories={categoriesByService[service.id] ?? []}
-            itemsByCategory={itemsByCategory}
-            editingItem={editingItem}
-            itemPrices={itemPrices}
-            setItemPrices={setItemPrices}
-            loadCategories={() => void loadCategories(service.code, service.id)}
-            loadItems={(catId, categoryId) => void loadItems(service.code, catId, categoryId)}
-            onEditItem={(item) => {
-              setEditingItem(item.id);
-              setItemPrices((prev) => ({
-                ...prev,
-                [item.id]: {
-                  price: String(item.price ?? ''),
-                  travelFee: String(item.travelFee ?? ''),
-                  active: item.active,
-                  paymentType: item.paymentType ?? 'END_OF_SERVICE',
-                  targetDevice: item.targetDevice ?? 'ALL',
-                },
-              }));
-            }}
-            onSaveItem={async (itemId) => {
-              const values = itemPrices[itemId];
-              if (!values) return;
-              try {
-                await updateCatalogItemPrices(itemId, {
-                  price: values.price === '' ? null : Number(values.price),
-                  travelFee: values.travelFee === '' ? null : Number(values.travelFee),
-                  active: values.active,
-                  paymentType: values.paymentType,
-                  targetDevice: values.targetDevice,
-                });
-                setEditingItem(null);
-                setItemPrices((prev) => {
-                  const next = { ...prev };
-                  delete next[itemId];
-                  return next;
-                });
-                void loadServices();
-              } catch (err) {
-                setError(toUserErrorMessage(err, 'Impossible de mettre à jour l\'item.'));
-              }
-            }}
-            onCancelItem={() => {
-              setEditingItem(null);
-            }}
-            onToggleActive={async (itemId, active) => {
-              try {
-                await updateCatalogItemPrices(itemId, { active });
-                void loadServices();
-              } catch (err) {
-                setError(toUserErrorMessage(err, 'Impossible de modifier l\'état de l\'item.'));
-              }
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface ServiceCardProps {
-  service: CatalogServiceLite;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onSelectCategory: (catId: string) => void;
-  expandedCategory: string | null;
-  categories: CatalogCategoryLite[];
-  itemsByCategory: Record<string, CatalogItemLite[]>;
-  editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
-  loadCategories: () => void;
-  loadItems: (catId: string, categoryId: string) => void;
-  onEditItem: (item: CatalogItemLite) => void;
-  onSaveItem: (itemId: string) => void;
-  onCancelItem: () => void;
-  onToggleActive: (itemId: string, active: boolean) => void;
-}
-
-function ServiceCard({
-  service,
-  isExpanded,
-  onToggle,
-  onSelectCategory,
-  expandedCategory,
-  categories,
-  itemsByCategory,
-  editingItem,
-  itemPrices,
-  setItemPrices,
-  loadCategories,
-  loadItems,
-  onEditItem,
-  onSaveItem,
-  onCancelItem,
-  onToggleActive,
-}: ServiceCardProps) {
-  const categoriesLoaded = categories.length > 0;
-
-  return (
-    <Card className="flex flex-col h-full">
-      <CardHeader className="flex flex-row items-center justify-between p-4">
-        <CardTitle className="text-sm font-semibold">{service.label}</CardTitle>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggle}
-          aria-label={isExpanded ? 'Réduire' : 'Développer'}
-        >
-          {isExpanded ? <Icon name="chevron-down" size="sm" /> : <Icon name="chevron-right" size="sm" />}
-        </Button>
-      </CardHeader>
-      <CardContent className="p-4">
-        <p className="text-xs text-muted-foreground mb-3">Code : {service.code}</p>
-        {service.description && (
-          <p className="text-xs text-muted-foreground mb-4">{service.description}</p>
-        )}
-        {isExpanded && (
-          <div className="space-y-3">
-            {!categoriesLoaded && (
-              <Button variant="outline" size="sm" onClick={loadCategories}>
-                Charger les catégories
-              </Button>
-            )}
-            {categoriesLoaded && categories.length === 0 && (
-              <EmptyState title="Aucune catégorie" description="Ce service n'a pas encore de catégories." />
-            )}
-            {categories.map((cat) => {
-              const catItems = itemsByCategory[cat.id] ?? [];
-              const itemsLoaded = catItems.length > 0 || cat.id in itemsByCategory;
-              return (
-                <CategorySection
-                  key={cat.id}
-                  category={cat}
-                  isExpanded={expandedCategory === cat.id}
-                  onToggle={() => onSelectCategory(cat.id)}
-                  items={catItems}
-                  itemsLoaded={itemsLoaded}
-                  loadItems={() => void loadItems(cat.id, cat.id)}
-                  editingItem={editingItem}
-                  itemPrices={itemPrices}
-                  setItemPrices={setItemPrices}
-                  onEditItem={onEditItem}
-                  onSaveItem={onSaveItem}
-                  onCancelItem={onCancelItem}
-                  onToggleActive={onToggleActive}
-                />
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-interface CategorySectionProps {
-  category: CatalogCategoryLite;
-  isExpanded: boolean;
-  onToggle: () => void;
-  items: CatalogItemLite[];
-  itemsLoaded: boolean;
-  loadItems: () => void;
-  editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
-  onEditItem: (item: CatalogItemLite) => void;
-  onSaveItem: (itemId: string) => void;
-  onCancelItem: () => void;
-  onToggleActive: (itemId: string, active: boolean) => void;
-}
-
-function CategorySection({
-  category,
-  isExpanded,
-  onToggle,
-  items,
-  itemsLoaded,
-  loadItems,
-  editingItem,
-  itemPrices,
-  setItemPrices,
-  onEditItem,
-  onSaveItem,
-  onCancelItem,
-  onToggleActive,
-}: CategorySectionProps) {
-  return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="flex flex-row items-center justify-between px-3 py-2 bg-muted cursor-pointer" onClick={onToggle}>
-        <span className="text-sm font-medium">{category.label}</span>
-        {isExpanded ? <Icon name="chevron-down" size="sm" /> : <Icon name="chevron-right" size="sm" />}
-      </div>
-      {isExpanded && (
-        <div className="p-3">
-          {!itemsLoaded && (
-            <Button variant="outline" size="sm" onClick={loadItems} className="w-full">
-              Charger les items
-            </Button>
-          )}
-          {itemsLoaded && items.length === 0 && (
-            <EmptyState title="Aucun item" description="Cette catégorie n'a pas encore d'items." className="p-2" />
-          )}
-              {itemsLoaded && items.length > 0 && (
-            <div className="space-y-2">
-              {items.map((item) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  editingItem={editingItem}
-                  itemPrices={itemPrices}
-                  setItemPrices={setItemPrices}
-                  onEditItem={onEditItem}
-                  onSaveItem={onSaveItem}
-                  onCancelItem={onCancelItem}
-                  onToggleActive={onToggleActive}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface ItemRowProps {
-  item: CatalogItemLite;
-  editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
-  onEditItem: (item: CatalogItemLite) => void;
-  onSaveItem: (itemId: string) => void;
-  onCancelItem: () => void;
-  onToggleActive: (itemId: string, active: boolean) => void;
-}
-
-function ItemRow({
-  item,
-  editingItem,
-  itemPrices,
-  setItemPrices,
-  onEditItem,
-  onSaveItem,
-  onCancelItem,
-  onToggleActive,
-}: ItemRowProps) {
-  const isEditing = editingItem === item.id;
-  const values = itemPrices[item.id] ?? { price: String(item.price ?? ''), travelFee: String(item.travelFee ?? ''), active: item.active, paymentType: item.paymentType ?? 'END_OF_SERVICE', targetDevice: item.targetDevice ?? 'ALL' };
-
-  return (
-    <div className={`border-b last:border-b-0 p-3 sm:flex sm:items-center sm:justify-between gap-3`}>
-      {/* Nom de l'item sur une ligne claire (gauche) */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between w-full">
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{item.label}</span>
-          {item.description && (
-            <p className="text-xs text-muted-foreground">{item.description}</p>
-          )}
-          {item.androidVersion && (
-            <span className="text-xs text-muted-foreground">{item.androidVersion}</span>
-          )}
-        </div>
-        {/* Prix et état à droite, alignés */}
-        <div className="flex items-center gap-3 mt-2 sm:mt-0 sm:w-auto">
-          <span className="text-sm font-medium text-foreground tabular-nums">
-            {item.price != null ? formatCurrency(item.price, 'XAF') : '—'}
-          </span>
-          <button
-            type="button"
-            onClick={() => void onToggleActive(item.id, !item.active)}
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium transition-colors ${
-              item.active
-                ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
-                : 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
-            }`}
-          >
-            {item.active ? 'Actif' : 'Inactif'}
-          </button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <PageHeader title="Catalogue" description="Gestion des services, catégories et items v2." />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => void loadServices()} aria-label="Actualiser">
+            <span className="size-4">↻</span>
+          </Button>
+          <Button onClick={openCreateModal}>
+            + Ajouter un item
+          </Button>
         </div>
       </div>
 
-      {/* Détails secondaires (cible, paiement, déplacement) */}
-      <div className="flex items-center gap-3 mt-2 sm:mt-0 text-xs text-muted-foreground">
-        <span>
-          {item.targetDevice === 'ALL' ? 'Tous' : item.targetDevice === 'PC' ? 'PC' : 'Mac'}
-        </span>
-        <span className="w-0.5 h-3 bg-slate-300 rounded-full mx-1" aria-hidden="true" />
-        <span>
-          {item.paymentType === 'DEPOSIT_50' ? 'Acompte 50%' : 'Paiement à la fin'}
-        </span>
-        {item.travelFee != null && item.travelFee > 0 && (
-          <>
-            <span className="w-0.5 h-3 bg-slate-300 rounded-full mx-1" aria-hidden="true" />
-            <span>+ {formatCurrency(item.travelFee, 'XAF')} déplacement</span>
-          </>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+        {services.map((service) => {
+          const categories = categoriesByService[service.id] ?? [];
+          const categoriesLoaded = categories.length > 0;
+
+          return (
+            <Card key={service.id} className="flex flex-col h-full border border-border">
+              <CardHeader className="flex flex-row items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold">{service.label}</CardTitle>
+                  <span className="text-xs text-muted-foreground">Code : {service.code}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setExpandedService(expandedService === service.id ? null : service.id)}
+                  aria-label={expandedService === service.id ? 'Réduire' : 'Développer'}
+                >
+                  {expandedService === service.id ? <span className="size-4">▾</span> : <span className="size-4">▸</span>}
+                </Button>
+              </CardHeader>
+              <CardContent className="p-4">
+                {service.description && (
+                  <p className="text-xs text-muted-foreground mb-4">{service.description}</p>
+                )}
+                {expandedService === service.id && (
+                  <div className="space-y-3">
+                    {!categoriesLoaded && (
+                      <Button variant="outline" size="sm" onClick={() => void loadCategories(service.code, service.id)}>
+                        Charger les catégories
+                      </Button>
+                    )}
+                    {categoriesLoaded && categories.length === 0 && (
+                      <EmptyState title="Aucune catégorie" description="Ce service n'a pas encore de catégories." />
+                    )}
+                    {categories.map((cat) => {
+                      const catItems = itemsByCategory[cat.id] ?? [];
+                      const itemsLoaded = catItems.length > 0 || cat.id in itemsByCategory;
+
+                      return (
+                        <Card key={cat.id} className="border border-border rounded-xl overflow-hidden">
+                          <CardHeader className="flex flex-row items-center justify-between px-4 py-2 bg-muted/50 cursor-pointer" onClick={() => {
+                            const isOpening = expandedCategory !== cat.id;
+                            setExpandedCategory(isOpening ? cat.id : null);
+                            if (isOpening && !itemsLoaded) {
+                              void loadItems(service.code, cat.id, cat.id);
+                            }
+                          }}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{cat.label}</span>
+                              {itemsLoaded && catItems.length > 0 && (
+                                <span className="text-xs text-muted-foreground">({catItems.length})</span>
+                              )}
+                            </div>
+                            {expandedCategory === cat.id ? <span className="size-4">▾</span> : <span className="size-4">▸</span>}
+                          </CardHeader>
+                          {expandedCategory === cat.id && (
+                            <CardContent className="p-0">
+                              {itemsLoaded && catItems.length === 0 && (
+                                <div className="p-4 text-center text-xs text-muted-foreground">
+                                  Aucun item dans cette catégorie.
+                                </div>
+                              )}
+                              {itemsLoaded && catItems.length > 0 && (
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm border-collapse">
+                                    <thead>
+                                      <tr className="bg-muted/50 text-xs text-muted-foreground uppercase tracking-wider">
+                                        <th className="text-left px-4 py-3 border-b border-border font-medium">Nom</th>
+                                        <th className="text-center px-4 py-3 border-b border-border font-medium">Cible</th>
+                                        <th className="text-right px-4 py-3 border-b border-border font-medium">Prix</th>
+                                        <th className="text-center px-4 py-3 border-b border-border font-medium">Statut</th>
+                                        <th className="text-right px-4 py-3 border-b border-border font-medium">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                      {catItems.map((item) => (
+                                        <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
+                                          <td className="px-4 py-3 border-b border-border">
+                                            <div className="text-sm font-medium">{item.label}</div>
+                                            {item.description && (
+                                              <p className="text-xs text-muted-foreground truncate max-w-xs">{item.description}</p>
+                                            )}
+                                            {item.androidVersion && (
+                                              <span className="text-xs text-muted-foreground">{item.androidVersion}</span>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-3 border-b border-border text-center">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${targetDeviceBadgeClass(item.targetDevice)}`}>
+                                              {targetDeviceLabel(item.targetDevice)}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 border-b border-border text-right tabular-nums">
+                                            <span className="text-sm font-medium">
+                                              {item.price != null ? formatCurrency(item.price, 'XAF') : '—'}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-3 border-b border-border text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => void handleToggleActive(item.id, !item.active)}
+                                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium transition-colors ${activeButtonClass(item.active)}`}
+                                            >
+                                              {item.active ? 'Actif' : 'Inactif'}
+                                            </button>
+                                          </td>
+                                          <td className="px-4 py-3 border-b border-border text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => openEditModal(item)}
+                                                aria-label="Modifier"
+                                              >
+                                                <span className="size-4">✎</span>
+                                              </Button>
+                                              <button
+                                                type="button"
+                                                onClick={() => void handleToggleActive(item.id, !item.active)}
+                                                className={`rounded p-1.5 text-xs transition-colors ${activeIconClass(item.active)}`}
+                                              >
+                                                {item.active ? '👁️‍🗨️' : '👁️'}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => void handleDelete(item.id)}
+                                                className="rounded p-1.5 text-red-600 hover:bg-red-50 transition-colors"
+                                                aria-label="Supprimer"
+                                              >
+                                                <span className="size-4">🗑️</span>
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </CardContent>
+                          )}
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Mode édition */}
-      {isEditing ? (
-        <div className="mt-3 sm:mt-0 sm:ml-auto flex flex-col sm:flex-row sm:items-end gap-2 w-full sm:w-auto">
-          <div className="flex items-center gap-2">
+      {/* Modale d'édition / création */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={modalMode === 'create' ? 'Nouvel item' : 'Modifier l\'item'} description={modalMode === 'create' ? 'Créez un nouvel item de catalogue dans la catégorie sélectionnée.' : 'Modifiez les informations de l\'item sélectionné.'} centered>
+        <div className="space-y-4 py-3">
+          <Field label="Nom de l'item">
             <Input
-              value={values.price}
-              onChange={(e) => {
-                setItemPrices((prev) => ({
-                  ...prev,
-                  [item.id]: { ...prev[item.id], price: e.target.value },
-                }));
-              }}
-              className="w-24 h-9 text-sm"
-              placeholder="Prix"
+              value={modalForm.label}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, label: e.target.value }))}
+              placeholder="ex: Windows 11"
             />
+          </Field>
+          <Field label="Description">
             <Input
-              value={values.travelFee}
-              onChange={(e) => {
-                setItemPrices((prev) => ({
-                  ...prev,
-                  [item.id]: { ...prev[item.id], travelFee: e.target.value },
-                }));
-              }}
-              className="w-24 h-9 text-sm"
-              placeholder="Frais dépl."
+              value={modalForm.description}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, description: e.target.value }))}
+              placeholder="Description courte"
             />
+          </Field>
+          <Field label="Cible">
             <select
-              value={values.paymentType}
-              onChange={(e) => {
-                setItemPrices((prev) => ({
-                  ...prev,
-                  [item.id]: { ...prev[item.id], paymentType: e.target.value },
-                }));
-              }}
-              className="h-9 text-sm border border-border rounded-lg px-2 bg-input"
-            >
-              <option value="END_OF_SERVICE">Paiement à la fin</option>
-              <option value="DEPOSIT_50">Acompte 50%</option>
-            </select>
-            <select
-              value={values.targetDevice}
-              onChange={(e) => {
-                setItemPrices((prev) => ({
-                  ...prev,
-                  [item.id]: { ...prev[item.id], targetDevice: e.target.value },
-                }));
-              }}
-              className="h-9 text-sm border border-border rounded-lg px-2 bg-input"
+              value={modalForm.targetDevice}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, targetDevice: e.target.value }))}
+              className="w-full h-10 rounded-lg border border-border bg-input px-3 text-sm"
             >
               <option value="ALL">Tous les appareils</option>
               <option value="PC">PC uniquement</option>
               <option value="MAC">Mac uniquement</option>
             </select>
-            <label className="flex items-center gap-1 text-xs cursor-pointer">
+          </Field>
+          <Field label="Prix public (XAF)">
+            <Input
+              type="number"
+              value={modalForm.pricePublic}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, pricePublic: e.target.value }))}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Prix professionnel (XAF)">
+            <Input
+              type="number"
+              value={modalForm.pricePro}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, pricePro: e.target.value }))}
+              placeholder="0"
+            />
+          </Field>
+          <Field label="Type de paiement">
+            <select
+              value={modalForm.paymentType}
+              onChange={(e) => setModalForm((prev) => ({ ...prev, paymentType: e.target.value }))}
+              className="w-full h-10 rounded-lg border border-border bg-input px-3 text-sm"
+            >
+              <option value="END_OF_SERVICE">Paiement à la fin</option>
+              <option value="DEPOSIT_50">Acompte 50%</option>
+            </select>
+          </Field>
+          <Field label="Actif">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
-                checked={values.active}
-                onChange={(e) => {
-                  setItemPrices((prev) => ({
-                    ...prev,
-                    [item.id]: { ...prev[item.id], active: e.target.checked },
-                  }));
-                }}
-                className="rounded border-gray-300"
+                checked={modalForm.active}
+                onChange={(e) => setModalForm((prev) => ({ ...prev, active: e.target.checked }))}
+                className="rounded border-gray-300 text-primary"
               />
-              Actif
+              {modalForm.active ? 'Actif' : 'Inactif'}
             </label>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={() => void onSaveItem(item.id)}>
-              Enregistrer
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onCancelItem}>
-              Annuler
-            </Button>
-          </div>
+          </Field>
         </div>
-      ) : null}
-
-      {/* Bouton modifier (vue normale) */}
-      {!isEditing ? (
-        <div className="mt-2 sm:mt-0 sm:ml-auto">
-          <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
-            <span className="size-4">✎</span>
+        <div className="flex justify-end gap-2 pt-4 border-t border-border">
+          <Button variant="outline" onClick={() => setModalOpen(false)}>
+            Annuler
+          </Button>
+          <Button onClick={handleModalSave}>
+            Enregistrer les modifications
           </Button>
         </div>
-      ) : null}
+      </Modal>
     </div>
   );
 }

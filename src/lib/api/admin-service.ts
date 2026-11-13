@@ -1104,6 +1104,19 @@ export function updateCatalogItemPrices(
   );
 }
 
+export function createCatalogItem(
+  data: { categoryId: string; code: string; label: string; description?: string | null; androidVersion?: string | null; pricePublic?: number | null; pricePro?: number | null; order?: number; active?: boolean; paymentType?: string; targetDevice?: string | null },
+): Promise<AdminCatalogItem> {
+  return catalogFetch<AdminCatalogItem>('/admin/catalog/items', jsonBody(data));
+}
+
+export function deleteCatalogItem(itemId: string): Promise<{ message: string; itemId: string }> {
+  return catalogFetch<{ message: string; itemId: string }>(
+    `/admin/catalog/items/${encodeURIComponent(itemId)}`,
+    deleteBody(),
+  );
+}
+
 export interface AdminInvoice {
   id: string;
   demandeId: string;
