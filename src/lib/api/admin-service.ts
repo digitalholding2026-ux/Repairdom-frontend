@@ -1091,11 +1091,12 @@ export interface AdminCatalogItem {
   active: boolean;
   travelFee: number | null;
   paymentType: string;
+  targetDevice: string;
 }
 
 export function updateCatalogItemPrices(
   itemId: string,
-  data: { price?: number | null; active?: boolean; travelFee?: number | null; paymentType?: string },
+  data: { price?: number | null; active?: boolean; travelFee?: number | null; paymentType?: string; targetDevice?: string | null },
 ): Promise<AdminCatalogItem> {
   return catalogFetch<AdminCatalogItem>(
     `/admin/catalog/items/${encodeURIComponent(itemId)}/prices`,

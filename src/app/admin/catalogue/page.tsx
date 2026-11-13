@@ -40,7 +40,7 @@ export default function AdminCataloguePage() {
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>({});
+  const [itemPrices, setItemPrices] = useState<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>({});
   const [categoriesByService, setCategoriesByService] = useState<Record<string, CatalogCategoryLite[]>>({});
   const [itemsByCategory, setItemsByCategory] = useState<Record<string, CatalogItemLite[]>>({});
 
@@ -140,6 +140,7 @@ export default function AdminCataloguePage() {
                   travelFee: String(item.travelFee ?? ''),
                   active: item.active,
                   paymentType: item.paymentType ?? 'END_OF_SERVICE',
+                  targetDevice: item.targetDevice ?? 'ALL',
                 },
               }));
             }}
@@ -152,6 +153,7 @@ export default function AdminCataloguePage() {
                   travelFee: values.travelFee === '' ? null : Number(values.travelFee),
                   active: values.active,
                   paymentType: values.paymentType,
+                  targetDevice: values.targetDevice,
                 });
                 setEditingItem(null);
                 setItemPrices((prev) => {
@@ -183,8 +185,8 @@ interface ServiceCardProps {
   categories: CatalogCategoryLite[];
   itemsByCategory: Record<string, CatalogItemLite[]>;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
   loadCategories: () => void;
   loadItems: (catId: string, categoryId: string) => void;
   onEditItem: (item: CatalogItemLite) => void;
@@ -275,8 +277,8 @@ interface CategorySectionProps {
   itemsLoaded: boolean;
   loadItems: () => void;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -337,8 +339,8 @@ function CategorySection({
 interface ItemRowProps {
   item: CatalogItemLite;
   editingItem: string | null;
-  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>;
-  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string }>>>;
+  itemPrices: Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>;
+  setItemPrices: React.Dispatch<React.SetStateAction<Record<string, { price: string; travelFee: string; active: boolean; paymentType: string; targetDevice: string }>>>;
   onEditItem: (item: CatalogItemLite) => void;
   onSaveItem: (itemId: string) => void;
   onCancelItem: () => void;
@@ -354,7 +356,7 @@ function ItemRow({
   onCancelItem,
 }: ItemRowProps) {
   const isEditing = editingItem === item.id;
-  const values = itemPrices[item.id] ?? { price: String(item.price ?? ''), active: item.active };
+  const values = itemPrices[item.id] ?? { price: String(item.price ?? ''), travelFee: String(item.travelFee ?? ''), active: item.active, paymentType: item.paymentType ?? 'END_OF_SERVICE', targetDevice: item.targetDevice ?? 'ALL' };
 
   return (
     <div className={`border-b last:border-b-0 p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2`}>
@@ -405,6 +407,20 @@ function ItemRow({
               <option value="END_OF_SERVICE">Paiement à la fin</option>
               <option value="DEPOSIT_50">Acompte 50%</option>
             </select>
+            <select
+              value={values.targetDevice}
+              onChange={(e) => {
+                setItemPrices((prev) => ({
+                  ...prev,
+                  [item.id]: { ...prev[item.id], targetDevice: e.target.value },
+                }));
+              }}
+              className="h-10 text-sm border border-border rounded-lg px-2 bg-input"
+            >
+              <option value="ALL">Tous les appareils</option>
+              <option value="PC">PC uniquement</option>
+              <option value="MAC">Mac uniquement</option>
+            </select>
             <label className="flex items-center gap-1 text-xs cursor-pointer">
               <input
                 type="checkbox"
@@ -441,6 +457,9 @@ function ItemRow({
             )}
             <span className={`text-xs font-medium ${item.paymentType === 'DEPOSIT_50' ? 'text-orange-700' : 'text-slate-500'}`}>
               {item.paymentType === 'DEPOSIT_50' ? 'Acompte 50%' : 'Paiement à la fin'}
+            </span>
+            <span className={`text-xs font-medium ${item.targetDevice === 'ALL' ? 'text-slate-500' : item.targetDevice === 'PC' ? 'text-blue-600' : 'text-indigo-600'}`}>
+              {item.targetDevice === 'ALL' ? 'Tous' : item.targetDevice === 'PC' ? 'PC' : 'Mac'}
             </span>
             <Button variant="ghost" size="icon" onClick={() => onEditItem(item)}>
               <span className="size-4">✎</span>
