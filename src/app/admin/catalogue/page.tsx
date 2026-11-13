@@ -158,7 +158,7 @@ export default function AdminCataloguePage() {
         /* Prix : route PATCH items/:id/prices (seulement si un prix est saisi) */
         if (modalForm.pricePublic !== '') {
           await updateCatalogItemPrices(modalItemId, {
-            price: Number(modalForm.pricePublic),
+            pricePublic: Number(modalForm.pricePublic),
             travelFee: null,
           });
         }
