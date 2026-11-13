@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +64,7 @@ function referenceStepState(
 
 export default function SuiviReferencePage() {
   const { reference } = useParams<{ reference: string }>();
+  const searchParams = useSearchParams();
   const [tracking, setTracking] = useState<PublicTracking | null>(null);
   const [settings, setSettings] = useState<PublicPlatformSetting | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,23 +82,38 @@ export default function SuiviReferencePage() {
       return;
     }
 
-    /* Si déjà déverrouillé dans cette session, réutiliser le numéro
-     * enregistré pour recharger automatiquement sans redemander. */
     const savedPhone = sessionStorage.getItem(SESSION_KEY);
-    if (savedPhone) {
-      setUnlockPhone(savedPhone);
+    const urlPhone = searchParams.get('phone');
+    const phoneToTry = urlPhone ?? savedPhone;
+
+    if (phoneToTry) {
+      setUnlockPhone(phoneToTry);
       setLoading(true);
       setError(null);
-      void trackByReference(reference, savedPhone)
+      setUnlockError(null);
+      setIsUnlocked(false);
+      setTracking(null);
+
+      /* Téléphone fourni (URL ou session) : tenter le déverrouillage
+       * automatique avec try / catch / finally. setLoading(false) est
+       * appelé dans le finally pour arrêter les squelettes même en cas
+       * d'erreur (403 numéro mauvais, 404 demande inconnue, etc.). */
+      void trackByReference(reference, phoneToTry)
         .then((result) => {
           setTracking(result);
           setIsUnlocked(true);
           setUnlockError(null);
+          if (urlPhone && !savedPhone) {
+            sessionStorage.setItem(SESSION_KEY, urlPhone);
+          }
         })
         .catch((err) => {
           setTracking(null);
-          sessionStorage.removeItem(SESSION_KEY);
+          setIsUnlocked(false);
           setUnlockError(toUserErrorMessage(err, 'Numéro incorrect. Veuillez réessayer.'));
+          if (savedPhone && !urlPhone) {
+            sessionStorage.removeItem(SESSION_KEY);
+          }
         })
         .finally(() => {
           setLoading(false);
@@ -105,12 +121,13 @@ export default function SuiviReferencePage() {
       return;
     }
 
-    setLoading(true);
+    // Aucun téléphone fourni : afficher le formulaire de déverrouillage.
+    setLoading(false);
     setError(null);
     setUnlockError(null);
     setIsUnlocked(false);
     setTracking(null);
-  }, [reference]);
+  }, [reference, searchParams]);
 
   /* Chargement des paramètres publics (nom, numéro WhatsApp de l'admin). */
   useEffect(() => {
