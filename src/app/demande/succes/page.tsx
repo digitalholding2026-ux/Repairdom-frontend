@@ -35,6 +35,8 @@ export default function SuccesPage() {
   const price = Number(searchParams.get('price') ?? '0');
   const depositAmount = Number(searchParams.get('depositAmount') ?? '0');
   const draftPhone = searchParams.get('phone') ?? '';
+  const targetDevice = searchParams.get('targetDevice') ?? '';
+  const extraRequirements = searchParams.get('extraRequirements') ?? '';
 
   useEffect(() => {
     void getPublicSettings()
@@ -125,6 +127,23 @@ export default function SuccesPage() {
               <span className="text-muted-foreground">Adresse</span>
               <span className="truncate">{address}</span>
             </div>
+          )}
+          {service === 'SYSTEME' && targetDevice && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Type de machine</span>
+              <span>{targetDevice === 'MAC' ? 'Mac' : 'PC'}</span>
+            </div>
+          )}
+          {extraRequirements && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Autres exigences</span>
+              <span className="text-orange-700 font-medium">{extraRequirements}</span>
+            </div>
+          )}
+          {extraRequirements && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Un tarif supplémentaire pourra s'appliquer après validation.
+            </p>
           )}
         </CardContent>
       </Card>

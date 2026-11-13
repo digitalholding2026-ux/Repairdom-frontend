@@ -38,6 +38,11 @@ interface Draft {
   phone: string;
   discountCode: string;
   step: number;
+  /* Parcours Système — Réinstallation OS */
+  targetDevice: 'MAC' | 'PC' | null;
+  osItemId: string | null;
+  osPrice: number | null;
+  extraRequirements: string;
 }
 
 const emptyDraft: Draft = {
@@ -51,6 +56,10 @@ const emptyDraft: Draft = {
   phone: '',
   discountCode: '',
   step: 1,
+  targetDevice: null,
+  osItemId: null,
+  osPrice: null,
+  extraRequirements: '',
 };
 
 const SERVICES: Service[] = ['FRP', 'SYSTEME', 'SMARTPHONE'];
@@ -95,6 +104,14 @@ export function DemandeWizard() {
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingItems, setLoadingItems] = useState(false);
 
+  /* Parcours Système — catégories et items (OS) chargés quand le type
+   * de machine est sélectionné. */
+  const [systemCategories, setSystemCategories] = useState<{ id: string; label: string }[]>([]);
+  const [systemItems, setSystemItems] = useState<{ id: string; label: string; price: number | null }[]>([]);
+  const [selectedSystemCategoryId, setSelectedSystemCategoryId] = useState<string | null>(null);
+  const [loadingSystemCategories, setLoadingSystemCategories] = useState(false);
+  const [loadingSystemItems, setLoadingSystemItems] = useState(false);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
@@ -121,23 +138,42 @@ export function DemandeWizard() {
 
   /* Quand le service change (ou redevient FRP), on recharge les catégories. */
   useEffect(() => {
-    if (!loaded || draft.service !== 'FRP') {
-      setCategories([]);
-      setItems([]);
-      setSelectedCategoryId(null);
-      update({ brandId: null, modelId: null, modelPrice: null });
+    if (!loaded) return;
+
+    /* FRP : catégories de marques. */
+    if (draft.service === 'FRP') {
+      setLoadingCategories(true);
+      void listCategories('FRP')
+        .then((cats) =>
+          setCategories(
+            cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
+          ),
+        )
+        .catch(() => setCategories([]))
+        .finally(() => setLoadingCategories(false));
       return;
     }
-    setLoadingCategories(true);
-    void listCategories('FRP')
-      .then((cats) =>
-        setCategories(
-          cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label)),
-        ),
-      )
-      .catch(() => setCategories([]))
-      .finally(() => setLoadingCategories(false));
-  }, [loaded, draft.service]);
+
+    /* SYSTEME + Réinstallation OS : catégories pour charger les OS. */
+    if (draft.service === 'SYSTEME' && draft.problem === 'Réinstallation OS') {
+      setLoadingSystemCategories(true);
+      void listCategories('SYSTEME')
+        .then((cats) => {
+          const sorted = cats.map((c) => ({ id: c.id, label: c.label })).sort((a, b) => a.label.localeCompare(b.label));
+          setSystemCategories(sorted);
+          setSelectedSystemCategoryId(sorted[0]?.id ?? null);
+        })
+        .catch(() => setSystemCategories([]))
+        .finally(() => setLoadingSystemCategories(false));
+      return;
+    }
+
+    setCategories([]);
+    setSystemCategories([]);
+    setSelectedCategoryId(null);
+    setSelectedSystemCategoryId(null);
+    update({ brandId: null, modelId: null, modelPrice: null, targetDevice: null, osItemId: null, osPrice: null });
+  }, [loaded, draft.service, draft.problem]);
 
   /* Quand une catégorie (marque) est choisie, on recharge ses items (modèles). */
   useEffect(() => {
@@ -159,6 +195,28 @@ export function DemandeWizard() {
       .catch(() => setItems([]))
       .finally(() => setLoadingItems(false));
   }, [loaded, draft.service, selectedCategoryId]);
+
+  /* Quand une catégorie SYSTEME et un type de machine sont choisis, on
+   * recharge les items (OS) filtrés par targetDevice. */
+  useEffect(() => {
+    if (!loaded || draft.service !== 'SYSTEME' || !selectedSystemCategoryId || !draft.targetDevice) {
+      setSystemItems([]);
+      update({ osItemId: null, osPrice: null });
+      return;
+    }
+    setLoadingSystemItems(true);
+    void listItems('SYSTEME', selectedSystemCategoryId, draft.targetDevice)
+      .then((its) =>
+        setSystemItems(
+          its
+            .filter((i) => i.price != null)
+            .map((i) => ({ id: i.id, label: i.label, price: i.price ?? null }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        ),
+      )
+      .catch(() => setSystemItems([]))
+      .finally(() => setLoadingSystemItems(false));
+  }, [loaded, draft.service, selectedSystemCategoryId, draft.targetDevice]);
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -198,14 +256,25 @@ export function DemandeWizard() {
         phone: draft.phone ?? '',
         description: draft.description || undefined,
         discountCode: draft.discountCode || undefined,
-        catalogItemId: draft.modelId ?? undefined,
-        finalAmount: draft.modelPrice ?? undefined,
+        ...(draft.service === 'SYSTEME'
+          ? { catalogItemId: draft.osItemId ?? undefined, finalAmount: draft.osPrice ?? undefined }
+          : { catalogItemId: draft.modelId ?? undefined, finalAmount: draft.modelPrice ?? undefined }),
+        targetDevice: draft.targetDevice ?? undefined,
+        extraRequirements: draft.extraRequirements || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
-      const modelLabel = draft.modelId ? items.find((i) => i.id === draft.modelId)?.label ?? '' : '';
+      const isSysteme = draft.service === 'SYSTEME';
+      const modelLabel = isSysteme
+        ? draft.osItemId
+          ? systemItems.find((i) => i.id === draft.osItemId)?.label ?? ''
+          : ''
+        : draft.modelId
+          ? items.find((i) => i.id === draft.modelId)?.label ?? ''
+          : '';
+      const price = isSysteme ? draft.osPrice ?? 0 : draft.modelPrice ?? 0;
       router.push(
-        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}`,
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${price}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}&targetDevice=${encodeURIComponent(draft.targetDevice ?? '')}&extraRequirements=${encodeURIComponent(draft.extraRequirements ?? '')}`,
       );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
@@ -225,14 +294,25 @@ export function DemandeWizard() {
         phone: draft.phone ?? '',
         description: draft.description || undefined,
         discountCode: draft.discountCode || undefined,
-        catalogItemId: draft.modelId ?? undefined,
-        finalAmount: draft.modelPrice ?? undefined,
+        ...(draft.service === 'SYSTEME'
+          ? { catalogItemId: draft.osItemId ?? undefined, finalAmount: draft.osPrice ?? undefined }
+          : { catalogItemId: draft.modelId ?? undefined, finalAmount: draft.modelPrice ?? undefined }),
+        targetDevice: draft.targetDevice ?? undefined,
+        extraRequirements: draft.extraRequirements || undefined,
       });
 
       localStorage.removeItem(DRAFT_KEY);
-      const modelLabel = draft.modelId ? items.find((i) => i.id === draft.modelId)?.label ?? '' : '';
+      const isSysteme = draft.service === 'SYSTEME';
+      const modelLabel = isSysteme
+        ? draft.osItemId
+          ? systemItems.find((i) => i.id === draft.osItemId)?.label ?? ''
+          : ''
+        : draft.modelId
+          ? items.find((i) => i.id === draft.modelId)?.label ?? ''
+          : '';
+      const price = isSysteme ? draft.osPrice ?? 0 : draft.modelPrice ?? 0;
       router.push(
-        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${draft.modelPrice ?? 0}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}`,
+        `/demande/succes?reference=${encodeURIComponent(result.reference)}&id=${encodeURIComponent(result.id)}&service=${encodeURIComponent(draft.service ?? 'FRP')}&address=${encodeURIComponent(draft.address)}&model=${encodeURIComponent(modelLabel)}&price=${price}&depositAmount=${result.depositAmount ?? 0}&phone=${encodeURIComponent(draft.phone ?? '')}&targetDevice=${encodeURIComponent(draft.targetDevice ?? '')}&extraRequirements=${encodeURIComponent(draft.extraRequirements ?? '')}`,
       );
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création de la demande.');
@@ -347,7 +427,12 @@ export function DemandeWizard() {
                 <Field label="Type d'intervention">
                   <Select
                     value={draft.problem ?? ''}
-                    onChange={(e) => update({ problem: e.target.value })}
+                    onChange={(e) => {
+                      update({ problem: e.target.value });
+                      if (e.target.value !== 'Réinstallation OS') {
+                        update({ targetDevice: null, osItemId: null, osPrice: null, extraRequirements: '' });
+                      }
+                    }}
                   >
                     <option value="">Choisir une intervention</option>
                     {INTERVENTION_TYPES.map((t) => (
@@ -357,9 +442,66 @@ export function DemandeWizard() {
                     ))}
                   </Select>
                 </Field>
-                <Field label="Décrivez votre demande">
-                  <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
-                </Field>
+                {draft.problem === 'Réinstallation OS' ? (
+                  <>
+                    <Field label="Type de machine">
+                      <Select
+                        value={draft.targetDevice ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value as 'MAC' | 'PC';
+                          update({ targetDevice: v, osItemId: null, osPrice: null });
+                        }}
+                        disabled={loadingSystemCategories || systemCategories.length === 0}
+                      >
+                        <option value="">Choisir Mac ou PC</option>
+                        <option value="MAC">Mac</option>
+                        <option value="PC">PC</option>
+                      </Select>
+                      {loadingSystemCategories && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                    </Field>
+                    {draft.targetDevice ? (
+                      <>
+                        <Field label="Système d'exploitation">
+                          <Select
+                            value={draft.osItemId ?? ''}
+                            onChange={(e) => {
+                              const it = systemItems.find((x) => x.id === e.target.value);
+                              update({ osItemId: e.target.value || null, osPrice: it?.price ?? null });
+                            }}
+                            disabled={loadingSystemItems || systemItems.length === 0}
+                          >
+                            <option value="">Choisir un système d'exploitation</option>
+                            {systemItems.map((it) => (
+                              <option key={it.id} value={it.id}>
+                                {it.label}
+                              </option>
+                            ))}
+                          </Select>
+                          {loadingSystemItems && <span className="text-xs text-muted-foreground">Chargement…</span>}
+                          {draft.osPrice != null && (
+                            <p className="mt-1 text-sm font-semibold text-primary">
+                              Prix de base : {formatFCFA(draft.osPrice)}
+                            </p>
+                          )}
+                        </Field>
+                        <Field label="Autres exigences (optionnel)">
+                          <Textarea
+                            value={draft.extraRequirements}
+                            onChange={(e) => update({ extraRequirements: e.target.value })}
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Décrivez tout autre besoin. Un tarif supplémentaire
+                            pourra s'appliquer après validation.
+                          </p>
+                        </Field>
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  <Field label="Décrivez votre demande">
+                    <Textarea value={draft.description} onChange={(e) => update({ description: e.target.value })} />
+                  </Field>
+                )}
               </>
             ) : null}
             {draft.service === 'SMARTPHONE' ? (
@@ -421,6 +563,24 @@ export function DemandeWizard() {
               {draft.description ? <li>Détail : {draft.description}</li> : null}
               <li>Adresse : {draft.address}</li>
               <li>Téléphone : {draft.phone}</li>
+              {draft.service === 'SYSTEME' && draft.problem === 'Réinstallation OS' && (
+                <>
+                  <li>Type de machine : {draft.targetDevice === 'MAC' ? 'Mac' : 'PC'}</li>
+                  {draft.osItemId && (
+                    <li>
+                      Système : {systemItems.find((i) => i.id === draft.osItemId)?.label ?? draft.osItemId}
+                    </li>
+                  )}
+                  {draft.osPrice != null && (
+                    <li>Prix de base : {formatFCFA(draft.osPrice)}</li>
+                  )}
+                  {draft.extraRequirements && (
+                    <li>
+                      Autres exigences : {draft.extraRequirements}
+                    </li>
+                  )}
+                </>
+              )}
             </ul>
 
             {/* Code de réduction (B2B) — désactivé, disponible prochainement */}

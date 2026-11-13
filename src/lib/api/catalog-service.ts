@@ -136,6 +136,7 @@ export interface CatalogItemLite {
   active: boolean;
   travelFee: number | null;
   paymentType: string;
+  targetDevice: string;
 }
 
 export async function listServices(): Promise<CatalogServiceLite[]> {
@@ -149,8 +150,14 @@ export async function listCategories(serviceCode: string): Promise<CatalogCatego
 export async function listItems(
   serviceCode: string,
   categoryId: string,
+  targetDevice?: string,
 ): Promise<CatalogItemLite[]> {
+  const query = new URLSearchParams();
+  if (targetDevice && targetDevice !== 'ALL') {
+    query.set('targetDevice', targetDevice);
+  }
+  const qs = query.toString();
   return apiFetch<CatalogItemLite[]>(
-    `/services/${encodeURIComponent(serviceCode)}/categories/${encodeURIComponent(categoryId)}/items`,
+    `/services/${encodeURIComponent(serviceCode)}/categories/${encodeURIComponent(categoryId)}/items${qs ? `?${qs}` : ''}`,
   );
 }

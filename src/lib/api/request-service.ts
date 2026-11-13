@@ -35,6 +35,8 @@ export interface CreateDemandeInput {
   address: string;
   phone: string;
   discountCode?: string;
+  targetDevice?: string;
+  extraRequirements?: string;
 }
 
 export interface TechnicianInfo {
@@ -97,6 +99,9 @@ export interface CreateDemandeResult {
   problem: DeviceContext | null;
   negotiationRequestedAt: string | null;
   finalAmount: number | null;
+  // Parcours Système — cible de matériel (MAC/PC/ALL) et exigences libres.
+  extraRequirements: string | null;
+  targetDevice: string | null;
   // Frais de déplacement (booking fee) : dépôt payé à la validation (FRP/Système).
   depositAmount: number | null;
   depositPaid: boolean;
@@ -148,6 +153,8 @@ export async function createDemande(input: CreateDemandeInput): Promise<CreateDe
       address: input.address,
       phone: input.phone,
       ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+      ...(input.targetDevice ? { targetDevice: input.targetDevice } : {}),
+      ...(input.extraRequirements ? { extraRequirements: input.extraRequirements } : {}),
     }),
   });
 

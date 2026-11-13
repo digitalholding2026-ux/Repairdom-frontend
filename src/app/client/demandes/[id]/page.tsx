@@ -978,6 +978,32 @@ export default function ClientDemandeDetailPage() {
                 </dt>
                 <dd className="mt-0.5 font-medium tabular-nums">{demande.contactPhone || '—'}</dd>
               </div>
+              {demande.categoryId === 'SYSTEME' && demande.extraRequirements && (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Autres exigences
+                  </dt>
+                  <dd className="mt-0.5 text-orange-700 font-medium">{demande.extraRequirements}</dd>
+                </div>
+              )}
+              {demande.categoryId === 'SYSTEME' && demande.targetDevice && (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Type de machine
+                  </dt>
+                  <dd className="mt-0.5 font-medium">
+                    {demande.targetDevice === 'MAC' ? 'Mac' : 'PC'}
+                  </dd>
+                </div>
+              )}
+              {demande.categoryId === 'SYSTEME' && demande.finalAmount != null && demande.finalAmount > 0 && (
+                <div>
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Prix de base
+                  </dt>
+                  <dd className="mt-0.5 font-medium tabular-nums">{formatFCFA(demande.finalAmount)}</dd>
+                </div>
+              )}
             </dl>
           </CardContent>
         </Card>
