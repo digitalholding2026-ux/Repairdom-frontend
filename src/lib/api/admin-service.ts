@@ -1094,6 +1094,22 @@ export interface AdminCatalogItem {
   targetDevice: string;
 }
 
+export function updateCatalogItem(
+  itemId: string,
+  data: {
+    label?: string;
+    description?: string | null;
+    targetDevice?: string | null;
+    paymentType?: string;
+    active?: boolean;
+  },
+): Promise<AdminCatalogItem> {
+  return catalogFetch<AdminCatalogItem>(
+    `/admin/catalog/items/${encodeURIComponent(itemId)}`,
+    patchBody(data),
+  );
+}
+
 export function updateCatalogItemPrices(
   itemId: string,
   data: { price?: number | null; active?: boolean; travelFee?: number | null; paymentType?: string; targetDevice?: string | null },

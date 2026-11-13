@@ -19,7 +19,7 @@ import {
   type CatalogItemLite,
   type CatalogServiceLite,
 } from '@/lib/api/catalog-service';
-import { createCatalogItem, deleteCatalogItem, updateCatalogItemPrices } from '@/lib/api/admin-service';
+import { createCatalogItem, deleteCatalogItem, updateCatalogItem, updateCatalogItemPrices } from '@/lib/api/admin-service';
 import { toUserErrorMessage } from '@/lib/ui-error-message';
 
 function targetDeviceBadgeClass(targetDevice: string): string {
@@ -130,9 +130,13 @@ export default function AdminCataloguePage() {
   const handleModalSave = async () => {
     try {
       if (modalMode === 'create' && modalItemId === null) {
+        if (!expandedCategory) {
+          setError('Veuillez sélectionner une catégorie avant d’ajouter un item.');
+          return;
+        }
         await createCatalogItem({
-          categoryId: expandedCategory ?? '',
-          code: modalForm.label.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, ''),
+          categoryId: expandedCategory,
+          code: modalForm.label.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'ITEM',
           label: modalForm.label,
           description: modalForm.description || null,
           androidVersion: null,
@@ -143,13 +147,21 @@ export default function AdminCataloguePage() {
           targetDevice: modalForm.targetDevice,
         });
       } else if (modalItemId) {
-        await updateCatalogItemPrices(modalItemId, {
-          price: modalForm.pricePublic === '' ? null : Number(modalForm.pricePublic),
-          travelFee: null,
-          active: modalForm.active,
-          paymentType: modalForm.paymentType,
+        /* Champs texte / état : route PATCH items/:id */
+        await updateCatalogItem(modalItemId, {
+          label: modalForm.label,
+          description: modalForm.description || null,
           targetDevice: modalForm.targetDevice,
+          paymentType: modalForm.paymentType,
+          active: modalForm.active,
         });
+        /* Prix : route PATCH items/:id/prices (seulement si un prix est saisi) */
+        if (modalForm.pricePublic !== '') {
+          await updateCatalogItemPrices(modalItemId, {
+            price: Number(modalForm.pricePublic),
+            travelFee: null,
+          });
+        }
       }
       setModalOpen(false);
       void loadServices();
